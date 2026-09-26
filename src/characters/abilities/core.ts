@@ -1,0 +1,127 @@
+import { z } from "zod";
+import { bottom, right } from "../../engine/geometry";
+import { areaIndexAt, nearestAreaIndex } from "../../engine/physics";
+import type { Pet } from "../Pet";
+import type { AbilityModule } from "./types";
+
+const grounded = (p: Pet) => p.grounded;
+
+/** Stop moving and hold still for a random while, then ask the brain. */
+function rest(anim: string, min: number, max: number) {
+  return {
+    anim,
+    enter: (p: Pet) => {
+      p.body.vx = 0;
+      p.activity(min, max);
+    },
+    update: (p: Pet) => (p.activityDone() ? p.next() : undefined),
+  };
+}
+
+function move(anim: string, speed: (p: Pet) => number, min: number, max: number) {
+  return {
+    anim,
+    enter: (p: Pet) => {
+      if (p.rng() < 0.35) p.facing = p.facing === 1 ? -1 : 1;
+      p.activity(min, max);
+    },
+    update: (p: Pet) => {
+      p.body.vx = p.facing * speed(p);
+      return p.activityDone() ? p.next() : undefined;
+    },
+    exit: (p: Pet) => {
+      p.body.vx = 0;
+    },
+  };
+}
+
+/** The abilities every character has. Always resolved first. */
+export const core: AbilityModule<Record<string, never>> = {
+  id: "core",
+  description: "Idle, walk, run, sit, sleep, jump, fall, land, be dragged, react.",
+  params: z.object({}).strict(),
+  requiredAnimations: [],
+  behaviors: {
+    idle: { state: "idle" },
+    walk: { state: "walk", canStart: grounded },
+    run: { state: "run", canStart: grounded },
+    sit: { state: "sit", canStart: grounded },
+    sleep: { state: "sleep", canStart: grounded },
+    jump: { state: "jump", canStart: grounded },
+  },
+  states: {
+    idle: rest("idle", 2, 5),
+    sit: rest("sit", 4, 10),
+    sleep: {
+      anim: "sleep",
+      enter: (p) => {
+        p.body.vx = 0;
+        const s = p.def.personality.sleepiness;
+        p.activity(10 + 10 * s, 25 + 30 * s);
+      },
+      update: (p) => (p.activityDone() ? p.next() : undefined),
+    },
+    happy: rest("happy", 1.2, 1.8),
+    alert: rest("alert", 2.5, 3.5),
+    walk: move("walk", (p) => p.walkSpeed(), 3, 8),
+    run: move("run", (p) => p.runSpeed(), 1.5, 4),
+    jump: {
+      anim: "jump",
+      airborne: true,
+      enter: (p) => {
+        if (!p.grounded) return;
+        p.body.support = null;
+        p.body.vy = -p.u(p.def.stats.jumpPower);
+        p.body.vx = p.facing * p.walkSpeed();
+      },
+      update: (p) => (p.body.vy > 0 ? "fall" : undefined),
+    },
+    fall: {
+      anim: "fall",
+      airborne: true,
+      update: (p) => p.fallingHook(),
+    },
+    land: {
+      anim: "land",
+      enter: (p) => {
+        p.body.vx = 0;
+      },
+      update: (p) => (p.anim.finished || p.fsm.time > 0.6 ? p.next() : undefined),
+    },
+    drag: { anim: "drag", kinematic: true },
+    /** Run to `pet.target` (e.g. to the middle of the screen for a reminder), then alert. */
+    goto: {
+      anim: "run",
+      update: (p) => {
+        if (!p.target) return "alert";
+        const dx = p.target.x - p.body.x;
+        if (Math.abs(dx) < p.u(12) || p.lastStep?.hitWall || p.fsm.time > 8) {
+          p.target = null;
+          p.body.vx = 0;
+          return "alert";
+        }
+        p.facing = dx > 0 ? 1 : -1;
+        p.body.vx = p.facing * p.runSpeed();
+      },
+      exit: (p) => {
+        p.body.vx = 0;
+      },
+    },
+  },
+};
+
+/** Horizontal centre of the work area the pet is on (target for reminders). */
+export function areaCentreX(p: Pet): number {
+  let i = areaIndexAt(p.world, p.body.x, p.body.y - 1);
+  if (i < 0) i = nearestAreaIndex(p.world, p.body.x, p.body.y);
+  const a = p.world.areas[i];
+  return a ? a.x + a.w / 2 : p.body.x;
+}
+
+/** Bounds of the area the pet is on: [left, top, right, bottom]. */
+export function areaBounds(p: Pet): [number, number, number, number] {
+  let i = areaIndexAt(p.world, p.body.x, p.body.y - 1);
+  if (i < 0) i = nearestAreaIndex(p.world, p.body.x, p.body.y);
+  const a = p.world.areas[i] ?? { x: 0, y: 0, w: 1920, h: 1080 };
+  return [a.x, a.y, right(a), bottom(a)];
+}

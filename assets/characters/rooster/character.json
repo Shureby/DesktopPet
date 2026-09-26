@@ -1,0 +1,706 @@
+{
+  "$schema": "../../../schema/character.schema.json",
+  "schemaVersion": 1,
+  "id": "rooster",
+  "displayName": "Rooster",
+  "description": "Loud, proud and punctual. Glides down from anywhere and crows at your alarms.",
+  "sprite": {
+    "type": "pixels",
+    "scale": 3,
+    "palette": {
+      "k": "#2a2a2a",
+      "w": "#fbfbf5",
+      "b": "#a0522d",
+      "n": "#e8a23a",
+      "r": "#d7263d",
+      "y": "#f2b705",
+      "t": "#1f3d2b",
+      "u": "#3f7a5a",
+      "e": "#8a8a8a",
+      "z": "#7aa7ff"
+    },
+    "frames": {
+      "stand": [
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwwkwk..",
+        "tu..ut..kwwwwkyy",
+        "t...ut..kwwwrr..",
+        "t..ut...knnnrr..",
+        "..tut..knnnnk...",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        "......y..y......",
+        "......y..y......",
+        ".....yy.yy......"
+      ],
+      "blink": [
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwwewk..",
+        "tu..ut..kwwwwkyy",
+        "t...ut..kwwwrr..",
+        "t..ut...knnnrr..",
+        "..tut..knnnnk...",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        "......y..y......",
+        "......y..y......",
+        ".....yy.yy......"
+      ],
+      "walk1": [
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwwkwk..",
+        "tu..ut..kwwwwkyy",
+        "t...ut..kwwwrr..",
+        "t..ut...knnnrr..",
+        "..tut..knnnnk...",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        ".....y....y.....",
+        "....y......y....",
+        "...yy......yy..."
+      ],
+      "walk2": [
+        "...........rr...",
+        "..........rrrr..",
+        "..tt.....kwwwwk.",
+        ".tuut....kwwkwk.",
+        "tu..ut...kwwwwky",
+        "t...ut...kwwwrr.",
+        "t..ut....knnnrr.",
+        "..tut...knnnnk..",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        ".......yy.......",
+        ".......yy.......",
+        "......yyyy......"
+      ],
+      "run1": [
+        "...........rr...",
+        "..........rrrr..",
+        "..tt.....kwwwwk.",
+        ".tuut....kwwkwk.",
+        "tu..ut...kwwwwky",
+        "t...ut...kwwwrr.",
+        "t..kbbbbbknnnrr.",
+        "..tkbbbbbbknnk..",
+        "..ttkbbbbknwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        ".....y....y.....",
+        "....y......y....",
+        "...yy......yy..."
+      ],
+      "run2": [
+        "...........rr...",
+        "..........rrrr..",
+        "..tt.....kwwwwk.",
+        ".tuut....kwwkwk.",
+        "tu..ut...kwwwwky",
+        "t...ut...kwwwrr.",
+        "t..ut....knnnrr.",
+        "..tut...knnnnk..",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kkbbbbbkwwwk..",
+        "..kbbbbbkbwwk...",
+        "..kbbbkwwwwk....",
+        "...kkkkkkkk.....",
+        ".......yy.......",
+        ".......yy.......",
+        "......yyyy......"
+      ],
+      "jump": [
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwkkwk..",
+        "tu..ut..kwwwwkyy",
+        "t...ut..kwwwrr..",
+        "t..ut...knnnrr..",
+        "..tut..knnnnk...",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kkbbbbbkwwwk..",
+        "..kbbbbbkbwwk...",
+        "..kbbbkwwwwk....",
+        "...kkkkkkkk.....",
+        "......yy.yy.....",
+        "................",
+        "................"
+      ],
+      "fall": [
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwkkwkyy",
+        "tu..ukbkkwwwwk..",
+        "t...kbbbkwwwrryy",
+        "t..kbbbbbknnrr..",
+        "..tkbbbbbbknk...",
+        "..ttkbbbbknwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        ".....y....y.....",
+        "....y......y....",
+        "...yy......yy..."
+      ],
+      "land": [
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwwkwk..",
+        "tu..ut..kwwwwkyy",
+        "t...ut..kwwwrr..",
+        "t..ut...knnnrr..",
+        "..tut..knnnnk...",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kkbbbbbkwwwk..",
+        "..kbbbbbkbwwk...",
+        "..kbbbkwwwwk....",
+        "...kkkkkkkk.....",
+        ".......yy.......",
+        ".......yy.......",
+        "......yyyy......"
+      ],
+      "glide1": [
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwwkwk..",
+        "tu..ukbkkwwwwkyy",
+        "t...kbbbkwwwrr..",
+        "t..kbbbbbknnrr..",
+        "..tkbbbbbbknk...",
+        "..ttkbbbbknwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        "......yy.yy.....",
+        "................",
+        "................"
+      ],
+      "glide2": [
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwwkwk..",
+        "tu..ut..kwwwwkyy",
+        "t...ut..kwwwrr..",
+        "t..ut...knnnrr..",
+        "..tut..knnnnk...",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kkbbbbbkwwwk..",
+        "..kbbbbbkbwwk...",
+        "..kbbbkwwwwk....",
+        "...kkkkkkkk.....",
+        "......yy.yy.....",
+        "................",
+        "................"
+      ],
+      "crow1": [
+        "...........rr..r",
+        "..........rrrr..",
+        "..tt.....kwwwwk.",
+        ".tuut....kwwkwky",
+        "tu..ut...kwwwwk.",
+        "t...ut...kwwwrry",
+        "t..ut....knnnrr.",
+        "..tut...knnnnk..",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        "......y..y......",
+        "......y..y......",
+        ".....yy.yy......"
+      ],
+      "crow2": [
+        "...........rr.r.",
+        "..........rrrr.r",
+        "..tt.....kwwwwk.",
+        ".tuut....kwwkwky",
+        "tu..ut...kwwwwk.",
+        "t...ut...kwwwrry",
+        "t..ut....knnnrr.",
+        "..tut...knnnnk..",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        "......y..y......",
+        "......y..y......",
+        ".....yy.yy......"
+      ],
+      "alert": [
+        "..........rr...r",
+        ".........rrrr..r",
+        "..tt....kwwwwk..",
+        ".tuut...kwkkwk.r",
+        "tu..ut..kwwwwkyy",
+        "t...ut..kwwwrr..",
+        "t..ut...knnnrr..",
+        "..tut..knnnnk...",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        "......y..y......",
+        "......y..y......",
+        ".....yy.yy......"
+      ],
+      "peck1": [
+        "................",
+        "................",
+        "..tt............",
+        ".tuut......rr...",
+        "tu..ut....rrrr..",
+        "t...ut...kwwwwk.",
+        "t..ut....kwwkwk.",
+        "..tut....kwwwwky",
+        "..tt.kkwwkwwwrr.",
+        "..tkkwwwwknnnrr.",
+        "..kwwbbbknnnnk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        "......y..y......",
+        "......y..y......",
+        ".....yy.yy......"
+      ],
+      "peck2": [
+        "................",
+        "................",
+        "..tt............",
+        ".tuut...........",
+        "tu..ut..........",
+        "t...ut..........",
+        "t..ut......rr...",
+        "..tut.....rrrr..",
+        "..tt.kkwwkwwwwk.",
+        "..tkkwwwwkwwkwk.",
+        "..kwwbbbbkwwwwky",
+        "..kwwwbbbkwwwrr.",
+        "...kwwwwbknnnrr.",
+        "....kwwwknnnnk..",
+        ".....kkkkkk.....",
+        "......y..y......",
+        "......y..y......",
+        ".....yy.yy......"
+      ],
+      "kick": [
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwwkwk..",
+        "tu..ut..kwwwwkyy",
+        "t...ut..kwwwrr..",
+        "t..ut...knnnrr..",
+        "..tut..knnnnk...",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.yy..",
+        ".....y....yyy...",
+        "....y......y....",
+        "...yy......yy..."
+      ],
+      "sit": [
+        "................",
+        "................",
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwwkwk..",
+        "tu..ut..kwwwwkyy",
+        "t...ut..kwwwrr..",
+        "t..ut...knnnrr..",
+        "..tut..knnnnk...",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        "......yy.yy....."
+      ],
+      "sit_blink": [
+        "................",
+        "................",
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwwewk..",
+        "tu..ut..kwwwwkyy",
+        "t...ut..kwwwrr..",
+        "t..ut...knnnrr..",
+        "..tut..knnnnk...",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        "......yy.yy....."
+      ],
+      "sleep1": [
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+        "..tt.....rr.....",
+        ".tuut...rrrr....",
+        "tu..ut.kwwwwk...",
+        "t...ut.kwwewk...",
+        "t..ut..kwwwwkyy.",
+        "..tut..kwwwrr...",
+        "..tt.kkknnnrr...",
+        "..tkkwknnnnkwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk....."
+      ],
+      "sleep2": [
+        "................",
+        "................",
+        "..............z.",
+        ".............z..",
+        "................",
+        "..tt.....rr.....",
+        ".tuut...rrrr....",
+        "tu..ut.kwwwwk...",
+        "t...ut.kwwewk...",
+        "t..ut..kwwwwkyy.",
+        "..tut..kwwwrr...",
+        "..tt.kkknnnrr...",
+        "..tkkwknnnnkwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk....."
+      ],
+      "drag1": [
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwkkwkyy",
+        "tu..ukbkkwwwwk..",
+        "t...kbbbkwwwrryy",
+        "t..kbbbbbknnrr..",
+        "..tkbbbbbbknk...",
+        "..ttkbbbbknwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        ".....y....y.....",
+        "....y......y....",
+        "...yy......yy..."
+      ],
+      "drag2": [
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwkkwkyy",
+        "tu..ut..kwwwwk..",
+        "t...ut..kwwwrryy",
+        "t..ut...knnnrr..",
+        "..tut..knnnnk...",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kkbbbbbkwwwk..",
+        "..kbbbbbkbwwk...",
+        "..kbbbkwwwwk....",
+        "...kkkkkkkk.....",
+        ".....y....y.....",
+        "....y......y....",
+        "...yy......yy..."
+      ]
+    }
+  },
+  "stats": {
+    "walkSpeed": 55,
+    "runSpeed": 200,
+    "jumpPower": 700,
+    "weight": 0.8,
+    "climbSpeed": 0
+  },
+  "animations": {
+    "idle": {
+      "frames": [
+        "stand",
+        "stand",
+        "peck1",
+        "peck2",
+        "stand",
+        "blink"
+      ],
+      "fps": 3
+    },
+    "walk": {
+      "frames": [
+        "walk1",
+        "walk2"
+      ],
+      "fps": 6
+    },
+    "run": {
+      "frames": [
+        "run1",
+        "run2"
+      ],
+      "fps": 10
+    },
+    "jump": {
+      "frames": [
+        "jump"
+      ],
+      "fps": 1
+    },
+    "fall": {
+      "frames": [
+        "fall",
+        "drag2"
+      ],
+      "fps": 10
+    },
+    "land": {
+      "frames": [
+        "land",
+        "stand"
+      ],
+      "fps": 8,
+      "loop": false
+    },
+    "sit": {
+      "frames": [
+        "sit",
+        "sit",
+        "sit",
+        "sit_blink"
+      ],
+      "fps": 2
+    },
+    "sleep": {
+      "frames": [
+        "sleep1",
+        "sleep2"
+      ],
+      "fps": 1
+    },
+    "drag": {
+      "frames": [
+        "drag1",
+        "drag2"
+      ],
+      "fps": 8
+    },
+    "happy": {
+      "frames": [
+        "crow1",
+        "crow2"
+      ],
+      "fps": 4
+    },
+    "alert": {
+      "frames": [
+        "alert",
+        "crow1"
+      ],
+      "fps": 3
+    },
+    "glide": {
+      "frames": [
+        "glide1",
+        "glide2"
+      ],
+      "fps": 5
+    },
+    "peck": {
+      "frames": [
+        "peck1",
+        "peck2",
+        "stand"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "kick": {
+      "frames": [
+        "kick",
+        "stand"
+      ],
+      "fps": 8,
+      "loop": false
+    }
+  },
+  "abilities": [
+    {
+      "id": "glide",
+      "params": {
+        "fallSpeedFactor": 0.22,
+        "drift": 80
+      }
+    }
+  ],
+  "personality": {
+    "behaviors": {
+      "idle": 4,
+      "walk": 5,
+      "run": 1.5,
+      "sit": 1,
+      "sleep": 1,
+      "jump": 1.5
+    },
+    "sleepiness": 0.3,
+    "sociability": 0.9,
+    "lines": {
+      "greet": [
+        "Cock-a-doodle-doo!",
+        "Morning! Or whenever it is!"
+      ],
+      "petted": [
+        "Bawk \u2665",
+        "Cluck cluck!"
+      ],
+      "thrown": [
+        "BAWK?!",
+        "I can fly! Sort of!"
+      ],
+      "landed": [
+        "Graceful as always.",
+        "Ta-da!"
+      ],
+      "reminder": [
+        "BAWK! {title}",
+        "Hey hey hey! {title}"
+      ],
+      "alarm": [
+        "COCK-A-DOODLE-DOO! {title}",
+        "It's time! {title}"
+      ],
+      "focusStart": [
+        "Focus mode! I'll keep watch.",
+        "Heads down, beak down."
+      ],
+      "breakStart": [
+        "BREAK TIME! Flap those arms!",
+        "Stretch! Strut! Go!"
+      ],
+      "focusEnd": [
+        "Great work, you earned some corn."
+      ],
+      "bored": [
+        "Bawk?",
+        "Anybody got seeds?"
+      ]
+    }
+  },
+  "moveset": {
+    "style": "Rapid pecks, a spur kick and a diving wing flurry from above.",
+    "moves": [
+      {
+        "id": "peck",
+        "name": "Peck",
+        "kind": "light",
+        "anim": "peck",
+        "startup": 40,
+        "active": 60,
+        "recovery": 110,
+        "damage": 3,
+        "range": 25,
+        "knockback": 40
+      },
+      {
+        "id": "spur",
+        "name": "Spur Kick",
+        "kind": "heavy",
+        "anim": "kick",
+        "startup": 200,
+        "active": 120,
+        "recovery": 300,
+        "cooldown": 300,
+        "damage": 13,
+        "range": 60,
+        "knockback": 320
+      },
+      {
+        "id": "flurry",
+        "name": "Wing Flurry",
+        "kind": "aerial",
+        "anim": "glide",
+        "startup": 150,
+        "active": 300,
+        "recovery": 250,
+        "cooldown": 700,
+        "damage": 16,
+        "range": 90,
+        "knockback": 250
+      }
+    ]
+  }
+}

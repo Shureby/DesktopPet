@@ -1,0 +1,45 @@
+[package]
+name = "desktoppet"
+description = "Desktop pet with reminders, a tomato clock and mini-games."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "desktoppet_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[features]
+default = ["direct"]
+# Storefront flavours: build exactly one for a release.
+direct = []
+steam = ["dep:steamworks"]
+epic = []
+
+[dependencies]
+desktoppet-core = { path = "../crates/desktoppet-core" }
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+tauri = { version = "2", features = ["tray-icon", "protocol-asset", "macos-private-api", "image-png"] }
+tauri-plugin-single-instance = "2"
+tauri-plugin-autostart = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-opener = "2"
+log = "0.4"
+steamworks = { version = "0.12", optional = true }
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.61", features = [
+  "Win32_Foundation",
+  "Win32_Graphics_Dwm",
+  "Win32_UI_WindowsAndMessaging",
+  "Win32_System_Threading",
+] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.10"
+core-graphics = "0.24"

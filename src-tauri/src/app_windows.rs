@@ -1,0 +1,96 @@
+//! The pet, panel and game windows.
+
+use serde::Serialize;
+use tauri::{AppHandle, Emitter, Manager, Runtime, WebviewUrl, WebviewWindowBuilder};
+
+pub const PET: &str = "pet";
+pub const PANEL: &str = "panel";
+pub const GAME: &str = "game";
+
+#[derive(Clone, Serialize)]
+pub struct GameEvent<'a> {
+    pub state: &'a str,
+    pub game: &'a str,
+}
+
+pub fn product_name<R: Runtime>(app: &AppHandle<R>) -> String {
+    app.config().product_name.clone().unwrap_or_else(|| "Desktop Pet".into())
+}
+
+pub fn open_panel<R: Runtime>(app: &AppHandle<R>, tab: Option<&str>) -> tauri::Result<()> {
+    if let Some(w) = app.get_webview_window(PANEL) {
+        w.show()?;
+        w.unminimize()?;
+        w.set_focus()?;
+        if let Some(tab) = tab {
+            app.emit_to(PANEL, "panel-tab", tab)?;
+        }
+        return Ok(());
+    }
+    let url = match tab {
+        Some(t) => format!("panel.html#{t}"),
+        None => "panel.html".into(),
+    };
+    WebviewWindowBuilder::new(app, PANEL, WebviewUrl::App(url.into()))
+        .title(product_name(app))
+        .inner_size(460.0, 640.0)
+        .min_inner_size(380.0, 420.0)
+        .center()
+        .build()?;
+    Ok(())
+}
+
+/// Opens a mini-game as a transparent overlay over the work area the pet is on.
+pub fn open_game<R: Runtime>(app: &AppHandle<R>, game: &str) -> tauri::Result<()> {
+    if let Some(w) = app.get_webview_window(GAME) {
+        w.destroy()?;
+    }
+    let pet = app.get_webview_window(PET);
+    let monitor = match &pet {
+        Some(p) => p.current_monitor()?,
+        None => None,
+    }
+    .or(app.primary_monitor()?);
+    let mut builder = WebviewWindowBuilder::new(app, GAME, WebviewUrl::App(format!("game.html#{game}").into()))
+        .title(product_name(app))
+        .transparent(true)
+        .decorations(false)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .resizable(false)
+        .shadow(false)
+        .focused(true);
+    if let Some(m) = monitor {
+        let wa = m.work_area();
+        let s = m.scale_factor();
+        builder = builder
+            .position(wa.position.x as f64 / s, wa.position.y as f64 / s)
+            .inner_size(wa.size.width as f64 / s, wa.size.height as f64 / s);
+    } else {
+        builder = builder.inner_size(1280.0, 720.0).center();
+    }
+    let window = builder.build()?;
+    window.set_focus()?;
+    app.emit("game", GameEvent { state: "started", game })?;
+    Ok(())
+}
+
+pub fn close_game<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
+    if let Some(w) = app.get_webview_window(GAME) {
+        // The Destroyed window event announces that the game ended.
+        w.destroy()?;
+    }
+    Ok(())
+}
+
+pub fn toggle_pet<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
+    if let Some(w) = app.get_webview_window(PET) {
+        if w.is_visible()? {
+            w.hide()?;
+        } else {
+            w.show()?;
+            app.emit_to(PET, "pet-command", "greet")?;
+        }
+    }
+    Ok(())
+}

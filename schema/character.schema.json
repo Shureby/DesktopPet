@@ -1,0 +1,391 @@
+{
+  "title": "Desktop pet character",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,31}$"
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 40
+    },
+    "description": {
+      "default": "",
+      "type": "string",
+      "maxLength": 200
+    },
+    "sprite": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "pixels"
+            },
+            "scale": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8
+            },
+            "palette": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1
+              },
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+              }
+            },
+            "frames": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "facing": {
+              "default": "right",
+              "type": "string",
+              "enum": [
+                "left",
+                "right"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "scale",
+            "palette",
+            "frames"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "sheet"
+            },
+            "src": {
+              "type": "string",
+              "pattern": "^[\\w\\-./]+\\.(png|webp)$"
+            },
+            "frameWidth": {
+              "type": "integer",
+              "minimum": 4,
+              "maximum": 512
+            },
+            "frameHeight": {
+              "type": "integer",
+              "minimum": 4,
+              "maximum": 512
+            },
+            "scale": {
+              "type": "number",
+              "minimum": 0.25,
+              "maximum": 8
+            },
+            "frames": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                ],
+                "items": false,
+                "minItems": 2,
+                "maxItems": 2
+              }
+            },
+            "facing": {
+              "default": "right",
+              "type": "string",
+              "enum": [
+                "left",
+                "right"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "src",
+            "frameWidth",
+            "frameHeight",
+            "scale",
+            "frames"
+          ]
+        }
+      ]
+    },
+    "stats": {
+      "type": "object",
+      "properties": {
+        "walkSpeed": {
+          "type": "number",
+          "minimum": 10,
+          "maximum": 400
+        },
+        "runSpeed": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 900
+        },
+        "jumpPower": {
+          "type": "number",
+          "minimum": 100,
+          "maximum": 1500
+        },
+        "weight": {
+          "type": "number",
+          "minimum": 0.3,
+          "maximum": 3
+        },
+        "climbSpeed": {
+          "default": 0,
+          "type": "number",
+          "minimum": 0,
+          "maximum": 400
+        }
+      },
+      "required": [
+        "walkSpeed",
+        "runSpeed",
+        "jumpPower",
+        "weight"
+      ]
+    },
+    "animations": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "frames": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "fps": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 60
+          },
+          "loop": {
+            "default": true,
+            "type": "boolean"
+          },
+          "next": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "frames",
+          "fps"
+        ]
+      }
+    },
+    "abilities": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "params": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    "personality": {
+      "type": "object",
+      "properties": {
+        "behaviors": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "sleepiness": {
+          "default": 0.5,
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "sociability": {
+          "default": 0.5,
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "lines": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 80
+            }
+          }
+        }
+      },
+      "required": [
+        "behaviors"
+      ]
+    },
+    "moveset": {
+      "type": "object",
+      "properties": {
+        "style": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "moves": {
+          "minItems": 2,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "light",
+                  "heavy",
+                  "special",
+                  "aerial"
+                ]
+              },
+              "anim": {
+                "type": "string"
+              },
+              "startup": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2000
+              },
+              "active": {
+                "type": "integer",
+                "minimum": 16,
+                "maximum": 2000
+              },
+              "recovery": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 3000
+              },
+              "cooldown": {
+                "default": 0,
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 10000
+              },
+              "damage": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "range": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 400
+              },
+              "knockback": {
+                "default": 0,
+                "type": "number",
+                "minimum": 0,
+                "maximum": 2000
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "kind",
+              "anim",
+              "startup",
+              "active",
+              "recovery",
+              "damage",
+              "range"
+            ]
+          }
+        }
+      },
+      "required": [
+        "style",
+        "moves"
+      ]
+    },
+    "$schema": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "id",
+    "displayName",
+    "sprite",
+    "stats",
+    "animations",
+    "personality",
+    "moveset"
+  ]
+}

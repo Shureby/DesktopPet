@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pet</title>
+  </head>
+  <body>
+    <!-- Browser-mock only: draggable stand-ins for desktop windows. -->
+    <div class="fake-window" id="fake-a" style="left: 12%; top: 38%; width: 36%; height: 44%"><header>Notes.txt</header></div>
+    <div class="fake-window" id="fake-b" style="left: 56%; top: 22%; width: 30%; height: 40%"><header>Browser</header></div>
+    <p class="demo-help">Browser demo · drag the pet or the windows · right-click the pet for the menu · <a href="panel.html" target="_blank">panel</a></p>
+
+    <canvas id="pet"></canvas>
+    <div id="bubble" class="bubble" hidden></div>
+    <div id="tomato" class="tomato" hidden></div>
+    <script type="module" src="/src/pet/main.ts"></script>
+  </body>
+</html>

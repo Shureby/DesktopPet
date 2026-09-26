@@ -1,0 +1,626 @@
+{
+  "$schema": "../../../schema/character.schema.json",
+  "schemaVersion": 1,
+  "id": "cat",
+  "displayName": "Cat",
+  "description": "Curious, a bit aloof. Climbs anything and pounces on your cursor.",
+  "sprite": {
+    "type": "pixels",
+    "scale": 3,
+    "palette": {
+      "k": "#2b2118",
+      "o": "#f0a04b",
+      "d": "#c9742a",
+      "w": "#fff3e0",
+      "p": "#f28b9b",
+      "g": "#3a7d44",
+      "e": "#2b2118",
+      "r": "#e2474b",
+      "z": "#7aa7ff"
+    },
+    "frames": {
+      "stand": [
+        "....................",
+        "....................",
+        ".............k...k..",
+        "............kpk.kpk.",
+        "............koooook.",
+        "............kogogok.",
+        "............koopook.",
+        "...kkkkkkkkkkkwwwk..",
+        "..kokoodoodoowwwk...",
+        ".kokkooooooooowwk...",
+        ".kk.koodoodoooook...",
+        "....kkoooooooookk...",
+        ".....kwk.....kwk....",
+        ".....kkk.....kkk...."
+      ],
+      "blink": [
+        "....................",
+        "....................",
+        ".............k...k..",
+        "............kpk.kpk.",
+        "............koooook.",
+        "............koeoeok.",
+        "............koopook.",
+        "...kkkkkkkkkkkwwwk..",
+        "..kokoodoodoowwwk...",
+        ".kokkooooooooowwk...",
+        ".kk.koodoodoooook...",
+        "....kkoooooooookk...",
+        ".....kwk.....kwk....",
+        ".....kkk.....kkk...."
+      ],
+      "walk1": [
+        "....................",
+        "....................",
+        ".............k...k..",
+        "............kpk.kpk.",
+        "............koooook.",
+        "............kogogok.",
+        "............koopook.",
+        "...kkkkkkkkkkkwwwk..",
+        "..kokoodoodoowwwk...",
+        ".kokkooooooooowwk...",
+        ".kk.koodoodoooook...",
+        "....kkoooooooookk...",
+        "....kwk.......kwk...",
+        "...kkk.........kkk.."
+      ],
+      "walk2": [
+        "....................",
+        "....................",
+        ".............k...k..",
+        "............kpk.kpk.",
+        "kk..........koooook.",
+        "kok.........kogogok.",
+        ".kok........koopook.",
+        "..kkkkkkkkkkkkwwwk..",
+        "....koodoodoowwwk...",
+        "....kooooooooowwk...",
+        "....koodoodoooook...",
+        "....kkoooooooookk...",
+        ".......kwk.kwk......",
+        ".......kkk.kkk......"
+      ],
+      "run1": [
+        "....................",
+        "....................",
+        ".............k...k..",
+        "............kpk.kpk.",
+        "............koooook.",
+        "............kogogok.",
+        "............koopook.",
+        "kkkkkkkkkkkkkkwwwk..",
+        "koookoodoodoowwwk...",
+        "....kooooooooowwk...",
+        "....koodoodoooook...",
+        "....kkoooooooookk...",
+        "...kwk.........kwk..",
+        "..kk.............kk."
+      ],
+      "run2": [
+        "....................",
+        "....................",
+        ".............k...k..",
+        "............kpk.kpk.",
+        "............koooook.",
+        "............kogogok.",
+        "............koopook.",
+        "kkkkkkkkkkkkkkwwwk..",
+        "koookoodoodoowwwk...",
+        "....kooooooooowwk...",
+        "....koodoodoooook...",
+        "....kkoooooooookk...",
+        ".......kwk.kwk......",
+        ".......kkk.kkk......"
+      ],
+      "jump": [
+        "....................",
+        "....................",
+        ".............k...k..",
+        ".kk.........kpk.kpk.",
+        ".kok........koooook.",
+        "..kok.......kwgwgwk.",
+        "..kok.......koopook.",
+        "...kkkkkkkkkkkwwwk..",
+        "....koodoodoowwwk...",
+        "....kooooooooowwk...",
+        "....koodoodoooook...",
+        "....kkoooooooookk...",
+        "...kwk.........kwk..",
+        "..kk.............kk."
+      ],
+      "fall": [
+        "...............k.k..",
+        "....................",
+        ".............k...k..",
+        ".kk.........kpk.kpk.",
+        ".kok........koooook.",
+        "..kok.......kwgwgwk.",
+        "..kok.......koopook.",
+        "...kkkkkkkkkkkwwwk..",
+        "....koodoodoowwwk...",
+        "....kooooooooowwk...",
+        "....koodoodoooook...",
+        "....kkoooooooookk...",
+        "...kwk.........kwk..",
+        "..kk.............kk."
+      ],
+      "land": [
+        "....................",
+        "....................",
+        "....................",
+        ".............k...k..",
+        "............kpk.kpk.",
+        "............koooook.",
+        "............kogogok.",
+        "............koopook.",
+        "...kkkkkkkkkkkwwwk..",
+        "..kokoodoodoowwwk...",
+        ".kokkooooooooowwk...",
+        ".kk.koodoodoooook...",
+        "....kkoooooooookk...",
+        ".......kwk.kwk......"
+      ],
+      "happy1": [
+        ".................r.r",
+        "..................r.",
+        ".............k...k..",
+        ".kk.........kpk.kpk.",
+        ".kok........koooook.",
+        "..kok.......koeoeok.",
+        "..kok.......koopook.",
+        "...kkkkkkkkkkkwwwk..",
+        "....koodoodoowwwk...",
+        "....kooooooooowwk...",
+        "....koodoodoooook...",
+        "....kkoooooooookk...",
+        ".....kwk.....kwk....",
+        ".....kkk.....kkk...."
+      ],
+      "happy2": [
+        "................r.r.",
+        ".................r..",
+        ".............k...k..",
+        "............kpk.kpk.",
+        "kk..........koooook.",
+        "kok.........koeoeok.",
+        ".kok........koopook.",
+        "..kkkkkkkkkkkkwwwk..",
+        "....koodoodoowwwk...",
+        "....kooooooooowwk...",
+        "....koodoodoooook...",
+        "....kkoooooooookk...",
+        ".....kwk.....kwk....",
+        ".....kkk.....kkk...."
+      ],
+      "alert": [
+        "...................r",
+        "...................r",
+        ".............k...k..",
+        ".kk.........kpk.kpkr",
+        ".kok........koooook.",
+        "..kok.......kwgwgwk.",
+        "..kok.......koopook.",
+        "...kkkkkkkkkkkwwwk..",
+        "....koodoodoowwwk...",
+        "....kooooooooowwk...",
+        "....koodoodoooook...",
+        "....kkoooooooookk...",
+        ".....kwk.....kwk....",
+        ".....kkk.....kkk...."
+      ],
+      "sit": [
+        "....................",
+        "....................",
+        ".............k...k..",
+        "............kpk.kpk.",
+        "............koooook.",
+        "............kogogok.",
+        "............koopook.",
+        ".........kkkkkwwwk..",
+        "........kooooowk....",
+        ".......koodoowwk....",
+        "......koooooowwk....",
+        "......koodoooowk....",
+        ".kkkkkkooooookkk....",
+        ".koookkkkk...kwk...."
+      ],
+      "sit_blink": [
+        "....................",
+        "....................",
+        ".............k...k..",
+        "............kpk.kpk.",
+        "............koooook.",
+        "............koeoeok.",
+        "............koopook.",
+        ".........kkkkkwwwk..",
+        "........kooooowk....",
+        ".......koodoowwk....",
+        "......koooooowwk....",
+        "......koodoooowk....",
+        ".kkkkkkooooookkk....",
+        ".koookkkkk...kwk...."
+      ],
+      "sleep1": [
+        "....................",
+        "....................",
+        "....................",
+        "....................",
+        "....................",
+        "....................",
+        "....................",
+        "....................",
+        ".............k...k..",
+        ".....kkkkkkkkpkkkpk.",
+        "....koodoodoooeoeok.",
+        ".kkkoooooooooooopok.",
+        ".kokooooooooooooook.",
+        "....kkkkkkkkkkkkkk.."
+      ],
+      "sleep2": [
+        "....................",
+        "....................",
+        "....................",
+        "....................",
+        "..................z.",
+        ".................z..",
+        "....................",
+        "....................",
+        ".............k...k..",
+        ".....kkkkkkkkpkkkpk.",
+        "....koodoodoooeoeok.",
+        ".kkkoooooooooooopok.",
+        ".kokooooooooooooook.",
+        "....kkkkkkkkkkkkkk.."
+      ],
+      "crouch1": [
+        "....................",
+        "....................",
+        "....................",
+        "....................",
+        "....................",
+        ".............k...k..",
+        "............kpk.kpk.",
+        ".kk.........koooook.",
+        "..kok.......kwgwgwk.",
+        "...k.kkkkkkkkoopook.",
+        "....koodoodoowwwkk..",
+        "....koooooooooowk...",
+        "....kkooooooooookk..",
+        ".....kkk.....kkk...."
+      ],
+      "crouch2": [
+        "....................",
+        "....................",
+        "....................",
+        "....................",
+        "....................",
+        ".............k...k..",
+        "..kk........kpk.kpk.",
+        "..kok.......koooook.",
+        "...kk.......kwgwgwk.",
+        ".....kkkkkkkkoopook.",
+        "....koodoodoowwwkk..",
+        "....koooooooooowk...",
+        "....kkooooooooookk..",
+        ".....kkk.....kkk...."
+      ],
+      "pounce": [
+        "....................",
+        ".............k...k..",
+        "............kpk.kpk.",
+        "............koooook.",
+        "............kwgwgwk.",
+        "............koopook.",
+        "kkkkkkkkkkkkkkwwwk..",
+        "koookoodoodoowwwk...",
+        "....kooooooooowwk...",
+        "....koodoodoooook...",
+        "....kkoooooooookk...",
+        "...kwk.........kwk..",
+        "..kk.............kk.",
+        "...................."
+      ],
+      "climb1": [
+        ".........k...k......",
+        "........kpk.kpk.....",
+        "........koooook.....",
+        "........kogogokkw...",
+        "........koopook.....",
+        "........kkwwwkk.....",
+        "........kooowok.....",
+        "........koodwok.....",
+        "........kooowok.....",
+        "........koodookkw...",
+        "........kooook......",
+        ".........kkkkk......",
+        "..........kok.......",
+        "..........kk........"
+      ],
+      "climb2": [
+        ".........k...k......",
+        "........kpk.kpk.....",
+        "........koooook.....",
+        "........kogogok.....",
+        "........koopook.....",
+        "........kkwwwkkkw...",
+        "........kooowok.....",
+        "........koodwok.....",
+        "........kooowok.....",
+        "........koodook.....",
+        "........kooook......",
+        ".........kkkkkkw....",
+        "..........kok.......",
+        "..........kk........"
+      ],
+      "drag1": [
+        ".........k...k......",
+        "........kpk.kpk.....",
+        "........koooook.....",
+        "........koeoeok.....",
+        "........koopook.....",
+        ".........kwwwk......",
+        "........koooook.....",
+        ".......kkodoodkk....",
+        ".......kwkoooowk....",
+        "........koodook.....",
+        "........koooook.....",
+        "........kkk.kkk.....",
+        "........kwk.kwk.....",
+        "............kk......"
+      ],
+      "drag2": [
+        ".........k...k......",
+        "........kpk.kpk.....",
+        "........koooook.....",
+        "........koeoeok.....",
+        "........koopook.....",
+        ".........kwwwk......",
+        "........koooook.....",
+        ".......kkodoodkk....",
+        ".......kwkoooowk....",
+        "........koodook.....",
+        "........koooook.....",
+        "........kkk.kkk.....",
+        "........kwkkkwk.....",
+        "..........kk........"
+      ]
+    }
+  },
+  "stats": {
+    "walkSpeed": 45,
+    "runSpeed": 170,
+    "jumpPower": 620,
+    "weight": 0.9,
+    "climbSpeed": 60
+  },
+  "animations": {
+    "idle": {
+      "frames": [
+        "stand",
+        "stand",
+        "stand",
+        "blink"
+      ],
+      "fps": 3
+    },
+    "walk": {
+      "frames": [
+        "walk1",
+        "stand",
+        "walk2",
+        "stand"
+      ],
+      "fps": 8
+    },
+    "run": {
+      "frames": [
+        "run1",
+        "run2"
+      ],
+      "fps": 10
+    },
+    "jump": {
+      "frames": [
+        "jump"
+      ],
+      "fps": 1
+    },
+    "fall": {
+      "frames": [
+        "fall"
+      ],
+      "fps": 1
+    },
+    "land": {
+      "frames": [
+        "land",
+        "stand"
+      ],
+      "fps": 8,
+      "loop": false
+    },
+    "sit": {
+      "frames": [
+        "sit",
+        "sit",
+        "sit",
+        "sit_blink"
+      ],
+      "fps": 2
+    },
+    "sleep": {
+      "frames": [
+        "sleep1",
+        "sleep2"
+      ],
+      "fps": 1
+    },
+    "drag": {
+      "frames": [
+        "drag1",
+        "drag2"
+      ],
+      "fps": 3
+    },
+    "happy": {
+      "frames": [
+        "happy1",
+        "happy2"
+      ],
+      "fps": 4
+    },
+    "alert": {
+      "frames": [
+        "alert",
+        "stand"
+      ],
+      "fps": 3
+    },
+    "climb": {
+      "frames": [
+        "climb1",
+        "climb2"
+      ],
+      "fps": 6
+    },
+    "crouch": {
+      "frames": [
+        "crouch1",
+        "crouch2"
+      ],
+      "fps": 6
+    },
+    "pounce": {
+      "frames": [
+        "pounce"
+      ],
+      "fps": 1
+    },
+    "scratch": {
+      "frames": [
+        "crouch1",
+        "pounce",
+        "stand"
+      ],
+      "fps": 12,
+      "loop": false
+    }
+  },
+  "abilities": [
+    {
+      "id": "climbWall",
+      "params": {
+        "chance": 0.6,
+        "windowChance": 0.3
+      }
+    },
+    {
+      "id": "pounce",
+      "params": {
+        "range": 280,
+        "windup": 0.8
+      }
+    }
+  ],
+  "personality": {
+    "behaviors": {
+      "idle": 3,
+      "walk": 4,
+      "run": 1,
+      "sit": 3,
+      "sleep": 2,
+      "jump": 0.5,
+      "pounce": 1.5
+    },
+    "sleepiness": 0.8,
+    "sociability": 0.35,
+    "lines": {
+      "greet": [
+        "Mrrp.",
+        "Oh. It's you."
+      ],
+      "petted": [
+        "Purrrr\u2026",
+        "Mrrrow \u2665",
+        "Acceptable."
+      ],
+      "thrown": [
+        "HISS!",
+        "Rude!!"
+      ],
+      "landed": [
+        "Nailed it.",
+        "Always on my feet."
+      ],
+      "reminder": [
+        "Hey. {title}",
+        "Don't forget: {title}"
+      ],
+      "alarm": [
+        "MEOW! {title}",
+        "Wake up, human! {title}"
+      ],
+      "focusStart": [
+        "Focus time. I'll guard the keyboard.",
+        "Shh. Working."
+      ],
+      "breakStart": [
+        "Break! Stretch like me.",
+        "Time to stretch~"
+      ],
+      "focusEnd": [
+        "Done working? Pet me."
+      ],
+      "bored": [
+        "\u2026",
+        "Entertain me."
+      ]
+    }
+  },
+  "moveset": {
+    "style": "Quick scratches, leaping pounces and wall-jump kicks.",
+    "moves": [
+      {
+        "id": "scratch",
+        "name": "Scratch",
+        "kind": "light",
+        "anim": "scratch",
+        "startup": 60,
+        "active": 80,
+        "recovery": 140,
+        "damage": 4,
+        "range": 30,
+        "knockback": 60
+      },
+      {
+        "id": "pounce",
+        "name": "Pounce",
+        "kind": "heavy",
+        "anim": "pounce",
+        "startup": 250,
+        "active": 150,
+        "recovery": 350,
+        "cooldown": 400,
+        "damage": 14,
+        "range": 150,
+        "knockback": 300
+      },
+      {
+        "id": "wallkick",
+        "name": "Wall Kick",
+        "kind": "aerial",
+        "anim": "jump",
+        "startup": 120,
+        "active": 120,
+        "recovery": 300,
+        "cooldown": 600,
+        "damage": 11,
+        "range": 70,
+        "knockback": 350
+      }
+    ]
+  }
+}
