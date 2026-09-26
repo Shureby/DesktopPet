@@ -5,7 +5,8 @@ export type PetEvent =
   | { type: "petted" }
   | { type: "thrown"; speed: number }
   | { type: "landedHard" }
-  | { type: "reminder"; kind: "todo" | "alarm"; title: string }
+  /** `run: false` keeps the pet where it is (user setting). */
+  | { type: "reminder"; kind: "todo" | "alarm"; title: string; run?: boolean }
   | { type: "pomodoro"; phase: "focus" | "short_break" | "long_break" | "idle" };
 
 /** How the pet is allowed to behave right now. */

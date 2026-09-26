@@ -7,7 +7,7 @@ import { formatRemaining } from "../features/pomodoro/logic";
 import type { Backend, PomodoroStatus, ReminderEvent, Settings } from "../platform";
 import { showPetMenu } from "./menu";
 import { inQuietHours } from "./quietHours";
-import { ringAlarm, sounds } from "./sound";
+import { playRingtone, ringAlarm, sounds } from "./sound";
 
 const STEP = 1 / 30;
 /** Logical size of the pet window in Tauri mode (must match tauri.conf.json). */
@@ -359,7 +359,8 @@ export class PetHost {
   }
 
   private onReminder(r: ReminderEvent): void {
-    this.pet.react({ type: "reminder", kind: r.kind, title: r.title });
+    const alert = this.settings.alerts[r.kind];
+    this.pet.react({ type: "reminder", kind: r.kind, title: r.title, run: alert.petRuns });
     const text = this.bubble.firstElementChild?.textContent || r.title;
     const actions: BubbleAction[] =
       r.kind === "alarm"
@@ -373,9 +374,11 @@ export class PetHost {
           ];
     this.say(text, 60_000, actions);
     this.stopRinging?.();
-    if (this.settings.sound) {
-      if (r.kind === "alarm") this.stopRinging = ringAlarm();
-      else sounds.chime();
+    this.stopRinging = null;
+    if (alert.ring) {
+      // Alarms ring until dismissed; to-dos ring once.
+      if (r.kind === "alarm") this.stopRinging = ringAlarm(alert.ringtone, alert.volume);
+      else playRingtone(alert.ringtone, alert.volume);
     }
   }
 }

@@ -235,20 +235,23 @@ pub fn list_user_characters(app: AppHandle) -> CmdResult<Vec<UserCharacterFile>>
 }
 
 #[tauri::command]
-pub fn open_user_characters_folder(app: AppHandle) -> CmdResult<()> {
+pub async fn open_user_characters_folder(app: AppHandle) -> CmdResult<()> {
     let dir = characters_dir(&app)?;
     app.opener().open_path(dir.to_string_lossy(), None::<&str>).map_err(err)
 }
 
 // --- Windows ------------------------------------------------------------------------
+//
+// These MUST stay `async`: Tauri runs sync commands on the main thread, and creating
+// a WebView2 window from there deadlocks on Windows (the whole app freezes).
 
 #[tauri::command]
-pub fn open_panel(app: AppHandle, tab: Option<String>) -> CmdResult<()> {
+pub async fn open_panel(app: AppHandle, tab: Option<String>) -> CmdResult<()> {
     app_windows::open_panel(&app, tab.as_deref()).map_err(err)
 }
 
 #[tauri::command]
-pub fn open_game(app: AppHandle, game: String) -> CmdResult<()> {
+pub async fn open_game(app: AppHandle, game: String) -> CmdResult<()> {
     if !game.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
         return Err("invalid game id".into());
     }
@@ -256,6 +259,6 @@ pub fn open_game(app: AppHandle, game: String) -> CmdResult<()> {
 }
 
 #[tauri::command]
-pub fn close_game(app: AppHandle) -> CmdResult<()> {
+pub async fn close_game(app: AppHandle) -> CmdResult<()> {
     app_windows::close_game(&app).map_err(err)
 }

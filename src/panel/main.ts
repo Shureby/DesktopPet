@@ -5,7 +5,8 @@ import { SpriteAtlas } from "../engine/sprites";
 import { formatRemaining } from "../features/pomodoro/logic";
 import { parseQuickAdd } from "../features/todo/quickAdd";
 import { GAMES } from "../features/games/catalog";
-import { backend, type PanelTab, type Repeat, type Settings } from "../platform";
+import { backend, type AlertSettings, type PanelTab, type Repeat, type Settings } from "../platform";
+import { playRingtone, RINGTONE_IDS, RINGTONES, type RingtoneId } from "../pet/sound";
 import "../styles/panel.css";
 import { formatWhen, h } from "./dom";
 
@@ -304,7 +305,15 @@ async function renderSettings(): Promise<Node> {
     { class: "settings" },
     slider("size", 0.5, 2),
     slider("speed", 0.5, 2),
-    h("label", { class: "check" }, h("input", { type: "checkbox", checked: settings.sound, onchange: () => void save({ sound: !settings.sound }) }), "Sounds"),
+    h("h3", {}, "Alerts"),
+    alertRow("alarm", "Alarms & timers"),
+    alertRow("todo", "To-do reminders"),
+    h(
+      "label",
+      { class: "check" },
+      h("input", { type: "checkbox", checked: settings.sound, onchange: () => void save({ sound: !settings.sound }) }),
+      "Other sounds (petting, tomato clock)",
+    ),
     h(
       "label",
       { class: "check" },
@@ -337,6 +346,50 @@ async function renderSettings(): Promise<Node> {
   );
 }
 
+/** One alert kind: pet comes to the centre, ring on/off, ringtone, preview, volume. */
+function alertRow(kind: "alarm" | "todo", title: string): Node {
+  const a = settings.alerts[kind];
+  const update = (patch: Partial<AlertSettings>) => save({ alerts: { ...settings.alerts, [kind]: { ...a, ...patch } } });
+  const tone = h(
+    "select",
+    { onchange: (e: Event) => void update({ ringtone: (e.target as HTMLSelectElement).value as RingtoneId }) },
+    ...RINGTONE_IDS.map((id) => h("option", { value: id, selected: id === a.ringtone }, RINGTONES[id].name)),
+  );
+  const volume = h("input", {
+    type: "range",
+    min: 0,
+    max: 1,
+    step: 0.05,
+    value: a.volume,
+    title: "Volume",
+    onchange: (e: Event) => void update({ volume: Number((e.target as HTMLInputElement).value) }),
+  });
+  return h(
+    "fieldset",
+    { class: "alert" },
+    h("legend", {}, title),
+    h(
+      "label",
+      { class: "check" },
+      h("input", { type: "checkbox", checked: a.petRuns, onchange: () => void update({ petRuns: !a.petRuns }) }),
+      "Pet comes to the middle of the screen",
+    ),
+    h("label", { class: "check" }, h("input", { type: "checkbox", checked: a.ring, onchange: () => void update({ ring: !a.ring }) }), "Ring"),
+    h(
+      "div",
+      { class: "row" },
+      tone,
+      h(
+        "button",
+        { title: "Preview", onclick: () => playRingtone(tone.value as RingtoneId, Number(volume.value)) },
+        "▶",
+      ),
+      h("span", { class: "hint" }, "🔈"),
+      volume,
+    ),
+  );
+}
+
 async function save(patch: Partial<Settings>) {
   settings = await backend.setSettings(patch);
 }
@@ -357,7 +410,7 @@ async function main() {
   await backend.on("pomodoro", () => current === "focus" && void render());
   await backend.on("settings", (s) => {
     settings = s;
-    if (current === "characters" || current === "focus") void render();
+    if (current === "characters" || current === "focus" || current === "settings") void render();
   });
   await backend.on("panel-tab", (tab) => select(tab));
 

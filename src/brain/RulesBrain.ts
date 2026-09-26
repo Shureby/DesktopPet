@@ -89,7 +89,7 @@ export class RulesBrain implements Brain {
         pet.say(e.kind === "alarm" ? "alarm" : "reminder", { title: e.title }, 60_000);
         if (busy) break;
         // Sociable pets come running to the middle of the screen; aloof ones just perk up.
-        if (pet.rng() < 0.3 + 0.7 * pet.def.personality.sociability) {
+        if (e.run !== false && pet.rng() < 0.3 + 0.7 * pet.def.personality.sociability) {
           pet.target = { x: areaCentreX(pet) };
           pet.fsm.set("goto", true);
         } else pet.fsm.set("alert", true);

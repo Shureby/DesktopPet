@@ -1,11 +1,11 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
-import { DEFAULT_SETTINGS, type Backend, type BackendEvents, type PanelTab, type Settings } from "./types";
+import { mergeSettings, type Backend, type BackendEvents, type PanelTab, type Settings } from "./types";
 
 /** Settings are owned by the UI: Rust stores the JSON blob and reads only what it needs. */
 async function getSettings(): Promise<Settings> {
   const stored = await invoke<Partial<Settings>>("get_settings");
-  return { ...DEFAULT_SETTINGS, ...stored, pomodoro: { ...DEFAULT_SETTINGS.pomodoro, ...stored.pomodoro } };
+  return mergeSettings(stored);
 }
 
 /** Backend implemented by the Rust side (src-tauri). Command names mirror `commands.rs`. */

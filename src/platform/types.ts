@@ -1,5 +1,6 @@
 import product from "../../product.config.json";
 import type { Rect, WindowRect } from "../engine/geometry";
+import type { RingtoneId } from "../pet/sound";
 
 export interface PomodoroConfig {
   focusMin: number;
@@ -10,13 +11,25 @@ export interface PomodoroConfig {
   autoContinue: boolean;
 }
 
+/** How the pet announces one kind of reminder. */
+export interface AlertSettings {
+  /** Pet runs to the middle of the screen (otherwise it just perks up where it is). */
+  petRuns: boolean;
+  ring: boolean;
+  ringtone: RingtoneId;
+  /** 0..1 */
+  volume: number;
+}
+
 export interface Settings {
   character: string;
   /** Pet size multiplier. */
   size: number;
   /** Pet speed multiplier. */
   speed: number;
+  /** Small UI sounds: petting, tomato-clock phase changes. */
   sound: boolean;
+  alerts: { alarm: AlertSettings; todo: AlertSettings };
   quietHours: { enabled: boolean; start: string; end: string };
   pomodoro: PomodoroConfig;
   autostart: boolean;
@@ -27,10 +40,30 @@ export const DEFAULT_SETTINGS: Settings = {
   size: 1,
   speed: 1,
   sound: true,
+  alerts: {
+    alarm: { petRuns: true, ring: true, ringtone: "classic", volume: 0.7 },
+    todo: { petRuns: true, ring: true, ringtone: "chime", volume: 0.5 },
+  },
   quietHours: { enabled: false, start: "22:00", end: "08:00" },
   pomodoro: { focusMin: 25, shortBreakMin: 5, longBreakMin: 15, roundsBeforeLong: 4, autoContinue: true },
   autostart: false,
 };
+
+/** Fills in defaults for settings saved by older versions (nested objects merge too). */
+export function mergeSettings(stored: Partial<Settings> | null | undefined): Settings {
+  const s = stored ?? {};
+  const d = DEFAULT_SETTINGS;
+  return {
+    ...d,
+    ...s,
+    quietHours: { ...d.quietHours, ...s.quietHours },
+    pomodoro: { ...d.pomodoro, ...s.pomodoro },
+    alerts: {
+      alarm: { ...d.alerts.alarm, ...s.alerts?.alarm },
+      todo: { ...d.alerts.todo, ...s.alerts?.todo },
+    },
+  };
+}
 
 export interface Todo {
   id: number;

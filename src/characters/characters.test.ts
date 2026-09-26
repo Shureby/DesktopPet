@@ -154,6 +154,18 @@ describe("RulesBrain", () => {
     expect(night).toBeGreaterThan(day * 2);
   });
 
+  it("stays put for reminders when the user turned running off", () => {
+    for (let seed = 1; seed <= 10; seed++) {
+      const pet = spawn(registry.get("rooster")!.def, seed, 200, 900);
+      simulate(pet, 1);
+      pet.fsm.set("sit", true);
+      // Airborne pets finish their jump first; only check grounded ones.
+      if (!pet.grounded) continue;
+      pet.react({ type: "reminder", kind: "alarm", title: "Wake up", run: false });
+      expect(pet.state).toBe("alert");
+    }
+  });
+
   it("runs to the middle of the screen for reminders (sociable characters)", () => {
     const pet = spawn(registry.get("rooster")!.def, 5, 200, 900);
     simulate(pet, 1);

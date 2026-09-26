@@ -1,6 +1,7 @@
 import { nextPhase, startFocus, tick } from "../features/pomodoro/logic";
 import {
   DEFAULT_SETTINGS,
+  mergeSettings,
   type Alarm,
   type Backend,
   type BackendEvents,
@@ -39,7 +40,7 @@ function load(): MockState {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const s = JSON.parse(raw) as MockState;
-      return { ...s, settings: { ...DEFAULT_SETTINGS, ...s.settings } };
+      return { ...s, settings: mergeSettings(s.settings) };
     }
   } catch {
     // Storage unavailable or corrupt: start fresh.
