@@ -3,8 +3,10 @@
 // the executable plus the Steam API library it links against.
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = new URL("..", import.meta.url).pathname;
+// fileURLToPath, not .pathname: the latter yields "/D:/..." on Windows.
+const root = fileURLToPath(new URL("..", import.meta.url));
 const target = process.argv[2] ?? join(root, "target/release");
 const product = JSON.parse(readFileSync(join(root, "product.config.json"), "utf8"));
 const out = join(root, "build/steam-depot");

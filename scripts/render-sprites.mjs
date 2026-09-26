@@ -3,9 +3,11 @@
 // with --icon renders the default character to build/icon-source.png for `tauri icon`.
 import { mkdirSync, readdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { PNG } from "pngjs";
 
-const root = new URL("..", import.meta.url).pathname;
+// fileURLToPath, not .pathname: the latter yields "/D:/..." on Windows.
+const root = fileURLToPath(new URL("..", import.meta.url));
 const charsDir = join(root, "assets/characters");
 const outDir = join(root, "build");
 mkdirSync(join(outDir, "previews"), { recursive: true });
