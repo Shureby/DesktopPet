@@ -157,7 +157,7 @@ async function renderAlarms(): Promise<Node> {
     h("div", { class: "row" }, time, repeat, label, h("button", { class: "primary", onclick: add }, "Add")),
     upcoming.length ? h("ul", { class: "list" }, ...upcoming.map(row)) : h("p", { class: "empty" }, "No alarms set."),
     finished.length ? finishedSection(`Finished (${finished.length})`, finished.map(row), () => backend.clearFinishedAlarms()) : null,
-    h("p", { class: "hint" }, "Timers disappear once they've rung. Finished alarms are cleared automatically each day."),
+    h("p", { class: "hint" }, "Finished alarms and timers are cleared automatically each day."),
   );
 }
 

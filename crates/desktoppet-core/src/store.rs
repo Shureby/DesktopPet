@@ -59,10 +59,6 @@ const MIGRATIONS: &[&str] = &[
     "ALTER TABLE todos ADD COLUMN done_at INTEGER;",
 ];
 
-/// Timers are one-shot alarms with this label prefix (see `src/features/alarm/timers.ts`).
-/// They are deleted as soon as they have rung.
-pub const TIMER_PREFIX: &str = "Timer: ";
-
 pub struct Store {
     conn: Connection,
 }
@@ -274,11 +270,15 @@ impl Store {
         Ok(true)
     }
 
+    /// Rings the alarm again in `minutes`. Errors if it no longer exists (never silently drops a snooze).
     pub fn snooze_alarm(&self, id: i64, minutes: i64, now: Millis) -> Result<()> {
-        self.conn.execute(
+        let changed = self.conn.execute(
             "UPDATE alarms SET enabled = 1, next_fire = ?2 WHERE id = ?1",
             params![id, now + minutes * 60_000],
         )?;
+        if changed == 0 {
+            return Err(StoreError::Invalid("that alarm no longer exists".into()));
+        }
         Ok(())
     }
 
@@ -319,15 +319,12 @@ impl Store {
             if !stale {
                 out.push(Reminder { kind: ReminderKind::Alarm, id: a.id, title: a.label.clone() });
             }
-            if next.is_none() && a.label.starts_with(TIMER_PREFIX) {
-                // Timers are throwaway: gone once they've rung.
-                self.conn.execute("DELETE FROM alarms WHERE id = ?1", [a.id])?;
-            } else {
-                self.conn.execute(
-                    "UPDATE alarms SET next_fire = ?2, enabled = ?3 WHERE id = ?1",
-                    params![a.id, next, next.is_some()],
-                )?;
-            }
+            // Rung alarms and timers stay (disabled) so the user can still snooze them;
+            // "Stop" deletes a timer, and the daily clean-up removes the rest.
+            self.conn.execute(
+                "UPDATE alarms SET next_fire = ?2, enabled = ?3 WHERE id = ?1",
+                params![a.id, next, next.is_some()],
+            )?;
         }
         Ok(out)
     }
@@ -532,14 +529,26 @@ mod tests {
     }
 
     #[test]
-    fn timers_disappear_after_ringing() {
+    fn a_rung_timer_can_still_be_snoozed_and_stays_visible() {
         let s = Store::open_in_memory().unwrap();
-        s.add_alarm(&London, "Timer: 5 min", at(10, 5), Repeat::None).unwrap();
-        s.add_alarm(&London, "Dentist", at(10, 5), Repeat::None).unwrap();
-        assert_eq!(s.take_due(&London, at(10, 5)).unwrap().len(), 2);
-        let left = s.list_alarms().unwrap();
-        assert_eq!(left.len(), 1);
-        assert_eq!(left[0].label, "Dentist");
+        let t = s.add_alarm(&London, "Timer: 1 min", at(10, 1), Repeat::None).unwrap();
+        assert_eq!(s.take_due(&London, at(10, 1)).unwrap().len(), 1);
+        // Still there (finished) while the user decides.
+        assert!(!s.list_alarms().unwrap()[0].enabled);
+        s.snooze_alarm(t.id, 5, at(10, 2)).unwrap();
+        let snoozed = &s.list_alarms().unwrap()[0];
+        assert!(snoozed.enabled);
+        assert_eq!(snoozed.next_fire, Some(at(10, 7)));
+        // It rings again after the snooze.
+        assert_eq!(s.take_due(&London, at(10, 7)).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn snoozing_a_deleted_alarm_is_an_error_not_a_silent_no_op() {
+        let s = Store::open_in_memory().unwrap();
+        let t = s.add_alarm(&London, "Timer: 1 min", at(10, 1), Repeat::None).unwrap();
+        s.delete_alarm(t.id).unwrap();
+        assert!(s.snooze_alarm(t.id, 5, at(10, 2)).is_err());
     }
 
     #[test]

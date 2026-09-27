@@ -4,7 +4,7 @@ import { Pet } from "../characters/Pet";
 import type { CharacterRegistry, LoadedCharacter } from "../characters/registry";
 import { createRng } from "../engine/random";
 import { SpriteAtlas } from "../engine/sprites";
-import { activeTimers, formatDuration, timerLabel } from "../features/alarm/timers";
+import { activeTimers, formatDuration, isTimer, TIMER_PREFIX, timerLabel } from "../features/alarm/timers";
 import { formatRemaining } from "../features/pomodoro/logic";
 import type { Alarm, Backend, PetActivity, PomodoroStatus, ReminderEvent, Settings } from "../platform";
 import type { CareAction } from "../characters/schema";
@@ -451,6 +451,22 @@ export class PetHost {
     }
   }
 
+  private isTimerId(id: number): boolean {
+    return this.timers.some((t) => t.id === id && isTimer(t));
+  }
+
+  /** Snoozes and confirms, so the snoozed alarm never silently disappears. */
+  private async snooze(id: number, minutes: number): Promise<void> {
+    try {
+      await this.backend.snoozeAlarm(id, minutes);
+      await this.refreshTimers();
+      const time = new Date(Date.now() + minutes * 60_000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      this.say(`💤 Snoozed until ${time}. Right-click me to cancel.`, 4000);
+    } catch (e) {
+      this.say(`Couldn't snooze: ${e instanceof Error ? e.message : String(e)}`, 4000);
+    }
+  }
+
   /** Starts a timer and has the pet confirm it (instead of silently setting it). */
   private async setTimer(minutes: number): Promise<void> {
     const alarm = await this.backend.addAlarm(timerLabel(minutes), Date.now() + minutes * 60_000, "none");
@@ -533,12 +549,16 @@ export class PetHost {
     // During a focus session the pet stays at its "desk" so the session isn't disrupted.
     const run = alert.petRuns && this.pomodoro.phase !== "focus";
     this.pet.react({ type: "reminder", kind: r.kind, title: r.title, run });
-    const text = this.bubble.firstElementChild?.textContent || r.title;
+    const timer = r.title.startsWith(TIMER_PREFIX);
+    const text = timer
+      ? `⏱ Time's up! (${r.title.slice(TIMER_PREFIX.length)} timer)`
+      : this.bubble.firstElementChild?.textContent || r.title;
     const actions: BubbleAction[] =
       r.kind === "alarm"
         ? [
-            { label: "Snooze 5m", run: () => void this.backend.snoozeAlarm(r.id, 5) },
-            { label: "Stop", run: () => {} },
+            { label: "Snooze 5m", run: () => void this.snooze(r.id, 5) },
+            // A stopped timer is done with; a stopped alarm keeps its schedule (or sits in Finished).
+            { label: "Stop", run: () => void (this.isTimerId(r.id) ? this.backend.deleteAlarm(r.id) : undefined) },
           ]
         : [
             {

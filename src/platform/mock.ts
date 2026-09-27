@@ -1,4 +1,3 @@
-import { TIMER_PREFIX } from "../features/alarm/timers";
 import { nextPhase, startFocus, tick } from "../features/pomodoro/logic";
 import {
   DEFAULT_SETTINGS,
@@ -129,8 +128,6 @@ export function startMockScheduler(): () => void {
           }
         }
       }
-      // Timers are throwaway: gone once they've rung (like the Rust store).
-      s.alarms = s.alarms.filter((a) => !(a.label.startsWith(TIMER_PREFIX) && a.nextFire === null));
       const next = tick(s.pomodoro, now, s.settings.pomodoro);
       if (next) {
         setPomodoro(s, next, now);
@@ -228,13 +225,15 @@ export const mockBackend: Backend = {
     fire("alarms-changed", null);
   },
   async snoozeAlarm(id, minutes) {
-    mutate((s) => {
+    const found = mutate((s) => {
       const a = s.alarms.find((x) => x.id === id);
       if (a) {
         a.enabled = true;
         a.nextFire = Date.now() + minutes * 60_000;
       }
+      return !!a;
     });
+    if (!found) throw new Error("that alarm no longer exists");
     fire("alarms-changed", null);
   },
 
