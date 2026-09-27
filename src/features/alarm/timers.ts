@@ -6,15 +6,70 @@ import type { Alarm } from "../../platform/types";
  */
 export const TIMER_PREFIX = "Timer: ";
 
+/** Built-in timer lengths (minutes) offered in the menu and the panel. */
+export const PRESET_MINUTES = [1, 5, 10, 15, 30, 45, 60];
+/** How many custom timer lengths are remembered. */
+export const MAX_RECENT_TIMERS = 3;
+
 export function timerLabel(minutes: number): string {
   return `${TIMER_PREFIX}${formatDuration(minutes)}`;
 }
 
+/** "45 min", "1 hour", "1 h 30 min", "1 min 30 s", "90 s"… (accepts fractional minutes). */
 export function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes} min`;
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return m ? `${h} h ${m} min` : h === 1 ? "1 hour" : `${h} hours`;
+  const total = Math.round(minutes * 60);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const sec = total % 60;
+  if (h === 0 && m === 0) return `${sec} s`;
+  if (h === 0) return sec ? `${m} min ${sec} s` : `${m} min`;
+  const parts = [h === 1 && !m && !sec ? "1 hour" : m || sec ? `${h} h` : `${h} hours`];
+  if (m) parts.push(`${m} min`);
+  if (sec) parts.push(`${sec} s`);
+  return parts.join(" ");
+}
+
+/**
+ * Parses what the user types for a custom timer, in minutes (null if invalid):
+ * "20" (minutes), "1:30" (h:mm), "90s", "1m30s", "1h30m", "1h 30", "2.5h", "45 min".
+ * Between 5 seconds and 24 hours.
+ */
+export function parseDuration(input: string): number | null {
+  const text = input.trim().toLowerCase().replace(/\s+/g, " ");
+  if (!text) return null;
+  let minutes: number | null = null;
+  const clockLike = text.match(/^(\d{1,2}):(\d{2})$/);
+  if (clockLike) {
+    const m = Number(clockLike[2]);
+    if (m < 60) minutes = Number(clockLike[1]) * 60 + m;
+  } else if (/^\d+(\.\d+)?$/.test(text)) {
+    minutes = Number(text);
+  } else {
+    const unit = /(\d+(?:\.\d+)?)\s*(h|hr|hrs|hour|hours|m|min|mins|minute|minutes|s|sec|secs|second|seconds)?(?=\s|\d|$)/g;
+    let rest = text;
+    let sum = 0;
+    let matched = false;
+    for (const [whole, num, u] of text.matchAll(unit)) {
+      const n = Number(num);
+      const kind = u?.[0];
+      // A bare number after hours means minutes ("1h 30").
+      sum += kind === "h" ? n * 60 : kind === "s" ? n / 60 : n;
+      matched = true;
+      rest = rest.replace(whole, "");
+    }
+    if (matched && rest.trim() === "") minutes = sum;
+  }
+  if (minutes === null || !Number.isFinite(minutes)) return null;
+  return minutes >= 5 / 60 && minutes <= 24 * 60 ? Math.round(minutes * 60) / 60 : null;
+}
+
+/**
+ * Remembers a custom timer length: most recent first, at most three, no
+ * duplicates, and never a length that is already a preset.
+ */
+export function rememberCustomTimer(recent: number[], minutes: number, presets = PRESET_MINUTES): number[] {
+  if (presets.includes(minutes)) return recent;
+  return [minutes, ...recent.filter((m) => m !== minutes)].slice(0, MAX_RECENT_TIMERS);
 }
 
 export function isTimer(a: Alarm): boolean {

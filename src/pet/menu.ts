@@ -1,7 +1,7 @@
 import type { CharacterRegistry } from "../characters/registry";
 import type { CareAction, CharacterDef } from "../characters/schema";
 import { pick, type Rng } from "../engine/random";
-import { formatDuration } from "../features/alarm/timers";
+import { formatDuration, PRESET_MINUTES } from "../features/alarm/timers";
 import { formatRemaining } from "../features/pomodoro/logic";
 import type { Alarm, Backend, PomodoroStatus, Settings } from "../platform";
 
@@ -19,6 +19,8 @@ export interface MenuContext {
   rng: Rng;
   care: (action: CareAction) => void;
   setTimer: (minutes: number) => void;
+  /** Asks for a custom length in the pet's speech bubble. */
+  customTimer: () => void;
   hide: () => void;
 }
 
@@ -26,10 +28,9 @@ export interface Item {
   text: string;
   action?: () => void;
   checked?: boolean;
-  items?: Item[];
+  items?: (Item | "sep")[];
 }
 
-export const TIMER_MINUTES = [1, 5, 10, 15, 30, 60];
 
 export function careLabel(action: CareAction, character: CharacterDef): string {
   return action.label.replace(/\{name\}/g, character.displayName);
@@ -49,10 +50,17 @@ export function buildItems(c: MenuContext): (Item | "sep")[] {
   const focusing = c.pomodoro.phase !== "idle";
   const left = (at: number | null) => (at ? ` (${formatRemaining(at - now)} left)` : "");
 
+  // Presets keep fixed positions (muscle memory); the user's own lengths sit below a separator.
+  const recent = c.settings.recentTimers.filter((m) => !PRESET_MINUTES.includes(m));
   const timerItems: (Item | "sep")[] = [
     {
       text: "Set timer",
-      items: TIMER_MINUTES.map((m) => ({ text: formatDuration(m), action: () => c.setTimer(m) })),
+      items: [
+        ...PRESET_MINUTES.map((m) => ({ text: formatDuration(m), action: () => c.setTimer(m) })),
+        "sep" as const,
+        ...recent.map((m) => ({ text: `${formatDuration(m)} (custom)`, action: () => c.setTimer(m) })),
+        { text: "Custom…", action: c.customTimer },
+      ],
     },
   ];
   if (c.timers.length === 1) {

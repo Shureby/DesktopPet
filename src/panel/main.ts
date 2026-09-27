@@ -5,7 +5,15 @@ import { loadBundled, loadUser, type CharacterRegistry, type LoadedCharacter } f
 import { SpriteAtlas } from "../engine/sprites";
 import { formatRemaining } from "../features/pomodoro/logic";
 import { clock } from "../features/alarm/ringing";
-import { isTimer, TIMER_PREFIX, timerLabel } from "../features/alarm/timers";
+import {
+  formatDuration,
+  isTimer,
+  parseDuration,
+  PRESET_MINUTES,
+  rememberCustomTimer,
+  TIMER_PREFIX,
+  timerLabel,
+} from "../features/alarm/timers";
 import { parseQuickAdd } from "../features/todo/quickAdd";
 import { GAMES } from "../features/games/catalog";
 import { backend, type Alarm, type AlertSettings, type PanelTab, type Repeat, type Settings } from "../platform";
@@ -131,7 +139,32 @@ async function renderAlarms(): Promise<Node> {
     await backend.addAlarm(label.value.trim() || `Alarm ${time.value}`, d.getTime(), repeat.value as Repeat);
     label.value = "";
   };
-  const timer = (m: number) => h("button", { onclick: () => void backend.addAlarm(timerLabel(m), Date.now() + m * 60_000, "none") }, `${m}m`);
+  const startTimer = async (m: number) => {
+    await backend.addAlarm(timerLabel(m), Date.now() + m * 60_000, "none");
+    if (!PRESET_MINUTES.includes(m)) await save({ recentTimers: rememberCustomTimer(settings.recentTimers, m) });
+  };
+  const short = (m: number) =>
+    formatDuration(m).replace(/ hours?\b/, "h").replace(" min", "m").replace(" s", "s").replace(/ /g, "");
+  const timer = (m: number, custom = false) =>
+    h("button", { class: custom ? "custom" : "", title: custom ? "Your custom timer" : "", onclick: () => void startTimer(m) }, short(m));
+  // Custom length, with a live preview of how it's understood.
+  const customInput = h("input", { type: "text", placeholder: "Custom: 20 · 1:30 · 90s", class: "custom-timer" });
+  const customHint = h("span", { class: "hint" });
+  const startCustom = () => {
+    const m = parseDuration(customInput.value);
+    if (m === null) {
+      customHint.textContent = "Try 20, 1:30 or 90s";
+      return;
+    }
+    customInput.value = "";
+    customHint.textContent = "";
+    void startTimer(m);
+  };
+  customInput.addEventListener("input", () => {
+    const m = parseDuration(customInput.value);
+    customHint.textContent = customInput.value.trim() ? (m === null ? "…" : `= ${formatDuration(m)}`) : "";
+  });
+  customInput.addEventListener("keydown", (e) => (e as KeyboardEvent).key === "Enter" && startCustom());
   const now = Date.now();
   // A one-shot alarm is finished once its time has passed (repeating ones never finish).
   const isFinished = (a: Alarm) => a.repeat === "none" && (a.nextFire === null || a.nextFire <= now);
@@ -207,7 +240,13 @@ async function renderAlarms(): Promise<Node> {
     "section",
     {},
     h("h3", {}, "Quick timer"),
-    h("div", { class: "row wrap" }, ...[1, 5, 10, 15, 25, 30, 60].map(timer)),
+    h(
+      "div",
+      { class: "row wrap" },
+      ...PRESET_MINUTES.map((m) => timer(m)),
+      ...settings.recentTimers.filter((m) => !PRESET_MINUTES.includes(m)).map((m) => timer(m, true)),
+    ),
+    h("div", { class: "row" }, customInput, h("button", { onclick: startCustom }, "Start"), customHint),
     h("h3", {}, "New alarm"),
     h("div", { class: "row" }, time, repeat, label, h("button", { class: "primary", onclick: add }, "Add")),
     timers.length ? h("h3", {}, "Timers") : null,
@@ -625,7 +664,7 @@ async function main() {
   await backend.on("pomodoro", () => current === "focus" && void render());
   await backend.on("settings", (s) => {
     settings = s;
-    if (current === "characters" || current === "focus" || current === "settings") void render();
+    if (["characters", "focus", "settings", "alarms"].includes(current)) void render();
   });
   await backend.on("panel-tab", (tab) => select(tab));
   await backend.on("mood", () => current === "characters" && void render());

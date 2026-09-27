@@ -19,6 +19,7 @@ function ctx(over: Partial<MenuContext> = {}): MenuContext {
     rng: createRng(1),
     care: () => {},
     setTimer: () => {},
+    customTimer: () => {},
     hide: () => {},
     ...over,
   };
@@ -56,6 +57,17 @@ describe("pet menu", () => {
     const many = buildItems(ctx({ timers: [timer(1, 5), timer(2, 10)] }));
     const cancel = many.find((i): i is Item => i !== "sep" && i.text === "Cancel timer");
     expect(cancel?.items).toHaveLength(2);
+  });
+
+  it("lists presets, then the user's custom lengths and Custom… below a separator", () => {
+    const settings = { ...DEFAULT_SETTINGS, recentTimers: [20, 1.5, 90] };
+    const set = buildItems(ctx({ settings })).find((i): i is Item => i !== "sep" && i.text === "Set timer")!;
+    expect(set.items!.map((i) => (i === "sep" ? "—" : i.text))).toEqual([
+      "1 min", "5 min", "10 min", "15 min", "30 min", "45 min", "1 hour",
+      "—",
+      "20 min (custom)", "1 min 30 s (custom)", "1 h 30 min (custom)",
+      "Custom…",
+    ]);
   });
 
   it("offers to cancel a snoozed alarm", () => {

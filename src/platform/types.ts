@@ -36,6 +36,8 @@ export interface Settings {
   /** Small UI sounds: petting, tomato-clock phase changes. */
   sound: boolean;
   alerts: { alarm: AlertSettings; todo: AlertSettings };
+  /** Custom timer lengths in minutes, most recent first (at most three). */
+  recentTimers: number[];
   quietHours: { enabled: boolean; start: string; end: string };
   pomodoro: PomodoroConfig;
   autostart: boolean;
@@ -50,6 +52,7 @@ export const DEFAULT_SETTINGS: Settings = {
     alarm: { petRuns: true, ring: true, ringtone: "classic", volume: 0.7, ringSeconds: 60, snoozeMinutes: 5, autoSnoozeMax: 3 },
     todo: { petRuns: true, ring: true, ringtone: "chime", volume: 0.5, ringSeconds: 60, snoozeMinutes: 10, autoSnoozeMax: 0 },
   },
+  recentTimers: [],
   quietHours: { enabled: false, start: "22:00", end: "08:00" },
   pomodoro: { focusMin: 25, shortBreakMin: 5, longBreakMin: 15, roundsBeforeLong: 4, autoContinue: true },
   autostart: false,
@@ -63,6 +66,7 @@ export function mergeSettings(stored: Partial<Settings> | null | undefined): Set
     ...d,
     ...s,
     quietHours: { ...d.quietHours, ...s.quietHours },
+    recentTimers: Array.isArray(s.recentTimers) ? s.recentTimers.filter((m) => typeof m === "number" && m > 0).slice(0, 3) : [],
     pomodoro: { ...d.pomodoro, ...s.pomodoro },
     alerts: {
       alarm: { ...d.alerts.alarm, ...s.alerts?.alarm },

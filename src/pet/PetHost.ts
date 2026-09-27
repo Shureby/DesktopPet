@@ -12,7 +12,16 @@ import {
   visibleDoneTimers,
   type DoneTimer,
 } from "../features/alarm/ringing";
-import { activeTimers, formatDuration, isTimer, TIMER_PREFIX, timerLabel } from "../features/alarm/timers";
+import {
+  activeTimers,
+  formatDuration,
+  isTimer,
+  parseDuration,
+  PRESET_MINUTES,
+  rememberCustomTimer,
+  TIMER_PREFIX,
+  timerLabel,
+} from "../features/alarm/timers";
 import { formatRemaining } from "../features/pomodoro/logic";
 import type { Alarm, Backend, PetActivity, PomodoroStatus, ReminderEvent, Settings } from "../platform";
 import type { CareAction } from "../characters/schema";
@@ -62,6 +71,8 @@ export class PetHost {
   private announcedMissed = new Set<number>();
   /** The alarm currently ringing; `onTimeout` runs if nobody answers. */
   private activeRing: { onTimeout: () => void } | null = null;
+  /** The bubble is asking for a custom timer length; chatter must not replace it. */
+  private prompting = false;
   private hovering = false;
 
   constructor(
@@ -451,7 +462,8 @@ export class PetHost {
       snoozed: snoozedAlarms(this.timers),
       rng: this.pet.rng,
       care: (a) => this.care(a),
-      setTimer: (min) => void this.setTimer(min),
+      setTimer: (min) => void this.startTimer(min),
+      customTimer: () => void this.askCustomTimer(),
       hide: () => void this.hidePet(),
     });
   }
@@ -534,6 +546,83 @@ export class PetHost {
   }
 
   /** Starts a timer and has the pet confirm it (instead of silently setting it). */
+  /** Starts a timer from the menu or the custom prompt, remembering custom lengths (max three). */
+  private async startTimer(minutes: number): Promise<void> {
+    await this.setTimer(minutes);
+    if (!PRESET_MINUTES.includes(minutes)) {
+      const recentTimers = rememberCustomTimer(this.settings.recentTimers, minutes);
+      this.settings = await this.backend.setSettings({ recentTimers });
+    }
+  }
+
+  /** "Custom…": asks for a length right in the speech bubble (a native menu can't take input). */
+  private async askCustomTimer(): Promise<void> {
+    if (this.activeRing) return;
+    clearTimeout(this.bubbleTimer);
+    this.prompting = true;
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "20";
+    input.className = "duration";
+    input.setAttribute("aria-label", "Timer length");
+    const hint = document.createElement("div");
+    hint.className = "hint";
+    hint.textContent = "e.g. 20 · 1:30 · 90s";
+    const start = document.createElement("button");
+    start.textContent = "Start";
+    const cancel = document.createElement("button");
+    cancel.textContent = "✕";
+    cancel.title = "Cancel";
+    const submit = () => {
+      const minutes = parseDuration(input.value);
+      if (minutes === null) {
+        hint.textContent = "Try 20, 1:30 or 90s";
+        hint.classList.add("error");
+        input.focus();
+        return;
+      }
+      this.prompting = false;
+      this.hideBubble();
+      void this.startTimer(minutes);
+    };
+    input.addEventListener("input", () => {
+      const minutes = parseDuration(input.value);
+      hint.classList.remove("error");
+      hint.textContent = input.value.trim() ? (minutes === null ? "…" : `= ${formatDuration(minutes)}`) : "e.g. 20 · 1:30 · 90s";
+    });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") submit();
+      if (e.key === "Escape") {
+        this.prompting = false;
+        this.hideBubble();
+      }
+    });
+    start.addEventListener("click", (e) => (e.stopPropagation(), submit()));
+    cancel.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.prompting = false;
+      this.hideBubble();
+    });
+    const title = document.createElement("div");
+    title.textContent = "How long?";
+    const row = document.createElement("div");
+    row.className = "actions";
+    row.append(input, start, cancel);
+    this.bubble.replaceChildren(title, row, hint);
+    this.bubble.hidden = false;
+    // Give up quietly if left alone.
+    this.bubbleTimer = setTimeout(() => {
+      this.prompting = false;
+      this.hideBubble();
+    }, 45_000);
+    // The pet window never takes focus by itself; typing needs it.
+    if (this.windowed) {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      await getCurrentWindow().setFocus();
+    }
+    input.focus();
+  }
+
   private async setTimer(minutes: number): Promise<void> {
     const alarm = await this.backend.addAlarm(timerLabel(minutes), Date.now() + minutes * 60_000, "none");
     this.timers = [...this.timers.filter((t) => t.id !== alarm.id), alarm];
@@ -584,6 +673,9 @@ export class PetHost {
    */
   private say(text: string, ms: number, actions: BubbleAction[] = [], onTimeout?: () => void): void {
     if (this.activeRing && !onTimeout) return;
+    // Don't talk over the custom-timer prompt (an alarm still takes priority).
+    if (this.prompting && !onTimeout) return;
+    this.prompting = false;
     if (this.activeRing && onTimeout) {
       // A new alarm arrived while another was ringing: the earlier one went unanswered.
       const previous = this.activeRing;

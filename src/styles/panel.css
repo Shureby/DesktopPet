@@ -513,3 +513,11 @@ fieldset.alert .unanswered label {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+button.custom {
+  border-style: dashed;
+  border-color: var(--accent);
+}
+input.custom-timer {
+  flex: 1;
+}
