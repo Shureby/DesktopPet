@@ -20,10 +20,14 @@ export type MoodEvent =
   | "todoDone"
   | "focusDone"
   | "game"
-  | "thrown";
+  /** Picked up and carried around: counts as play. */
+  | "carried"
+  /** Dropped hard enough to slam into the ground. */
+  | "slammed";
 
 export const MOOD = {
-  start: 50,
+  /** Starts comfortably inside "content" (40–79) so early decay doesn't make it grumpy. */
+  start: 60,
   /** Affection lost per hour of app time (about 1 per 30 minutes). */
   affectionDecayPerHour: 2,
   /** Hungry pets lose affection this many times faster. */
@@ -37,7 +41,7 @@ export const MOOD = {
   feedAffection: 2,
   /** Feeding a pet this full makes it refuse the food. */
   fullAbove: 90,
-  gains: { todoDone: 2, focusDone: 5, game: 3, thrown: -2 },
+  gains: { todoDone: 2, focusDone: 5, game: 3, carried: 2, slammed: -1 },
 } as const;
 
 export function defaultMood(now = Date.now()): Mood {
@@ -52,8 +56,8 @@ export function isHungry(m: Mood): boolean {
 
 export function moodTier(m: Mood): MoodTier {
   if (m.affection >= 80) return "adoring";
-  if (m.affection >= 50) return "content";
-  if (m.affection >= 25) return "grumpy";
+  if (m.affection >= 40) return "content";
+  if (m.affection >= 20) return "grumpy";
   return "sulking";
 }
 
@@ -71,9 +75,11 @@ export function decayMood(m: Mood, dtSeconds: number): void {
  */
 export function applyMoodEvent(m: Mood, e: MoodEvent, now = Date.now()): "ok" | "full" | "capped" {
   switch (e) {
-    case "pet": {
+    case "pet":
+    case "carried": {
       if (now - m.petWindow.start >= 3_600_000) m.petWindow = { start: now, gained: 0 };
-      const gain = Math.min(MOOD.petGain, MOOD.petCapPerHour - m.petWindow.gained);
+      const amount = e === "pet" ? MOOD.petGain : MOOD.gains.carried;
+      const gain = Math.min(amount, MOOD.petCapPerHour - m.petWindow.gained);
       if (gain <= 0) return "capped";
       m.petWindow.gained += gain;
       m.affection = clamp(m.affection + gain);

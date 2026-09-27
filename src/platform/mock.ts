@@ -1,3 +1,4 @@
+import { TIMER_PREFIX } from "../features/alarm/timers";
 import { nextPhase, startFocus, tick } from "../features/pomodoro/logic";
 import {
   DEFAULT_SETTINGS,
@@ -128,6 +129,8 @@ export function startMockScheduler(): () => void {
           }
         }
       }
+      // Timers are throwaway: gone once they've rung (like the Rust store).
+      s.alarms = s.alarms.filter((a) => !(a.label.startsWith(TIMER_PREFIX) && a.nextFire === null));
       const next = tick(s.pomodoro, now, s.settings.pomodoro);
       if (next) {
         setPomodoro(s, next, now);
@@ -170,6 +173,15 @@ export const mockBackend: Backend = {
     mutate((s) => Object.assign(s.todos.find((t) => t.id === id) ?? {}, patch));
     fire("todos-changed", null);
   },
+  async clearDoneTodos() {
+    const n = mutate((s) => {
+      const before = s.todos.length;
+      s.todos = s.todos.filter((t) => !t.done);
+      return before - s.todos.length;
+    });
+    fire("todos-changed", null);
+    return n;
+  },
   async deleteTodo(id) {
     mutate((s) => (s.todos = s.todos.filter((t) => t.id !== id)));
     fire("todos-changed", null);
@@ -195,9 +207,21 @@ export const mockBackend: Backend = {
       if (!a) return;
       a.enabled = enabled;
       if (enabled && a.timeHm) a.nextFire = nextOccurrence(a.timeHm, a.repeat, Date.now());
-      if (!enabled) a.nextFire = null;
+      // One-shot alarms keep their time so they can be switched back on.
+      if (!enabled && a.repeat !== "none") a.nextFire = null;
+      if (enabled && a.repeat === "none" && (a.nextFire ?? 0) <= Date.now()) a.enabled = false;
     });
     fire("alarms-changed", null);
+  },
+  async clearFinishedAlarms() {
+    const now = Date.now();
+    const n = mutate((s) => {
+      const before = s.alarms.length;
+      s.alarms = s.alarms.filter((a) => a.repeat !== "none" || (a.nextFire !== null && (a.enabled || a.nextFire > now)));
+      return before - s.alarms.length;
+    });
+    fire("alarms-changed", null);
+    return n;
   },
   async deleteAlarm(id) {
     mutate((s) => (s.alarms = s.alarms.filter((a) => a.id !== id)));

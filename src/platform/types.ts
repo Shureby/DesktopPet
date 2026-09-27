@@ -159,11 +159,15 @@ export interface Backend {
   addTodo(title: string, dueAt: number | null): Promise<Todo>;
   updateTodo(id: number, patch: Partial<Pick<Todo, "title" | "dueAt" | "done">>): Promise<void>;
   deleteTodo(id: number): Promise<void>;
+  /** Removes all ticked-off to-dos; returns how many. */
+  clearDoneTodos(): Promise<number>;
 
   listAlarms(): Promise<Alarm[]>;
   addAlarm(label: string, at: number, repeat: Repeat): Promise<Alarm>;
   setAlarmEnabled(id: number, enabled: boolean): Promise<void>;
   deleteAlarm(id: number): Promise<void>;
+  /** Removes one-shot alarms and timers that already rang; returns how many. */
+  clearFinishedAlarms(): Promise<number>;
   snoozeAlarm(id: number, minutes: number): Promise<void>;
 
   pomodoroStart(): Promise<PomodoroStatus>;

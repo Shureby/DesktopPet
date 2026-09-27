@@ -56,6 +56,8 @@ export class Pet {
   speed: number;
 
   private activityLength = 0;
+  /** Set when the user throws the pet, so only those landings count as slams. */
+  private thrown = false;
   private dragVel = { x: 0, y: 0 };
   private lastDrag: { x: number; y: number; t: number } | null = null;
 
@@ -180,6 +182,7 @@ export class Pet {
     this.body.vx = Math.max(-cap, Math.min(cap, this.dragVel.x / w));
     this.body.vy = Math.max(-cap, Math.min(cap, this.dragVel.y / w));
     this.fsm.set("fall");
+    this.thrown = true;
     const speed = Math.hypot(this.body.vx, this.body.vy) / this.unit;
     if (speed > 600) this.react({ type: "thrown", speed });
   }
@@ -205,7 +208,8 @@ export class Pet {
       });
       this.lastStep = r;
       if (r.landed) {
-        if (fallSpeed > this.u(1100)) this.react({ type: "landedHard" });
+        if (this.thrown && fallSpeed > this.u(1100)) this.react({ type: "landedHard" });
+        this.thrown = false;
         if (this.fsm.def.airborne) this.fsm.set("land");
       } else if (!this.body.support && !this.fsm.def.airborne && !this.fsm.def.kinematic) {
         this.fsm.set("fall");

@@ -55,7 +55,13 @@ const MIGRATIONS: &[&str] = &[
        at INTEGER NOT NULL);
      CREATE INDEX scores_game ON scores(game, score DESC);
      CREATE TABLE achievements (id TEXT PRIMARY KEY, unlocked_at INTEGER NOT NULL);",
+    // v2: when a to-do was ticked off, for the daily clean-up.
+    "ALTER TABLE todos ADD COLUMN done_at INTEGER;",
 ];
+
+/// Timers are one-shot alarms with this label prefix (see `src/features/alarm/timers.ts`).
+/// They are deleted as soon as they have rung.
+pub const TIMER_PREFIX: &str = "Timer: ";
 
 pub struct Store {
     conn: Connection,
@@ -143,7 +149,7 @@ impl Store {
         Ok(Todo { id, title: title.to_string(), due_at, done: false, created_at: now })
     }
 
-    pub fn update_todo(&self, id: i64, patch: &TodoPatch) -> Result<()> {
+    pub fn update_todo(&self, id: i64, patch: &TodoPatch, now: Millis) -> Result<()> {
         if let Some(title) = &patch.title {
             self.conn.execute("UPDATE todos SET title = ?2 WHERE id = ?1", params![id, title.trim()])?;
         }
@@ -152,7 +158,8 @@ impl Store {
             self.conn.execute("UPDATE todos SET due_at = ?2, notified_at = NULL WHERE id = ?1", params![id, due])?;
         }
         if let Some(done) = patch.done {
-            self.conn.execute("UPDATE todos SET done = ?2 WHERE id = ?1", params![id, done])?;
+            let done_at = done.then_some(now);
+            self.conn.execute("UPDATE todos SET done = ?2, done_at = ?3 WHERE id = ?1", params![id, done, done_at])?;
         }
         Ok(())
     }
@@ -223,7 +230,12 @@ impl Store {
             return Ok(());
         };
         let next = if !enabled {
-            None
+            // Keep a one-shot alarm's time so it can be switched back on.
+            if alarm.repeat == Repeat::None {
+                alarm.next_fire
+            } else {
+                None
+            }
         } else if let Some(t) = alarm.time_hm.as_deref().and_then(parse_hm) {
             next_occurrence(tz, now, t, alarm.repeat)
         } else {
@@ -232,9 +244,34 @@ impl Store {
         };
         self.conn.execute(
             "UPDATE alarms SET enabled = ?2, next_fire = ?3 WHERE id = ?1",
-            params![id, enabled && next.is_some(), next],
+            params![id, enabled && next.is_some_and(|n| n > now), next],
         )?;
         Ok(())
+    }
+
+    /// Deletes one-shot alarms and timers that can no longer ring. Returns how many.
+    pub fn clear_finished_alarms(&self, now: Millis) -> Result<usize> {
+        Ok(self.conn.execute(
+            "DELETE FROM alarms WHERE repeat = 'none' AND (next_fire IS NULL OR (enabled = 0 AND next_fire <= ?1))",
+            [now],
+        )?)
+    }
+
+    /// Deletes to-dos ticked off before `before` (use `Millis::MAX` for all). Returns how many.
+    pub fn clear_done_todos(&self, before: Millis) -> Result<usize> {
+        Ok(self.conn.execute("DELETE FROM todos WHERE done = 1 AND (done_at IS NULL OR done_at < ?1)", [before])?)
+    }
+
+    /// Daily clean-up: finished alarms/timers and to-dos done before `start_of_today`.
+    /// Runs at most once per `day` (a local date string); returns true if it ran.
+    pub fn daily_cleanup(&self, day: &str, start_of_today: Millis, now: Millis) -> Result<bool> {
+        if self.get_kv("last_cleanup")?.as_deref() == Some(day) {
+            return Ok(false);
+        }
+        self.clear_finished_alarms(now)?;
+        self.clear_done_todos(start_of_today)?;
+        self.set_kv("last_cleanup", day)?;
+        Ok(true)
     }
 
     pub fn snooze_alarm(&self, id: i64, minutes: i64, now: Millis) -> Result<()> {
@@ -282,10 +319,15 @@ impl Store {
             if !stale {
                 out.push(Reminder { kind: ReminderKind::Alarm, id: a.id, title: a.label.clone() });
             }
-            self.conn.execute(
-                "UPDATE alarms SET next_fire = ?2, enabled = ?3 WHERE id = ?1",
-                params![a.id, next, next.is_some()],
-            )?;
+            if next.is_none() && a.label.starts_with(TIMER_PREFIX) {
+                // Timers are throwaway: gone once they've rung.
+                self.conn.execute("DELETE FROM alarms WHERE id = ?1", [a.id])?;
+            } else {
+                self.conn.execute(
+                    "UPDATE alarms SET next_fire = ?2, enabled = ?3 WHERE id = ?1",
+                    params![a.id, next, next.is_some()],
+                )?;
+            }
         }
         Ok(out)
     }
@@ -408,11 +450,15 @@ mod tests {
         assert_eq!(due, vec![Reminder { kind: ReminderKind::Todo, id: t.id, title: "call mom".into() }]);
         assert!(s.take_due(&London, at(15, 1)).unwrap().is_empty());
 
-        s.update_todo(t.id, &TodoPatch { due_at: Some(Some(at(15, 10))), ..Default::default() }).unwrap();
+        s.update_todo(t.id, &TodoPatch { due_at: Some(Some(at(15, 10))), ..Default::default() }, at(15, 5)).unwrap();
         assert_eq!(s.take_due(&London, at(15, 10)).unwrap().len(), 1);
 
-        s.update_todo(t.id, &TodoPatch { due_at: Some(Some(at(16, 0))), done: Some(true), ..Default::default() })
-            .unwrap();
+        s.update_todo(
+            t.id,
+            &TodoPatch { due_at: Some(Some(at(16, 0))), done: Some(true), ..Default::default() },
+            at(15, 30),
+        )
+        .unwrap();
         assert!(s.take_due(&London, at(16, 0)).unwrap().is_empty());
     }
 
@@ -427,7 +473,7 @@ mod tests {
     #[test]
     fn one_shot_alarm_rings_then_disables() {
         let s = Store::open_in_memory().unwrap();
-        let a = s.add_alarm(&London, "Timer: 5 min", at(10, 5), Repeat::None).unwrap();
+        let a = s.add_alarm(&London, "Dentist", at(10, 5), Repeat::None).unwrap();
         assert_eq!(s.take_due(&London, at(10, 5)).unwrap()[0].id, a.id);
         let saved = &s.list_alarms().unwrap()[0];
         assert!(!saved.enabled);
@@ -483,6 +529,61 @@ mod tests {
         assert_eq!(c.focus_min, 50.0);
         assert!(!c.auto_continue);
         assert_eq!(c.short_break_min, 5.0);
+    }
+
+    #[test]
+    fn timers_disappear_after_ringing() {
+        let s = Store::open_in_memory().unwrap();
+        s.add_alarm(&London, "Timer: 5 min", at(10, 5), Repeat::None).unwrap();
+        s.add_alarm(&London, "Dentist", at(10, 5), Repeat::None).unwrap();
+        assert_eq!(s.take_due(&London, at(10, 5)).unwrap().len(), 2);
+        let left = s.list_alarms().unwrap();
+        assert_eq!(left.len(), 1);
+        assert_eq!(left[0].label, "Dentist");
+    }
+
+    #[test]
+    fn switching_a_one_shot_alarm_off_and_on_keeps_its_time() {
+        let s = Store::open_in_memory().unwrap();
+        let a = s.add_alarm(&London, "Dentist", at(15, 0), Repeat::None).unwrap();
+        s.set_alarm_enabled(&London, a.id, false, at(9, 0)).unwrap();
+        assert!(!s.list_alarms().unwrap()[0].enabled);
+        assert!(s.take_due(&London, at(15, 0)).unwrap().is_empty());
+        s.set_alarm_enabled(&London, a.id, true, at(9, 0)).unwrap();
+        let back = &s.list_alarms().unwrap()[0];
+        assert!(back.enabled);
+        assert_eq!(back.next_fire, Some(at(15, 0)));
+    }
+
+    #[test]
+    fn clear_finished_keeps_upcoming_and_repeating() {
+        let s = Store::open_in_memory().unwrap();
+        s.add_alarm(&London, "Rang", at(8, 0), Repeat::None).unwrap();
+        s.add_alarm(&London, "Later", at(18, 0), Repeat::None).unwrap();
+        let off = s.add_alarm(&London, "Switched off, still ahead", at(19, 0), Repeat::None).unwrap();
+        s.set_alarm_enabled(&London, off.id, false, at(9, 0)).unwrap();
+        s.add_alarm(&London, "Daily", at(7, 0), Repeat::Daily).unwrap();
+        s.take_due(&London, at(9, 0)).unwrap();
+        assert_eq!(s.clear_finished_alarms(at(9, 0)).unwrap(), 1);
+        let labels: Vec<_> = s.list_alarms().unwrap().into_iter().map(|a| a.label).collect();
+        assert_eq!(labels, vec!["Later", "Switched off, still ahead", "Daily"]);
+    }
+
+    #[test]
+    fn daily_cleanup_removes_yesterdays_done_todos_once_a_day() {
+        let s = Store::open_in_memory().unwrap();
+        let old = s.add_todo("yesterday", None, 0).unwrap();
+        let new = s.add_todo("today", None, 0).unwrap();
+        s.add_todo("open", None, 0).unwrap();
+        let done = TodoPatch { done: Some(true), ..Default::default() };
+        s.update_todo(old.id, &done, at(9, 0) - 24 * 60 * MIN).unwrap();
+        s.update_todo(new.id, &done, at(9, 0)).unwrap();
+        let midnight = at(0, 0);
+        assert!(s.daily_cleanup("2026-01-07", midnight, at(10, 0)).unwrap());
+        assert!(!s.daily_cleanup("2026-01-07", midnight, at(11, 0)).unwrap());
+        let titles: Vec<_> = s.list_todos().unwrap().into_iter().map(|t| t.title).collect();
+        assert_eq!(titles, vec!["today", "open"]);
+        assert_eq!(s.clear_done_todos(Millis::MAX).unwrap(), 1);
     }
 
     #[test]

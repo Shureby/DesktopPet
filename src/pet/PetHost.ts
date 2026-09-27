@@ -239,13 +239,15 @@ export class PetHost {
       el.style.top = `${f.y - spriteH - dy}px`;
     };
     place(this.bubble, 8);
-    place(this.moodMeter, 6);
+    // Left of the pet (badges are on the right), so it never hides behind the bubble.
+    this.moodMeter.style.left = `${f.x - this.atlas.width * this.artScale / 2 - 4}px`;
+    this.moodMeter.style.top = `${f.y - 2}px`;
     const spriteW = this.atlas.width * this.artScale;
     // Anchored at the feet and growing upward, so extra rows never fall off the window.
     this.badges.style.left = `${f.x + spriteW / 2 + 4}px`;
     this.badges.style.top = `${f.y - 2}px`;
     this.renderBadges();
-    this.moodMeter.hidden = !this.hovering || !this.bubble.hidden || !!this.drag;
+    this.moodMeter.hidden = !this.hovering || !!this.drag;
   }
 
   /** Focus session on top, then the soonest timer ("+N" when more are running). */
@@ -273,7 +275,9 @@ export class PetHost {
     const m = this.pet.mood;
     const hearts = Math.ceil(m.affection / 20);
     const food = Math.ceil(m.fullness / 20);
-    this.moodMeter.textContent = `${"♥".repeat(hearts)}${"♡".repeat(5 - hearts)}  ${"●".repeat(food)}${"○".repeat(5 - food)}`;
+    this.moodMeter.textContent =
+      `${"♥".repeat(hearts)}${"♡".repeat(5 - hearts)} ${Math.round(m.affection)}%\n` +
+      `${"●".repeat(food)}${"○".repeat(5 - food)} ${Math.round(m.fullness)}%`;
     this.moodMeter.title = `Affection ${Math.round(m.affection)}% · Fullness ${Math.round(m.fullness)}%`;
     this.moodMeter.dataset.tier = moodTier(m);
     this.moodMeter.classList.toggle("hungry", isHungry(m));
@@ -363,8 +367,11 @@ export class PetHost {
     const d = this.drag;
     if (!d || e.pointerId !== d.pointerId) return;
     this.drag = null;
-    if (d.moved) this.pet.endDrag();
-    else this.care({ label: "", kind: "pet" });
+    if (d.moved) {
+      this.pet.endDrag();
+      // Being carried around is play; it shares the hourly cap with petting.
+      this.moodEvent("carried");
+    } else this.care({ label: "", kind: "pet" });
   }
 
   private onContextMenu(e: MouseEvent): void {
@@ -388,6 +395,7 @@ export class PetHost {
 
   /** Petting (click or menu) and feeding. */
   private care(action: CareAction): void {
+    const before = { ...this.pet.mood };
     if (action.kind === "feed") {
       const result = applyMoodEvent(this.pet.mood, "feed") === "full" ? "full" : "ok";
       this.pet.react({ type: "fed", result });
@@ -396,13 +404,35 @@ export class PetHost {
       this.pet.react({ type: "petted", result });
       if (this.settings.sound) sounds.pop();
     }
+    this.showGain(before.affection, before.fullness);
     this.renderMoodMeter();
     void this.saveMood();
   }
 
   private moodEvent(e: MoodEvent): void {
+    const before = { ...this.pet.mood };
     applyMoodEvent(this.pet.mood, e);
+    this.showGain(before.affection, before.fullness);
+    this.renderMoodMeter();
     void this.saveMood();
+  }
+
+  /** Floats "+3 ♥" / "+40 🍽" above the pet so every bit of care visibly counts. */
+  private showGain(affectionBefore: number, fullnessBefore: number): void {
+    const love = Math.round(this.pet.mood.affection - affectionBefore);
+    const food = Math.round(this.pet.mood.fullness - fullnessBefore);
+    const parts = [love && `${love > 0 ? "+" : ""}${love} ♥`, food > 0 && `+${food} 🍽`].filter(Boolean);
+    if (!parts.length || this.hidden) return;
+    const el = document.createElement("div");
+    el.className = `gain ${love < 0 ? "loss" : ""}`;
+    el.textContent = parts.join("  ");
+    const f = this.feet();
+    const spriteW = this.atlas.width * this.artScale;
+    // Top-right of the pet's head: the meter is on the left, the bubble above.
+    el.style.left = `${f.x + spriteW / 2}px`;
+    el.style.top = `${f.y - this.atlas.height * this.artScale}px`;
+    document.body.append(el);
+    setTimeout(() => el.remove(), 1200);
   }
 
   private async saveMood(): Promise<void> {

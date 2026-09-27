@@ -74,7 +74,7 @@ async function renderTodos(): Promise<Node> {
   queueMicrotask(() => input.focus());
 
   const open = todos.filter((t) => !t.done).sort((a, b) => (a.dueAt ?? Infinity) - (b.dueAt ?? Infinity));
-  const done = todos.filter((t) => t.done).slice(-10).reverse();
+  const done = todos.filter((t) => t.done).reverse();
   const row = (t: (typeof todos)[number]) =>
     h(
       "li",
@@ -98,7 +98,8 @@ async function renderTodos(): Promise<Node> {
     h("div", { class: "row" }, input, h("button", { class: "primary", onclick: add }, "Add")),
     hint,
     open.length ? h("ul", { class: "list" }, ...open.map(row)) : h("p", { class: "empty" }, "Nothing to do. Your pet approves."),
-    done.length ? h("details", {}, h("summary", {}, `Done (${done.length})`), h("ul", { class: "list" }, ...done.map(row))) : null,
+    done.length ? finishedSection(`Done (${done.length})`, done.map(row), () => backend.clearDoneTodos()) : null,
+    h("p", { class: "hint" }, "Done to-dos are cleared automatically each day."),
   );
 }
 
@@ -126,6 +127,26 @@ async function renderAlarms(): Promise<Node> {
   };
   const timer = (m: number) => h("button", { onclick: () => void backend.addAlarm(timerLabel(m), Date.now() + m * 60_000, "none") }, `${m}m`);
   const repeatText: Record<Repeat, string> = { none: "Once", daily: "Every day", weekdays: "Weekdays" };
+  const now = Date.now();
+  // A one-shot alarm is finished once its time has passed (repeating ones never finish).
+  const isFinished = (a: (typeof alarms)[number]) => a.repeat === "none" && (a.nextFire === null || a.nextFire <= now);
+  const upcoming = alarms.filter((a) => !isFinished(a));
+  const finished = alarms.filter(isFinished);
+  const row = (a: (typeof alarms)[number]) =>
+    h(
+      "li",
+      { class: a.enabled && !isFinished(a) ? "" : "done" },
+      isFinished(a)
+        ? null
+        : h("input", { type: "checkbox", title: "On/off", checked: a.enabled, onchange: () => void backend.setAlarmEnabled(a.id, !a.enabled) }),
+      h("span", { class: "title" }, a.label),
+      h(
+        "span",
+        { class: "when" },
+        isFinished(a) ? "Rang" : a.nextFire ? `${formatWhen(a.nextFire)} · ${repeatText[a.repeat]}` : repeatText[a.repeat],
+      ),
+      h("button", { class: "icon", title: "Delete", onclick: () => void backend.deleteAlarm(a.id) }, "✕"),
+    );
 
   return h(
     "section",
@@ -134,22 +155,34 @@ async function renderAlarms(): Promise<Node> {
     h("div", { class: "row wrap" }, ...[1, 5, 10, 15, 25, 30, 60].map(timer)),
     h("h3", {}, "New alarm"),
     h("div", { class: "row" }, time, repeat, label, h("button", { class: "primary", onclick: add }, "Add")),
-    alarms.length
-      ? h(
-          "ul",
-          { class: "list" },
-          ...alarms.map((a) =>
-            h(
-              "li",
-              { class: a.enabled ? "" : "done" },
-              h("input", { type: "checkbox", title: "Enabled", checked: a.enabled, onchange: () => void backend.setAlarmEnabled(a.id, !a.enabled) }),
-              h("span", { class: "title" }, a.label),
-              h("span", { class: "when" }, a.enabled && a.nextFire ? `${formatWhen(a.nextFire)} · ${repeatText[a.repeat]}` : repeatText[a.repeat]),
-              h("button", { class: "icon", title: "Delete", onclick: () => void backend.deleteAlarm(a.id) }, "✕"),
-            ),
-          ),
-        )
-      : h("p", { class: "empty" }, "No alarms yet."),
+    upcoming.length ? h("ul", { class: "list" }, ...upcoming.map(row)) : h("p", { class: "empty" }, "No alarms set."),
+    finished.length ? finishedSection(`Finished (${finished.length})`, finished.map(row), () => backend.clearFinishedAlarms()) : null,
+    h("p", { class: "hint" }, "Timers disappear once they've rung. Finished alarms are cleared automatically each day."),
+  );
+}
+
+/** Collapsible list of finished items with a "Clear" button. */
+function finishedSection(title: string, rows: Node[], clear: () => Promise<number>): Node {
+  return h(
+    "details",
+    { class: "finished" },
+    h(
+      "summary",
+      {},
+      title,
+      h(
+        "button",
+        {
+          class: "clear",
+          onclick: (e: Event) => {
+            e.preventDefault();
+            void clear();
+          },
+        },
+        "Clear",
+      ),
+    ),
+    h("ul", { class: "list" }, ...rows),
   );
 }
 

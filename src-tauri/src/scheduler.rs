@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use chrono::Local;
+use chrono::{Local, TimeZone};
 use desktoppet_core::{Phase, PomodoroStatus, Reminder, ReminderKind};
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 use tauri_plugin_notification::NotificationExt;
@@ -23,10 +23,14 @@ pub fn spawn<R: Runtime>(app: AppHandle<R>) {
 fn tick<R: Runtime>(app: &AppHandle<R>) {
     let state = app.state::<AppState>();
     let now = now_ms();
-    let (reminders, pomodoro) = {
+    let (reminders, pomodoro, cleaned) = {
         let store = state.store();
-        (store.take_due(&Local, now), store.tick_pomodoro(now))
+        (store.take_due(&Local, now), store.tick_pomodoro(now), daily_cleanup(&store, now))
     };
+    if cleaned {
+        let _ = app.emit("todos-changed", ());
+        let _ = app.emit("alarms-changed", ());
+    }
     state.storefront.run_callbacks();
 
     let pet_visible = app.get_webview_window(PET).and_then(|w| w.is_visible().ok()).unwrap_or(false);
@@ -55,6 +59,20 @@ fn tick<R: Runtime>(app: &AppHandle<R>) {
         }
         Ok(None) => {}
         Err(e) => log::error!("tomato clock tick failed: {e}"),
+    }
+}
+
+/// Once per local day: clear finished alarms/timers and to-dos ticked off before today.
+fn daily_cleanup(store: &desktoppet_core::Store, now: i64) -> bool {
+    let today = Local::now().date_naive();
+    let midnight = today.and_hms_opt(0, 0, 0).and_then(|t| Local.from_local_datetime(&t).earliest());
+    let start = midnight.map_or(now, |t| t.timestamp_millis());
+    match store.daily_cleanup(&today.format("%Y-%m-%d").to_string(), start, now) {
+        Ok(ran) => ran,
+        Err(e) => {
+            log::error!("daily clean-up failed: {e}");
+            false
+        }
     }
 }
 

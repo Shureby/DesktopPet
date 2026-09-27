@@ -48,9 +48,17 @@ pub fn add_todo(app: AppHandle, state: State<AppState>, title: String, due_at: O
 
 #[tauri::command]
 pub fn update_todo(app: AppHandle, state: State<AppState>, id: i64, patch: TodoPatch) -> CmdResult<()> {
-    state.store().update_todo(id, &patch).map_err(err)?;
+    state.store().update_todo(id, &patch, now_ms()).map_err(err)?;
     let _ = app.emit("todos-changed", ());
     Ok(())
+}
+
+/// Removes every ticked-off to-do ("Clear" in the panel).
+#[tauri::command]
+pub fn clear_done_todos(app: AppHandle, state: State<AppState>) -> CmdResult<usize> {
+    let n = state.store().clear_done_todos(i64::MAX).map_err(err)?;
+    let _ = app.emit("todos-changed", ());
+    Ok(n)
 }
 
 #[tauri::command]
@@ -86,6 +94,14 @@ pub fn snooze_alarm(app: AppHandle, state: State<AppState>, id: i64, minutes: i6
     state.store().snooze_alarm(id, minutes.clamp(1, 24 * 60), now_ms()).map_err(err)?;
     let _ = app.emit("alarms-changed", ());
     Ok(())
+}
+
+/// Removes one-shot alarms and timers that already rang ("Clear" in the panel).
+#[tauri::command]
+pub fn clear_finished_alarms(app: AppHandle, state: State<AppState>) -> CmdResult<usize> {
+    let n = state.store().clear_finished_alarms(now_ms()).map_err(err)?;
+    let _ = app.emit("alarms-changed", ());
+    Ok(n)
 }
 
 #[tauri::command]

@@ -633,6 +633,10 @@
       "praise": [
         "Good human.",
         "Done? Impressive. Pet me."
+      ],
+      "enough": [
+        "That's plenty for now.",
+        "*walks away, satisfied*"
       ]
     }
   },

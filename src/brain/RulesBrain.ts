@@ -105,7 +105,7 @@ export class RulesBrain implements Brain {
           if (!busy) pet.fsm.set("sit", true);
           break;
         }
-        pet.say(tier === "adoring" && pet.rng() < 0.5 ? "adoring" : "petted", {}, 2500);
+        pet.say(e.result === "capped" ? "enough" : tier === "adoring" && pet.rng() < 0.5 ? "adoring" : "petted", {}, 2500);
         if (!busy) pet.fsm.set("happy", true);
         break;
       case "fed":
@@ -117,10 +117,11 @@ export class RulesBrain implements Brain {
         if (!busy) pet.fsm.set("happy", true);
         break;
       case "thrown":
-        applyMoodEvent(pet.mood, "thrown");
         pet.say("thrown", {}, 2500);
         break;
       case "landedHard":
+        // Only a real slam costs affection; being carried around is play (see PetHost).
+        applyMoodEvent(pet.mood, "slammed");
         pet.say("landed", {}, 2500);
         break;
       case "reminder": {

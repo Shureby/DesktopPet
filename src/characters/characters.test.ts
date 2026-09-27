@@ -230,3 +230,20 @@ describe("RulesBrain", () => {
     expect(["goto", "alert"]).toContain(pet.state);
   });
 });
+
+describe("slams", () => {
+  it("only counts hard landings after the user throws the pet, not ordinary falls", () => {
+    const pet = spawn(registry.get("cat")!.def, 1, 800, 0);
+    pet.world = { areas: [{ x: 0, y: 0, w: 1600, h: 4000 }], windows: [] };
+    const start = pet.mood.affection;
+    simulate(pet, 5);
+    expect(pet.grounded).toBe(true);
+    expect(pet.mood.affection).toBeCloseTo(start, 1);
+
+    pet.startDrag();
+    pet.dragTo(800, 100, 0);
+    pet.endDrag();
+    simulate(pet, 5);
+    expect(pet.mood.affection).toBeLessThan(start - 0.5);
+  });
+});

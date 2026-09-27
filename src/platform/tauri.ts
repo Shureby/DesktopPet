@@ -22,11 +22,13 @@ export const tauriBackend: Backend = {
   addTodo: (title, dueAt) => invoke("add_todo", { title, dueAt }),
   updateTodo: (id, patch) => invoke("update_todo", { id, patch }),
   deleteTodo: (id) => invoke("delete_todo", { id }),
+  clearDoneTodos: () => invoke("clear_done_todos"),
 
   listAlarms: () => invoke("list_alarms"),
   addAlarm: (label, at, repeat) => invoke("add_alarm", { label, at, repeat }),
   setAlarmEnabled: (id, enabled) => invoke("set_alarm_enabled", { id, enabled }),
   deleteAlarm: (id) => invoke("delete_alarm", { id }),
+  clearFinishedAlarms: () => invoke("clear_finished_alarms"),
   snoozeAlarm: (id, minutes) => invoke("snooze_alarm", { id, minutes }),
 
   pomodoroStart: () => invoke("pomodoro_start"),
