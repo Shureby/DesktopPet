@@ -72,6 +72,32 @@ export function rememberCustomTimer(recent: number[], minutes: number, presets =
   return [minutes, ...recent.filter((m) => m !== minutes)].slice(0, MAX_RECENT_TIMERS);
 }
 
+/**
+ * Edits one saved custom length in place ("✎"): `previous` becomes `minutes` at the same
+ * position. If the new length is a preset or already saved, the slot is simply dropped.
+ */
+export function replaceCustomTimer(recent: number[], previous: number, minutes: number, presets = PRESET_MINUTES): number[] {
+  const i = recent.indexOf(previous);
+  if (i < 0) return rememberCustomTimer(recent, minutes, presets);
+  if (presets.includes(minutes) || (minutes !== previous && recent.includes(minutes))) return recent.filter((m) => m !== previous);
+  return recent.map((m, j) => (j === i ? minutes : m));
+}
+
+/** Removes a saved custom length ("✕"). */
+export function forgetCustomTimer(recent: number[], minutes: number): number[] {
+  return recent.filter((m) => m !== minutes);
+}
+
+/** A compact, re-parseable form for pre-filling an input: 20 → "20", 90 → "1h30m", 1.5 → "1m30s". */
+export function durationInput(minutes: number): string {
+  const total = Math.round(minutes * 60);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (!h && !s) return String(m);
+  return (h ? `${h}h` : "") + (m ? `${m}m` : "") + (s ? `${s}s` : "");
+}
+
 export function isTimer(a: Alarm): boolean {
   return a.label.startsWith(TIMER_PREFIX) && a.repeat === "none";
 }

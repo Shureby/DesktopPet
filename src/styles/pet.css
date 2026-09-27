@@ -79,6 +79,32 @@ body {
   font-size: 11px;
   color: #7b6f66;
 }
+.bubble .saved {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 6px;
+}
+.bubble .saved .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 2px 1px 6px;
+  font-size: 11px;
+  border: 1.5px dashed var(--bubble-border);
+  border-radius: 10px;
+}
+.bubble .saved .chip.editing {
+  border-style: solid;
+  background: #fff3e0;
+}
+.bubble .saved .chip button {
+  padding: 0 4px;
+  font-size: 11px;
+  border: none;
+  background: none;
+}
 .bubble .hint.error {
   color: #c0392b;
 }

@@ -59,7 +59,7 @@ export function buildItems(c: MenuContext): (Item | "sep")[] {
         ...PRESET_MINUTES.map((m) => ({ text: formatDuration(m), action: () => c.setTimer(m) })),
         "sep" as const,
         ...recent.map((m) => ({ text: `${formatDuration(m)} (custom)`, action: () => c.setTimer(m) })),
-        { text: "Custom…", action: c.customTimer },
+        { text: "Custom / Edit…", action: c.customTimer },
       ],
     },
   ];

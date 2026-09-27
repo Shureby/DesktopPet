@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { Alarm } from "../../platform/types";
-import { activeTimers, formatDuration, isTimer, parseDuration, rememberCustomTimer, timerLabel } from "./timers";
+import {
+  activeTimers,
+  durationInput,
+  forgetCustomTimer,
+  formatDuration,
+  isTimer,
+  parseDuration,
+  rememberCustomTimer,
+  replaceCustomTimer,
+  timerLabel,
+} from "./timers";
 
 const alarm = (id: number, label: string, nextFire: number | null, enabled = true): Alarm => ({
   id,
@@ -54,6 +64,22 @@ describe("timers", () => {
     expect(recent).toEqual([90, 1.5, 40]);
     recent = rememberCustomTimer(recent, 40);
     expect(recent).toEqual([40, 90, 1.5]);
+  });
+
+  it("edits a saved custom length in place, or drops it when it clashes", () => {
+    expect(replaceCustomTimer([40, 90, 1.5], 90, 25)).toEqual([40, 25, 1.5]);
+    expect(replaceCustomTimer([40, 90, 1.5], 90, 90)).toEqual([40, 90, 1.5]);
+    expect(replaceCustomTimer([40, 90, 1.5], 90, 30)).toEqual([40, 1.5]); // now a preset
+    expect(replaceCustomTimer([40, 90, 1.5], 90, 40)).toEqual([40, 1.5]); // already saved
+    expect(replaceCustomTimer([40], 90, 25)).toEqual([25, 40]); // gone meanwhile: just remember
+    expect(forgetCustomTimer([40, 90, 1.5], 90)).toEqual([40, 1.5]);
+  });
+
+  it("pre-fills inputs with a form parseDuration reads back", () => {
+    for (const m of [1, 20, 90, 1.5, 120, 61.25, 0.5]) expect(parseDuration(durationInput(m))).toBe(m);
+    expect(durationInput(20)).toBe("20");
+    expect(durationInput(90)).toBe("1h30m");
+    expect(durationInput(1.5)).toBe("1m30s");
   });
 
   it("lists running timers soonest first, ignoring alarms and finished timers", () => {

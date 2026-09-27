@@ -14,13 +14,15 @@ import {
 } from "../features/alarm/ringing";
 import {
   activeTimers,
+  durationInput,
+  forgetCustomTimer,
   formatDuration,
   isTimer,
   parseDuration,
-  PRESET_MINUTES,
   rememberCustomTimer,
-  TIMER_PREFIX,
+  replaceCustomTimer,
   timerLabel,
+  TIMER_PREFIX,
 } from "../features/alarm/timers";
 import { formatRemaining } from "../features/pomodoro/logic";
 import type { Alarm, Backend, PetActivity, PomodoroStatus, ReminderEvent, Settings } from "../platform";
@@ -545,21 +547,43 @@ export class PetHost {
     }
   }
 
-  /** Starts a timer and has the pet confirm it (instead of silently setting it). */
-  /** Starts a timer from the menu or the custom prompt, remembering custom lengths (max three). */
-  private async startTimer(minutes: number): Promise<void> {
+  /**
+   * Starts a timer from the menu or the custom prompt, remembering custom lengths (max three).
+   * `replacing` is the saved length being edited with ✎; the new length takes its place.
+   */
+  private async startTimer(minutes: number, replacing?: number): Promise<void> {
     await this.setTimer(minutes);
-    if (!PRESET_MINUTES.includes(minutes)) {
-      const recentTimers = rememberCustomTimer(this.settings.recentTimers, minutes);
-      this.settings = await this.backend.setSettings({ recentTimers });
-    }
+    const saved = this.settings.recentTimers;
+    const recentTimers =
+      replacing === undefined ? rememberCustomTimer(saved, minutes) : replaceCustomTimer(saved, replacing, minutes);
+    if (recentTimers.join() !== saved.join()) this.settings = await this.backend.setSettings({ recentTimers });
   }
 
-  /** "Custom…": asks for a length right in the speech bubble (a native menu can't take input). */
+  /**
+   * "Custom / Edit…": asks for a length right in the speech bubble (a native menu can't take
+   * input), and lists the saved custom lengths with ✎ (edit that one) and ✕ (forget it).
+   */
   private async askCustomTimer(): Promise<void> {
     if (this.activeRing) return;
     clearTimeout(this.bubbleTimer);
     this.prompting = true;
+    const EXAMPLES = "e.g. 20 · 1:30 · 90s";
+    /** The saved length being edited, if any. */
+    let editing: number | undefined;
+    const close = () => {
+      this.prompting = false;
+      this.hideBubble();
+    };
+    const button = (text: string, title: string, onClick: () => void) => {
+      const b = document.createElement("button");
+      b.textContent = text;
+      b.title = title;
+      b.addEventListener("click", (e) => {
+        e.stopPropagation();
+        onClick();
+      });
+      return b;
+    };
     const input = document.createElement("input");
     input.type = "text";
     input.placeholder = "20";
@@ -567,12 +591,15 @@ export class PetHost {
     input.setAttribute("aria-label", "Timer length");
     const hint = document.createElement("div");
     hint.className = "hint";
-    hint.textContent = "e.g. 20 · 1:30 · 90s";
-    const start = document.createElement("button");
-    start.textContent = "Start";
-    const cancel = document.createElement("button");
-    cancel.textContent = "✕";
-    cancel.title = "Cancel";
+    const showHint = () => {
+      const minutes = parseDuration(input.value);
+      hint.classList.remove("error");
+      if (editing !== undefined) {
+        hint.textContent = `Change ${formatDuration(editing)} → ${minutes === null ? "…" : formatDuration(minutes)}`;
+        return;
+      }
+      hint.textContent = input.value.trim() ? (minutes === null ? "…" : `= ${formatDuration(minutes)}`) : EXAMPLES;
+    };
     const submit = () => {
       const minutes = parseDuration(input.value);
       if (minutes === null) {
@@ -581,40 +608,58 @@ export class PetHost {
         input.focus();
         return;
       }
-      this.prompting = false;
-      this.hideBubble();
-      void this.startTimer(minutes);
+      close();
+      void this.startTimer(minutes, editing);
     };
-    input.addEventListener("input", () => {
-      const minutes = parseDuration(input.value);
-      hint.classList.remove("error");
-      hint.textContent = input.value.trim() ? (minutes === null ? "…" : `= ${formatDuration(minutes)}`) : "e.g. 20 · 1:30 · 90s";
-    });
+    input.addEventListener("input", showHint);
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") submit();
-      if (e.key === "Escape") {
-        this.prompting = false;
-        this.hideBubble();
-      }
+      if (e.key === "Escape") close();
     });
-    start.addEventListener("click", (e) => (e.stopPropagation(), submit()));
-    cancel.addEventListener("click", (e) => {
-      e.stopPropagation();
-      this.prompting = false;
-      this.hideBubble();
-    });
+    const saved = document.createElement("div");
+    saved.className = "saved";
+    const renderSaved = () => {
+      const list = this.settings.recentTimers;
+      saved.hidden = list.length === 0;
+      saved.replaceChildren(
+        ...list.map((m) => {
+          const chip = document.createElement("span");
+          chip.className = "chip" + (m === editing ? " editing" : "");
+          chip.append(
+            formatDuration(m),
+            button("✎", "Change this one", () => {
+              editing = m;
+              input.value = durationInput(m);
+              renderSaved();
+              showHint();
+              input.focus();
+              input.select();
+            }),
+            button("✕", "Forget this one", () => {
+              if (editing === m) editing = undefined;
+              const recentTimers = forgetCustomTimer(this.settings.recentTimers, m);
+              this.settings = { ...this.settings, recentTimers };
+              void this.backend.setSettings({ recentTimers }).then((s) => (this.settings = s));
+              renderSaved();
+              showHint();
+              input.focus();
+            }),
+          );
+          return chip;
+        }),
+      );
+    };
+    renderSaved();
+    showHint();
     const title = document.createElement("div");
     title.textContent = "How long?";
     const row = document.createElement("div");
     row.className = "actions";
-    row.append(input, start, cancel);
-    this.bubble.replaceChildren(title, row, hint);
+    row.append(input, button("Start", "Start the timer", submit), button("✕", "Cancel", close));
+    this.bubble.replaceChildren(title, row, hint, saved);
     this.bubble.hidden = false;
     // Give up quietly if left alone.
-    this.bubbleTimer = setTimeout(() => {
-      this.prompting = false;
-      this.hideBubble();
-    }, 45_000);
+    this.bubbleTimer = setTimeout(close, 45_000);
     // The pet window never takes focus by itself; typing needs it.
     if (this.windowed) {
       const { getCurrentWindow } = await import("@tauri-apps/api/window");

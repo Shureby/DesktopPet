@@ -1,7 +1,7 @@
 {
   "name": "desktoppet",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.8.0",
   "type": "module",
   "scripts": {
     "product": "node scripts/apply-product-config.mjs",
@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "sprites": "node scripts/render-sprites.mjs",
     "icon": "node scripts/render-sprites.mjs --icon && tauri icon build/icon-source.png",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "set-version": "node scripts/version.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",

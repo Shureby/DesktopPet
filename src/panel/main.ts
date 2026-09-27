@@ -1,3 +1,4 @@
+import { version } from "../../package.json";
 import product from "../../product.config.json";
 import { isHungry, moodTier, parseMood, type Mood } from "../brain/mood";
 import { ABILITIES } from "../characters/abilities";
@@ -6,11 +7,14 @@ import { SpriteAtlas } from "../engine/sprites";
 import { formatRemaining } from "../features/pomodoro/logic";
 import { clock } from "../features/alarm/ringing";
 import {
+  durationInput,
+  forgetCustomTimer,
   formatDuration,
   isTimer,
   parseDuration,
   PRESET_MINUTES,
   rememberCustomTimer,
+  replaceCustomTimer,
   TIMER_PREFIX,
   timerLabel,
 } from "../features/alarm/timers";
@@ -139,31 +143,68 @@ async function renderAlarms(): Promise<Node> {
     await backend.addAlarm(label.value.trim() || `Alarm ${time.value}`, d.getTime(), repeat.value as Repeat);
     label.value = "";
   };
-  const startTimer = async (m: number) => {
+  // Custom length, with a live preview of how it's understood. `editing` is the saved
+  // custom length being changed with ✎; starting a timer then replaces it in place.
+  let editing: number | undefined;
+  const startTimer = async (m: number, replacing?: number) => {
     await backend.addAlarm(timerLabel(m), Date.now() + m * 60_000, "none");
-    if (!PRESET_MINUTES.includes(m)) await save({ recentTimers: rememberCustomTimer(settings.recentTimers, m) });
+    const saved = settings.recentTimers;
+    const recentTimers = replacing === undefined ? rememberCustomTimer(saved, m) : replaceCustomTimer(saved, replacing, m);
+    if (recentTimers.join() !== saved.join()) await save({ recentTimers });
   };
   const short = (m: number) =>
     formatDuration(m).replace(/ hours?\b/, "h").replace(" min", "m").replace(" s", "s").replace(/ /g, "");
-  const timer = (m: number, custom = false) =>
-    h("button", { class: custom ? "custom" : "", title: custom ? "Your custom timer" : "", onclick: () => void startTimer(m) }, short(m));
-  // Custom length, with a live preview of how it's understood.
+  const timer = (m: number) => h("button", { onclick: () => void startTimer(m) }, short(m));
+  const customTimer = (m: number) =>
+    h(
+      "span",
+      { class: "custom-chip" },
+      h("button", { class: "custom", title: "Your custom timer", onclick: () => void startTimer(m) }, short(m)),
+      h(
+        "button",
+        {
+          class: "icon",
+          title: "Change this one",
+          onclick: () => {
+            editing = m;
+            customInput.value = durationInput(m);
+            showHint();
+            customInput.focus();
+            customInput.select();
+          },
+        },
+        "✎",
+      ),
+      h(
+        "button",
+        {
+          class: "icon",
+          title: "Forget this one",
+          onclick: () => void save({ recentTimers: forgetCustomTimer(settings.recentTimers, m) }),
+        },
+        "✕",
+      ),
+    );
   const customInput = h("input", { type: "text", placeholder: "Custom: 20 · 1:30 · 90s", class: "custom-timer" });
   const customHint = h("span", { class: "hint" });
+  const showHint = () => {
+    const m = parseDuration(customInput.value);
+    if (editing !== undefined) customHint.textContent = `${short(editing)} → ${m === null ? "…" : short(m)}`;
+    else customHint.textContent = customInput.value.trim() ? (m === null ? "…" : `= ${formatDuration(m)}`) : "";
+  };
   const startCustom = () => {
     const m = parseDuration(customInput.value);
     if (m === null) {
       customHint.textContent = "Try 20, 1:30 or 90s";
       return;
     }
+    const replacing = editing;
+    editing = undefined;
     customInput.value = "";
     customHint.textContent = "";
-    void startTimer(m);
+    void startTimer(m, replacing);
   };
-  customInput.addEventListener("input", () => {
-    const m = parseDuration(customInput.value);
-    customHint.textContent = customInput.value.trim() ? (m === null ? "…" : `= ${formatDuration(m)}`) : "";
-  });
+  customInput.addEventListener("input", showHint);
   customInput.addEventListener("keydown", (e) => (e as KeyboardEvent).key === "Enter" && startCustom());
   const now = Date.now();
   // A one-shot alarm is finished once its time has passed (repeating ones never finish).
@@ -244,7 +285,7 @@ async function renderAlarms(): Promise<Node> {
       "div",
       { class: "row wrap" },
       ...PRESET_MINUTES.map((m) => timer(m)),
-      ...settings.recentTimers.filter((m) => !PRESET_MINUTES.includes(m)).map((m) => timer(m, true)),
+      ...settings.recentTimers.filter((m) => !PRESET_MINUTES.includes(m)).map(customTimer),
     ),
     h("div", { class: "row" }, customInput, h("button", { onclick: startCustom }, "Start"), customHint),
     h("h3", {}, "New alarm"),
@@ -543,7 +584,7 @@ async function renderSettings(): Promise<Node> {
     h(
       "footer",
       {},
-      `${product.productName} · ${product.publisher} · ${await backend.storefront()} build · `,
+      `${product.productName} ${version} · ${product.publisher} · ${await backend.storefront()} build · `,
       h("a", { href: product.website, target: "_blank" }, product.website),
     ),
   );

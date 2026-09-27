@@ -59,14 +59,14 @@ describe("pet menu", () => {
     expect(cancel?.items).toHaveLength(2);
   });
 
-  it("lists presets, then the user's custom lengths and Custom… below a separator", () => {
+  it("lists presets, then the user's custom lengths and Custom / Edit… below a separator", () => {
     const settings = { ...DEFAULT_SETTINGS, recentTimers: [20, 1.5, 90] };
     const set = buildItems(ctx({ settings })).find((i): i is Item => i !== "sep" && i.text === "Set timer")!;
     expect(set.items!.map((i) => (i === "sep" ? "—" : i.text))).toEqual([
       "1 min", "5 min", "10 min", "15 min", "30 min", "45 min", "1 hour",
       "—",
       "20 min (custom)", "1 min 30 s (custom)", "1 h 30 min (custom)",
-      "Custom…",
+      "Custom / Edit…",
     ]);
   });
 

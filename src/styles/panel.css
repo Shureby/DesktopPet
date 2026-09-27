@@ -518,6 +518,23 @@ button.custom {
   border-style: dashed;
   border-color: var(--accent);
 }
+.custom-chip {
+  display: inline-flex;
+  align-items: center;
+}
+/* ✎ and ✕ only show on hover (or keyboard focus), so the row stays as tidy as the presets. */
+.custom-chip button.icon {
+  width: 0;
+  padding: 0;
+  overflow: hidden;
+  opacity: 0;
+}
+.custom-chip:hover button.icon,
+.custom-chip:focus-within button.icon {
+  width: auto;
+  padding: 0 4px;
+  opacity: 1;
+}
 input.custom-timer {
   flex: 1;
 }
