@@ -4,10 +4,11 @@ import { ABILITIES } from "../characters/abilities";
 import { loadBundled, loadUser, type CharacterRegistry, type LoadedCharacter } from "../characters/registry";
 import { SpriteAtlas } from "../engine/sprites";
 import { formatRemaining } from "../features/pomodoro/logic";
-import { timerLabel } from "../features/alarm/timers";
+import { clock } from "../features/alarm/ringing";
+import { isTimer, TIMER_PREFIX, timerLabel } from "../features/alarm/timers";
 import { parseQuickAdd } from "../features/todo/quickAdd";
 import { GAMES } from "../features/games/catalog";
-import { backend, type AlertSettings, type PanelTab, type Repeat, type Settings } from "../platform";
+import { backend, type Alarm, type AlertSettings, type PanelTab, type Repeat, type Settings } from "../platform";
 import { playRingtone, RINGTONE_IDS, RINGTONES, type RingtoneId } from "../pet/sound";
 import "../styles/panel.css";
 import { formatWhen, h } from "./dom";
@@ -126,46 +127,132 @@ async function renderAlarms(): Promise<Node> {
     label.value = "";
   };
   const timer = (m: number) => h("button", { onclick: () => void backend.addAlarm(timerLabel(m), Date.now() + m * 60_000, "none") }, `${m}m`);
-  const repeatText: Record<Repeat, string> = { none: "Once", daily: "Every day", weekdays: "Weekdays" };
   const now = Date.now();
   // A one-shot alarm is finished once its time has passed (repeating ones never finish).
-  const isFinished = (a: (typeof alarms)[number]) => a.repeat === "none" && (a.nextFire === null || a.nextFire <= now);
-  const upcoming = alarms.filter((a) => !isFinished(a));
+  const isFinished = (a: Alarm) => a.repeat === "none" && (a.nextFire === null || a.nextFire <= now);
+  const timers = alarms.filter((a) => isTimer(a) && !isFinished(a));
+  const clocks = alarms.filter((a) => !isTimer(a) && !isFinished(a));
   const finished = alarms.filter(isFinished);
-  const row = (a: (typeof alarms)[number]) =>
+
+  // Live countdowns for running timers.
+  const countdowns: [HTMLElement, number][] = [];
+  const tickCountdowns = () => {
+    for (const [el, at] of countdowns) el.textContent = formatRemaining(at - Date.now());
+  };
+  const id = setInterval(tickCountdowns, 500);
+  cleanup.push(() => clearInterval(id));
+
+  // Timers: the countdown is the big number, like a phone's timer screen.
+  const timerRow = (a: Alarm) => {
+    const left = h("span", { class: "big countdown" });
+    if (a.nextFire) countdowns.push([left, a.nextFire]);
+    return h(
+      "li",
+      { class: "clock-row" },
+      left,
+      h(
+        "div",
+        { class: "info" },
+        h("span", { class: "title" }, `⏱ ${timerName(a)}`),
+        h("span", { class: "sub" }, a.nextFire ? `Rings at ${clock(a.nextFire)}` : ""),
+        a.snoozes > 0 ? h("span", { class: "chip" }, `💤 snoozed ${a.snoozes}×`) : null,
+      ),
+      h("button", { onclick: () => void backend.deleteAlarm(a.id) }, "Cancel"),
+    );
+  };
+
+  const alarmRow = (a: Alarm) =>
     h(
       "li",
-      { class: a.enabled && !isFinished(a) ? "" : "done" },
-      isFinished(a)
-        ? null
-        : h("input", { type: "checkbox", title: "On/off", checked: a.enabled, onchange: () => void backend.setAlarmEnabled(a.id, !a.enabled) }),
-      h("span", { class: "title" }, a.label),
+      { class: `clock-row ${a.enabled ? "" : "off"}` },
+      h("span", { class: "big" }, alarmTime(a)),
       h(
-        "span",
-        { class: "when" },
-        a.missedAt
-          ? `Missed ${formatWhen(a.missedAt)}`
-          : isFinished(a)
-            ? "Rang"
-            : a.snoozes > 0 && a.nextFire
-              ? `💤 ${formatWhen(a.nextFire)} (snooze ${a.snoozes}/${Math.max(a.snoozes, settings.alerts.alarm.autoSnoozeMax)})`
-              : a.nextFire
-                ? `${formatWhen(a.nextFire)} · ${repeatText[a.repeat]}`
-                : repeatText[a.repeat],
+        "div",
+        { class: "info" },
+        h("span", { class: "title" }, a.label),
+        h("span", { class: "sub" }, alarmSubtitle(a)),
+        a.enabled && a.snoozes > 0 && a.nextFire
+          ? h(
+              "span",
+              { class: "chip" },
+              `💤 ${clock(a.nextFire)} (${a.snoozes}/${Math.max(a.snoozes, settings.alerts.alarm.autoSnoozeMax)})`,
+            )
+          : null,
+      ),
+      h("button", { class: "icon delete", title: "Delete", onclick: () => void backend.deleteAlarm(a.id) }, "✕"),
+      toggle(a.enabled, a.label, () => void backend.setAlarmEnabled(a.id, !a.enabled)),
+    );
+
+  const finishedRow = (a: Alarm) =>
+    h(
+      "li",
+      { class: "clock-row finished-row" },
+      // Once rung, a one-off alarm no longer has a time to show; the subtitle says when.
+      h("span", { class: "big" }, isTimer(a) ? "⏱" : a.repeat === "none" ? "⏰" : alarmTime(a)),
+      h(
+        "div",
+        { class: "info" },
+        h("span", { class: "title" }, isTimer(a) ? timerName(a) : a.label),
+        h("span", { class: `sub ${a.missedAt ? "missed" : ""}` }, a.missedAt ? `Missed · ${formatWhen(a.missedAt)}` : isTimer(a) ? "Done" : "Rang"),
       ),
       h("button", { class: "icon", title: "Delete", onclick: () => void backend.deleteAlarm(a.id) }, "✕"),
     );
 
-  return h(
+  const section = h(
     "section",
     {},
     h("h3", {}, "Quick timer"),
     h("div", { class: "row wrap" }, ...[1, 5, 10, 15, 25, 30, 60].map(timer)),
     h("h3", {}, "New alarm"),
     h("div", { class: "row" }, time, repeat, label, h("button", { class: "primary", onclick: add }, "Add")),
-    upcoming.length ? h("ul", { class: "list" }, ...upcoming.map(row)) : h("p", { class: "empty" }, "No alarms set."),
-    finished.length ? finishedSection(`Finished (${finished.length})`, finished.map(row), () => backend.clearFinishedAlarms()) : null,
+    timers.length ? h("h3", {}, "Timers") : null,
+    timers.length ? h("ul", { class: "list clocks" }, ...timers.map(timerRow)) : null,
+    h("h3", {}, "Alarms"),
+    clocks.length ? h("ul", { class: "list clocks" }, ...clocks.map(alarmRow)) : h("p", { class: "empty" }, "No alarms set."),
+    finished.length ? finishedSection(`Finished (${finished.length})`, finished.map(finishedRow), () => backend.clearFinishedAlarms()) : null,
     h("p", { class: "hint" }, "Finished alarms and timers are cleared automatically each day."),
+  );
+  tickCountdowns();
+  return section;
+}
+
+const REPEAT_TEXT: Record<Repeat, string> = { none: "Once", daily: "Every day", weekdays: "Weekdays" };
+
+/** "5 min timer" rather than the stored "Timer: 5 min". */
+function timerName(a: Alarm): string {
+  return `${a.label.slice(TIMER_PREFIX.length)} timer`;
+}
+
+/** The time of day the alarm rings, shown big like a phone clock app. */
+function alarmTime(a: Alarm): string {
+  if (a.nextFire && a.snoozes === 0) return clock(a.nextFire);
+  if (a.timeHm) {
+    const [hh, mm] = a.timeHm.split(":").map(Number);
+    const d = new Date();
+    d.setHours(hh, mm, 0, 0);
+    return clock(d.getTime());
+  }
+  return a.nextFire ? clock(a.nextFire) : "--:--";
+}
+
+/** "Every day", "Once · Tomorrow", "Weekdays · Off"… */
+function alarmSubtitle(a: Alarm): string {
+  const parts = [REPEAT_TEXT[a.repeat]];
+  if (!a.enabled) parts.push("Off");
+  else if (a.nextFire && a.snoozes === 0) {
+    const day = formatWhen(a.nextFire).replace(/\s*\d{1,2}:\d{2}.*$/, "");
+    if (a.repeat === "none" || day !== "Today") parts.push(day);
+  }
+  return parts.join(" · ");
+}
+
+/** A phone-style on/off switch (not a checkbox: a tick reads as "done"). */
+function toggle(on: boolean, name: string, onChange: () => void): Node {
+  return h(
+    "label",
+    { class: "switch", title: on ? "On: will ring" : "Off" },
+    h("input", { type: "checkbox", role: "switch", checked: on, "aria-label": `${name} on/off`, onchange: onChange }),
+    h("span", { class: "slider" }),
   );
 }
 

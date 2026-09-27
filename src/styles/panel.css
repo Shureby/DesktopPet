@@ -405,3 +405,111 @@ fieldset.alert .unanswered label {
   align-items: center;
   gap: 8px;
 }
+
+/* ----- Alarms tab: phone-clock style ----- */
+.clocks .clock-row {
+  gap: 12px;
+  padding: 10px 12px;
+}
+.clock-row .big {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 78px;
+}
+.clock-row .info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.clock-row .info .title {
+  overflow-wrap: anywhere;
+}
+.clock-row .sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+.clock-row .sub.missed {
+  color: var(--accent);
+}
+.clock-row .chip {
+  align-self: flex-start;
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.clock-row .countdown {
+  color: var(--accent);
+}
+/* Switched off: greyed, never struck through (strike-through means "finished"). */
+.clock-row.off .big,
+.clock-row.off .title {
+  color: var(--muted);
+}
+.finished-row .big,
+.finished-row .title {
+  color: var(--muted);
+}
+.finished-row .big {
+  font-size: 16px;
+}
+/* The delete button only shows on hover, like a swipe action on a phone. */
+.clock-row .delete {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.clock-row:hover .delete,
+.clock-row .delete:focus-visible {
+  opacity: 1;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 24px;
+  flex: none;
+  cursor: pointer;
+}
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+.switch .slider {
+  position: absolute;
+  inset: 0;
+  border-radius: 99px;
+  background: var(--border);
+  transition: background 0.15s;
+  pointer-events: none;
+}
+.switch .slider::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s;
+}
+.switch input:checked + .slider {
+  background: var(--accent);
+}
+.switch input:checked + .slider::before {
+  transform: translateX(18px);
+}
+.switch input:focus-visible + .slider {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
