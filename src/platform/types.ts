@@ -19,6 +19,12 @@ export interface AlertSettings {
   ringtone: RingtoneId;
   /** 0..1 */
   volume: number;
+  /** How long an alarm rings before it counts as unanswered. */
+  ringSeconds: number;
+  /** Length of a snooze (the button and automatic snoozes). */
+  snoozeMinutes: number;
+  /** Automatic snoozes when nobody answers an alarm; 0 = just stop and mark it missed. Timers never auto-snooze. */
+  autoSnoozeMax: number;
 }
 
 export interface Settings {
@@ -41,8 +47,8 @@ export const DEFAULT_SETTINGS: Settings = {
   speed: 1,
   sound: true,
   alerts: {
-    alarm: { petRuns: true, ring: true, ringtone: "classic", volume: 0.7 },
-    todo: { petRuns: true, ring: true, ringtone: "chime", volume: 0.5 },
+    alarm: { petRuns: true, ring: true, ringtone: "classic", volume: 0.7, ringSeconds: 60, snoozeMinutes: 5, autoSnoozeMax: 3 },
+    todo: { petRuns: true, ring: true, ringtone: "chime", volume: 0.5, ringSeconds: 60, snoozeMinutes: 10, autoSnoozeMax: 0 },
   },
   quietHours: { enabled: false, start: "22:00", end: "08:00" },
   pomodoro: { focusMin: 25, shortBreakMin: 5, longBreakMin: 15, roundsBeforeLong: 4, autoContinue: true },
@@ -85,6 +91,10 @@ export interface Alarm {
   timeHm: string | null;
   repeat: Repeat;
   enabled: boolean;
+  /** Snoozes in the current ringing cycle. */
+  snoozes: number;
+  /** When it rang unanswered (cleared once acknowledged). */
+  missedAt: number | null;
 }
 
 export type PomodoroPhase = "idle" | "focus" | "short_break" | "long_break";
@@ -169,6 +179,10 @@ export interface Backend {
   /** Removes one-shot alarms and timers that already rang; returns how many. */
   clearFinishedAlarms(): Promise<number>;
   snoozeAlarm(id: number, minutes: number): Promise<void>;
+  /** "Done": ends the ringing/snooze cycle (repeating alarms keep their schedule); acknowledges a missed alarm. */
+  dismissAlarm(id: number): Promise<void>;
+  /** Nobody answered: remember it until acknowledged (also sends an OS notification). */
+  markAlarmMissed(id: number): Promise<void>;
 
   pomodoroStart(): Promise<PomodoroStatus>;
   pomodoroSkip(): Promise<PomodoroStatus>;

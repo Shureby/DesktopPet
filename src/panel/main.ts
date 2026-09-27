@@ -143,7 +143,15 @@ async function renderAlarms(): Promise<Node> {
       h(
         "span",
         { class: "when" },
-        isFinished(a) ? "Rang" : a.nextFire ? `${formatWhen(a.nextFire)} · ${repeatText[a.repeat]}` : repeatText[a.repeat],
+        a.missedAt
+          ? `Missed ${formatWhen(a.missedAt)}`
+          : isFinished(a)
+            ? "Rang"
+            : a.snoozes > 0 && a.nextFire
+              ? `💤 ${formatWhen(a.nextFire)} (snooze ${a.snoozes}/${Math.max(a.snoozes, settings.alerts.alarm.autoSnoozeMax)})`
+              : a.nextFire
+                ? `${formatWhen(a.nextFire)} · ${repeatText[a.repeat]}`
+                : repeatText[a.repeat],
       ),
       h("button", { class: "icon", title: "Delete", onclick: () => void backend.deleteAlarm(a.id) }, "✕"),
     );
@@ -451,6 +459,57 @@ function alertRow(kind: "alarm" | "todo", title: string): Node {
       h("span", { class: "hint" }, "🔈"),
       volume,
     ),
+    kind === "alarm" ? unansweredRow(a, update) : null,
+  );
+}
+
+const RING_LENGTHS = [
+  [30, "30 seconds"],
+  [60, "1 minute"],
+  [120, "2 minutes"],
+  [300, "5 minutes"],
+] as const;
+
+/** Snooze length × automatic snoozes; 0 snoozes = just stop and mark it missed. */
+const UNANSWERED = [
+  [5, 3, "Snooze 5 min, up to 3 times"],
+  [10, 3, "Snooze 10 min, up to 3 times"],
+  [5, 5, "Snooze 5 min, up to 5 times"],
+  [5, 0, "Stop and mark as missed"],
+] as const;
+
+/** Alarm-only: how long to ring and what happens when nobody answers. */
+function unansweredRow(a: AlertSettings, update: (p: Partial<AlertSettings>) => void): Node {
+  const current = UNANSWERED.findIndex(([m, n]) => (n === 0 ? a.autoSnoozeMax === 0 : m === a.snoozeMinutes && n === a.autoSnoozeMax));
+  return h(
+    "div",
+    { class: "unanswered" },
+    h(
+      "label",
+      {},
+      "Ring for",
+      h(
+        "select",
+        { onchange: (e: Event) => update({ ringSeconds: Number((e.target as HTMLSelectElement).value) }) },
+        ...RING_LENGTHS.map(([sec, text]) => h("option", { value: sec, selected: sec === a.ringSeconds }, text)),
+      ),
+    ),
+    h(
+      "label",
+      {},
+      "If nobody answers",
+      h(
+        "select",
+        {
+          onchange: (e: Event) => {
+            const [minutes, max] = UNANSWERED[Number((e.target as HTMLSelectElement).value)];
+            update({ snoozeMinutes: minutes, autoSnoozeMax: max });
+          },
+        },
+        ...UNANSWERED.map(([, , text], i) => h("option", { value: i, selected: i === current }, text)),
+      ),
+    ),
+    h("p", { class: "hint" }, "Timers never snooze: if you miss one, a quiet ⏱ note waits by your pet for an hour."),
   );
 }
 

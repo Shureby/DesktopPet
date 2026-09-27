@@ -9,6 +9,8 @@ const alarm = (id: number, label: string, nextFire: number | null, enabled = tru
   timeHm: null,
   repeat: "none",
   enabled,
+  snoozes: 0,
+  missedAt: null,
 });
 
 describe("timers", () => {

@@ -7,6 +7,7 @@ use desktoppet_core::{pomodoro, Alarm, DayStat, PomodoroStatus, Repeat, Score, T
 use serde::Serialize;
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, State};
+use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_opener::OpenerExt;
 
 use crate::app_windows::{self, PET};
@@ -92,6 +93,25 @@ pub fn set_alarm_enabled(app: AppHandle, state: State<AppState>, id: i64, enable
 #[tauri::command]
 pub fn snooze_alarm(app: AppHandle, state: State<AppState>, id: i64, minutes: i64) -> CmdResult<()> {
     state.store().snooze_alarm(id, minutes.clamp(1, 24 * 60), now_ms()).map_err(err)?;
+    let _ = app.emit("alarms-changed", ());
+    Ok(())
+}
+
+/// "Done" on a ringing, snoozed or missed alarm: ends its current cycle.
+#[tauri::command]
+pub fn dismiss_alarm(app: AppHandle, state: State<AppState>, id: i64) -> CmdResult<()> {
+    state.store().dismiss_alarm(&Local, id, now_ms()).map_err(err)?;
+    let _ = app.emit("alarms-changed", ());
+    Ok(())
+}
+
+/// Nobody answered an alarm (after its auto-snoozes): remember it and tell the OS.
+#[tauri::command]
+pub fn mark_alarm_missed(app: AppHandle, state: State<AppState>, id: i64) -> CmdResult<()> {
+    let alarm = state.store().mark_alarm_missed(id, now_ms()).map_err(err)?;
+    if let Some(a) = alarm {
+        let _ = app.notification().builder().title("⏰ Missed alarm").body(&a.label).show();
+    }
     let _ = app.emit("alarms-changed", ());
     Ok(())
 }

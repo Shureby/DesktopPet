@@ -166,6 +166,21 @@ body.demo .demo-help a {
   display: block;
 }
 
+.badges > div.clickable {
+  cursor: pointer;
+}
+/* Missed alarm: stays until clicked. */
+.badges > div.missed {
+  border-color: #e8743b;
+  color: #9a3c10;
+}
+/* Finished timer: quiet, gone after an hour or on click. */
+.badges > div.quiet {
+  border-color: #b9b0a8;
+  color: #6b625b;
+  background: rgba(245, 242, 238, 0.9);
+}
+
 /* Hearts (affection) and dots (fullness), shown while hovering the pet. */
 .mood {
   position: fixed;

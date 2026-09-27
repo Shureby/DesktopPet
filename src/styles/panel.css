@@ -393,3 +393,15 @@ details.finished[open] summary::before {
 details.finished summary > :first-child {
   margin-left: auto;
 }
+
+fieldset.alert .unanswered {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+fieldset.alert .unanswered label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}

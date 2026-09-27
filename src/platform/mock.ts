@@ -191,7 +191,16 @@ export const mockBackend: Backend = {
     const alarm = mutate((s) => {
       const d = new Date(at);
       const timeHm = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-      const a: Alarm = { id: s.nextId++, label, nextFire: at, timeHm: repeat === "none" ? null : timeHm, repeat, enabled: true };
+      const a: Alarm = {
+        id: s.nextId++,
+        label,
+        nextFire: at,
+        timeHm: repeat === "none" ? null : timeHm,
+        repeat,
+        enabled: true,
+        snoozes: 0,
+        missedAt: null,
+      };
       s.alarms.push(a);
       return a;
     });
@@ -207,6 +216,32 @@ export const mockBackend: Backend = {
       // One-shot alarms keep their time so they can be switched back on.
       if (!enabled && a.repeat !== "none") a.nextFire = null;
       if (enabled && a.repeat === "none" && (a.nextFire ?? 0) <= Date.now()) a.enabled = false;
+    });
+    fire("alarms-changed", null);
+  },
+  async dismissAlarm(id) {
+    mutate((s) => {
+      const a = s.alarms.find((x) => x.id === id);
+      if (!a) return;
+      a.snoozes = 0;
+      a.missedAt = null;
+      if (a.repeat !== "none" && a.timeHm) {
+        a.nextFire = nextOccurrence(a.timeHm, a.repeat, Date.now());
+        a.enabled = true;
+      } else {
+        a.nextFire = null;
+        a.enabled = false;
+      }
+    });
+    fire("alarms-changed", null);
+  },
+  async markAlarmMissed(id) {
+    mutate((s) => {
+      const a = s.alarms.find((x) => x.id === id);
+      if (a) {
+        a.missedAt = Date.now();
+        a.snoozes = 0;
+      }
     });
     fire("alarms-changed", null);
   },
@@ -230,6 +265,7 @@ export const mockBackend: Backend = {
       if (a) {
         a.enabled = true;
         a.nextFire = Date.now() + minutes * 60_000;
+        a.snoozes = (a.snoozes ?? 0) + 1;
       }
       return !!a;
     });

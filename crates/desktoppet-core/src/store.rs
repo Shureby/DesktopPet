@@ -57,7 +57,12 @@ const MIGRATIONS: &[&str] = &[
      CREATE TABLE achievements (id TEXT PRIMARY KEY, unlocked_at INTEGER NOT NULL);",
     // v2: when a to-do was ticked off, for the daily clean-up.
     "ALTER TABLE todos ADD COLUMN done_at INTEGER;",
+    // v3: snooze cycles and missed alarms.
+    "ALTER TABLE alarms ADD COLUMN snoozes INTEGER NOT NULL DEFAULT 0;
+     ALTER TABLE alarms ADD COLUMN missed_at INTEGER;",
 ];
+
+const ALARM_COLUMNS: &str = "id, label, next_fire, time_hm, repeat, enabled, snoozes, missed_at";
 
 pub struct Store {
     conn: Connection,
@@ -175,12 +180,13 @@ impl Store {
             time_hm: r.get(3)?,
             repeat: Repeat::parse(&r.get::<_, String>(4)?),
             enabled: r.get(5)?,
+            snoozes: r.get(6)?,
+            missed_at: r.get(7)?,
         })
     }
 
     pub fn list_alarms(&self) -> Result<Vec<Alarm>> {
-        let mut stmt =
-            self.conn.prepare("SELECT id, label, next_fire, time_hm, repeat, enabled FROM alarms ORDER BY id")?;
+        let mut stmt = self.conn.prepare(&format!("SELECT {ALARM_COLUMNS} FROM alarms ORDER BY id"))?;
         let rows = stmt.query_map([], Self::alarm_row)?;
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
@@ -188,11 +194,7 @@ impl Store {
     fn alarm(&self, id: i64) -> Result<Option<Alarm>> {
         Ok(self
             .conn
-            .query_row(
-                "SELECT id, label, next_fire, time_hm, repeat, enabled FROM alarms WHERE id = ?1",
-                [id],
-                Self::alarm_row,
-            )
+            .query_row(&format!("SELECT {ALARM_COLUMNS} FROM alarms WHERE id = ?1"), [id], Self::alarm_row)
             .optional()?)
     }
 
@@ -218,6 +220,8 @@ impl Store {
             time_hm,
             repeat,
             enabled: true,
+            snoozes: 0,
+            missed_at: None,
         })
     }
 
@@ -271,15 +275,41 @@ impl Store {
     }
 
     /// Rings the alarm again in `minutes`. Errors if it no longer exists (never silently drops a snooze).
+    /// Rings the alarm again in `minutes` and counts the snooze. Errors if it no longer
+    /// exists (a snooze is never silently dropped).
     pub fn snooze_alarm(&self, id: i64, minutes: i64, now: Millis) -> Result<()> {
         let changed = self.conn.execute(
-            "UPDATE alarms SET enabled = 1, next_fire = ?2 WHERE id = ?1",
+            "UPDATE alarms SET enabled = 1, next_fire = ?2, snoozes = snoozes + 1 WHERE id = ?1",
             params![id, now + minutes * 60_000],
         )?;
         if changed == 0 {
             return Err(StoreError::Invalid("that alarm no longer exists".into()));
         }
         Ok(())
+    }
+
+    /// "Done": ends the current ringing/snooze cycle. One-shot alarms finish; repeating
+    /// ones go back to their normal schedule. Also acknowledges a missed alarm.
+    pub fn dismiss_alarm<Tz: TimeZone>(&self, tz: &Tz, id: i64, now: Millis) -> Result<()> {
+        let Some(alarm) = self.alarm(id)? else {
+            return Ok(());
+        };
+        let next = match (alarm.repeat, alarm.time_hm.as_deref().and_then(parse_hm)) {
+            (Repeat::None, _) | (_, None) => None,
+            (repeat, Some(t)) => next_occurrence(tz, now, t, repeat),
+        };
+        self.conn.execute(
+            "UPDATE alarms SET snoozes = 0, missed_at = NULL, next_fire = ?2, enabled = ?3 WHERE id = ?1",
+            params![id, next, next.is_some()],
+        )?;
+        Ok(())
+    }
+
+    /// Nobody answered (after any auto-snoozes): remember it until acknowledged.
+    /// Repeating alarms keep their schedule. Returns the alarm, if it exists.
+    pub fn mark_alarm_missed(&self, id: i64, now: Millis) -> Result<Option<Alarm>> {
+        self.conn.execute("UPDATE alarms SET missed_at = ?2, snoozes = 0 WHERE id = ?1", params![id, now])?;
+        self.alarm(id)
     }
 
     pub fn delete_alarm(&self, id: i64) -> Result<()> {
@@ -541,6 +571,38 @@ mod tests {
         assert_eq!(snoozed.next_fire, Some(at(10, 7)));
         // It rings again after the snooze.
         assert_eq!(s.take_due(&London, at(10, 7)).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn snoozes_are_counted_and_done_ends_the_cycle() {
+        let s = Store::open_in_memory().unwrap();
+        let a = s.add_alarm(&London, "Wake up", at(7, 0), Repeat::Daily).unwrap();
+        s.take_due(&London, at(7, 0)).unwrap();
+        s.snooze_alarm(a.id, 5, at(7, 1)).unwrap();
+        s.take_due(&London, at(7, 6)).unwrap();
+        s.snooze_alarm(a.id, 5, at(7, 7)).unwrap();
+        let snoozed = &s.list_alarms().unwrap()[0];
+        assert_eq!(snoozed.snoozes, 2);
+        assert_eq!(snoozed.next_fire, Some(at(7, 12)));
+        // "Done" while waiting for the next snooze: back to tomorrow 07:00, count reset.
+        s.dismiss_alarm(&London, a.id, at(7, 8)).unwrap();
+        let back = &s.list_alarms().unwrap()[0];
+        assert_eq!((back.snoozes, back.enabled), (0, true));
+        assert_eq!(back.next_fire, Some(at(7, 0) + 24 * 60 * MIN));
+    }
+
+    #[test]
+    fn missed_alarms_are_remembered_until_acknowledged() {
+        let s = Store::open_in_memory().unwrap();
+        let a = s.add_alarm(&London, "Dentist", at(15, 0), Repeat::None).unwrap();
+        s.take_due(&London, at(15, 0)).unwrap();
+        let missed = s.mark_alarm_missed(a.id, at(15, 1)).unwrap().unwrap();
+        assert_eq!(missed.missed_at, Some(at(15, 1)));
+        assert!(!missed.enabled);
+        s.dismiss_alarm(&London, a.id, at(16, 0)).unwrap();
+        let done = &s.list_alarms().unwrap()[0];
+        assert_eq!(done.missed_at, None);
+        assert!(!done.enabled);
     }
 
     #[test]

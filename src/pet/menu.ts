@@ -14,6 +14,8 @@ export interface MenuContext {
   hungry: boolean;
   /** Running timers, soonest first. */
   timers: (Alarm & { nextFire: number })[];
+  /** Alarms waiting to ring again after a snooze. */
+  snoozed?: (Alarm & { nextFire: number })[];
   rng: Rng;
   care: (action: CareAction) => void;
   setTimer: (minutes: number) => void;
@@ -64,6 +66,11 @@ export function buildItems(c: MenuContext): (Item | "sep")[] {
         action: () => void c.backend.deleteAlarm(t.id),
       })),
     });
+  }
+
+  for (const a of c.snoozed ?? []) {
+    const at = new Date(a.nextFire).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    timerItems.push({ text: `Cancel snooze: ${a.label} (${at})`, action: () => void c.backend.dismissAlarm(a.id) });
   }
 
   return [

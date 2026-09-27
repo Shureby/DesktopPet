@@ -30,6 +30,8 @@ export const tauriBackend: Backend = {
   deleteAlarm: (id) => invoke("delete_alarm", { id }),
   clearFinishedAlarms: () => invoke("clear_finished_alarms"),
   snoozeAlarm: (id, minutes) => invoke("snooze_alarm", { id, minutes }),
+  dismissAlarm: (id) => invoke("dismiss_alarm", { id }),
+  markAlarmMissed: (id) => invoke("mark_alarm_missed", { id }),
 
   pomodoroStart: () => invoke("pomodoro_start"),
   pomodoroSkip: () => invoke("pomodoro_skip"),

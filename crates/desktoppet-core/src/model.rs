@@ -67,6 +67,10 @@ pub struct Alarm {
     pub time_hm: Option<String>,
     pub repeat: Repeat,
     pub enabled: bool,
+    /// Snoozes in the current ringing cycle (reset by "Done").
+    pub snoozes: u32,
+    /// Set when it rang and nobody answered (after any auto-snoozes); cleared on acknowledge.
+    pub missed_at: Option<Millis>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

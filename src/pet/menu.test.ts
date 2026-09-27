@@ -32,6 +32,8 @@ const timer = (id: number, min: number): Alarm & { nextFire: number } => ({
   timeHm: null,
   repeat: "none",
   enabled: true,
+  snoozes: 0,
+  missedAt: null,
 });
 
 describe("pet menu", () => {
@@ -53,6 +55,11 @@ describe("pet menu", () => {
     const many = buildItems(ctx({ timers: [timer(1, 5), timer(2, 10)] }));
     const cancel = many.find((i): i is Item => i !== "sep" && i.text === "Cancel timer");
     expect(cancel?.items).toHaveLength(2);
+  });
+
+  it("offers to cancel a snoozed alarm", () => {
+    const snoozed = { ...timer(7, 5), label: "Wake up", repeat: "daily" as const, timeHm: "07:00", snoozes: 1 };
+    expect(texts(buildItems(ctx({ snoozed: [snoozed] })))).toContainEqual(expect.stringMatching(/^Cancel snooze: Wake up \(.+\)$/));
   });
 
   it("shows focus session time left while one runs", () => {
