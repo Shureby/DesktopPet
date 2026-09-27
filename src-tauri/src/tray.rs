@@ -13,6 +13,7 @@ pub fn create<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
             &item("toggle", "Show / hide pet")?,
             &item("panel", "Open panel…")?,
             &PredefinedMenuItem::separator(app)?,
+            &item("alarm", "Set alarm…")?,
             &item("focus", "Start focus session 🍅")?,
             &item("game", "Play Safe Landing")?,
             &item("characters", "Switch character…")?,
@@ -30,6 +31,7 @@ pub fn create<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
                 "toggle" => app_windows::toggle_pet(app),
                 "panel" => app_windows::open_panel(app, None),
                 "characters" => app_windows::open_panel(app, Some("characters")),
+                "alarm" => app_windows::open_panel(app, Some("alarms")),
                 "game" => app_windows::open_game(app, "safe-landing"),
                 "focus" => start_focus(app),
                 "quit" => {

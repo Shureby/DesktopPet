@@ -39,6 +39,7 @@ const timer = (id: number, min: number): Alarm & { nextFire: number } => ({
 describe("pet menu", () => {
   it("starts every item with a verb", () => {
     const verbs = /^(Stroke|Scratch|Rub|Feed|Add|Set|Cancel|Start|Stop|Play|Switch|Open|Hide)\b/;
+    expect(texts(buildItems(ctx()))).toContain("Set alarm…");
     for (const t of texts(buildItems(ctx({ timers: [timer(1, 5)] })))) expect(t).toMatch(verbs);
   });
 

@@ -77,6 +77,7 @@ export function buildItems(c: MenuContext): (Item | "sep")[] {
     { text: `${careLabel(care, c.character)}${care.kind === "pet" ? " ♥" : ""}`, action: () => c.care(care) },
     "sep",
     { text: "Add to-do…", action: () => void c.backend.openPanel("todos") },
+    { text: "Set alarm…", action: () => void c.backend.openPanel("alarms") },
     ...timerItems,
     focusing
       ? { text: `Stop focus session${left(c.pomodoro.endsAt)}`, action: () => void c.backend.pomodoroStop() }

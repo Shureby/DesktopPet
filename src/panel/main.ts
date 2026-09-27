@@ -110,6 +110,11 @@ async function renderAlarms(): Promise<Node> {
   const alarms = await backend.listAlarms();
   const label = h("input", { type: "text", placeholder: "Label (optional)" });
   const time = h("input", { type: "time", value: "07:30" });
+  // Opened from "Set alarm…": start with the time field ready to type.
+  // (Only when nothing else has focus, so a re-render never steals it mid-typing.)
+  queueMicrotask(() => {
+    if (!document.activeElement || document.activeElement === document.body) time.focus();
+  });
   const repeat = h(
     "select",
     {},
