@@ -43,6 +43,8 @@ export const tauriBackend: Backend = {
   desktopSnapshot: () => invoke("desktop_snapshot"),
   petFrame: (x, y, ignoreCursor) => invoke("pet_frame", { x, y, ignoreCursor }),
   listUserCharacters: () => invoke("list_user_characters"),
+  loadMood: (character) => invoke("load_mood", { character }),
+  saveMood: (character, mood) => invoke("save_mood", { character, mood }),
   openUserCharactersFolder: () => invoke("open_user_characters_folder"),
   assetUrl: (path) => convertFileSrc(path),
 

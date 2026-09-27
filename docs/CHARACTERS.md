@@ -24,6 +24,8 @@ Point `"$schema"` at `schema/character.schema.json` for autocompletion. The main
 | `animations` | Name → `{ frames, fps, loop, next }`. **Required core set**: idle, walk, run, jump, fall, land, sit, sleep, drag, happy, alert. Abilities may require more. |
 | `abilities` | `[{ "id": "climbWall", "params": { … } }]`. These are the special movements. |
 | `personality` | Weights for idle behaviours, `sleepiness`, `sociability` and speech `lines` (greet, petted, thrown, landed, reminder, alarm, focusStart, breakStart, focusEnd, bored). `{title}` is replaced with the reminder text. |
+| `personality.care` | Right-click menu actions (`{ "label": "Scratch the {name}'s chin", "kind": "pet" }`, `kind` is `pet` or `feed`). One is shown at random; feeding comes first when the pet is hungry. |
+| mood lines | `fed`, `full`, `hungry`, `grumpy`, `adoring`, `sulk`, `praise`, `timerSet` (`{duration}`, `{time}`), `noted` (`{title}`, `{when}`). Missing lines fall back to neutral text. |
 | `moveset` | Fighting style for Stickman Fight: light/heavy/special/aerial moves with timings, damage, range and knockback. |
 
 ## Abilities (shared special movements)

@@ -537,14 +537,32 @@
     },
     "sleepiness": 0.8,
     "sociability": 0.35,
+    "care": [
+      {
+        "label": "Stroke the {name}",
+        "kind": "pet"
+      },
+      {
+        "label": "Scratch the {name}'s chin",
+        "kind": "pet"
+      },
+      {
+        "label": "Rub the {name}'s belly (risky)",
+        "kind": "pet"
+      },
+      {
+        "label": "Feed the {name} 🐟",
+        "kind": "feed"
+      }
+    ],
     "lines": {
       "greet": [
         "Mrrp.",
         "Oh. It's you."
       ],
       "petted": [
-        "Purrrr\u2026",
-        "Mrrrow \u2665",
+        "Purrrr…",
+        "Mrrrow ♥",
         "Acceptable."
       ],
       "thrown": [
@@ -575,8 +593,46 @@
         "Done working? Pet me."
       ],
       "bored": [
-        "\u2026",
+        "…",
         "Entertain me."
+      ],
+      "fed": [
+        "Nom nom… fish!",
+        "Acceptable offering. 🐟"
+      ],
+      "full": [
+        "I'm stuffed. Maybe later.",
+        "*turns away from the bowl*"
+      ],
+      "hungry": [
+        "Is anyone going to feed me?",
+        "My bowl is… empty. 🐟",
+        "Mrrow. Food?"
+      ],
+      "grumpy": [
+        "Hmph.",
+        "*sighs loudly*",
+        "Nobody pets me anymore…"
+      ],
+      "adoring": [
+        "You're my favourite human ♥",
+        "*purrs at you*"
+      ],
+      "sulk": [
+        "Don't touch me.",
+        "*flicks tail and ignores you*"
+      ],
+      "timerSet": [
+        "⏱ {duration}. I'll yell at {time}.",
+        "Timer set: {duration}. I'm watching the clock."
+      ],
+      "noted": [
+        "Noted: {title}{when}.",
+        "Got it. {title}{when}."
+      ],
+      "praise": [
+        "Good human.",
+        "Done? Impressive. Pet me."
       ]
     }
   },

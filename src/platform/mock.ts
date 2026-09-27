@@ -24,6 +24,7 @@ interface MockState {
   pomodoro: PomodoroStatus;
   sessions: { at: number; minutes: number; completed: boolean }[];
   scores: Score[];
+  moods?: Record<string, unknown>;
   nextId: number;
 }
 
@@ -285,6 +286,13 @@ export const mockBackend: Backend = {
   },
   async petFrame() {
     return cursor;
+  },
+  async loadMood(character) {
+    return load().moods?.[character] ?? null;
+  },
+  async saveMood(character, mood) {
+    mutate((s) => (s.moods = { ...s.moods, [character]: mood }));
+    fire("mood", { character, mood });
   },
   async listUserCharacters() {
     return [];

@@ -266,6 +266,41 @@
           "minimum": 0,
           "maximum": 1
         },
+        "care": {
+          "default": [
+            {
+              "label": "Pet the {name}",
+              "kind": "pet"
+            },
+            {
+              "label": "Feed the {name}",
+              "kind": "feed"
+            }
+          ],
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "pet",
+                  "feed"
+                ]
+              }
+            },
+            "required": [
+              "label",
+              "kind"
+            ]
+          }
+        },
         "lines": {
           "default": {},
           "type": "object",

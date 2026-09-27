@@ -59,6 +59,17 @@ export const AbilityRefSchema = z.object({
   params: z.record(z.string(), z.unknown()).default({}),
 });
 
+/** Something the user can do for the pet from its menu; `{name}` becomes the display name. */
+export const CareActionSchema = z.object({
+  label: z.string().min(1).max(40),
+  kind: z.enum(["pet", "feed"]),
+});
+
+export const DEFAULT_CARE: z.infer<typeof CareActionSchema>[] = [
+  { label: "Pet the {name}", kind: "pet" },
+  { label: "Feed the {name}", kind: "feed" },
+];
+
 export const PersonalitySchema = z.object({
   /** Relative weights for what the pet does when left alone (keys: core + ability behaviours). */
   behaviors: z.record(z.string(), z.number().min(0)),
@@ -66,6 +77,8 @@ export const PersonalitySchema = z.object({
   sleepiness: z.number().min(0).max(1).default(0.5),
   /** 0..1, how eager the pet is to react to you and to reminders. */
   sociability: z.number().min(0).max(1).default(0.5),
+  /** Care actions offered in the right-click menu (one is shown at random). */
+  care: z.array(CareActionSchema).min(1).default(DEFAULT_CARE),
   /** Speech lines per situation; `{title}` is replaced with the reminder text. */
   lines: z.record(z.string(), z.array(z.string().max(80)).min(1)).default({}),
 });
@@ -113,6 +126,7 @@ export type Stats = z.infer<typeof StatsSchema>;
 export type Move = z.infer<typeof MoveSchema>;
 export type Moveset = z.infer<typeof MovesetSchema>;
 export type Personality = z.infer<typeof PersonalitySchema>;
+export type CareAction = z.infer<typeof CareActionSchema>;
 export type CharacterDef = z.infer<typeof CharacterSchema>;
 
 /** Animations every character must provide; abilities may require more. */

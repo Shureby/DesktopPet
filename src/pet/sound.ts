@@ -124,7 +124,7 @@ export function ringAlarm(id: RingtoneId, volume: number, maxSeconds = 60): () =
   };
 }
 
-/** Small UI sounds (petting, tomato-clock phase changes). */
+/** Small UI sounds (petting, focus-session phase changes). */
 export const sounds = {
   chime: () => playRingtone("chime", 0.5),
   pop: () => play([{ f: 660, at: 0, dur: 0.08 }], 0.4),

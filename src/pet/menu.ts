@@ -1,40 +1,83 @@
 import type { CharacterRegistry } from "../characters/registry";
-import type { Backend, PomodoroStatus, Settings } from "../platform";
+import type { CareAction, CharacterDef } from "../characters/schema";
+import { pick, type Rng } from "../engine/random";
+import { formatDuration } from "../features/alarm/timers";
+import { formatRemaining } from "../features/pomodoro/logic";
+import type { Alarm, Backend, PomodoroStatus, Settings } from "../platform";
 
 export interface MenuContext {
   backend: Backend;
   registry: CharacterRegistry;
   settings: Settings;
   pomodoro: PomodoroStatus;
-  pet: () => void;
+  character: CharacterDef;
+  hungry: boolean;
+  /** Running timers, soonest first. */
+  timers: (Alarm & { nextFire: number })[];
+  rng: Rng;
+  care: (action: CareAction) => void;
+  setTimer: (minutes: number) => void;
+  hide: () => void;
 }
 
-interface Item {
+export interface Item {
   text: string;
   action?: () => void;
   checked?: boolean;
   items?: Item[];
 }
 
-function buildItems(c: MenuContext): (Item | "sep")[] {
-  const timer = (min: number) => () =>
-    void c.backend.addAlarm(`Timer: ${min} min`, Date.now() + min * 60_000, "none");
+export const TIMER_MINUTES = [1, 5, 10, 15, 30, 60];
+
+export function careLabel(action: CareAction, character: CharacterDef): string {
+  return action.label.replace(/\{name\}/g, character.displayName);
+}
+
+/** One care action at random; feeding comes first when the pet is hungry. */
+export function pickCare(character: CharacterDef, hungry: boolean, rng: Rng): CareAction {
+  const care = character.personality.care;
+  const feed = care.filter((a) => a.kind === "feed");
+  return (hungry && pick(rng, feed)) || pick(rng, care) || care[0];
+}
+
+/** Every item starts with a verb; items are grouped by what you're doing. */
+export function buildItems(c: MenuContext): (Item | "sep")[] {
+  const now = Date.now();
+  const care = pickCare(c.character, c.hungry, c.rng);
   const focusing = c.pomodoro.phase !== "idle";
+  const left = (at: number | null) => (at ? ` (${formatRemaining(at - now)} left)` : "");
+
+  const timerItems: (Item | "sep")[] = [
+    {
+      text: "Set timer",
+      items: TIMER_MINUTES.map((m) => ({ text: formatDuration(m), action: () => c.setTimer(m) })),
+    },
+  ];
+  if (c.timers.length === 1) {
+    const t = c.timers[0];
+    timerItems.push({ text: `Cancel timer${left(t.nextFire)}`, action: () => void c.backend.deleteAlarm(t.id) });
+  } else if (c.timers.length > 1) {
+    timerItems.push({
+      text: "Cancel timer",
+      items: c.timers.map((t) => ({
+        text: `${t.label.replace(/^Timer: /, "")}${left(t.nextFire)}`,
+        action: () => void c.backend.deleteAlarm(t.id),
+      })),
+    });
+  }
+
   return [
-    { text: "Pet ♥", action: c.pet },
+    { text: `${careLabel(care, c.character)}${care.kind === "pet" ? " ♥" : ""}`, action: () => c.care(care) },
     "sep",
     { text: "Add to-do…", action: () => void c.backend.openPanel("todos") },
-    {
-      text: "Timer",
-      items: [1, 5, 10, 15, 30, 60].map((m) => ({ text: `${m} min`, action: timer(m) })),
-    },
+    ...timerItems,
     focusing
-      ? { text: "Stop tomato clock", action: () => void c.backend.pomodoroStop() }
-      : { text: "Start tomato clock 🍅", action: () => void c.backend.pomodoroStart() },
+      ? { text: `Stop focus session${left(c.pomodoro.endsAt)}`, action: () => void c.backend.pomodoroStop() }
+      : { text: "Start focus session 🍅", action: () => void c.backend.pomodoroStart() },
     "sep",
-    { text: "Play: Safe Landing", action: () => void c.backend.openGame("safe-landing") },
+    { text: "Play Safe Landing", action: () => void c.backend.openGame("safe-landing") },
     {
-      text: "Character",
+      text: "Switch character",
       items: c.registry.list().map((ch) => ({
         text: ch.def.displayName,
         checked: ch.def.id === c.settings.character,
@@ -43,6 +86,7 @@ function buildItems(c: MenuContext): (Item | "sep")[] {
     },
     "sep",
     { text: "Open panel…", action: () => void c.backend.openPanel() },
+    { text: "Hide pet", action: c.hide },
   ];
 }
 

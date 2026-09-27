@@ -1,4 +1,5 @@
 import type { Brain, PetEvent, PetMode } from "../brain/Brain";
+import { defaultMood, type Mood } from "../brain/mood";
 import { AnimationPlayer } from "../engine/animation";
 import { StateMachine, type StateDef } from "../engine/fsm";
 import { createBody, step, type Body, type StepResult, type World } from "../engine/physics";
@@ -42,6 +43,8 @@ export class Pet {
   target: { x: number } | null = null;
   /** Scratch space for ability states (e.g. the wall being climbed). */
   scratch: Record<string, unknown> = {};
+  /** Affection and fullness; the host loads and saves it per character. */
+  mood: Mood = defaultMood();
   /** Fall speed multiplier (glide lowers it). */
   maxFallFactor = 1;
   lastStep: StepResult | null = null;

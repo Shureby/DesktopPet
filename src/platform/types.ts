@@ -133,7 +133,16 @@ export interface BackendEvents {
   game: { state: "started" | "ended"; game: string };
   "panel-tab": PanelTab;
   "pet-command": "show" | "hide" | "greet";
+  /** Mood saved for a character (the panel shows it). */
+  mood: { character: string; mood: unknown };
+  /** Something the user did elsewhere that the pet reacts to. */
+  "pet-event": PetActivity;
 }
+
+export type PetActivity =
+  | { type: "todoAdded"; title: string; dueAt: number | null }
+  | { type: "todoDone" }
+  | { type: "game"; won: boolean };
 
 export interface UserCharacterFile {
   dir: string;
@@ -173,6 +182,9 @@ export interface Backend {
   /** Positions the pet window (physical px) and returns the cursor position. */
   petFrame(x: number, y: number, ignoreCursor: boolean): Promise<{ x: number; y: number } | null>;
   listUserCharacters(): Promise<UserCharacterFile[]>;
+  /** Saved mood for a character (null if never saved). Parse with `parseMood`. */
+  loadMood(character: string): Promise<unknown>;
+  saveMood(character: string, mood: unknown): Promise<void>;
   /** Opens the folder where users drop their own characters. */
   openUserCharactersFolder(): Promise<void>;
   assetUrl(path: string): string;

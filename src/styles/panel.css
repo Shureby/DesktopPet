@@ -335,3 +335,39 @@ fieldset.alert select {
 fieldset.alert input[type="range"] {
   width: 90px;
 }
+
+.mood-card {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.meter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+.meter .track {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+.meter .fill {
+  height: 100%;
+}
+.meter .fill.love {
+  background: #e0527a;
+}
+.meter .fill.food {
+  background: #5aa469;
+}
+.meter .fill.food.hungry {
+  background: var(--accent);
+}
+.mood-card .tier {
+  font-size: 11px;
+  color: var(--muted);
+}

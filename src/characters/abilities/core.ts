@@ -48,6 +48,8 @@ export const core: AbilityModule<Record<string, never>> = {
     sit: { state: "sit", canStart: grounded },
     sleep: { state: "sleep", canStart: grounded },
     jump: { state: "jump", canStart: grounded },
+    // Not in personalities: the brain offers it when the pet adores you.
+    approach: { state: "approach", canStart: (p) => grounded(p) && p.cursor !== null },
   },
   states: {
     idle: rest("idle", 2, 5),
@@ -89,6 +91,24 @@ export const core: AbilityModule<Record<string, never>> = {
       update: (p) => (p.anim.finished || p.fsm.time > 0.6 ? p.next() : undefined),
     },
     drag: { anim: "drag", kinematic: true },
+    /** Walk over to the cursor, then look happy (affectionate pets do this). */
+    approach: {
+      anim: "walk",
+      update: (p) => {
+        const c = p.cursor;
+        if (!c || p.fsm.time > 6 || p.lastStep?.hitWall) return p.next();
+        const dx = c.x - p.body.x;
+        if (Math.abs(dx) < p.u(30)) {
+          p.body.vx = 0;
+          return "happy";
+        }
+        p.facing = dx > 0 ? 1 : -1;
+        p.body.vx = p.facing * p.walkSpeed() * 1.4;
+      },
+      exit: (p) => {
+        p.body.vx = 0;
+      },
+    },
     /** Run to `pet.target` (e.g. to the middle of the screen for a reminder), then alert. */
     goto: {
       anim: "run",

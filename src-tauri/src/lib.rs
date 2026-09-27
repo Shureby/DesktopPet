@@ -70,6 +70,8 @@ pub fn run() {
             commands::desktop_snapshot,
             commands::pet_frame,
             commands::list_user_characters,
+            commands::load_mood,
+            commands::save_mood,
             commands::open_user_characters_folder,
             commands::open_panel,
             commands::open_game,

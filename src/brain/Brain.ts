@@ -2,7 +2,11 @@ import type { Pet } from "../characters/Pet";
 
 export type PetEvent =
   | { type: "greet" }
-  | { type: "petted" }
+  /** `capped`: petting no longer raises affection this hour. */
+  | { type: "petted"; result?: "ok" | "capped" }
+  | { type: "fed"; result: "ok" | "full" }
+  /** The user got something done (to-do, focus session, game). */
+  | { type: "praise" }
   | { type: "thrown"; speed: number }
   | { type: "landedHard" }
   /** `run: false` keeps the pet where it is (user setting). */

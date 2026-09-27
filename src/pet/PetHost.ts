@@ -1,10 +1,13 @@
+import { applyMoodEvent, isHungry, moodTier, parseMood, type MoodEvent } from "../brain/mood";
 import { RulesBrain } from "../brain/RulesBrain";
 import { Pet } from "../characters/Pet";
 import type { CharacterRegistry, LoadedCharacter } from "../characters/registry";
 import { createRng } from "../engine/random";
 import { SpriteAtlas } from "../engine/sprites";
+import { activeTimers, formatDuration, timerLabel } from "../features/alarm/timers";
 import { formatRemaining } from "../features/pomodoro/logic";
-import type { Backend, PomodoroStatus, ReminderEvent, Settings } from "../platform";
+import type { Alarm, Backend, PetActivity, PomodoroStatus, ReminderEvent, Settings } from "../platform";
+import type { CareAction } from "../characters/schema";
 import { showPetMenu } from "./menu";
 import { inQuietHours } from "./quietHours";
 import { playRingtone, ringAlarm, sounds } from "./sound";
@@ -43,13 +46,18 @@ export class PetHost {
   private drag: { pointerId: number; dx: number; dy: number; moved: boolean; sx: number; sy: number } | null = null;
   private bubbleTimer: ReturnType<typeof setTimeout> | undefined;
   private stopRinging: (() => void) | null = null;
+  private timers: Alarm[] = [];
+  private hovering = false;
 
   constructor(
     private readonly backend: Backend,
     private readonly registry: CharacterRegistry,
     private readonly canvas: HTMLCanvasElement,
     private readonly bubble: HTMLElement,
-    private readonly tomato: HTMLElement,
+    /** Countdown badges (focus session, timers) next to the pet. */
+    private readonly badges: HTMLElement,
+    /** Heart/fullness meter shown while hovering the pet. */
+    private readonly moodMeter: HTMLElement,
     settings: Settings,
   ) {
     this.ctx = canvas.getContext("2d", { willReadFrequently: false })!;
@@ -73,6 +81,10 @@ export class PetHost {
 
     await this.backend.on("reminder", (r) => this.onReminder(r));
     await this.backend.on("pomodoro", (p) => {
+      // Finishing a focus session makes the pet proud of you.
+      if (this.pomodoro.phase === "focus" && (p.phase === "short_break" || p.phase === "long_break")) {
+        this.moodEvent("focusDone");
+      }
       this.pomodoro = p;
       this.updateMode();
       this.pet.react({ type: "pomodoro", phase: p.phase });
@@ -83,6 +95,12 @@ export class PetHost {
     await this.backend.on("pet-command", (c) => {
       if (c === "greet") this.pet.react({ type: "greet" });
     });
+    await this.backend.on("alarms-changed", () => void this.refreshTimers());
+    await this.backend.on("pet-event", (e) => this.onActivity(e));
+    await this.refreshTimers();
+    // Mood is saved every minute and when leaving, not every tick.
+    setInterval(() => void this.saveMood(), 60_000);
+    window.addEventListener("beforeunload", () => void this.saveMood());
     this.pomodoro = await this.backend.pomodoroStatus();
     this.updateMode();
     setInterval(() => this.updateMode(), 30_000);
@@ -93,6 +111,7 @@ export class PetHost {
   }
 
   private async setCharacter(id: string, x: number, y: number): Promise<void> {
+    if (this.pet) await this.saveMood();
     const c = this.registry.pick(id, "cat");
     const atlas = await SpriteAtlas.load(c.def.sprite, c.asset);
     const world = this.pet?.world;
@@ -109,6 +128,11 @@ export class PetHost {
     });
     if (world) this.pet.world = world;
     this.pet.onSay = (text, ms) => this.say(text, ms);
+    try {
+      this.pet.mood = parseMood(await this.backend.loadMood(c.def.id));
+    } catch (e) {
+      console.warn("Could not load mood", e);
+    }
     this.updateMode();
   }
 
@@ -215,14 +239,44 @@ export class PetHost {
       el.style.top = `${f.y - spriteH - dy}px`;
     };
     place(this.bubble, 8);
+    place(this.moodMeter, 6);
     const spriteW = this.atlas.width * this.artScale;
-    place(this.tomato, -18, spriteW / 2 + 4);
+    // Anchored at the feet and growing upward, so extra rows never fall off the window.
+    this.badges.style.left = `${f.x + spriteW / 2 + 4}px`;
+    this.badges.style.top = `${f.y - 2}px`;
+    this.renderBadges();
+    this.moodMeter.hidden = !this.hovering || !this.bubble.hidden || !!this.drag;
+  }
 
+  /** Focus session on top, then the soonest timer ("+N" when more are running). */
+  private renderBadges(): void {
+    const now = Date.now();
+    const rows: string[] = [];
     if (this.pomodoro.phase !== "idle" && this.pomodoro.endsAt) {
-      this.tomato.hidden = false;
       const icon = this.pomodoro.phase === "focus" ? "🍅" : "☕";
-      this.tomato.textContent = `${icon} ${formatRemaining(this.pomodoro.endsAt - Date.now())}`;
-    } else this.tomato.hidden = true;
+      rows.push(`${icon} ${formatRemaining(this.pomodoro.endsAt - now)}`);
+    }
+    const timers = activeTimers(this.timers, now);
+    if (timers.length) {
+      const more = timers.length > 1 ? ` +${timers.length - 1}` : "";
+      rows.push(`⏱ ${formatRemaining(timers[0].nextFire - now)}${more}`);
+    }
+    const text = rows.join("\n");
+    if (this.badges.dataset.text !== text) {
+      this.badges.dataset.text = text;
+      this.badges.replaceChildren(...rows.map((r) => Object.assign(document.createElement("div"), { textContent: r })));
+    }
+    this.badges.hidden = rows.length === 0;
+  }
+
+  private renderMoodMeter(): void {
+    const m = this.pet.mood;
+    const hearts = Math.ceil(m.affection / 20);
+    const food = Math.ceil(m.fullness / 20);
+    this.moodMeter.textContent = `${"♥".repeat(hearts)}${"♡".repeat(5 - hearts)}  ${"●".repeat(food)}${"○".repeat(5 - food)}`;
+    this.moodMeter.title = `Affection ${Math.round(m.affection)}% · Fullness ${Math.round(m.fullness)}%`;
+    this.moodMeter.dataset.tier = moodTier(m);
+    this.moodMeter.classList.toggle("hungry", isHungry(m));
   }
 
   /** Moves the Tauri window to the pet and toggles click-through based on what's under the cursor. */
@@ -237,6 +291,8 @@ export class PetHost {
       if (cursor) {
         this.pet.cursor = this.windowed ? cursor : { x: cursor.x * this.dpr, y: cursor.y * this.dpr };
         const overPet = this.isOverPet(cursor.x, cursor.y, winX, winY);
+        if (overPet && !this.hovering) this.renderMoodMeter();
+        this.hovering = overPet;
         this.ignoringCursor = !overPet && !this.drag;
         // In the browser mock the full-page canvas must not block the fake windows underneath.
         this.canvas.style.pointerEvents = this.ignoringCursor ? "none" : "auto";
@@ -255,7 +311,7 @@ export class PetHost {
     // Cursor in canvas CSS px.
     const lx = this.windowed ? (cx - winX) / this.dpr : cx;
     const ly = this.windowed ? (cy - winY) / this.dpr : cy;
-    for (const el of [this.bubble, this.tomato]) {
+    for (const el of [this.bubble, this.badges, this.moodMeter]) {
       if (el.hidden) continue;
       const r = el.getBoundingClientRect();
       if (lx >= r.left && lx <= r.right && ly >= r.top && ly <= r.bottom) return true;
@@ -308,10 +364,7 @@ export class PetHost {
     if (!d || e.pointerId !== d.pointerId) return;
     this.drag = null;
     if (d.moved) this.pet.endDrag();
-    else {
-      this.pet.react({ type: "petted" });
-      if (this.settings.sound) sounds.pop();
-    }
+    else this.care({ label: "", kind: "pet" });
   }
 
   private onContextMenu(e: MouseEvent): void {
@@ -321,8 +374,94 @@ export class PetHost {
       registry: this.registry,
       settings: this.settings,
       pomodoro: this.pomodoro,
-      pet: () => this.pet.react({ type: "petted" }),
+      character: this.character.def,
+      hungry: isHungry(this.pet.mood),
+      timers: activeTimers(this.timers),
+      rng: this.pet.rng,
+      care: (a) => this.care(a),
+      setTimer: (min) => void this.setTimer(min),
+      hide: () => void this.hidePet(),
     });
+  }
+
+  // --- Care, mood & feedback ----------------------------------------------
+
+  /** Petting (click or menu) and feeding. */
+  private care(action: CareAction): void {
+    if (action.kind === "feed") {
+      const result = applyMoodEvent(this.pet.mood, "feed") === "full" ? "full" : "ok";
+      this.pet.react({ type: "fed", result });
+    } else {
+      const result = applyMoodEvent(this.pet.mood, "pet") === "capped" ? "capped" : "ok";
+      this.pet.react({ type: "petted", result });
+      if (this.settings.sound) sounds.pop();
+    }
+    this.renderMoodMeter();
+    void this.saveMood();
+  }
+
+  private moodEvent(e: MoodEvent): void {
+    applyMoodEvent(this.pet.mood, e);
+    void this.saveMood();
+  }
+
+  private async saveMood(): Promise<void> {
+    try {
+      await this.backend.saveMood(this.character.def.id, this.pet.mood);
+    } catch (e) {
+      console.warn("Could not save mood", e);
+    }
+  }
+
+  private async refreshTimers(): Promise<void> {
+    try {
+      this.timers = await this.backend.listAlarms();
+    } catch {
+      // Keep the last list.
+    }
+  }
+
+  /** Starts a timer and has the pet confirm it (instead of silently setting it). */
+  private async setTimer(minutes: number): Promise<void> {
+    const alarm = await this.backend.addAlarm(timerLabel(minutes), Date.now() + minutes * 60_000, "none");
+    this.timers = [...this.timers.filter((t) => t.id !== alarm.id), alarm];
+    const time = new Date(alarm.nextFire ?? Date.now()).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    this.sayLine("timerSet", { duration: formatDuration(minutes), time }, `⏱ ${formatDuration(minutes)} timer set. I'll ring at ${time}.`);
+    if (this.pet.grounded && this.pet.state !== "sleep") this.pet.fsm.set("happy", true);
+  }
+
+  /** Reacts to things the user did in other windows (panel, games). */
+  private onActivity(e: PetActivity): void {
+    switch (e.type) {
+      case "todoAdded": {
+        const when = e.dueAt
+          ? ` · ${new Date(e.dueAt).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}`
+          : "";
+        this.sayLine("noted", { title: e.title, when }, `Got it: ${e.title}${when}`);
+        break;
+      }
+      case "todoDone":
+        this.moodEvent("todoDone");
+        this.pet.react({ type: "praise" });
+        break;
+      case "game":
+        this.moodEvent("game");
+        if (e.won) this.pet.react({ type: "praise" });
+        break;
+    }
+  }
+
+  /** Says a character line, or the fallback if the character has none for `key`. */
+  private sayLine(key: string, vars: Record<string, string>, fallback: string): void {
+    if (this.pet.def.personality.lines[key]?.length) this.pet.say(key, vars, 5000);
+    else this.say(fallback, 5000);
+  }
+
+  private async hidePet(): Promise<void> {
+    if (this.windowed) {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      await getCurrentWindow().hide();
+    } else this.setHidden(true);
   }
 
   // --- Speech & reminders -------------------------------------------------
@@ -360,7 +499,10 @@ export class PetHost {
 
   private onReminder(r: ReminderEvent): void {
     const alert = this.settings.alerts[r.kind];
-    this.pet.react({ type: "reminder", kind: r.kind, title: r.title, run: alert.petRuns });
+    if (r.kind === "alarm") void this.refreshTimers();
+    // During a focus session the pet stays at its "desk" so the session isn't disrupted.
+    const run = alert.petRuns && this.pomodoro.phase !== "focus";
+    this.pet.react({ type: "reminder", kind: r.kind, title: r.title, run });
     const text = this.bubble.firstElementChild?.textContent || r.title;
     const actions: BubbleAction[] =
       r.kind === "alarm"
@@ -369,7 +511,13 @@ export class PetHost {
             { label: "Stop", run: () => {} },
           ]
         : [
-            { label: "✓ Done", run: () => void this.backend.updateTodo(r.id, { done: true }) },
+            {
+              label: "✓ Done",
+              run: () => {
+                void this.backend.updateTodo(r.id, { done: true });
+                this.onActivity({ type: "todoDone" });
+              },
+            },
             { label: "Later", run: () => void this.backend.updateTodo(r.id, { dueAt: Date.now() + 10 * 60_000 }) },
           ];
     this.say(text, 60_000, actions);

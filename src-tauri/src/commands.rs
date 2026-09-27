@@ -204,6 +204,29 @@ pub fn pet_frame(
     Ok(app.cursor_position().ok().map(|p| Point { x: p.x, y: p.y }))
 }
 
+// --- Mood -----------------------------------------------------------------------------
+
+fn mood_key(character: &str) -> CmdResult<String> {
+    if character.is_empty() || !character.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-') {
+        return Err("invalid character id".into());
+    }
+    Ok(format!("mood:{character}"))
+}
+
+/// Mood (affection, fullness) saved per character; the UI owns its shape.
+#[tauri::command]
+pub fn load_mood(state: State<AppState>, character: String) -> CmdResult<Option<Value>> {
+    let raw = state.store().get_kv(&mood_key(&character)?).map_err(err)?;
+    Ok(raw.and_then(|s| serde_json::from_str(&s).ok()))
+}
+
+#[tauri::command]
+pub fn save_mood(app: AppHandle, state: State<AppState>, character: String, mood: Value) -> CmdResult<()> {
+    state.store().set_kv(&mood_key(&character)?, &mood.to_string()).map_err(err)?;
+    let _ = app.emit("mood", serde_json::json!({ "character": character, "mood": mood }));
+    Ok(())
+}
+
 // --- User characters -----------------------------------------------------------------
 
 #[derive(Serialize)]

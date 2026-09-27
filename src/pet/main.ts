@@ -25,7 +25,8 @@ async function main() {
     registry,
     document.getElementById("pet") as HTMLCanvasElement,
     document.getElementById("bubble")!,
-    document.getElementById("tomato")!,
+    document.getElementById("badges")!,
+    document.getElementById("mood")!,
     settings,
   );
   await host.start();

@@ -100,6 +100,8 @@ export class GameHost {
     if (score > 0) await this.backend.recordScore(this.game.id, this.characterId, score);
     if (this.game.status === "won") await this.backend.unlockAchievement(`${this.game.id.replace(/-/g, "_")}_win`);
     this.best = Math.max(this.best, score);
+    // Playing together makes the pet happier (and a win makes it proud).
+    await this.backend.emit("pet-event", { type: "game", won: this.game.status === "won" });
   }
 
   private frame(now: number) {

@@ -618,13 +618,31 @@
     },
     "sleepiness": 0.3,
     "sociability": 0.9,
+    "care": [
+      {
+        "label": "Stroke the {name}'s feathers",
+        "kind": "pet"
+      },
+      {
+        "label": "Pat the {name}'s comb",
+        "kind": "pet"
+      },
+      {
+        "label": "Scatter some corn 🌽",
+        "kind": "feed"
+      },
+      {
+        "label": "Give the {name} a worm 🪱",
+        "kind": "feed"
+      }
+    ],
     "lines": {
       "greet": [
         "Cock-a-doodle-doo!",
         "Morning! Or whenever it is!"
       ],
       "petted": [
-        "Bawk \u2665",
+        "Bawk ♥",
         "Cluck cluck!"
       ],
       "thrown": [
@@ -657,6 +675,44 @@
       "bored": [
         "Bawk?",
         "Anybody got seeds?"
+      ],
+      "fed": [
+        "Peck peck peck! Delicious!",
+        "CORN! Best day ever!"
+      ],
+      "full": [
+        "Too full to peck another kernel.",
+        "Bawk… I couldn't possibly."
+      ],
+      "hungry": [
+        "Got any seeds? Anyone?",
+        "*pecks the empty ground sadly*",
+        "Corn o'clock yet?"
+      ],
+      "grumpy": [
+        "Bawk. Whatever.",
+        "*ruffles feathers in protest*",
+        "Nobody visits the coop anymore…"
+      ],
+      "adoring": [
+        "You're the best farmer ever! ♥",
+        "Cluck cluck ♥"
+      ],
+      "sulk": [
+        "BAWK! Leave me alone!",
+        "*turns tail feathers to you*"
+      ],
+      "timerSet": [
+        "⏱ {duration}! I'll crow at {time}!",
+        "Bawk! {duration}, got it!"
+      ],
+      "noted": [
+        "Noted! {title}{when}!",
+        "Bawk! Got it: {title}{when}."
+      ],
+      "praise": [
+        "Cock-a-doodle-DONE!",
+        "Great job! Here's a feather."
       ]
     }
   },

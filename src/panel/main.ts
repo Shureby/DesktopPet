@@ -1,8 +1,10 @@
 import product from "../../product.config.json";
+import { isHungry, moodTier, parseMood, type Mood } from "../brain/mood";
 import { ABILITIES } from "../characters/abilities";
 import { loadBundled, loadUser, type CharacterRegistry, type LoadedCharacter } from "../characters/registry";
 import { SpriteAtlas } from "../engine/sprites";
 import { formatRemaining } from "../features/pomodoro/logic";
+import { timerLabel } from "../features/alarm/timers";
 import { parseQuickAdd } from "../features/todo/quickAdd";
 import { GAMES } from "../features/games/catalog";
 import { backend, type AlertSettings, type PanelTab, type Repeat, type Settings } from "../platform";
@@ -63,6 +65,8 @@ async function renderTodos(): Promise<Node> {
     if (!input.value.trim()) return;
     const q = parseQuickAdd(input.value);
     await backend.addTodo(q.title, q.dueAt);
+    // The pet confirms what it heard.
+    void backend.emit("pet-event", { type: "todoAdded", title: q.title, dueAt: q.dueAt });
     input.value = "";
     updateHint();
   };
@@ -75,7 +79,14 @@ async function renderTodos(): Promise<Node> {
     h(
       "li",
       { class: t.done ? "done" : "" },
-      h("input", { type: "checkbox", checked: t.done, onchange: () => void backend.updateTodo(t.id, { done: !t.done }) }),
+      h("input", {
+        type: "checkbox",
+        checked: t.done,
+        onchange: () => {
+          void backend.updateTodo(t.id, { done: !t.done });
+          if (!t.done) void backend.emit("pet-event", { type: "todoDone" });
+        },
+      }),
       h("span", { class: "title" }, t.title),
       t.dueAt && !t.done ? h("span", { class: "when" }, formatWhen(t.dueAt)) : null,
       h("button", { class: "icon", title: "Delete", onclick: () => void backend.deleteTodo(t.id) }, "✕"),
@@ -113,7 +124,7 @@ async function renderAlarms(): Promise<Node> {
     await backend.addAlarm(label.value.trim() || `Alarm ${time.value}`, d.getTime(), repeat.value as Repeat);
     label.value = "";
   };
-  const timer = (m: number) => h("button", { onclick: () => void backend.addAlarm(`Timer: ${m} min`, Date.now() + m * 60_000, "none") }, `${m}m`);
+  const timer = (m: number) => h("button", { onclick: () => void backend.addAlarm(timerLabel(m), Date.now() + m * 60_000, "none") }, `${m}m`);
   const repeatText: Record<Repeat, string> = { none: "Once", daily: "Every day", weekdays: "Weekdays" };
 
   return h(
@@ -142,7 +153,7 @@ async function renderAlarms(): Promise<Node> {
   );
 }
 
-// --- Focus (tomato clock) ---------------------------------------------------
+// --- Focus sessions (Pomodoro) ---------------------------------------------------
 
 async function renderFocus(): Promise<Node> {
   const status = await backend.pomodoroStatus();
@@ -225,6 +236,25 @@ async function preview(c: LoadedCharacter): Promise<HTMLCanvasElement> {
   return canvas;
 }
 
+const TIER_TEXT = { adoring: "Adores you", content: "Content", grumpy: "Grumpy", sulking: "Sulking" } as const;
+
+function moodCard(m: Mood): Node {
+  const bar = (label: string, value: number, cls: string) =>
+    h(
+      "div",
+      { class: "meter", title: `${label} ${Math.round(value)}%` },
+      h("span", {}, label),
+      h("div", { class: "track" }, h("div", { class: `fill ${cls}`, style: `width:${Math.round(value)}%` })),
+    );
+  return h(
+    "div",
+    { class: "mood-card" },
+    bar("♥", m.affection, "love"),
+    bar("🍽", m.fullness, isHungry(m) ? "food hungry" : "food"),
+    h("span", { class: "tier" }, `${TIER_TEXT[moodTier(m)]}${isHungry(m) ? " · hungry" : ""}`),
+  );
+}
+
 async function renderCharacters(): Promise<Node> {
   const cards = await Promise.all(
     registry.list().map(async (c) =>
@@ -236,6 +266,7 @@ async function renderCharacters(): Promise<Node> {
         h("p", {}, c.def.description),
         h("div", { class: "chips" }, ...c.def.abilities.map((a) => h("span", { class: "chip", title: ABILITIES[a.id]?.description ?? "" }, a.id))),
         h("p", { class: "style" }, `🥊 ${c.def.moveset.style}`),
+        moodCard(parseMood(await backend.loadMood(c.def.id))),
       ),
     ),
   );
@@ -312,7 +343,7 @@ async function renderSettings(): Promise<Node> {
       "label",
       { class: "check" },
       h("input", { type: "checkbox", checked: settings.sound, onchange: () => void save({ sound: !settings.sound }) }),
-      "Other sounds (petting, tomato clock)",
+      "Other sounds (petting, focus sessions)",
     ),
     h(
       "label",
@@ -413,6 +444,7 @@ async function main() {
     if (current === "characters" || current === "focus" || current === "settings") void render();
   });
   await backend.on("panel-tab", (tab) => select(tab));
+  await backend.on("mood", () => current === "characters" && void render());
 
   const initial = location.hash.slice(1) as PanelTab;
   select(TABS.some((t) => t.id === initial) ? initial : "todos");
