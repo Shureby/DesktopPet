@@ -73,6 +73,7 @@ pub fn run() {
             commands::storefront_name,
             commands::desktop_snapshot,
             commands::pet_frame,
+            commands::set_pet_visible,
             commands::list_user_characters,
             commands::load_mood,
             commands::save_mood,

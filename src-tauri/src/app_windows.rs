@@ -83,14 +83,17 @@ pub fn close_game<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     Ok(())
 }
 
-pub fn toggle_pet<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
+/// Shows or hides the pet and announces it ("pet-visibility"), so the tray menu can offer
+/// the opposite. Showing it also makes the pet say hello.
+pub fn set_pet_visible<R: Runtime>(app: &AppHandle<R>, visible: bool) -> tauri::Result<()> {
     if let Some(w) = app.get_webview_window(PET) {
-        if w.is_visible()? {
-            w.hide()?;
-        } else {
+        if visible {
             w.show()?;
             app.emit_to(PET, "pet-command", "greet")?;
+        } else {
+            w.hide()?;
         }
+        app.emit("pet-visibility", visible)?;
     }
     Ok(())
 }

@@ -16,6 +16,27 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-09-28
+
+### Changed
+- **The tray menu now matches the pet's right-click menu.** Both are built from one
+  definition, so the tasks section (Add to-do… / Set alarm… / Set timer / Cancel timer /
+  Cancel snooze / focus session) and the play section (Play Safe Landing / Switch
+  character) are identical in wording, order and behaviour. The tray gains Add to-do…,
+  Set timer, Cancel timer and Cancel snooze.
+- Only two differences remain, on purpose:
+  - **Top:** the pet menu has a care action; the tray has "Show pet" / "Hide pet",
+    whichever applies.
+  - **Bottom:** Quit is only in the tray. The pet menu keeps "Hide pet".
+- "Switch character" in the tray is now a submenu, as on the pet, instead of opening
+  the panel.
+- The tray shows time left in whole minutes ("12 min left") and refreshes every
+  30 seconds.
+- "Custom / Edit…" from the tray opens the panel's Alarms tab when the pet is hidden.
+
+### Fixed
+- The tray said "Start focus session" even while a session was running.
+
 ## [0.8.1] - 2026-09-28
 
 ### Fixed

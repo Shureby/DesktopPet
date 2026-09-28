@@ -27,7 +27,7 @@ import {
 import { formatRemaining } from "../features/pomodoro/logic";
 import type { Alarm, Backend, PetActivity, PomodoroStatus, ReminderEvent, Settings } from "../platform";
 import type { CareAction } from "../characters/schema";
-import { showPetMenu } from "./menu";
+import { buildTrayItems, minutesLeft, nativeMenu, showPetMenu, type MenuContext } from "./menu";
 import { inQuietHours } from "./quietHours";
 import { playRingtone, ringAlarm, sounds } from "./sound";
 
@@ -76,6 +76,12 @@ export class PetHost {
   /** The bubble is asking for a custom timer length; chatter must not replace it. */
   private prompting = false;
   private hovering = false;
+  /** False while the pet is hidden from its menu or the tray. */
+  private petVisible = true;
+  /** Tray menus still referenced: the current one and the one before (it may be open). */
+  private trayMenus: { close(): Promise<void> }[] = [];
+  private trayOutline = "";
+  private trayTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(
     private readonly backend: Backend,
@@ -115,10 +121,19 @@ export class PetHost {
       }
       this.pomodoro = p;
       this.updateMode();
+      this.scheduleTray();
       this.pet.react({ type: "pomodoro", phase: p.phase });
       if (this.settings.sound) sounds.chime();
     });
-    await this.backend.on("settings", (s) => void this.applySettings(s));
+    await this.backend.on("settings", (s) => {
+      void this.applySettings(s);
+      this.scheduleTray();
+    });
+    await this.backend.on("pet-visibility", (visible) => {
+      this.petVisible = visible;
+      if (!this.windowed) this.setHidden(!visible);
+      this.scheduleTray();
+    });
     await this.backend.on("game", (g) => this.setHidden(g.state === "started"));
     await this.backend.on("pet-command", (c) => {
       if (c === "greet") this.pet.react({ type: "greet" });
@@ -126,6 +141,8 @@ export class PetHost {
     await this.backend.on("alarms-changed", () => void this.refreshTimers());
     await this.backend.on("pet-event", (e) => this.onActivity(e));
     await this.refreshTimers();
+    // Time left in the tray menu is in whole minutes; refresh it well within a minute.
+    setInterval(() => this.scheduleTray(), 30_000);
     // Mood is saved every minute and when leaving, not every tick.
     setInterval(() => void this.saveMood(), 60_000);
     window.addEventListener("beforeunload", () => void this.saveMood());
@@ -463,23 +480,62 @@ export class PetHost {
     } else this.care({ label: "", kind: "pet" });
   }
 
-  private onContextMenu(e: MouseEvent): void {
-    e.preventDefault();
-    void showPetMenu(e, {
+  /** What the pet menu and the tray menu share (see menu.ts). */
+  private menuContext(): MenuContext {
+    return {
       backend: this.backend,
       registry: this.registry,
       settings: this.settings,
       pomodoro: this.pomodoro,
-      character: this.character.def,
-      hungry: isHungry(this.pet.mood),
       timers: activeTimers(this.timers),
       snoozed: snoozedAlarms(this.timers),
+      setTimer: (min) => void this.startTimer(min),
+      // The length is asked for in the pet's bubble; with the pet hidden, the panel asks.
+      customTimer: () => void (this.petVisible ? this.askCustomTimer() : this.backend.openPanel("alarms")),
+    };
+  }
+
+  private onContextMenu(e: MouseEvent): void {
+    e.preventDefault();
+    void showPetMenu(e, {
+      ...this.menuContext(),
+      character: this.character.def,
+      hungry: isHungry(this.pet.mood),
       rng: this.pet.rng,
       care: (a) => this.care(a),
-      setTimer: (min) => void this.startTimer(min),
-      customTimer: () => void this.askCustomTimer(),
       hide: () => void this.hidePet(),
     });
+  }
+
+  /** Rebuilds the tray menu soon (state changes often come in bursts). */
+  private scheduleTray(): void {
+    if (!this.windowed) return;
+    clearTimeout(this.trayTimer);
+    this.trayTimer = setTimeout(() => void this.updateTray(), 200);
+  }
+
+  /** The tray menu is built here from the same items as the pet menu, so the two always match. */
+  private async updateTray(): Promise<void> {
+    const items = buildTrayItems({
+      ...this.menuContext(),
+      remaining: minutesLeft,
+      petVisible: this.petVisible,
+    });
+    const outline = JSON.stringify(items, (k, v) => (k === "action" ? undefined : v));
+    if (outline === this.trayOutline) return;
+    try {
+      const { TrayIcon } = await import("@tauri-apps/api/tray");
+      const tray = await TrayIcon.getById("main");
+      if (!tray) return;
+      const menu = await nativeMenu(items);
+      await tray.setMenu(menu);
+      this.trayOutline = outline;
+      // Keep the previous menu alive a little longer: it may be open on screen right now.
+      this.trayMenus.push(menu);
+      while (this.trayMenus.length > 2) void this.trayMenus.shift()!.close();
+    } catch (e) {
+      console.warn("Could not update the tray menu", e);
+    }
   }
 
   // --- Care, mood & feedback ----------------------------------------------
@@ -540,6 +596,7 @@ export class PetHost {
     } catch {
       // Keep the last list.
     }
+    this.scheduleTray();
   }
 
   private isTimerId(id: number): boolean {
@@ -716,10 +773,7 @@ export class PetHost {
   }
 
   private async hidePet(): Promise<void> {
-    if (this.windowed) {
-      const { getCurrentWindow } = await import("@tauri-apps/api/window");
-      await getCurrentWindow().hide();
-    } else this.setHidden(true);
+    await this.backend.setPetVisible(false);
   }
 
   // --- Speech & reminders -------------------------------------------------

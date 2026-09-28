@@ -1,22 +1,23 @@
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
-use tauri::{AppHandle, Emitter, Manager, Runtime};
+use tauri::{AppHandle, Runtime};
 
 use crate::app_windows::{self, product_name};
-use crate::state::{now_ms, AppState};
 
+/// Creates the tray icon. The pet window replaces this menu with the full one, built from
+/// the same definition as the pet's right-click menu (src/pet/menu.ts), so both always
+/// match. This minimal menu only shows until then, or if the pet window fails to load.
+///
+/// The full menu reuses the ids handled below for show/hide, the panel and Quit, so those
+/// never depend on the pet window's script; its other items run their actions there.
 pub fn create<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let item = |id: &str, text: &str| MenuItem::with_id(app, id, text, true, None::<&str>);
     let menu = Menu::with_items(
         app,
         &[
-            &item("toggle", "Show / hide pet")?,
-            &item("panel", "Open panel…")?,
+            &item("show", "Show pet")?,
             &PredefinedMenuItem::separator(app)?,
-            &item("alarm", "Set alarm…")?,
-            &item("focus", "Start focus session 🍅")?,
-            &item("game", "Play Safe Landing")?,
-            &item("characters", "Switch character…")?,
+            &item("panel", "Open panel…")?,
             &PredefinedMenuItem::separator(app)?,
             &item("quit", "Quit")?,
         ],
@@ -28,12 +29,9 @@ pub fn create<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
         .show_menu_on_left_click(true)
         .on_menu_event(|app, event| {
             let result = match event.id.as_ref() {
-                "toggle" => app_windows::toggle_pet(app),
+                "show" => app_windows::set_pet_visible(app, true),
+                "hide" => app_windows::set_pet_visible(app, false),
                 "panel" => app_windows::open_panel(app, None),
-                "characters" => app_windows::open_panel(app, Some("characters")),
-                "alarm" => app_windows::open_panel(app, Some("alarms")),
-                "game" => app_windows::open_game(app, "safe-landing"),
-                "focus" => start_focus(app),
                 "quit" => {
                     app.exit(0);
                     Ok(())
@@ -49,10 +47,4 @@ pub fn create<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     }
     tray.build(app)?;
     Ok(())
-}
-
-fn start_focus<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
-    let state = app.state::<AppState>();
-    let status = crate::commands::start_pomodoro(&state, now_ms()).map_err(std::io::Error::other)?;
-    app.emit("pomodoro", status)
 }

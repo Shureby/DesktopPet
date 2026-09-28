@@ -2,14 +2,23 @@ import { describe, expect, it } from "vitest";
 import { loadBundled } from "../characters/registry";
 import { createRng } from "../engine/random";
 import { DEFAULT_SETTINGS, type Alarm } from "../platform/types";
-import { buildItems, careLabel, pickCare, type Item, type MenuContext } from "./menu";
+import {
+  buildItems,
+  buildTrayItems,
+  careLabel,
+  minutesLeft,
+  pickCare,
+  type Item,
+  type PetMenuContext,
+  type TrayMenuContext,
+} from "./menu";
 
 const registry = loadBundled();
 const cat = registry.get("cat")!.def;
 
-function ctx(over: Partial<MenuContext> = {}): MenuContext {
+function ctx(over: Partial<PetMenuContext> = {}): PetMenuContext {
   return {
-    backend: {} as MenuContext["backend"],
+    backend: {} as PetMenuContext["backend"],
     registry,
     settings: DEFAULT_SETTINGS,
     pomodoro: { phase: "idle", round: 0, endsAt: null },
@@ -24,6 +33,19 @@ function ctx(over: Partial<MenuContext> = {}): MenuContext {
     ...over,
   };
 }
+
+function trayCtx(over: Partial<TrayMenuContext> = {}): TrayMenuContext {
+  const { backend, registry, settings, pomodoro, timers, snoozed, setTimer, customTimer } = ctx();
+  return {
+    backend, registry, settings, pomodoro, timers, snoozed, setTimer, customTimer,
+    petVisible: true,
+    ...over,
+  };
+}
+
+/** Texts including separators and submenus, so structure is compared too. */
+const outline = (items: (Item | "sep")[]): unknown[] =>
+  items.map((i) => (i === "sep" ? "—" : i.items ? [i.text, outline(i.items)] : `${i.checked ? "✓ " : ""}${i.text}`));
 
 const texts = (items: (Item | "sep")[]) => items.filter((i): i is Item => i !== "sep").map((i) => i.text);
 const timer = (id: number, min: number): Alarm & { nextFire: number } => ({
@@ -78,5 +100,39 @@ describe("pet menu", () => {
   it("shows focus session time left while one runs", () => {
     const items = texts(buildItems(ctx({ pomodoro: { phase: "focus", round: 0, endsAt: Date.now() + 18 * 60_000 } })));
     expect(items).toContainEqual(expect.stringMatching(/^Stop focus session \(1[78]:\d\d left\)$/));
+  });
+});
+
+describe("tray menu", () => {
+  const busy = {
+    timers: [timer(1, 5), timer(2, 12)],
+    snoozed: [{ ...timer(7, 5), label: "Wake up", repeat: "daily" as const, timeHm: "07:00", snoozes: 1 }],
+    pomodoro: { phase: "focus" as const, round: 0, endsAt: Date.now() + 18 * 60_000 },
+    settings: { ...DEFAULT_SETTINGS, recentTimers: [20] },
+  };
+
+  it("has exactly the pet menu's functions, in the same order", () => {
+    for (const state of [{}, busy]) {
+      const pet = outline(buildItems(ctx(state)));
+      const tray = outline(buildTrayItems(trayCtx(state)));
+      // Pet: care, —, [shared], —, Open panel…, Hide pet. Tray: Show/Hide, —, [shared], —, Open panel…, —, Quit.
+      const shared = pet.slice(2, pet.indexOf("Open panel…"));
+      expect(tray.slice(2, tray.indexOf("Open panel…"))).toEqual(shared);
+      expect(shared).toContain("Set alarm…");
+    }
+  });
+
+  it("differs only in show/hide on top and Quit at the bottom", () => {
+    expect(outline(buildTrayItems(trayCtx())).slice(0, 2)).toEqual(["Hide pet", "—"]);
+    expect(outline(buildTrayItems(trayCtx({ petVisible: false })))[0]).toBe("Show pet");
+    expect(outline(buildTrayItems(trayCtx())).slice(-3)).toEqual(["Open panel…", "—", "Quit"]);
+    expect(texts(buildItems(ctx()))).not.toContain("Quit");
+  });
+
+  it("shows time left in whole minutes, since it isn't redrawn every second", () => {
+    const items = texts(buildTrayItems(trayCtx({ ...busy, remaining: minutesLeft })));
+    expect(items).toContainEqual(expect.stringMatching(/^Stop focus session \(1[89] min left\)$/));
+    expect(minutesLeft(30_000)).toBe("1 min");
+    expect(minutesLeft(95 * 60_000)).toBe("1 h 35 min");
   });
 });

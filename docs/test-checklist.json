@@ -133,9 +133,9 @@
         },
         {
           "id": "menu.hide",
-          "rev": "0.1.0",
-          "do": "Hide pet，再用托盘 Show / hide pet",
-          "expect": "宠物消失后重新出现"
+          "rev": "0.9.0",
+          "do": "宠物右键 → Hide pet，再点托盘图标 → Show pet",
+          "expect": "宠物消失后重新出现；托盘第一项随状态在 Show pet / Hide pet 之间切换"
         },
         {
           "id": "menu.add-todo",
@@ -157,9 +157,27 @@
       "items": [
         {
           "id": "tray.items",
-          "rev": "0.7.0",
-          "do": "逐个点托盘菜单：Show / hide pet、Open panel…、Set alarm…、Start focus session 🍅、Play Safe Landing、Switch character…",
-          "expect": "每一项都能用"
+          "rev": "0.9.0",
+          "do": "分别打开宠物右键菜单和托盘菜单，对比两者",
+          "expect": "中间两组完全一样（Add to-do… / Set alarm… / Set timer ▸ / Start focus session；Play Safe Landing / Switch character ▸）；只有托盘第一项是 Show/Hide pet、最后是 Quit，宠物菜单第一项是照顾动作、最后是 Hide pet"
+        },
+        {
+          "id": "tray.actions",
+          "rev": "0.9.0",
+          "do": "从托盘逐个使用：Add to-do…、Set alarm…、Set timer → 5 min、Switch character → Rooster、Play Safe Landing、Open panel…",
+          "expect": "每一项效果都和从宠物菜单点一样"
+        },
+        {
+          "id": "tray.live-state",
+          "rev": "0.9.0",
+          "do": "开一个计时器和一个专注时段，然后打开托盘菜单",
+          "expect": "出现 Cancel timer（x min left）和 Stop focus session（x min left），剩余分钟数大致正确；取消后再打开，这两项恢复原样"
+        },
+        {
+          "id": "tray.custom-hidden",
+          "rev": "0.9.0",
+          "do": "隐藏宠物，托盘 → Set timer → Custom / Edit…",
+          "expect": "打开面板的 Alarms 页（宠物隐藏时没有气泡可用）"
         },
         {
           "id": "tray.quit",

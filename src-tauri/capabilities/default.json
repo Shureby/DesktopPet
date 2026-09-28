@@ -6,6 +6,7 @@
   "permissions": [
     "core:default",
     "core:menu:default",
+    "core:tray:default",
     "core:window:allow-set-focus",
     "core:window:allow-hide",
     "notification:default",

@@ -133,13 +133,6 @@ pub fn delete_alarm(app: AppHandle, state: State<AppState>, id: i64) -> CmdResul
 
 // --- Tomato clock ---------------------------------------------------------------
 
-pub fn start_pomodoro(state: &AppState, now: i64) -> CmdResult<PomodoroStatus> {
-    let store = state.store();
-    let status = pomodoro::start_focus(now, &store.pomodoro_config().map_err(err)?, 0);
-    store.set_pomodoro(&status, now).map_err(err)?;
-    Ok(status)
-}
-
 fn set_pomodoro(
     app: &AppHandle,
     state: &AppState,
@@ -221,6 +214,11 @@ pub fn desktop_snapshot(app: AppHandle) -> CmdResult<DesktopSnapshot> {
 pub struct Point {
     x: f64,
     y: f64,
+}
+
+#[tauri::command]
+pub fn set_pet_visible(app: AppHandle, visible: bool) -> CmdResult<()> {
+    app_windows::set_pet_visible(&app, visible).map_err(err)
 }
 
 /// Called every frame: moves and sizes the pet window, toggles click-through, returns the cursor.

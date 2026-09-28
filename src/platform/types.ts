@@ -147,6 +147,8 @@ export interface BackendEvents {
   game: { state: "started" | "ended"; game: string };
   "panel-tab": PanelTab;
   "pet-command": "show" | "hide" | "greet";
+  /** The pet was shown or hidden (from its menu, the tray, …). */
+  "pet-visibility": boolean;
   /** Mood saved for a character (the panel shows it). */
   mood: { character: string; mood: unknown };
   /** Something the user did elsewhere that the pet reacts to. */
@@ -214,6 +216,8 @@ export interface Backend {
   openPanel(tab?: PanelTab): Promise<void>;
   openGame(game: string): Promise<void>;
   closeGame(): Promise<void>;
+  /** Shows or hides the pet window and announces it ("pet-visibility"). */
+  setPetVisible(visible: boolean): Promise<void>;
   setAutostart(enabled: boolean): Promise<void>;
 
   on<K extends keyof BackendEvents>(event: K, cb: (payload: BackendEvents[K]) => void): Promise<() => void>;

@@ -372,6 +372,9 @@ export const mockBackend: Backend = {
     fire("game", { state: "ended", game: "" });
     window.close();
   },
+  async setPetVisible(visible) {
+    fire("pet-visibility", visible);
+  },
   async setAutostart() {},
 
   async on(event, cb) {

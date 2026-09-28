@@ -55,6 +55,7 @@ export const tauriBackend: Backend = {
   openPanel: (tab?: PanelTab) => invoke("open_panel", { tab: tab ?? null }),
   openGame: (game) => invoke("open_game", { game }),
   closeGame: () => invoke("close_game"),
+  setPetVisible: (visible) => invoke("set_pet_visible", { visible }),
   setAutostart: async (enabled) => {
     const autostart = await import("@tauri-apps/plugin-autostart");
     if (enabled) await autostart.enable();
