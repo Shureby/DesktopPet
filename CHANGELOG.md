@@ -16,6 +16,17 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-09-28
+
+### Added
+- **The countdown badges by the pet are clickable.** ⏱ opens the Alarms tab, 🍅 (or ☕
+  during a break) opens the Focus tab.
+
+### Changed
+- "Open panel…" (pet menu and tray) opens the tab of whatever runs out first. A timer or
+  snoozed alarm opens Alarms; a focus session or break opens Focus. With a missed alarm
+  it opens Alarms; otherwise the panel opens as before.
+
 ## [0.10.0] - 2026-09-28
 
 ### Changed

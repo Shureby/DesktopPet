@@ -308,14 +308,28 @@ export class PetHost {
    */
   private renderBadges(): void {
     const now = Date.now();
-    const rows: { text: string; cls?: string; title?: string; onClick?: () => void }[] = [];
+    // `live` rows count down: their text changes every second but the element is kept, so
+    // a click never lands on an element that was just replaced.
+    const rows: { text: string; cls?: string; title?: string; onClick?: () => void; live?: boolean }[] = [];
     const more = (n: number) => (n > 1 ? ` +${n - 1}` : "");
     if (this.pomodoro.phase !== "idle" && this.pomodoro.endsAt) {
       const icon = this.pomodoro.phase === "focus" ? "🍅" : "☕";
-      rows.push({ text: `${icon} ${formatRemaining(this.pomodoro.endsAt - now)}` });
+      rows.push({
+        text: `${icon} ${formatRemaining(this.pomodoro.endsAt - now)}`,
+        title: "Open the Focus tab",
+        onClick: () => void this.backend.openPanel("focus"),
+        live: true,
+      });
     }
     const timers = activeTimers(this.timers, now);
-    if (timers.length) rows.push({ text: `⏱ ${formatRemaining(timers[0].nextFire - now)}${more(timers.length)}` });
+    if (timers.length) {
+      rows.push({
+        text: `⏱ ${formatRemaining(timers[0].nextFire - now)}${more(timers.length)}`,
+        title: "Open the Alarms tab",
+        onClick: () => void this.backend.openPanel("alarms"),
+        live: true,
+      });
+    }
     const snoozed = snoozedAlarms(this.timers, now);
     if (snoozed.length) {
       rows.push({ text: `💤 ${clock(snoozed[0].nextFire)}${more(snoozed.length)}`, title: `${snoozed[0].label} rings again` });
@@ -343,8 +357,13 @@ export class PetHost {
         onClick: () => (this.doneTimers = []),
       });
     }
-    const key = rows.map((r) => r.text).join("\n");
-    if (this.badges.dataset.text !== key) {
+    const key = rows.map((r) => (r.live ? `live:${r.text.split(" ")[0]}` : r.text)).join("\n");
+    if (this.badges.dataset.text === key) {
+      rows.forEach((r, i) => {
+        const el = this.badges.children[i];
+        if (r.live && el && el.textContent !== r.text) el.textContent = r.text;
+      });
+    } else {
       this.badges.dataset.text = key;
       this.badges.replaceChildren(
         ...rows.map((r) => {
@@ -489,6 +508,7 @@ export class PetHost {
       pomodoro: this.pomodoro,
       timers: activeTimers(this.timers),
       snoozed: snoozedAlarms(this.timers),
+      missed: missedAlarms(this.timers),
       setTimer: (min) => void this.startTimer(min),
       // The length is asked for in the pet's bubble; with the pet hidden, the panel asks.
       customTimer: () => void (this.petVisible ? this.askCustomTimer() : this.backend.openPanel("alarms")),

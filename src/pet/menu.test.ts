@@ -7,6 +7,7 @@ import {
   buildItems,
   buildTrayItems,
   careLabel,
+  panelTabFor,
   pickCare,
   type Item,
   type PetMenuContext,
@@ -134,5 +135,23 @@ describe("tray menu", () => {
     const all = JSON.stringify(outline(buildTrayItems(trayCtx(busy))));
     expect(all).not.toContain("left");
     expect(all).toContain(`Stop focus session (ends ${clock(busy.pomodoro.endsAt)})`);
+  });
+});
+
+describe("Open panel…", () => {
+  const soon = (min: number) => Date.now() + min * 60_000;
+  const focus = (min: number) => ({ phase: "focus" as const, round: 0, endsAt: soon(min) });
+
+  it("opens the tab of whatever runs out first", () => {
+    expect(panelTabFor(ctx({ pomodoro: focus(8), timers: [timer(1, 5)] }))).toBe("alarms");
+    expect(panelTabFor(ctx({ pomodoro: focus(3), timers: [timer(1, 5)] }))).toBe("focus");
+    expect(panelTabFor(ctx({ pomodoro: { phase: "short_break", round: 1, endsAt: soon(2) } }))).toBe("focus");
+    const snoozed = { ...timer(7, 1), label: "Wake up", repeat: "daily" as const, timeHm: "07:00", snoozes: 1 };
+    expect(panelTabFor(ctx({ pomodoro: focus(3), snoozed: [snoozed] }))).toBe("alarms");
+  });
+
+  it("opens Alarms for a missed alarm, and the default tab when nothing is going on", () => {
+    expect(panelTabFor(ctx({ missed: [{ ...timer(9, 0), missedAt: Date.now() }] }))).toBe("alarms");
+    expect(panelTabFor(ctx())).toBeUndefined();
   });
 });

@@ -3,7 +3,7 @@ import type { CareAction, CharacterDef } from "../characters/schema";
 import { pick, type Rng } from "../engine/random";
 import { formatDuration, PRESET_MINUTES } from "../features/alarm/timers";
 import { clock } from "../features/alarm/ringing";
-import type { Alarm, Backend, PomodoroStatus, Settings } from "../platform";
+import type { Alarm, Backend, PanelTab, PomodoroStatus, Settings } from "../platform";
 
 /** What both menus (the pet's right-click menu and the tray menu) need. */
 export interface MenuContext {
@@ -15,6 +15,8 @@ export interface MenuContext {
   timers: (Alarm & { nextFire: number })[];
   /** Alarms waiting to ring again after a snooze. */
   snoozed?: (Alarm & { nextFire: number })[];
+  /** Alarms nobody answered (their badge stays until clicked). */
+  missed?: Alarm[];
   setTimer: (minutes: number) => void;
   /** Asks for a custom length (in the pet's speech bubble). */
   customTimer: () => void;
@@ -110,6 +112,17 @@ export function taskItems(c: MenuContext): (Item | "sep")[] {
   return items;
 }
 
+/**
+ * The tab "Open panel…" opens: whatever runs out first, a focus session (Focus) or a timer
+ * or snoozed alarm (Alarms); Alarms if one was missed; otherwise the panel's default.
+ */
+export function panelTabFor(c: MenuContext): PanelTab | undefined {
+  const alarmsAt = Math.min(...[...c.timers, ...(c.snoozed ?? [])].map((t) => t.nextFire));
+  const focusAt = c.pomodoro.phase !== "idle" && c.pomodoro.endsAt ? c.pomodoro.endsAt : Infinity;
+  if (alarmsAt !== Infinity || focusAt !== Infinity) return focusAt < alarmsAt ? "focus" : "alarms";
+  return c.missed?.length ? "alarms" : undefined;
+}
+
 /** Shared too: the mini-game and switching characters. */
 export function playItems(c: MenuContext): (Item | "sep")[] {
   return [
@@ -135,15 +148,15 @@ export function buildItems(c: PetMenuContext): (Item | "sep")[] {
     "sep",
     ...playItems(c),
     "sep",
-    { text: "Open panel…", action: () => void c.backend.openPanel() },
+    { text: "Open panel…", action: () => void c.backend.openPanel(panelTabFor(c)) },
     { text: "Hide pet", action: c.hide },
   ];
 }
 
 /**
  * The tray menu: show/hide on top (it is the way back to a hidden pet), Quit at the bottom.
- * Those two and "Open panel…" carry ids the app handles itself (src-tauri/src/tray.rs), so
- * they work even if the hidden pet window's script is throttled.
+ * Those two carry ids the app handles itself (src-tauri/src/tray.rs), so they work even if
+ * the hidden pet window's script is throttled.
  */
 export function buildTrayItems(c: TrayMenuContext): (Item | "sep")[] {
   return [
@@ -153,7 +166,7 @@ export function buildTrayItems(c: TrayMenuContext): (Item | "sep")[] {
     "sep",
     ...playItems(c),
     "sep",
-    { id: "panel", text: "Open panel…" },
+    { text: "Open panel…", action: () => void c.backend.openPanel(panelTabFor(c)) },
     "sep",
     { id: "quit", text: "Quit" },
   ];

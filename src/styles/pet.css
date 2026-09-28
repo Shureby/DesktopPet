@@ -211,6 +211,11 @@ body.demo .demo-help a {
 .badges > div.clickable {
   cursor: pointer;
 }
+.badges > div.clickable:hover {
+  filter: brightness(0.93);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 /* Missed alarm: stays until clicked. */
 .badges > div.missed {
   border-color: #e8743b;

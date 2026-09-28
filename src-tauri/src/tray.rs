@@ -8,8 +8,8 @@ use crate::app_windows::{self, product_name};
 /// the same definition as the pet's right-click menu (src/pet/menu.ts), so both always
 /// match. This minimal menu only shows until then, or if the pet window fails to load.
 ///
-/// The full menu reuses the ids handled below for show/hide, the panel and Quit, so those
-/// never depend on the pet window's script; its other items run their actions there.
+/// The full menu reuses the ids handled below for show/hide and Quit, so those never depend
+/// on the pet window's script; its other items run their actions there.
 pub fn create<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let item = |id: &str, text: &str| MenuItem::with_id(app, id, text, true, None::<&str>);
     let menu = Menu::with_items(
