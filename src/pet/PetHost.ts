@@ -95,7 +95,7 @@ export class PetHost {
 
   async start(): Promise<void> {
     const snap = await this.backend.desktopSnapshot();
-    this.dpr = snap.scale;
+    this.dpr = this.windowed ? window.devicePixelRatio || 1 : snap.scale;
     const area = snap.areas[0] ?? { x: 0, y: 0, w: 1280, h: 720 };
     await this.setCharacter(this.settings.character, area.x + area.w * (0.3 + Math.random() * 0.4), area.y + area.h * 0.3);
     this.pet.world = { areas: snap.areas, windows: snap.windows };
@@ -172,11 +172,8 @@ export class PetHost {
       await this.setCharacter(s.character, x, y - 1);
       this.pet.react({ type: "greet" });
     } else {
-      this.pet.unit = this.dpr * s.size;
+      this.pet.setUnit(this.dpr * s.size);
       this.pet.speed = s.speed;
-      const { w, h } = this.pet.spriteSize;
-      this.pet.body.w = w * 0.6;
-      this.pet.body.h = h;
     }
     this.updateMode();
   }
@@ -205,14 +202,21 @@ export class PetHost {
     try {
       const snap = await this.backend.desktopSnapshot();
       this.pet.world = { areas: snap.areas, windows: snap.windows };
-      if (snap.scale !== this.dpr) {
-        this.dpr = snap.scale;
-        this.pet.unit = this.dpr * this.settings.size;
-        this.resize();
-      }
+      // In the app the webview's own pixel ratio is the truth (checked every frame).
+      if (!this.windowed && snap.scale !== this.dpr) this.setScale(snap.scale);
     } finally {
       this.snapshotPending = false;
     }
+  }
+
+  /**
+   * Follows a display-scale change: Windows changing 100% → 150%, or the pet moving to a
+   * monitor with another scale. Sprite size, canvas resolution and window size all follow.
+   */
+  private setScale(scale: number): void {
+    this.dpr = scale;
+    this.pet.setUnit(scale * this.settings.size);
+    this.resize();
   }
 
   // --- Rendering & loop ---------------------------------------------------
@@ -243,6 +247,8 @@ export class PetHost {
     const dt = Math.min(0.25, (now - this.last) / 1000);
     this.last = now;
     this.acc += dt;
+    const ratio = window.devicePixelRatio || 1;
+    if (this.windowed && ratio !== this.dpr) this.setScale(ratio);
     while (this.acc >= STEP) {
       // Dragging is a kinematic state, so updating is safe (physics is skipped).
       this.pet.update(STEP);
@@ -365,7 +371,13 @@ export class PetHost {
       const b = this.pet.body;
       const winX = b.x - (PET_WINDOW.w / 2) * this.dpr;
       const winY = b.y - (PET_WINDOW.h - 2) * this.dpr;
-      const cursor = await this.backend.petFrame(Math.round(winX), Math.round(winY), this.ignoringCursor);
+      const cursor = await this.backend.petFrame(
+        Math.round(winX),
+        Math.round(winY),
+        Math.round(PET_WINDOW.w * this.dpr),
+        Math.round(PET_WINDOW.h * this.dpr),
+        this.ignoringCursor,
+      );
       if (cursor) {
         this.pet.cursor = this.windowed ? cursor : { x: cursor.x * this.dpr, y: cursor.y * this.dpr };
         const overPet = this.isOverPet(cursor.x, cursor.y, winX, winY);

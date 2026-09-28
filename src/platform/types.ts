@@ -201,8 +201,8 @@ export interface Backend {
   storefront(): Promise<string>;
 
   desktopSnapshot(): Promise<DesktopSnapshot>;
-  /** Positions the pet window (physical px) and returns the cursor position. */
-  petFrame(x: number, y: number, ignoreCursor: boolean): Promise<{ x: number; y: number } | null>;
+  /** Positions and sizes the pet window (physical px) and returns the cursor position. */
+  petFrame(x: number, y: number, w: number, h: number, ignoreCursor: boolean): Promise<{ x: number; y: number } | null>;
   listUserCharacters(): Promise<UserCharacterFile[]>;
   /** Saved mood for a character (null if never saved). Parse with `parseMood`. */
   loadMood(character: string): Promise<unknown>;

@@ -99,6 +99,14 @@ export class Pet {
     return this.body.support !== null;
   }
 
+  /** Changes physical px per logical px (display scale or size setting) and resizes the body. */
+  setUnit(unit: number): void {
+    this.unit = unit;
+    const { w, h } = this.spriteSize;
+    this.body.w = w * BODY_WIDTH_RATIO;
+    this.body.h = h;
+  }
+
   /** Converts logical px (from character.json) to physical px. */
   u(v: number): number {
     return v * this.unit;

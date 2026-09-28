@@ -16,6 +16,16 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-09-28
+
+### Fixed
+- **Windows:** changing a monitor's display scale (for example 100% → 125% or 150%)
+  while the app was running made the pet disappear. Only the top of its speech bubble
+  still showed, it could not be clicked, and going back to 100% or hiding and showing it
+  didn't bring it back. The pet window now follows the scale every frame: its size,
+  position and the pet's size all update, in both directions. This also covers moving
+  the pet between monitors with different scales.
+
 ## [0.8.0] - 2026-09-27
 
 ### Added

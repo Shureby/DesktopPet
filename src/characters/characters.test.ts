@@ -247,3 +247,20 @@ describe("slams", () => {
     expect(pet.mood.affection).toBeLessThan(start - 0.5);
   });
 });
+
+describe("display scale", () => {
+  it("resizes the pet when the scale changes, keeping it standing on the floor", () => {
+    const pet = spawn(registry.get("cat")!.def);
+    simulate(pet, 2);
+    expect(pet.grounded).toBe(true);
+    const { w, h } = pet.spriteSize;
+    pet.setUnit(1.5); // Windows display scale 100% → 150%
+    expect(pet.spriteSize.w).toBeCloseTo(w * 1.5);
+    expect(pet.body.h).toBeCloseTo(h * 1.5);
+    simulate(pet, 2);
+    expect(pet.grounded).toBe(true);
+    expect(pet.body.y).toBeCloseTo(screen.y + screen.h);
+    pet.setUnit(1);
+    expect(pet.body.h).toBeCloseTo(h);
+  });
+});

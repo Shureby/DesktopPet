@@ -6,7 +6,7 @@ use chrono::Local;
 use desktoppet_core::{pomodoro, Alarm, DayStat, PomodoroStatus, Repeat, Score, Todo, TodoPatch};
 use serde::Serialize;
 use serde_json::Value;
-use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, State};
+use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, State};
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_opener::OpenerExt;
 
@@ -223,16 +223,26 @@ pub struct Point {
     y: f64,
 }
 
-/// Called every frame: moves the pet window, toggles click-through, returns the cursor.
+/// Called every frame: moves and sizes the pet window, toggles click-through, returns the cursor.
+///
+/// The size is enforced too, not just set once: when a monitor's scale changes (or the pet
+/// crosses to a monitor with another scale) the webview renders at the new scale, but the
+/// window's physical size doesn't reliably follow, and the pet ends up drawn outside it.
 #[tauri::command]
 pub fn pet_frame(
     app: AppHandle,
     state: State<AppState>,
     x: f64,
     y: f64,
+    w: f64,
+    h: f64,
     ignore_cursor: bool,
 ) -> CmdResult<Option<Point>> {
     let pet = app.get_webview_window(PET).ok_or("pet window missing")?;
+    let size = PhysicalSize::new(w.round().max(1.0) as u32, h.round().max(1.0) as u32);
+    if pet.inner_size().map_err(err)? != size {
+        pet.set_size(size).map_err(err)?;
+    }
     pet.set_position(PhysicalPosition::new(x.round() as i32, y.round() as i32)).map_err(err)?;
     if state.ignore_cursor.swap(ignore_cursor, Ordering::Relaxed) != ignore_cursor {
         pet.set_ignore_cursor_events(ignore_cursor).map_err(err)?;

@@ -45,7 +45,7 @@ export const tauriBackend: Backend = {
   storefront: () => invoke("storefront_name"),
 
   desktopSnapshot: () => invoke("desktop_snapshot"),
-  petFrame: (x, y, ignoreCursor) => invoke("pet_frame", { x, y, ignoreCursor }),
+  petFrame: (x, y, w, h, ignoreCursor) => invoke("pet_frame", { x, y, w, h, ignoreCursor }),
   listUserCharacters: () => invoke("list_user_characters"),
   loadMood: (character) => invoke("load_mood", { character }),
   saveMood: (character, mood) => invoke("save_mood", { character, mood }),
