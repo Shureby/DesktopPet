@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_SETTINGS, type Alarm } from "../../platform/types";
-import { missedAlarms, onUnanswered, snoozedAlarms, visibleDoneTimers } from "./ringing";
+import { alarmName, alarmTime, clock, missedAlarms, onUnanswered, snoozedAlarms, visibleDoneTimers } from "./ringing";
 
 const alarm = (over: Partial<Alarm> = {}): Alarm => ({
   id: 1,
@@ -11,6 +11,7 @@ const alarm = (over: Partial<Alarm> = {}): Alarm => ({
   enabled: true,
   snoozes: 0,
   missedAt: null,
+  missedSeenAt: null,
   rangAt: null,
   createdAt: null,
   ...over,
@@ -51,5 +52,38 @@ describe("unanswered alarms", () => {
     ];
     expect(snoozedAlarms(list, now).map((a) => a.id)).toEqual([1]);
     expect(missedAlarms(list).map((a) => a.id)).toEqual([4]);
+  });
+
+  it("stops badging a missed alarm once it has been seen (it stays missed in the history)", () => {
+    expect(missedAlarms([alarm({ missedAt: 500, missedSeenAt: 900 })])).toEqual([]);
+  });
+});
+
+describe("an alarm's own time and name", () => {
+  const t940 = new Date(2026, 8, 28, 21, 40).getTime();
+  const min = 60_000;
+  const oneOff = (over: Partial<Alarm>) => alarm({ label: "Alarm", repeat: "none", timeHm: null, ...over });
+
+  it("keeps the time it was set for through snoozes and after it was missed", () => {
+    // Not rung yet: its next ring.
+    expect(alarmTime(oneOff({ nextFire: t940 }))).toBe(t940);
+    // Snoozed twice: still 9:40, not the next ring at 9:52.
+    expect(alarmTime(oneOff({ nextFire: t940 + 12 * min, rangAt: t940, snoozes: 2 }))).toBe(t940);
+    // Missed and finished.
+    expect(alarmTime(oneOff({ nextFire: null, enabled: false, rangAt: t940, snoozes: 3, missedAt: t940 + 19 * min }))).toBe(
+      t940,
+    );
+  });
+
+  it("uses a repeating alarm's time of day", () => {
+    const today = new Date(t940);
+    today.setHours(7, 0, 0, 0);
+    expect(alarmTime(alarm({ nextFire: t940 }), t940)).toBe(today.getTime());
+  });
+
+  it("calls unnamed alarms by their time, in the system's format, and named ones by their name", () => {
+    expect(alarmName(oneOff({ nextFire: t940 + 12 * min, rangAt: t940, snoozes: 2 }))).toBe(`Alarm ${clock(t940)}`);
+    expect(alarmName(oneOff({ label: "", nextFire: t940 }))).toBe(`Alarm ${clock(t940)}`);
+    expect(alarmName(oneOff({ label: "Login CMC", nextFire: t940 }))).toBe("Login CMC");
   });
 });

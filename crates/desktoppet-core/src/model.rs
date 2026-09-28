@@ -77,6 +77,8 @@ pub struct Alarm {
     pub rang_at: Option<Millis>,
     /// When it was set (null for alarms from before v5).
     pub created_at: Option<Millis>,
+    /// When the user saw that it was missed (clicked its badge). It stays missed in the history.
+    pub missed_seen_at: Option<Millis>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

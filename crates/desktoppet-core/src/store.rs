@@ -64,9 +64,14 @@ const MIGRATIONS: &[&str] = &[
     "ALTER TABLE alarms ADD COLUMN rang_at INTEGER;",
     // v5: when it was set (timers show "started 4:29 pm").
     "ALTER TABLE alarms ADD COLUMN created_at INTEGER;",
+    // v6: a missed alarm you have seen (clicked its badge) stays missed in the history.
+    // Labels no longer carry the time ("Alarm 21:40" mixed 24-hour text into 12-hour UIs).
+    "ALTER TABLE alarms ADD COLUMN missed_seen_at INTEGER;
+     UPDATE alarms SET label = 'Alarm' WHERE label GLOB 'Alarm [0-9][0-9]:[0-9][0-9]';",
 ];
 
-const ALARM_COLUMNS: &str = "id, label, next_fire, time_hm, repeat, enabled, snoozes, missed_at, rang_at, created_at";
+const ALARM_COLUMNS: &str =
+    "id, label, next_fire, time_hm, repeat, enabled, snoozes, missed_at, rang_at, created_at, missed_seen_at";
 
 pub struct Store {
     conn: Connection,
@@ -196,6 +201,7 @@ impl Store {
             missed_at: r.get(7)?,
             rang_at: r.get(8)?,
             created_at: r.get(9)?,
+            missed_seen_at: r.get(10)?,
         })
     }
 
@@ -245,6 +251,7 @@ impl Store {
             missed_at: None,
             rang_at: None,
             created_at: Some(now),
+            missed_seen_at: None,
         })
     }
 
@@ -265,8 +272,10 @@ impl Store {
             // One-shot alarms re-enabled after they rang have nothing to ring for.
             alarm.next_fire.filter(|&n| n > now)
         };
+        // Switching a repeating alarm off or on ends any snooze cycle, so its next ring starts a new one.
         self.conn.execute(
-            "UPDATE alarms SET enabled = ?2, next_fire = ?3 WHERE id = ?1",
+            "UPDATE alarms SET enabled = ?2, next_fire = ?3,
+               snoozes = CASE WHEN repeat = 'none' THEN snoozes ELSE 0 END WHERE id = ?1",
             params![id, enabled && next.is_some_and(|n| n > now), next],
         )?;
         Ok(())
@@ -297,7 +306,6 @@ impl Store {
         Ok(true)
     }
 
-    /// Rings the alarm again in `minutes`. Errors if it no longer exists (never silently drops a snooze).
     /// Rings the alarm again in `minutes` and counts the snooze. Errors if it no longer
     /// exists (a snooze is never silently dropped).
     pub fn snooze_alarm(&self, id: i64, minutes: i64, now: Millis) -> Result<()> {
@@ -311,8 +319,10 @@ impl Store {
         Ok(())
     }
 
-    /// "Done": ends the current ringing/snooze cycle. One-shot alarms finish; repeating
-    /// ones go back to their normal schedule. Also acknowledges a missed alarm.
+    /// "Done": ends the current ringing/snooze cycle. One-shot alarms and timers finish
+    /// (and keep their history: when they rang, how often they were snoozed, whether they
+    /// were missed); repeating ones go back to their normal schedule. Also counts as having
+    /// seen a missed alarm.
     pub fn dismiss_alarm<Tz: TimeZone>(&self, tz: &Tz, id: i64, now: Millis) -> Result<()> {
         let Some(alarm) = self.alarm(id)? else {
             return Ok(());
@@ -322,17 +332,34 @@ impl Store {
             (repeat, Some(t)) => next_occurrence(tz, now, t, repeat),
         };
         self.conn.execute(
-            "UPDATE alarms SET snoozes = 0, missed_at = NULL, next_fire = ?2, enabled = ?3 WHERE id = ?1",
-            params![id, next, next.is_some()],
+            "UPDATE alarms SET next_fire = ?2, enabled = ?3,
+               snoozes = CASE WHEN repeat = 'none' THEN snoozes ELSE 0 END,
+               missed_seen_at = CASE WHEN missed_at IS NULL THEN NULL ELSE COALESCE(missed_seen_at, ?4) END
+             WHERE id = ?1",
+            params![id, next, next.is_some(), now],
         )?;
         Ok(())
     }
 
-    /// Nobody answered (after any auto-snoozes): remember it until acknowledged.
-    /// Repeating alarms keep their schedule. Returns the alarm, if it exists.
+    /// Nobody answered (after any auto-snoozes). It stays missed in the history; the pet's
+    /// badge shows it until it is seen (`acknowledge_missed`). Repeating alarms keep their
+    /// schedule and start a fresh snooze count. Returns the alarm, if it exists.
     pub fn mark_alarm_missed(&self, id: i64, now: Millis) -> Result<Option<Alarm>> {
-        self.conn.execute("UPDATE alarms SET missed_at = ?2, snoozes = 0 WHERE id = ?1", params![id, now])?;
+        self.conn.execute(
+            "UPDATE alarms SET missed_at = ?2, missed_seen_at = NULL,
+               snoozes = CASE WHEN repeat = 'none' THEN snoozes ELSE 0 END WHERE id = ?1",
+            params![id, now],
+        )?;
         self.alarm(id)
+    }
+
+    /// The user has seen a missed alarm (clicked its badge): the badge goes, the history stays.
+    pub fn acknowledge_missed(&self, id: i64, now: Millis) -> Result<()> {
+        self.conn.execute(
+            "UPDATE alarms SET missed_seen_at = COALESCE(missed_seen_at, ?2) WHERE id = ?1 AND missed_at IS NOT NULL",
+            params![id, now],
+        )?;
+        Ok(())
     }
 
     pub fn delete_alarm(&self, id: i64) -> Result<()> {
@@ -372,10 +399,17 @@ impl Store {
             if !stale {
                 out.push(Reminder { kind: ReminderKind::Alarm, id: a.id, title: a.label.clone() });
             }
-            // Rung alarms and timers stay (disabled) so the user can still snooze them;
-            // "Stop" deletes a timer, and the daily clean-up removes the rest.
+            // Rung alarms and timers stay (disabled) so the user can still snooze them, and
+            // finished ones stay in the history until the daily clean-up.
+            // `rang_at` is when this ringing cycle began: a ring after a snooze keeps it, so
+            // "Alarm 9:40 PM" stays 9:40 however often it was snoozed. A new cycle (no
+            // snoozes yet) also forgets the previous cycle's missed state.
             self.conn.execute(
-                "UPDATE alarms SET next_fire = ?2, enabled = ?3, rang_at = ?4 WHERE id = ?1",
+                "UPDATE alarms SET next_fire = ?2, enabled = ?3,
+                   rang_at = CASE WHEN snoozes = 0 THEN ?4 ELSE COALESCE(rang_at, ?4) END,
+                   missed_at = CASE WHEN snoozes = 0 THEN NULL ELSE missed_at END,
+                   missed_seen_at = CASE WHEN snoozes = 0 THEN NULL ELSE missed_seen_at END
+                 WHERE id = ?1",
                 params![a.id, next, next.is_some(), fire_at],
             )?;
         }
@@ -534,10 +568,54 @@ mod tests {
         assert_eq!(saved.created_at, Some(at(6, 0)));
         // Finished, but it still knows when it rang ("Rang · Today 10:05").
         assert_eq!(saved.rang_at, Some(at(10, 5)));
-        // Snoozed and rung again: the later time.
+        // Snoozed and rung again: still the time the cycle began ("Alarm 10:05", not 10:11).
         s.snooze_alarm(a.id, 5, at(10, 6)).unwrap();
         s.take_due(&London, at(10, 11)).unwrap();
-        assert_eq!(s.list_alarms().unwrap()[0].rang_at, Some(at(10, 11)));
+        assert_eq!(s.list_alarms().unwrap()[0].rang_at, Some(at(10, 5)));
+    }
+
+    #[test]
+    fn alarms_serialize_with_the_fields_the_ui_reads() {
+        let s = Store::open_in_memory().unwrap();
+        let t = s.add_alarm(&London, "Timer: 12 min", at(10, 12), Repeat::None, at(10, 0)).unwrap();
+        let json = serde_json::to_value(&s.list_alarms().unwrap()[0]).unwrap();
+        assert_eq!(json["createdAt"], serde_json::json!(at(10, 0)));
+        assert_eq!(json["id"], serde_json::json!(t.id));
+        for key in ["nextFire", "rangAt", "missedAt", "missedSeenAt", "snoozes", "timeHm"] {
+            assert!(json.get(key).is_some(), "{key} missing");
+        }
+    }
+
+    #[test]
+    fn upgrading_drops_the_time_from_default_labels_and_keeps_created_at() {
+        let dir = std::env::temp_dir().join(format!("desktoppet-upgrade-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("store.db");
+        let _ = std::fs::remove_file(&path);
+        {
+            // A 0.14 database (schema v5) with an old-style label.
+            let conn = Connection::open(&path).unwrap();
+            for (i, sql) in MIGRATIONS.iter().take(5).enumerate() {
+                conn.execute_batch(&format!("BEGIN; {sql}; PRAGMA user_version = {}; COMMIT;", i + 1)).unwrap();
+            }
+            conn.execute(
+                "INSERT INTO alarms (label, next_fire, repeat, enabled, created_at) VALUES ('Alarm 21:40', 1, 'none', 1, 7)",
+                [],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO alarms (label, next_fire, repeat, enabled) VALUES ('Alarm for the 21:40 train', 1, 'none', 1)",
+                [],
+            )
+            .unwrap();
+        }
+        let s = Store::open(&path).unwrap();
+        let alarms = s.list_alarms().unwrap();
+        assert_eq!(alarms[0].label, "Alarm");
+        assert_eq!(alarms[0].created_at, Some(7));
+        assert_eq!(alarms[1].label, "Alarm for the 21:40 train");
+        drop(s);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
@@ -631,11 +709,47 @@ mod tests {
         s.take_due(&London, at(15, 0)).unwrap();
         let missed = s.mark_alarm_missed(a.id, at(15, 1)).unwrap().unwrap();
         assert_eq!(missed.missed_at, Some(at(15, 1)));
+        assert_eq!(missed.missed_seen_at, None);
         assert!(!missed.enabled);
+        // Clicking the badge: seen, but it stays missed in the history.
+        s.acknowledge_missed(a.id, at(15, 30)).unwrap();
         s.dismiss_alarm(&London, a.id, at(16, 0)).unwrap();
         let done = &s.list_alarms().unwrap()[0];
-        assert_eq!(done.missed_at, None);
+        assert_eq!(done.missed_at, Some(at(15, 1)));
+        assert_eq!(done.missed_seen_at, Some(at(15, 30)));
+        assert_eq!(done.rang_at, Some(at(15, 0)));
         assert!(!done.enabled);
+    }
+
+    #[test]
+    fn a_missed_one_off_keeps_its_snooze_count_and_first_ring() {
+        let s = Store::open_in_memory().unwrap();
+        let a = s.add_alarm(&London, "Alarm", at(21, 40), Repeat::None, at(6, 0)).unwrap();
+        s.take_due(&London, at(21, 40)).unwrap();
+        for i in 0..3 {
+            s.snooze_alarm(a.id, 5, at(21, 41 + 6 * i)).unwrap();
+            s.take_due(&London, at(21, 46 + 6 * i)).unwrap();
+        }
+        s.mark_alarm_missed(a.id, at(21, 59)).unwrap();
+        let m = &s.list_alarms().unwrap()[0];
+        assert_eq!((m.rang_at, m.snoozes, m.missed_at), (Some(at(21, 40)), 3, Some(at(21, 59))));
+    }
+
+    #[test]
+    fn a_repeating_alarm_starts_each_day_afresh() {
+        let s = Store::open_in_memory().unwrap();
+        let a = s.add_alarm(&London, "Wake up", at(7, 0), Repeat::Daily, at(6, 0)).unwrap();
+        s.take_due(&London, at(7, 0)).unwrap();
+        s.snooze_alarm(a.id, 5, at(7, 1)).unwrap();
+        s.take_due(&London, at(7, 6)).unwrap();
+        s.mark_alarm_missed(a.id, at(7, 7)).unwrap();
+        let missed = &s.list_alarms().unwrap()[0];
+        assert_eq!((missed.snoozes, missed.missed_at), (0, Some(at(7, 7))));
+        // Tomorrow's ring is a new cycle: yesterday's miss is forgotten.
+        let tomorrow = at(7, 0) + 24 * 60 * MIN;
+        s.take_due(&London, tomorrow).unwrap();
+        let next = &s.list_alarms().unwrap()[0];
+        assert_eq!((next.missed_at, next.rang_at), (None, Some(tomorrow)));
     }
 
     #[test]

@@ -58,6 +58,7 @@ const timer = (id: number, min: number): Alarm & { nextFire: number } => ({
   enabled: true,
   snoozes: 0,
   missedAt: null,
+  missedSeenAt: null,
   rangAt: null,
   createdAt: null,
 });
@@ -97,7 +98,13 @@ describe("pet menu", () => {
 
   it("offers to cancel a snoozed alarm", () => {
     const snoozed = { ...timer(7, 5), label: "Wake up", repeat: "daily" as const, timeHm: "07:00", snoozes: 1 };
-    expect(texts(buildItems(ctx({ snoozed: [snoozed] })))).toContainEqual(expect.stringMatching(/^Cancel snooze: Wake up \(rings .+\)$/));
+    expect(texts(buildItems(ctx({ snoozed: [snoozed] })))).toContainEqual(expect.stringMatching(/^Cancel snooze: Wake up \(next ring .+\)$/));
+    // An unnamed alarm is called by its own time, not the snoozed ring's.
+    const first = Date.now() - 6 * 60_000;
+    const unnamed = { ...snoozed, label: "Alarm", repeat: "none" as const, timeHm: null, rangAt: first };
+    expect(texts(buildItems(ctx({ snoozed: [unnamed] })))).toContainEqual(
+      `Cancel snooze: Alarm ${clock(first)} (next ring ${clock(unnamed.nextFire)})`,
+    );
   });
 
   it("shows when a running focus session ends, as a clock time", () => {

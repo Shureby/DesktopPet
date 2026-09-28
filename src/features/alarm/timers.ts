@@ -20,6 +20,16 @@ export function timerName(a: Alarm): string {
   return a.label.startsWith(TIMER_PREFIX) ? a.label.slice(TIMER_PREFIX.length) : a.label;
 }
 
+/**
+ * When a timer was started. Timers set before 0.14.0 have no `createdAt`; for those it is
+ * worked out from the ring time and the length in the label (unless snoozing moved the ring).
+ */
+export function timerStartedAt(a: Alarm): number | null {
+  if (a.createdAt) return a.createdAt;
+  const minutes = parseDuration(timerName(a));
+  return a.nextFire !== null && a.snoozes === 0 && minutes !== null ? a.nextFire - minutes * 60_000 : null;
+}
+
 /** "45 min", "1 hour", "1 h 30 min", "1 min 30 s", "90 s"… (accepts fractional minutes). */
 export function formatDuration(minutes: number): string {
   const total = Math.round(minutes * 60);

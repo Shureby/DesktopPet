@@ -6,6 +6,8 @@ import type { CharacterRegistry, LoadedCharacter } from "../characters/registry"
 import { createRng } from "../engine/random";
 import { SpriteAtlas } from "../engine/sprites";
 import {
+  alarmName,
+  alarmTime,
   clock,
   missedAlarms,
   onUnanswered,
@@ -34,8 +36,11 @@ import { inQuietHours } from "./quietHours";
 import { playRingtone, ringAlarm, sounds } from "./sound";
 
 const STEP = 1 / 30;
-/** Logical size of the pet window in Tauri mode (must match tauri.conf.json). */
-export const PET_WINDOW = { w: 260, h: 240 };
+/**
+ * Logical size of the pet window in Tauri mode (must match tauri.conf.json). Wide enough
+ * for the badges beside the pet ("⏰ Missed 9:40 PM +1"); the empty parts click through.
+ */
+export const PET_WINDOW = { w: 340, h: 240 };
 
 interface BubbleAction {
   label: string;
@@ -75,11 +80,25 @@ export class PetHost {
   private announcedMissed = new Set<number>();
   /** The alarm currently ringing; `onTimeout` runs if nobody answers. */
   private activeRing: { onTimeout: () => void } | null = null;
+  /** Alarms and timers in the ringing bubble (several can be due at once). */
+  private ringing: number[] = [];
+  /** The pet's line that heads a single alarm's ringing bubble. */
+  private ringHeadline = "";
+  /** When the ringing bubble gives up (a redraw with fresh data keeps this). */
+  private ringEndsAt = 0;
+  /** Reminders that came due while something was ringing (to-dos); shown next. */
+  private queued: ReminderEvent[] = [];
+  /** Until when an important bubble (a missed-alarm notice) can't be talked over. */
+  private importantUntil = 0;
+  /** Finished timers the pet already mentioned (their badge stays until it expires or is clicked). */
+  private announcedDone = new Set<number>();
   /** The bubble is asking for a custom timer length; chatter must not replace it. */
   private prompting = false;
   private hovering = false;
   /** The mouse resting on the pet: stop, react, stroke (brain/hover.ts, docs/INTERACTIONS.md). */
   private readonly hover = new HoverTracker();
+  /** What the hovered badge stands for (see updateBadgeInfo). */
+  private readonly badgeInfo = Object.assign(document.createElement("div"), { className: "badge-info", hidden: true });
   /** False while the pet is hidden from its menu or the tray. */
   private petVisible = true;
   /** Tray menus still referenced: the current one and the one before (it may be open). */
@@ -104,6 +123,7 @@ export class PetHost {
   }
 
   async start(): Promise<void> {
+    document.body.append(this.badgeInfo);
     const snap = await this.backend.desktopSnapshot();
     this.dpr = this.windowed ? window.devicePixelRatio || 1 : snap.scale;
     const area = snap.areas[0] ?? { x: 0, y: 0, w: 1280, h: 720 };
@@ -299,8 +319,12 @@ export class PetHost {
     this.moodMeter.style.top = `${f.y - 2}px`;
     const spriteW = this.atlas.width * this.artScale;
     // Anchored at the feet and growing upward, so extra rows never fall off the window.
-    this.badges.style.left = `${f.x + spriteW / 2 + 4}px`;
+    const badgesLeft = f.x + spriteW / 2 + 4;
+    this.badges.style.left = `${badgesLeft}px`;
     this.badges.style.top = `${f.y - 2}px`;
+    // Never wider than the window: a long badge ends in "…" instead of being cut off mid-border.
+    const viewW = this.windowed ? PET_WINDOW.w : window.innerWidth;
+    this.badges.style.maxWidth = `${Math.max(40, viewW - badgesLeft - 4)}px`;
     this.renderBadges();
     this.moodMeter.hidden = !this.hovering || !!this.drag;
   }
@@ -337,19 +361,24 @@ export class PetHost {
     }
     const snoozed = snoozedAlarms(this.timers, now);
     if (snoozed.length) {
-      rows.push({ text: `💤 ${clock(snoozed[0].nextFire)}${more(snoozed.length)}`, title: `${snoozed[0].label} rings again` });
+      const s = snoozed[0];
+      rows.push({
+        text: `💤 ${clock(s.nextFire)}${more(snoozed.length)}`,
+        title: `${alarmName(s)} (snoozed ${s.snoozes}×) rings again at ${clock(s.nextFire)}`,
+      });
     }
     const missed = missedAlarms(this.timers);
     if (missed.length) {
       const m = missed[0];
       rows.push({
-        text: `⏰ Missed ${clock(m.missedAt)}${more(missed.length)}`,
+        // The alarm's own time (9:40), not when it was finally given up on (9:59).
+        text: `⏰ Missed ${clock(alarmTime(m) ?? m.missedAt)}${more(missed.length)}`,
         cls: "missed",
-        title: `${m.label}. Click to dismiss.`,
+        title: `${alarmName(m)}${m.snoozes ? `, snoozed ${m.snoozes}×` : ""}. Click when you've seen it.`,
         onClick: () => {
-          // Hide it right away; the refresh confirms.
-          this.timers = this.timers.map((a) => (a.id === m.id ? { ...a, missedAt: null } : a));
-          void this.backend.dismissAlarm(m.id).then(() => this.refreshTimers());
+          // Seen: the badge goes (right away; the refresh confirms), the history keeps it.
+          this.timers = this.timers.map((a) => (a.id === m.id ? { ...a, missedSeenAt: Date.now() } : a));
+          void this.backend.acknowledgeMissed(m.id).then(() => this.refreshTimers());
         },
       });
     }
@@ -368,7 +397,7 @@ export class PetHost {
         const el = this.badges.children[i];
         if (!r.live || !(el instanceof HTMLElement)) return;
         if (el.textContent !== r.text) el.textContent = r.text;
-        if (r.title !== undefined && el.title !== r.title) el.title = r.title;
+        if (r.title !== undefined && el.dataset.info !== r.title) el.dataset.info = r.title;
       });
     } else {
       this.badges.dataset.text = key;
@@ -377,7 +406,8 @@ export class PetHost {
           const el = document.createElement("div");
           el.textContent = r.text;
           if (r.cls) el.className = r.cls;
-          if (r.title) el.title = r.title;
+          // Shown by updateBadgeInfo on hover (not `title`: see .badge-info in pet.css).
+          if (r.title) el.dataset.info = r.title;
           if (r.onClick) {
             el.classList.add("clickable");
             el.addEventListener("click", (e) => {
@@ -430,6 +460,7 @@ export class PetHost {
         }
         this.hovering = overPet;
         this.updateHover(cursor, winX, winY);
+        this.updateBadgeInfo(cursor, winX, winY);
         this.ignoringCursor = !overPet && !this.drag;
         // In the browser mock the full-page canvas must not block the fake windows underneath.
         this.canvas.style.pointerEvents = this.ignoringCursor ? "none" : "auto";
@@ -440,6 +471,32 @@ export class PetHost {
     } finally {
       this.framePending = false;
     }
+  }
+
+  /** Shows what the badge under the cursor stands for (e.g. every running timer), or hides it. */
+  private updateBadgeInfo(cursor: { x: number; y: number }, winX: number, winY: number): void {
+    const lx = this.windowed ? (cursor.x - winX) / this.dpr : cursor.x;
+    const ly = this.windowed ? (cursor.y - winY) / this.dpr : cursor.y;
+    let hit: HTMLElement | null = null;
+    if (!this.badges.hidden) {
+      for (const el of this.badges.children) {
+        const r = el.getBoundingClientRect();
+        if (el instanceof HTMLElement && el.dataset.info && lx >= r.left && lx <= r.right && ly >= r.top && ly <= r.bottom) {
+          hit = el;
+        }
+      }
+    }
+    if (!hit) {
+      this.badgeInfo.hidden = true;
+      return;
+    }
+    const r = hit.getBoundingClientRect();
+    const viewW = this.windowed ? PET_WINDOW.w : window.innerWidth;
+    this.badgeInfo.textContent = hit.dataset.info ?? "";
+    this.badgeInfo.hidden = false;
+    // Above the badge, kept inside the window.
+    this.badgeInfo.style.left = `${Math.max(2, Math.min(r.left, viewW - this.badgeInfo.offsetWidth - 2))}px`;
+    this.badgeInfo.style.top = `${r.top - 3}px`;
   }
 
   /** Feeds the hover rules and turns what they decide into pet reactions or petting. */
@@ -658,10 +715,6 @@ export class PetHost {
     this.scheduleTray();
   }
 
-  private isTimerId(id: number): boolean {
-    return this.timers.some((t) => t.id === id && isTimer(t));
-  }
-
   /** Snoozes and confirms, so the snoozed alarm never silently disappears. */
   private async snooze(id: number, minutes: number): Promise<void> {
     try {
@@ -838,25 +891,36 @@ export class PetHost {
   // --- Speech & reminders -------------------------------------------------
 
   /**
-   * Shows a speech bubble. A bubble with `onTimeout` is a ringing alarm: ordinary
-   * chatter can't replace it, and `onTimeout` runs if nobody presses a button.
+   * Shows a speech bubble; extra lines are shown smaller. A bubble with `onTimeout` is
+   * ringing: nothing else replaces it (more alarms join it, see `onReminder`), and
+   * `onTimeout` runs if nobody presses a button. An `important` bubble (e.g. "you missed
+   * an alarm") can't be replaced by chatter or petting lines while it is shown.
    */
-  private say(text: string, ms: number, actions: BubbleAction[] = [], onTimeout?: () => void): void {
+  private say(
+    text: string | string[],
+    ms: number,
+    actions: BubbleAction[] = [],
+    onTimeout?: () => void,
+    important = false,
+  ): void {
     if (this.activeRing && !onTimeout) return;
+    if (!onTimeout && !important && Date.now() < this.importantUntil) return;
     // Don't talk over the custom-timer prompt (an alarm still takes priority).
     if (this.prompting && !onTimeout) return;
     this.prompting = false;
-    if (this.activeRing && onTimeout) {
-      // A new alarm arrived while another was ringing: the earlier one went unanswered.
-      const previous = this.activeRing;
-      this.activeRing = null;
-      previous.onTimeout();
-    }
+    this.importantUntil = important ? Date.now() + ms : 0;
     clearTimeout(this.bubbleTimer);
     this.bubble.replaceChildren();
+    const [first, ...notes] = Array.isArray(text) ? text : [text];
     const p = document.createElement("div");
-    p.textContent = text;
+    p.textContent = first;
     this.bubble.append(p);
+    for (const note of notes) {
+      const n = document.createElement("div");
+      n.className = "note";
+      n.textContent = note;
+      this.bubble.append(n);
+    }
     if (actions.length) {
       const row = document.createElement("div");
       row.className = "actions";
@@ -889,47 +953,133 @@ export class PetHost {
     this.stopRinging = null;
   }
 
+  /**
+   * An alarm, timer or to-do is due. Alarms and timers that come due while another is
+   * still ringing join the same bubble (answered together), instead of the earlier one
+   * silently counting as unanswered. A to-do that comes due meanwhile waits its turn.
+   */
   private onReminder(r: ReminderEvent): void {
-    const alert = this.settings.alerts[r.kind];
-    if (r.kind === "alarm") void this.refreshTimers();
-    // During a focus session the pet stays at its "desk" so the session isn't disrupted.
-    const run = alert.petRuns && this.pomodoro.phase !== "focus";
-    this.pet.react({ type: "reminder", kind: r.kind, title: r.title, run });
-    const timer = r.title.startsWith(TIMER_PREFIX);
-    const text = timer
-      ? `⏱ Time's up! (${r.title.slice(TIMER_PREFIX.length)} timer)`
-      : this.bubble.firstElementChild?.textContent || r.title;
-    const actions: BubbleAction[] =
-      r.kind === "alarm"
-        ? [
-            { label: `Snooze ${alert.snoozeMinutes} min`, run: () => void this.snooze(r.id, alert.snoozeMinutes) },
-            { label: "Done", run: () => void this.done(r.id) },
-          ]
-        : [
-            {
-              label: "✓ Done",
-              run: () => {
-                void this.backend.updateTodo(r.id, { done: true });
-                this.onActivity({ type: "todoDone" });
-              },
-            },
-            { label: "Later", run: () => void this.backend.updateTodo(r.id, { dueAt: Date.now() + 10 * 60_000 }) },
-          ];
-    const ringMs = r.kind === "alarm" ? alert.ringSeconds * 1000 : 60_000;
-    this.say(text, ringMs, actions, r.kind === "alarm" ? () => void this.unanswered(r.id) : undefined);
-    this.stopRinging?.();
-    this.stopRinging = null;
-    if (alert.ring) {
-      // Alarms ring until answered (or for ringSeconds); to-dos ring once.
-      if (r.kind === "alarm") this.stopRinging = ringAlarm(alert.ringtone, alert.volume, alert.ringSeconds);
-      else playRingtone(alert.ringtone, alert.volume);
+    if (r.kind === "todo") {
+      if (this.activeRing) this.queued.push(r);
+      else this.remindTodo(r);
+      return;
     }
+    const joining = this.activeRing !== null && this.ringing.length > 0;
+    if (!this.ringing.includes(r.id)) this.ringing.push(r.id);
+    const alert = this.settings.alerts.alarm;
+    if (!joining) {
+      // During a focus session the pet stays at its "desk" so the session isn't disrupted.
+      const run = alert.petRuns && this.pomodoro.phase !== "focus";
+      const known = this.timers.find((a) => a.id === r.id);
+      this.pet.react({ type: "reminder", kind: "alarm", title: known ? alarmName(known) : r.title, run });
+      // The pet's own line ("MEOW! Alarm 9:40 PM") heads a single alarm's bubble.
+      this.ringHeadline = this.bubble.firstElementChild?.textContent ?? "";
+    }
+    // (Re)start the sound: a joining alarm rings for the full time too, like the bubble.
+    this.stopRinging?.();
+    this.stopRinging = alert.ring ? ringAlarm(alert.ringtone, alert.volume, alert.ringSeconds) : null;
+    this.showRing();
+    // The cached list may predate this ring (snooze count, first ring time): refresh and redraw.
+    void this.refreshTimers().then(() => {
+      if (this.activeRing && this.ringing.includes(r.id)) this.showRing(false);
+    });
   }
 
-  /** "Done": a timer is deleted; an alarm ends its snooze cycle (repeating ones keep their schedule). */
+  /** What is ringing, as bubble lines: one item says what it is; several are listed. */
+  private ringLines(): string[] {
+    const alert = this.settings.alerts.alarm;
+    const items = this.ringing.map((id) => this.timers.find((a) => a.id === id));
+    const snoozeNote = (a: Alarm) => {
+      if (isTimer(a) || a.snoozes === 0) return null;
+      const first = alarmTime(a);
+      const note = `Snoozed ${a.snoozes}×${first !== null ? ` · first rang ${clock(first)}` : ""}`;
+      return a.snoozes >= alert.autoSnoozeMax && alert.autoSnoozeMax > 0
+        ? `${note} · last try before it's marked missed`
+        : note;
+    };
+    const describe = (a: Alarm | undefined) => (!a ? "Alarm" : isTimer(a) ? `${timerName(a)} timer` : alarmName(a));
+    if (items.length === 1) {
+      const a = items[0];
+      const head = a && isTimer(a) ? `⏱ Time's up! (${timerName(a)} timer)` : this.ringHeadline || describe(a);
+      const note = a ? snoozeNote(a) : null;
+      return note ? [head, note] : [head];
+    }
+    const allTimers = items.every((a) => a && isTimer(a));
+    const head = allTimers ? `⏱ ${items.length} timers are up:` : `⏰ ${items.length} things are due:`;
+    return [
+      head,
+      ...items.map((a) => {
+        const note = a && !isTimer(a) && a.snoozes ? ` (snoozed ${a.snoozes}×)` : "";
+        return `• ${describe(a)}${note}`;
+      }),
+    ];
+  }
+
+  /**
+   * (Re)draws the ringing bubble for everything in `ringing`. `restart` (default) gives it a
+   * full ring time again, e.g. when another alarm joins; a redraw with fresh data doesn't.
+   */
+  private showRing(restart = true): void {
+    const alert = this.settings.alerts.alarm;
+    const ids = () => {
+      const all = this.ringing;
+      this.ringing = [];
+      // Whatever waited (a to-do) gets its turn once this bubble is gone.
+      setTimeout(() => this.nextQueued(), 400);
+      return all;
+    };
+    const actions: BubbleAction[] = [
+      {
+        label: `Snooze ${alert.snoozeMinutes} min`,
+        run: () => {
+          for (const id of ids()) void this.snooze(id, alert.snoozeMinutes);
+        },
+      },
+      {
+        label: "Done",
+        run: () => {
+          for (const id of ids()) void this.done(id);
+        },
+      },
+    ];
+    const ms = restart ? alert.ringSeconds * 1000 : Math.max(1000, this.ringEndsAt - Date.now());
+    if (restart) this.ringEndsAt = Date.now() + ms;
+    this.say(this.ringLines(), ms, actions, () => {
+      for (const id of ids()) void this.unanswered(id);
+    });
+  }
+
+  private remindTodo(r: ReminderEvent): void {
+    const alert = this.settings.alerts.todo;
+    const run = alert.petRuns && this.pomodoro.phase !== "focus";
+    this.pet.react({ type: "reminder", kind: "todo", title: r.title, run });
+    const text = this.bubble.firstElementChild?.textContent || r.title;
+    const actions: BubbleAction[] = [
+      {
+        label: "✓ Done",
+        run: () => {
+          void this.backend.updateTodo(r.id, { done: true });
+          this.onActivity({ type: "todoDone" });
+        },
+      },
+      { label: "Later", run: () => void this.backend.updateTodo(r.id, { dueAt: Date.now() + 10 * 60_000 }) },
+    ];
+    this.say(text, 60_000, actions);
+    if (alert.ring) playRingtone(alert.ringtone, alert.volume);
+  }
+
+  private nextQueued(): void {
+    if (this.activeRing) return;
+    const r = this.queued.shift();
+    if (r) this.onReminder(r);
+  }
+
+  /**
+   * "Done": ends the ringing/snooze cycle. Timers and one-off alarms stay in Finished (with
+   * when they rang), so an answered timer is never just gone; repeating alarms keep their schedule.
+   */
   private async done(id: number): Promise<void> {
-    if (this.isTimerId(id)) await this.backend.deleteAlarm(id);
-    else await this.backend.dismissAlarm(id);
+    await this.backend.dismissAlarm(id);
     await this.refreshTimers();
   }
 
@@ -941,36 +1091,48 @@ export class PetHost {
     const next = onUnanswered(alarm, this.settings.alerts.alarm);
     if (next.action === "autoSnooze") {
       await this.backend.snoozeAlarm(id, next.minutes);
-      this.say(`💤 No answer… I'll try again at ${clock(Date.now() + next.minutes * 60_000)} (${next.attempt}/${next.max}).`, 8000);
+      this.say(
+        `💤 No answer… I'll try ${alarmName(alarm)} again at ${clock(Date.now() + next.minutes * 60_000)} (${next.attempt}/${next.max}).`,
+        8000,
+      );
     } else if (next.action === "missed") {
-      await this.backend.markAlarmMissed(id);
+      await this.backend.markAlarmMissed(id, alarmName(alarm));
     } else {
       this.doneTimers = [...this.doneTimers, { id, label: alarm.label, at: Date.now() }];
     }
     await this.refreshTimers();
   }
 
-  /** The first time you come back to the pet after missing something, it tells you (once). */
+  /**
+   * The first time you come back to the pet after missing something, it tells you (once
+   * per item). This is an important bubble: petting or chatter can't replace it. Badges
+   * stay until clicked (or, for finished timers, for an hour).
+   */
   private welcomeBack(): void {
     if (this.activeRing || this.drag) return;
-    const done = visibleDoneTimers(this.doneTimers);
+    const missed = missedAlarms(this.timers).filter((a) => !this.announcedMissed.has(a.id));
+    if (missed.length) {
+      for (const a of missed) this.announcedMissed.add(a.id);
+      const a = missed[0];
+      const tries = a.snoozes ? ` (I tried ${a.snoozes} more time${a.snoozes > 1 ? "s" : ""})` : "";
+      const others = missed.length > 1 ? ` and ${missed.length - 1} more` : "";
+      this.say(`You missed ${alarmName(a)}${tries}${others}. Click ⏰ when you've seen it.`, 8000, [], undefined, true);
+      return;
+    }
+    const done = visibleDoneTimers(this.doneTimers).filter((t) => !this.announcedDone.has(t.id));
     if (done.length) {
-      const t = done[0];
-      const name = t.label.slice(TIMER_PREFIX.length);
+      for (const t of done) this.announcedDone.add(t.id);
+      const t = done[done.length - 1];
+      const name = t.label.startsWith(TIMER_PREFIX) ? t.label.slice(TIMER_PREFIX.length) : t.label;
       this.say(
         done.length === 1
           ? `While you were away, your ${name} timer finished at ${clock(t.at)}.`
           : `While you were away, ${done.length} timers finished (last at ${clock(t.at)}).`,
         6000,
+        [],
+        undefined,
+        true,
       );
-      this.doneTimers = [];
-      return;
-    }
-    const missed = missedAlarms(this.timers).filter((a) => !this.announcedMissed.has(a.id));
-    if (missed.length) {
-      for (const a of missed) this.announcedMissed.add(a.id);
-      const a = missed[0];
-      this.say(`You missed the ${clock(a.missedAt)} alarm: ${a.label}. Click ⏰ when you've seen it.`, 7000);
     }
   }
 }

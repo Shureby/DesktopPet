@@ -99,9 +99,14 @@ export interface Alarm {
   enabled: boolean;
   /** Snoozes in the current ringing cycle. */
   snoozes: number;
-  /** When it rang unanswered (cleared once acknowledged). */
+  /** When it was marked missed (nobody answered, after its auto-snoozes). Kept in the history. */
   missedAt: number | null;
-  /** When it last rang. Finished one-offs lose `nextFire`, so this is what they show. */
+  /** When the user saw it was missed (clicked its badge); the badge only shows unseen ones. */
+  missedSeenAt: number | null;
+  /**
+   * When the current ringing cycle began: the alarm's own time, not a later snoozed ring.
+   * Finished one-offs lose `nextFire`, so this is what they show.
+   */
   rangAt: number | null;
   /** When it was set (null for alarms saved before 0.14.0). Timers show "started 4:29 pm". */
   createdAt: number | null;
@@ -191,10 +196,15 @@ export interface Backend {
   /** Removes one-shot alarms and timers that already rang; returns how many. */
   clearFinishedAlarms(): Promise<number>;
   snoozeAlarm(id: number, minutes: number): Promise<void>;
-  /** "Done": ends the ringing/snooze cycle (repeating alarms keep their schedule); acknowledges a missed alarm. */
+  /**
+   * "Done": ends the ringing/snooze cycle. One-offs and timers stay in the history (Finished);
+   * repeating alarms go back to their schedule. Counts as having seen a missed alarm.
+   */
   dismissAlarm(id: number): Promise<void>;
-  /** Nobody answered: remember it until acknowledged (also sends an OS notification). */
-  markAlarmMissed(id: number): Promise<void>;
+  /** Nobody answered: it stays missed (also sends an OS notification showing `name`). */
+  markAlarmMissed(id: number, name?: string): Promise<void>;
+  /** The user saw a missed alarm (clicked its badge): the badge goes, the history keeps it. */
+  acknowledgeMissed(id: number): Promise<void>;
 
   pomodoroStart(): Promise<PomodoroStatus>;
   pomodoroSkip(): Promise<PomodoroStatus>;

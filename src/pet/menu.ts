@@ -2,7 +2,7 @@ import type { CharacterRegistry } from "../characters/registry";
 import type { CareAction, CharacterDef } from "../characters/schema";
 import { pick, type Rng } from "../engine/random";
 import { formatDuration, PRESET_MINUTES, timerName } from "../features/alarm/timers";
-import { clock } from "../features/alarm/ringing";
+import { alarmName, clock } from "../features/alarm/ringing";
 import type { Alarm, Backend, PanelTab, PomodoroStatus, Settings } from "../platform";
 
 /** What both menus (the pet's right-click menu and the tray menu) need. */
@@ -98,7 +98,10 @@ export function taskItems(c: MenuContext): (Item | "sep")[] {
     });
   }
   for (const a of c.snoozed ?? []) {
-    items.push({ text: `Cancel snooze: ${a.label} (rings ${clock(a.nextFire)})`, action: () => void c.backend.dismissAlarm(a.id) });
+    items.push({
+      text: `Cancel snooze: ${alarmName(a)} (next ring ${clock(a.nextFire)})`,
+      action: () => void c.backend.dismissAlarm(a.id),
+    });
   }
   items.push(
     c.pomodoro.phase !== "idle"

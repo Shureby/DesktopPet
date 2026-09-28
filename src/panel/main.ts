@@ -5,7 +5,7 @@ import { ABILITIES } from "../characters/abilities";
 import { loadBundled, loadUser, type CharacterRegistry, type LoadedCharacter } from "../characters/registry";
 import { SpriteAtlas } from "../engine/sprites";
 import { formatRemaining } from "../features/pomodoro/logic";
-import { clock } from "../features/alarm/ringing";
+import { clock, DEFAULT_ALARM_LABEL } from "../features/alarm/ringing";
 import {
   durationInput,
   forgetCustomTimer,
@@ -23,6 +23,7 @@ import { GAMES } from "../features/games/catalog";
 import { backend, type Alarm, type AlertSettings, type PanelTab, type Repeat, type Settings } from "../platform";
 import { playRingtone, RINGTONE_IDS, RINGTONES, type RingtoneId } from "../pet/sound";
 import "../styles/panel.css";
+import { bigTime, finishedAt, finishedStatus, timerTimes } from "./alarmText";
 import { formatWhen, h } from "./dom";
 
 const TABS: { id: PanelTab; label: string }[] = [
@@ -142,7 +143,8 @@ async function renderAlarms(): Promise<Node> {
     d.setHours(hh, mm, 0, 0);
     if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 1);
     while (repeat.value === "weekdays" && (d.getDay() === 0 || d.getDay() === 6)) d.setDate(d.getDate() + 1);
-    await backend.addAlarm(label.value.trim() || `Alarm ${time.value}`, d.getTime(), repeat.value as Repeat);
+    // No time in the label: it is shown from the alarm's own time, in the system's format.
+    await backend.addAlarm(label.value.trim() || DEFAULT_ALARM_LABEL, d.getTime(), repeat.value as Repeat);
     label.value = "";
   };
   // Custom length, with a live preview of how it's understood. `editing` is the saved
@@ -216,7 +218,7 @@ async function renderAlarms(): Promise<Node> {
   // Most recently finished first.
   const finished = alarms
     .filter(isFinished)
-    .sort((a, b) => (b.missedAt ?? b.rangAt ?? 0) - (a.missedAt ?? a.rangAt ?? 0) || b.id - a.id);
+    .sort((a, b) => (finishedAt(b) ?? 0) - (finishedAt(a) ?? 0) || b.id - a.id);
 
   // Live countdowns for running timers.
   const countdowns: [HTMLElement, number][] = [];
@@ -249,7 +251,7 @@ async function renderAlarms(): Promise<Node> {
     h(
       "li",
       { class: `clock-row ${a.enabled ? "" : "off"}` },
-      h("span", { class: "big" }, alarmTime(a)),
+      h("span", { class: "big" }, bigTime(a)),
       h(
         "div",
         { class: "info" },
@@ -271,8 +273,8 @@ async function renderAlarms(): Promise<Node> {
     h(
       "li",
       { class: "clock-row finished-row" },
-      // A rung one-off has no next time any more; it shows when it rang (rangAt) instead.
-      h("span", { class: "big" }, isTimer(a) ? "⏱" : a.rangAt ? clock(a.rangAt) : "⏰"),
+      // An alarm shows the time it was set for, not a later snoozed ring.
+      h("span", { class: "big" }, isTimer(a) ? "⏱" : bigTime(a)),
       h(
         "div",
         { class: "info" },
@@ -308,32 +310,6 @@ async function renderAlarms(): Promise<Node> {
 
 const REPEAT_TEXT: Record<Repeat, string> = { none: "Once", daily: "Every day", weekdays: "Weekdays" };
 
-/** "5 min timer" rather than the stored "Timer: 5 min". */
-/** The time of day the alarm rings, shown big like a phone clock app. */
-function alarmTime(a: Alarm): string {
-  if (a.nextFire && a.snoozes === 0) return clock(a.nextFire);
-  if (a.timeHm) {
-    const [hh, mm] = a.timeHm.split(":").map(Number);
-    const d = new Date();
-    d.setHours(hh, mm, 0, 0);
-    return clock(d.getTime());
-  }
-  return a.nextFire ? clock(a.nextFire) : "--:--";
-}
-
-/** "Started 4:29 PM · rings at 4:41 PM", so identical timers can be told apart. */
-function timerTimes(a: Alarm): string {
-  const rings = a.nextFire ? `rings at ${clock(a.nextFire)}` : "";
-  if (!a.createdAt) return rings.replace(/^r/, "R");
-  return rings ? `Started ${clock(a.createdAt)} · ${rings}` : `Started ${clock(a.createdAt)}`;
-}
-
-/** "Missed · Today 8:40 AM", "Done · Today 12:42 PM" (timers), "Rang · Yesterday 7:30 AM". */
-function finishedStatus(a: Alarm): string {
-  if (a.missedAt) return `Missed · ${formatWhen(a.missedAt)}`;
-  const word = isTimer(a) ? "Done" : "Rang";
-  return a.rangAt ? `${word} · ${formatWhen(a.rangAt)}` : word;
-}
 
 /** "Every day", "Once · Tomorrow", "Weekdays · Off"… */
 function alarmSubtitle(a: Alarm): string {

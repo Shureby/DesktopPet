@@ -117,10 +117,13 @@ body {
   transform: translateY(-100%);
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 2px;
   z-index: 1;
 }
 .badges > div {
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 1px 6px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.9);
@@ -129,7 +132,32 @@ body {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  /* The column is kept inside the window (PetHost); a long badge ends in "…". */
+  overflow: hidden;
+  text-overflow: ellipsis;
   z-index: 1;
+}
+/* What a badge stands for (every running timer…), drawn on hover: native tooltips don't
+   show reliably in the pet's transparent, never-focused window. */
+.badge-info {
+  position: fixed;
+  transform: translateY(-100%);
+  max-width: 200px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1.5px solid var(--bubble-border);
+  color: var(--bubble-fg);
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: pre-line;
+  pointer-events: none;
+  z-index: 4;
+}
+.bubble .note {
+  margin-top: 3px;
+  font-size: 11px;
+  color: #7b6f66;
 }
 
 /* ----- Browser mock (npm run dev in a normal browser) ----- */

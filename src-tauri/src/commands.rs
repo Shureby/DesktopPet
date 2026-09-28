@@ -106,12 +106,23 @@ pub fn dismiss_alarm(app: AppHandle, state: State<AppState>, id: i64) -> CmdResu
 }
 
 /// Nobody answered an alarm (after its auto-snoozes): remember it and tell the OS.
+/// `name` is how the UI shows it ("Alarm 9:40 PM"), so the notification matches the app's
+/// 12/24-hour format.
 #[tauri::command]
-pub fn mark_alarm_missed(app: AppHandle, state: State<AppState>, id: i64) -> CmdResult<()> {
+pub fn mark_alarm_missed(app: AppHandle, state: State<AppState>, id: i64, name: Option<String>) -> CmdResult<()> {
     let alarm = state.store().mark_alarm_missed(id, now_ms()).map_err(err)?;
     if let Some(a) = alarm {
-        let _ = app.notification().builder().title("⏰ Missed alarm").body(&a.label).show();
+        let body = name.unwrap_or(a.label);
+        let _ = app.notification().builder().title("⏰ Missed alarm").body(&body).show();
     }
+    let _ = app.emit("alarms-changed", ());
+    Ok(())
+}
+
+/// The user saw a missed alarm (clicked its badge): the badge goes, it stays missed in the history.
+#[tauri::command]
+pub fn acknowledge_missed(app: AppHandle, state: State<AppState>, id: i64) -> CmdResult<()> {
+    state.store().acknowledge_missed(id, now_ms()).map_err(err)?;
     let _ = app.emit("alarms-changed", ());
     Ok(())
 }

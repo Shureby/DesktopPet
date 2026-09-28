@@ -16,6 +16,46 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-09-28
+
+### Fixed
+- **Two timers ending at almost the same time**: the first one was silently counted as
+  unanswered as soon as the second rang. One Done then seemed to cancel both, and only
+  one showed up in Finished. Anything that comes due while something is ringing now
+  joins the same bubble ("⏱ 2 timers are up: …"), and Snooze or Done answers all of it.
+  A to-do reminder that comes due meanwhile waits its turn instead of being dropped.
+- **A timer you answered disappeared.** Done deleted it, so only unanswered timers stayed
+  in Finished. Done now keeps it there: "Done · Today 12:42 PM".
+- **A snoozed alarm no longer changes its name or time.** An alarm set for 9:40 PM is
+  "Alarm 9:40 PM" everywhere, however often it was snoozed:
+  - the ringing bubble;
+  - the menu ("Cancel snooze: Alarm 9:40 PM (next ring 9:46 PM)");
+  - the badges ("⏰ Missed 9:40 PM" rather than when it was given up on);
+  - Finished;
+  - the OS notification.
+- **A ring after a snooze says so:** "Snoozed 2× · first rang 9:40 PM", and the last
+  automatic one warns that it will be marked missed next.
+- **Unnamed alarms were called "Alarm 21:40"** (24-hour text in a 12-hour UI). They are now
+  "Alarm" plus the time in the system's format, and existing ones are renamed.
+- **Clicking the ⏰ Missed badge turned the alarm into "Rang · 9:58 PM" in Finished.** It now
+  only hides the badge; Finished keeps "Missed · Today 9:40 PM · snoozed 3×".
+- **The pet's "you missed Alarm 9:40 PM" notice was replaced straight away** by a petting
+  line when you clicked the pet. It now stays for its 8 seconds; petting still counts.
+- **Hovering the pet cleared the "⏱ Done" badge.** It now stays for its hour, or until
+  clicked.
+- **Badges were cut off at the pet window's edge** ("⏰ Missed 9:59 p…"). The window is wider,
+  and a badge that still doesn't fit ends in "…".
+- **"Started …" showed for no timer:**
+  - Timers set before 0.14.0 now work out their start time.
+  - Hovering the ⏱ badge now shows the timer list in a box the pet draws itself.
+    Native tooltips don't appear in the pet's window.
+
+### Internal
+- Store migration v6: `alarms.missed_seen_at`; `rang_at` is now the start of a ringing
+  cycle; default labels no longer contain a time. New `acknowledge_missed` command.
+- `alarmName()` and `alarmTime()` (features/alarm/ringing.ts) are the one way alarms are
+  named and timed in the UI; panel text helpers moved to `panel/alarmText.ts` (tested).
+
 ## [0.14.0] - 2026-09-28
 
 ### Changed

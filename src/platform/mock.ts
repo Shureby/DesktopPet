@@ -121,7 +121,13 @@ export function startMockScheduler(): () => void {
       for (const a of s.alarms) {
         if (a.enabled && a.nextFire !== null && a.nextFire <= now) {
           events.push(["reminder", { kind: "alarm", id: a.id, title: a.label }]);
-          a.rangAt = a.nextFire;
+          // Same rules as the Rust store: a snoozed ring keeps the cycle's first ring time,
+          // and a new cycle forgets the previous one's missed state.
+          if (a.snoozes === 0) {
+            a.rangAt = a.nextFire;
+            a.missedAt = null;
+            a.missedSeenAt = null;
+          } else a.rangAt ??= a.nextFire;
           if (a.repeat !== "none" && a.timeHm) a.nextFire = nextOccurrence(a.timeHm, a.repeat, now);
           else {
             a.nextFire = null;
@@ -206,6 +212,7 @@ export const mockBackend: Backend = {
         enabled: true,
         snoozes: 0,
         missedAt: null,
+        missedSeenAt: null,
         rangAt: null,
         createdAt: Date.now(),
       };
@@ -220,6 +227,7 @@ export const mockBackend: Backend = {
       const a = s.alarms.find((x) => x.id === id);
       if (!a) return;
       a.enabled = enabled;
+      if (a.repeat !== "none") a.snoozes = 0;
       if (enabled && a.timeHm) a.nextFire = nextOccurrence(a.timeHm, a.repeat, Date.now());
       // One-shot alarms keep their time so they can be switched back on.
       if (!enabled && a.repeat !== "none") a.nextFire = null;
@@ -231,8 +239,8 @@ export const mockBackend: Backend = {
     mutate((s) => {
       const a = s.alarms.find((x) => x.id === id);
       if (!a) return;
-      a.snoozes = 0;
-      a.missedAt = null;
+      if (a.repeat !== "none") a.snoozes = 0;
+      if (a.missedAt) a.missedSeenAt ??= Date.now();
       if (a.repeat !== "none" && a.timeHm) {
         a.nextFire = nextOccurrence(a.timeHm, a.repeat, Date.now());
         a.enabled = true;
@@ -248,8 +256,16 @@ export const mockBackend: Backend = {
       const a = s.alarms.find((x) => x.id === id);
       if (a) {
         a.missedAt = Date.now();
-        a.snoozes = 0;
+        a.missedSeenAt = null;
+        if (a.repeat !== "none") a.snoozes = 0;
       }
+    });
+    fire("alarms-changed", null);
+  },
+  async acknowledgeMissed(id) {
+    mutate((s) => {
+      const a = s.alarms.find((x) => x.id === id);
+      if (a?.missedAt) a.missedSeenAt ??= Date.now();
     });
     fire("alarms-changed", null);
   },

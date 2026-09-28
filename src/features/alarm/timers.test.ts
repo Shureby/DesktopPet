@@ -22,6 +22,7 @@ const alarm = (id: number, label: string, nextFire: number | null, enabled = tru
   enabled,
   snoozes: 0,
   missedAt: null,
+  missedSeenAt: null,
   rangAt: null,
   createdAt: null,
 });

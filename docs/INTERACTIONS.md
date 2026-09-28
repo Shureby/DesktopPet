@@ -89,13 +89,51 @@ Code: `src/features/alarm/ringing.ts`, the scheduler in `src-tauri/src/scheduler
 - **An alarm rings for "Ring for" (60 s by default), then snoozes itself** for 5 min, up
   to 3 times (both in Settings → Alerts). After that it is marked **missed**:
   - an OS notification;
-  - an orange "⏰ Missed 9:00" badge that stays until clicked;
-  - the pet mentions it once, the next time you hover.
+  - an orange "⏰ Missed 9:40 PM" badge that stays until clicked;
+  - the pet mentions it once, the next time you hover or click it.
 - **Done on any ring ends the whole snooze cycle.**
 - **Timers never snooze themselves.** An unanswered timer leaves a grey "⏱ Done 14:05"
-  badge for an hour, or until clicked.
+  badge for an hour, or until clicked. The pet mentioning it doesn't remove the badge.
 - **A snoozed timer stays visible and cancellable:** in the Alarms tab, as a badge, and
   under "Cancel timer" in the menu.
+
+### An alarm keeps its own time through snoozes (since 0.15.0)
+
+- **Snoozes never change what the alarm is called.** An alarm set for 9:40 PM is "Alarm
+  9:40 PM" in every place and at every ring, however often it was snoozed:
+  - the ringing bubble;
+  - the menu;
+  - the badges;
+  - the Finished list;
+  - the OS notification.
+- **The ring time is kept in `rang_at`:** when the current ringing cycle began. A ring
+  after a snooze keeps it; a repeating alarm's next day starts a new cycle.
+- **A ring after a snooze says so:** "Snoozed 2× · first rang 9:40 PM". The last automatic
+  one adds "last try before it's marked missed".
+- **Menus name both times:** "Cancel snooze: Alarm 9:40 PM (next ring 9:46 PM)".
+- **Labels never contain a time.** An unnamed alarm is stored as "Alarm" and shown with
+  its time through `clock()`, which follows the system's 12/24-hour setting.
+  - The old default, "Alarm 21:40", mixed 24-hour text into a 12-hour UI.
+  - Migration v6 renamed those labels to "Alarm".
+- **Seeing a missed alarm isn't undoing it.**
+  - Clicking the ⏰ badge (or pressing Done) sets `missed_seen_at`: the badge goes.
+  - The Finished list still says "Missed · Today 9:40 PM · snoozed 3×".
+- **The missed-alarm notice is important.** While it shows (8 s), petting or chatter can't
+  replace it; petting still counts, silently.
+
+### Several things due at once (since 0.15.0)
+
+- **Alarms and timers that come due while another is ringing join the same bubble,**
+  e.g. "⏱ 2 timers are up: • 12 min timer • 25 min timer".
+  - Snooze or Done answers all of them.
+  - Nobody answering treats each by its own rule.
+  - The ring time restarts when one joins.
+- **Before 0.15.0 the earlier one was silently counted as unanswered,** so two timers
+  finishing a second apart looked like one timer vanishing.
+- **A to-do reminder that comes due meanwhile waits,** and shows once the bubble closes.
+- **Done keeps a timer in the Finished list** ("Done · Today 12:42 PM"). It used to delete
+  it, so the timers you answered disappeared and the unanswered ones stayed. Cancel on a
+  running timer still deletes it: that is before it rang.
 
 ## Showing when things happened (since 0.13.0)
 
@@ -107,14 +145,18 @@ Code: `src/features/alarm/ringing.ts`, the scheduler in `src-tauri/src/scheduler
   - done to-dos: "Done · Today 3:15 PM".
 - **Running timers say when they were started** (since 0.14.0): "Started 4:29 PM · rings
   at 4:41 PM". Without this, a forgotten test timer looked like part of an alarm that
-  happened to ring at the same time. The start time is `alarms.created_at` (v5 migration);
-  timers set before 0.14.0 show only "Rings at …".
+  happened to ring at the same time. The start time is `alarms.created_at` (v5 migration).
+  For timers set before 0.14.0 it is worked out from the ring time and the length in the
+  label (`timerStartedAt`), unless a snooze moved the ring.
 - **Hovering the ⏱ badge lists every running timer** with its ring time, so "+5" isn't a
-  mystery.
+  mystery. The pet draws this list itself (`.badge-info`), because native tooltips don't
+  show reliably in its transparent, never-focused window.
+- **The pet window is 340 px wide** (since 0.15.0), so badges beside the pet fit. A badge
+  that is still too long ends in "…" rather than being cut off.
 - **Finished and done lists put the most recent first.**
 - **Dates read "Today", "Yesterday", "Tomorrow", otherwise a short date**
   (`formatWhen` in `src/panel/dom.ts`). Times follow the system's 12/24-hour setting,
   without a leading zero.
-- **The ring time is stored in `alarms.rang_at`** (v4 migration). A one-off alarm loses
-  `next_fire` once it rings, which is how it counts as finished, so the time needs its
-  own column.
+- **The ring time is stored in `alarms.rang_at`** (v4 migration; since v6 it is the start
+  of the ringing cycle, see above). A one-off alarm loses `next_fire` once it rings, which
+  is how it counts as finished, so the time needs its own column.

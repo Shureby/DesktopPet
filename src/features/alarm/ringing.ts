@@ -40,10 +40,44 @@ export function snoozedAlarms(alarms: Alarm[], now = Date.now()): (Alarm & { nex
     .sort((a, b) => a.nextFire - b.nextFire);
 }
 
+/** Missed alarms the user hasn't seen yet (their badge by the pet); newest first. */
 export function missedAlarms(alarms: Alarm[]): (Alarm & { missedAt: number })[] {
-  return alarms.filter((a): a is Alarm & { missedAt: number } => a.missedAt !== null).sort((a, b) => b.missedAt - a.missedAt);
+  return alarms
+    .filter((a): a is Alarm & { missedAt: number } => a.missedAt !== null && !a.missedSeenAt)
+    .sort((a, b) => b.missedAt - a.missedAt);
 }
 
+/**
+ * Every time shown to the user goes through here: it follows the system's 12/24-hour
+ * setting. Never put a formatted time into stored text (labels): it would stay in the
+ * format of the day it was written.
+ */
 export function clock(ms: number): string {
   return new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+/** The label an alarm gets when the user doesn't name it; shown as "Alarm 9:40 PM". */
+export const DEFAULT_ALARM_LABEL = "Alarm";
+
+/**
+ * The time the alarm is set for, the same through every snooze: a repeating alarm's time
+ * of day (today), else the time its current ringing cycle began, else its next ring.
+ */
+export function alarmTime(a: Alarm, now = Date.now()): number | null {
+  if (a.timeHm) {
+    const [hh, mm] = a.timeHm.split(":").map(Number);
+    const d = new Date(now);
+    d.setHours(hh, mm, 0, 0);
+    return d.getTime();
+  }
+  const rung = a.rangAt !== null && (a.snoozes > 0 || a.nextFire === null || a.missedAt !== null);
+  return rung ? a.rangAt : (a.nextFire ?? a.rangAt);
+}
+
+/** "Alarm 9:40 PM" for unnamed alarms, otherwise the user's own label ("Login CMC"). */
+export function alarmName(a: Alarm): string {
+  const label = a.label.trim();
+  if (label && label !== DEFAULT_ALARM_LABEL) return label;
+  const t = alarmTime(a);
+  return t === null ? DEFAULT_ALARM_LABEL : `${DEFAULT_ALARM_LABEL} ${clock(t)}`;
 }

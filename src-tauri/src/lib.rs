@@ -62,6 +62,7 @@ pub fn run() {
             commands::clear_finished_alarms,
             commands::dismiss_alarm,
             commands::mark_alarm_missed,
+            commands::acknowledge_missed,
             commands::pomodoro_start,
             commands::pomodoro_skip,
             commands::pomodoro_stop,
