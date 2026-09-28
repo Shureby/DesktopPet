@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { loadBundled } from "../characters/registry";
 import { createRng } from "../engine/random";
+import { clock } from "../features/alarm/ringing";
 import { DEFAULT_SETTINGS, type Alarm } from "../platform/types";
 import {
   buildItems,
   buildTrayItems,
   careLabel,
-  minutesLeft,
   pickCare,
   type Item,
   type PetMenuContext,
@@ -75,7 +75,7 @@ describe("pet menu", () => {
 
   it("shows a cancel item only while timers run, with time left", () => {
     expect(texts(buildItems(ctx())).some((t) => t.startsWith("Cancel"))).toBe(false);
-    expect(texts(buildItems(ctx({ timers: [timer(1, 5)] })))).toContainEqual(expect.stringMatching(/^Cancel timer \((4:5\d|5:00) left\)$/));
+    expect(texts(buildItems(ctx({ timers: [timer(1, 5)] })))).toContainEqual(expect.stringMatching(/^Cancel timer: 5 min \(rings .+\)$/));
     const many = buildItems(ctx({ timers: [timer(1, 5), timer(2, 10)] }));
     const cancel = many.find((i): i is Item => i !== "sep" && i.text === "Cancel timer");
     expect(cancel?.items).toHaveLength(2);
@@ -94,12 +94,13 @@ describe("pet menu", () => {
 
   it("offers to cancel a snoozed alarm", () => {
     const snoozed = { ...timer(7, 5), label: "Wake up", repeat: "daily" as const, timeHm: "07:00", snoozes: 1 };
-    expect(texts(buildItems(ctx({ snoozed: [snoozed] })))).toContainEqual(expect.stringMatching(/^Cancel snooze: Wake up \(.+\)$/));
+    expect(texts(buildItems(ctx({ snoozed: [snoozed] })))).toContainEqual(expect.stringMatching(/^Cancel snooze: Wake up \(rings .+\)$/));
   });
 
-  it("shows focus session time left while one runs", () => {
-    const items = texts(buildItems(ctx({ pomodoro: { phase: "focus", round: 0, endsAt: Date.now() + 18 * 60_000 } })));
-    expect(items).toContainEqual(expect.stringMatching(/^Stop focus session \(1[78]:\d\d left\)$/));
+  it("shows when a running focus session ends, as a clock time", () => {
+    const endsAt = Date.now() + 18 * 60_000;
+    const items = texts(buildItems(ctx({ pomodoro: { phase: "focus", round: 0, endsAt } })));
+    expect(items).toContain(`Stop focus session (ends ${clock(endsAt)})`);
   });
 });
 
@@ -129,10 +130,9 @@ describe("tray menu", () => {
     expect(texts(buildItems(ctx()))).not.toContain("Quit");
   });
 
-  it("shows time left in whole minutes, since it isn't redrawn every second", () => {
-    const items = texts(buildTrayItems(trayCtx({ ...busy, remaining: minutesLeft })));
-    expect(items).toContainEqual(expect.stringMatching(/^Stop focus session \(1[89] min left\)$/));
-    expect(minutesLeft(30_000)).toBe("1 min");
-    expect(minutesLeft(95 * 60_000)).toBe("1 h 35 min");
+  it("never shows a countdown, which a menu built ahead of time can't keep current", () => {
+    const all = JSON.stringify(outline(buildTrayItems(trayCtx(busy))));
+    expect(all).not.toContain("left");
+    expect(all).toContain(`Stop focus session (ends ${clock(busy.pomodoro.endsAt)})`);
   });
 });

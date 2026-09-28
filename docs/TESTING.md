@@ -2,14 +2,14 @@
 
 <!-- Generated from test-checklist.json by `npm run test-checklist`. Edit the JSON, not this file. -->
 
-当前版本 `0.9.0`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
+当前版本 `0.10.0`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
 在线勾选页面（保存结果，自动标出需要重测的项目）：https://claude.ai/artifact/XQVzPKq4w2MThVnTLYCGy1
 
 ## 1. 安装与启动
 
 - [ ] 1.1 安装包安装 → **开始菜单/启动台里有应用，图标和名字正常**
 - [ ] 1.2 首次启动 → **宠物从屏幕上方掉下来，落在任务栏/Dock 上方**
-- [ ] 1.3 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.9.0 · …`，与安装包版本一致**
+- [ ] 1.3 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.10.0 · …`，与安装包版本一致**
 - [ ] 1.4 已经运行时再启动一次 → **不会出现第二只宠物（只打开面板）**
 - [ ] 1.5 覆盖安装新版本 → **之前的待办、闹钟、设置、心情值都还在**
 - [ ] 1.6 Settings → 勾选 Start with my computer，重启电脑；再取消并重启 → **勾选时自动启动，取消后不启动**
@@ -32,23 +32,23 @@
 
 - [ ] 3.1 右键宠物 → **菜单各项以动词开头：Set timer / 照顾动作 / Add to-do… / Set alarm… / Start focus session / Play Safe Landing / Switch character / Open panel… / Hide pet**
 - [ ] 3.2 多次打开菜单；等宠物饿了再打开 → **照顾动作文字随机变化（Cat：Scratch the Cat's chin 等；Rooster：Scatter some corn 等）；饿时喂食排第一**
-- [ ] 3.3 **【新】** 宠物右键 → Hide pet，再点托盘图标 → Show pet → **宠物消失后重新出现；托盘第一项随状态在 Show pet / Hide pet 之间切换**
+- [ ] 3.3 宠物右键 → Hide pet，再点托盘图标 → Show pet → **宠物消失后重新出现；托盘第一项随状态在 Show pet / Hide pet 之间切换**
 - [ ] 3.4 Add to-do… → **面板打开到 To-dos；宠物继续正常动，不卡死**
 - [ ] 3.5 Set alarm… → **面板打开到 Alarms，时间框已获得焦点，可以直接输入**
 
 ## 4. 托盘
 
-- [ ] 4.1 **【新】** 分别打开宠物右键菜单和托盘菜单，对比两者 → **中间两组完全一样（Add to-do… / Set alarm… / Set timer ▸ / Start focus session；Play Safe Landing / Switch character ▸）；只有托盘第一项是 Show/Hide pet、最后是 Quit，宠物菜单第一项是照顾动作、最后是 Hide pet**
-- [ ] 4.2 **【新】** 从托盘逐个使用：Add to-do…、Set alarm…、Set timer → 5 min、Switch character → Rooster、Play Safe Landing、Open panel… → **每一项效果都和从宠物菜单点一样**
-- [ ] 4.3 **【新】** 开一个计时器和一个专注时段，然后打开托盘菜单 → **出现 Cancel timer（x min left）和 Stop focus session（x min left），剩余分钟数大致正确；取消后再打开，这两项恢复原样**
-- [ ] 4.4 **【新】** 隐藏宠物，托盘 → Set timer → Custom / Edit… → **打开面板的 Alarms 页（宠物隐藏时没有气泡可用）**
+- [ ] 4.1 分别打开宠物右键菜单和托盘菜单，对比两者 → **中间两组完全一样（Add to-do… / Set alarm… / Set timer ▸ / Start focus session；Play Safe Landing / Switch character ▸）；只有托盘第一项是 Show/Hide pet、最后是 Quit，宠物菜单第一项是照顾动作、最后是 Hide pet**
+- [ ] 4.2 从托盘逐个使用：Add to-do…、Set alarm…、Set timer → 5 min、Switch character → Rooster、Play Safe Landing、Open panel… → **每一项效果都和从宠物菜单点一样**
+- [ ] 4.3 **【新】** 开一个计时器和一个专注时段，然后打开托盘菜单 → **两个菜单都出现 “Cancel timer: 5 min (rings 3:52 PM)” 和 “Stop focus session (ends 4:10 PM)”，时刻正确且两边一致，不显示剩余时间；取消后再打开，这两项恢复原样**
+- [ ] 4.4 隐藏宠物，托盘 → Set timer → Custom / Edit… → **打开面板的 Alarms 页（宠物隐藏时没有气泡可用）**
 - [ ] 4.5 托盘 → Quit → **宠物和所有窗口关闭，进程退出**
 
 ## 5. 计时器
 
 - [ ] 5.1 右键 → Set timer → **1 min · 5 min · 10 min · 15 min · 30 min · 45 min · 1 hour，下面一条分隔线**
 - [ ] 5.2 选 1 min → **宠物说 “1 min timer set, I'll ring at …”；旁边出现 ⏱ 倒计时角标**
-- [ ] 5.3 同时开 3 个计时器，再右键 → Cancel timer → **角标显示最近的一个 + “+2”；子菜单列出全部及剩余时间**
+- [ ] 5.3 **【新】** 同时开 3 个计时器，再右键 → Cancel timer → **角标显示最近的一个 + “+2”；子菜单列出全部，每个带响铃时刻（rings 3:52 PM）**
 - [ ] 5.4 取消其中一个 → **角标和面板里同时消失**
 - [ ] 5.5 等计时器到点 → **按 Settings → Alerts 响铃/跑到屏幕中间；气泡有 Snooze N min 和 Done**
 - [ ] 5.6 响铃时点 Snooze → **宠物说 “Snoozed until …”；面板 Timers 和角标里能看到，右键可以取消**
@@ -89,7 +89,7 @@
 - [ ] 8.1 面板 → Alarms → Quick timer → **1m 5m 10m 15m 30m 45m 1h + 虚线的自定义按钮（如 1h30m、25m）**
 - [ ] 8.2 鼠标移到虚线按钮，点 ✎，改值回车 → **出现 ✎ ✕；输入框填入该值，提示 “25m → …”；回车后原位替换**
 - [ ] 8.3 点虚线按钮的 ✕ → **按钮消失，宠物右键菜单里也同步消失**
-- [ ] 8.4 Custom 输入框输入 2h 回车 → **启动计时器，Timers 区出现大字倒计时 + Cancel**
+- [ ] 8.4 **【新】** 看 Quick timer 按钮和 Custom 输入框之间，再在 Custom 输入框输入 2h 回车 → **按钮行和输入框之间有空隙；启动计时器，Timers 区出现大字倒计时 + Cancel**
 
 ## 9. 待办
 
@@ -104,7 +104,7 @@
 - [ ] 10.1 右键 → Start focus session 🍅 → **角标显示专注倒计时（在计时器角标上方）**
 - [ ] 10.2 专注中让一个计时器响 → **宠物不离开原位**
 - [ ] 10.3 让专注时段结束 → **提示休息；每 N 轮进入长休息（按 Focus 页设置）**
-- [ ] 10.4 右键 → Stop focus session → **菜单显示剩余时间；点后停止**
+- [ ] 10.4 **【新】** 右键 → Stop focus session → **菜单显示 “Stop focus session (ends 4:10 PM)”；点后停止**
 - [ ] 10.5 Focus 页看 Last 7 days → **有统计记录**
 
 ## 11. 心情与照顾

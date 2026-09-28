@@ -169,9 +169,9 @@
         },
         {
           "id": "tray.live-state",
-          "rev": "0.9.0",
+          "rev": "0.10.0",
           "do": "开一个计时器和一个专注时段，然后打开托盘菜单",
-          "expect": "出现 Cancel timer（x min left）和 Stop focus session（x min left），剩余分钟数大致正确；取消后再打开，这两项恢复原样"
+          "expect": "两个菜单都出现 “Cancel timer: 5 min (rings 3:52 PM)” 和 “Stop focus session (ends 4:10 PM)”，时刻正确且两边一致，不显示剩余时间；取消后再打开，这两项恢复原样"
         },
         {
           "id": "tray.custom-hidden",
@@ -205,9 +205,9 @@
         },
         {
           "id": "timer.several",
-          "rev": "0.3.0",
+          "rev": "0.10.0",
           "do": "同时开 3 个计时器，再右键 → Cancel timer",
-          "expect": "角标显示最近的一个 + “+2”；子菜单列出全部及剩余时间"
+          "expect": "角标显示最近的一个 + “+2”；子菜单列出全部，每个带响铃时刻（rings 3:52 PM）"
         },
         {
           "id": "timer.cancel",
@@ -415,9 +415,9 @@
         },
         {
           "id": "quick.custom-input",
-          "rev": "0.8.0",
-          "do": "Custom 输入框输入 2h 回车",
-          "expect": "启动计时器，Timers 区出现大字倒计时 + Cancel"
+          "rev": "0.10.0",
+          "do": "看 Quick timer 按钮和 Custom 输入框之间，再在 Custom 输入框输入 2h 回车",
+          "expect": "按钮行和输入框之间有空隙；启动计时器，Timers 区出现大字倒计时 + Cancel"
         }
       ]
     },
@@ -481,9 +481,9 @@
         },
         {
           "id": "focus.stop",
-          "rev": "0.3.0",
+          "rev": "0.10.0",
           "do": "右键 → Stop focus session",
-          "expect": "菜单显示剩余时间；点后停止"
+          "expect": "菜单显示 “Stop focus session (ends 4:10 PM)”；点后停止"
         },
         {
           "id": "focus.stats",

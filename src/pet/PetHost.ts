@@ -27,7 +27,7 @@ import {
 import { formatRemaining } from "../features/pomodoro/logic";
 import type { Alarm, Backend, PetActivity, PomodoroStatus, ReminderEvent, Settings } from "../platform";
 import type { CareAction } from "../characters/schema";
-import { buildTrayItems, minutesLeft, nativeMenu, showPetMenu, type MenuContext } from "./menu";
+import { buildTrayItems, nativeMenu, showPetMenu, type MenuContext } from "./menu";
 import { inQuietHours } from "./quietHours";
 import { playRingtone, ringAlarm, sounds } from "./sound";
 
@@ -141,7 +141,7 @@ export class PetHost {
     await this.backend.on("alarms-changed", () => void this.refreshTimers());
     await this.backend.on("pet-event", (e) => this.onActivity(e));
     await this.refreshTimers();
-    // Time left in the tray menu is in whole minutes; refresh it well within a minute.
+    // Timers that ran out leave the tray menu even if no event arrives (unchanged menus aren't rebuilt).
     setInterval(() => this.scheduleTray(), 30_000);
     // Mood is saved every minute and when leaving, not every tick.
     setInterval(() => void this.saveMood(), 60_000);
@@ -518,7 +518,6 @@ export class PetHost {
   private async updateTray(): Promise<void> {
     const items = buildTrayItems({
       ...this.menuContext(),
-      remaining: minutesLeft,
       petVisible: this.petVisible,
     });
     const outline = JSON.stringify(items, (k, v) => (k === "action" ? undefined : v));

@@ -2,7 +2,7 @@ import type { CharacterRegistry } from "../characters/registry";
 import type { CareAction, CharacterDef } from "../characters/schema";
 import { pick, type Rng } from "../engine/random";
 import { formatDuration, PRESET_MINUTES } from "../features/alarm/timers";
-import { formatRemaining } from "../features/pomodoro/logic";
+import { clock } from "../features/alarm/ringing";
 import type { Alarm, Backend, PomodoroStatus, Settings } from "../platform";
 
 /** What both menus (the pet's right-click menu and the tray menu) need. */
@@ -18,8 +18,6 @@ export interface MenuContext {
   setTimer: (minutes: number) => void;
   /** Asks for a custom length (in the pet's speech bubble). */
   customTimer: () => void;
-  /** Formats time left; the tray uses whole minutes since it isn't redrawn every second. */
-  remaining?: (ms: number) => string;
 }
 
 /** The pet's own menu adds a care action and "Hide pet". */
@@ -57,20 +55,16 @@ export function pickCare(character: CharacterDef, hungry: boolean, rng: Rng): Ca
   return (hungry && pick(rng, feed)) || pick(rng, care) || care[0];
 }
 
-/** "12 min left" rounded up, for menus that can't count down live. */
-export function minutesLeft(ms: number): string {
-  const m = Math.max(1, Math.ceil(ms / 60_000));
-  return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`;
-}
-
 /**
  * The part both menus share, identical in wording and order: to-dos, alarms, timers and
  * focus sessions. Every item starts with a verb.
+ *
+ * Times are shown as clock times ("rings 3:52 PM"), never as time left: a native menu
+ * can't count down while it is open, and the tray menu is built ahead of time, so a
+ * countdown would always be stale there. The live countdown is on the badges by the pet.
  */
 export function taskItems(c: MenuContext): (Item | "sep")[] {
-  const now = Date.now();
-  const fmt = c.remaining ?? formatRemaining;
-  const left = (at: number | null) => (at ? ` (${fmt(at - now)} left)` : "");
+  const timerName = (t: Alarm) => t.label.replace(/^Timer: /, "");
 
   // Presets keep fixed positions (muscle memory); the user's own lengths sit below a separator.
   const recent = c.settings.recentTimers.filter((m) => !PRESET_MINUTES.includes(m));
@@ -89,23 +83,28 @@ export function taskItems(c: MenuContext): (Item | "sep")[] {
   ];
   if (c.timers.length === 1) {
     const t = c.timers[0];
-    items.push({ text: `Cancel timer${left(t.nextFire)}`, action: () => void c.backend.deleteAlarm(t.id) });
+    items.push({
+      text: `Cancel timer: ${timerName(t)} (rings ${clock(t.nextFire)})`,
+      action: () => void c.backend.deleteAlarm(t.id),
+    });
   } else if (c.timers.length > 1) {
     items.push({
       text: "Cancel timer",
       items: c.timers.map((t) => ({
-        text: `${t.label.replace(/^Timer: /, "")}${left(t.nextFire)}`,
+        text: `${timerName(t)} (rings ${clock(t.nextFire)})`,
         action: () => void c.backend.deleteAlarm(t.id),
       })),
     });
   }
   for (const a of c.snoozed ?? []) {
-    const at = new Date(a.nextFire).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-    items.push({ text: `Cancel snooze: ${a.label} (${at})`, action: () => void c.backend.dismissAlarm(a.id) });
+    items.push({ text: `Cancel snooze: ${a.label} (rings ${clock(a.nextFire)})`, action: () => void c.backend.dismissAlarm(a.id) });
   }
   items.push(
     c.pomodoro.phase !== "idle"
-      ? { text: `Stop focus session${left(c.pomodoro.endsAt)}`, action: () => void c.backend.pomodoroStop() }
+      ? {
+          text: `Stop focus session${c.pomodoro.endsAt ? ` (ends ${clock(c.pomodoro.endsAt)})` : ""}`,
+          action: () => void c.backend.pomodoroStop(),
+        }
       : { text: "Start focus session 🍅", action: () => void c.backend.pomodoroStart() },
   );
   return items;

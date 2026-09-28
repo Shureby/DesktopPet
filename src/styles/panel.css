@@ -535,6 +535,9 @@ button.custom {
   padding: 0 4px;
   opacity: 1;
 }
+.row.custom-row {
+  margin-top: 10px;
+}
 input.custom-timer {
   flex: 1;
 }

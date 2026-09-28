@@ -16,6 +16,19 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-28
+
+### Changed
+- Menus show when things happen, not how long is left: "Stop focus session (ends 4:10 PM)",
+  "Cancel timer: 5 min (rings 3:52 PM)", "Cancel snooze: Wake up (rings 7:05 AM)".
+  - A native menu can't count down while it is open, and the tray menu is built ahead
+    of time, so the tray's "25 min left" could be over a minute off.
+  - A clock time never goes stale, so both menus are always right and always match.
+  - The live countdown is still on the badges by the pet and in the panel.
+
+### Fixed
+- Panel → Alarms: the custom length box no longer touches the quick timer buttons above it.
+
 ## [0.9.0] - 2026-09-28
 
 ### Changed

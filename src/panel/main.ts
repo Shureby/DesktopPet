@@ -287,7 +287,7 @@ async function renderAlarms(): Promise<Node> {
       ...PRESET_MINUTES.map((m) => timer(m)),
       ...settings.recentTimers.filter((m) => !PRESET_MINUTES.includes(m)).map(customTimer),
     ),
-    h("div", { class: "row" }, customInput, h("button", { onclick: startCustom }, "Start"), customHint),
+    h("div", { class: "row custom-row" }, customInput, h("button", { onclick: startCustom }, "Start"), customHint),
     h("h3", {}, "New alarm"),
     h("div", { class: "row" }, time, repeat, label, h("button", { class: "primary", onclick: add }, "Add")),
     timers.length ? h("h3", {}, "Timers") : null,
