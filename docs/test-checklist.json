@@ -427,9 +427,9 @@
         },
         {
           "id": "alarm.finished",
-          "rev": "0.6.0",
+          "rev": "0.13.0",
           "do": "看 Finished 区，点 Clear",
-          "expect": "响过的一次性闹钟显示 Missed / Rang / Done；Clear 后清空"
+          "expect": "响过的一次性闹钟左边显示响铃时间，右边 “Rang · Today 8:40 AM”；没人理的计时器显示 “Done · Today 12:42 PM”；错过的显示 “Missed · …”；最新结束的在最上面；Clear 后清空"
         },
         {
           "id": "alarm.daily-cleanup",
@@ -502,6 +502,12 @@
           "rev": "0.4.0",
           "do": "Done 区点 Clear",
           "expect": "已完成的待办被清空"
+        },
+        {
+          "id": "todo.done-time",
+          "rev": "0.13.0",
+          "do": "勾选完成几个待办，打开 Done 区",
+          "expect": "每个显示 “Done · Today 3:15 PM”，最近完成的在最上面；待办的提醒时间显示为 “Today 3:00 PM”（没有前导 0）"
         }
       ]
     },

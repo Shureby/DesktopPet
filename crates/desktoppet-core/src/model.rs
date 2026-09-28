@@ -11,6 +11,8 @@ pub struct Todo {
     pub due_at: Option<Millis>,
     pub done: bool,
     pub created_at: Millis,
+    /// When it was ticked off (null while open).
+    pub done_at: Option<Millis>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -71,6 +73,8 @@ pub struct Alarm {
     pub snoozes: u32,
     /// Set when it rang and nobody answered (after any auto-snoozes); cleared on acknowledge.
     pub missed_at: Option<Millis>,
+    /// When it last rang (the time it was due). Finished one-offs show it ("Done · Today 12:42").
+    pub rang_at: Option<Millis>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

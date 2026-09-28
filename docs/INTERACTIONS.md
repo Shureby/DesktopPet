@@ -96,3 +96,19 @@ Code: `src/features/alarm/ringing.ts`, the scheduler in `src-tauri/src/scheduler
   badge for an hour, or until clicked.
 - **A snoozed timer stays visible and cancellable:** in the Alarms tab, as a badge, and
   under "Cancel timer" in the menu.
+
+## Showing when things happened (since 0.13.0)
+
+- **Anything finished says when,** so identical items can be told apart ("1 min timer"
+  twice) and you can see how long ago it was:
+  - timers: "Done · Today 12:42 PM";
+  - one-off alarms: "Rang · Today 8:40 AM", with the ring time as the big time;
+  - missed alarms: "Missed · Today 8:40 AM";
+  - done to-dos: "Done · Today 3:15 PM".
+- **Finished and done lists put the most recent first.**
+- **Dates read "Today", "Yesterday", "Tomorrow", otherwise a short date**
+  (`formatWhen` in `src/panel/dom.ts`). Times follow the system's 12/24-hour setting,
+  without a leading zero.
+- **The ring time is stored in `alarms.rang_at`** (v4 migration). A one-off alarm loses
+  `next_fire` once it rings, which is how it counts as finished, so the time needs its
+  own column.

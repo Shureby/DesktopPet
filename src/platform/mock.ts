@@ -121,6 +121,7 @@ export function startMockScheduler(): () => void {
       for (const a of s.alarms) {
         if (a.enabled && a.nextFire !== null && a.nextFire <= now) {
           events.push(["reminder", { kind: "alarm", id: a.id, title: a.label }]);
+          a.rangAt = a.nextFire;
           if (a.repeat !== "none" && a.timeHm) a.nextFire = nextOccurrence(a.timeHm, a.repeat, now);
           else {
             a.nextFire = null;
@@ -159,7 +160,7 @@ export const mockBackend: Backend = {
   },
   async addTodo(title, dueAt) {
     const todo = mutate((s) => {
-      const t: Todo = { id: s.nextId++, title, dueAt, done: false, createdAt: Date.now() };
+      const t: Todo = { id: s.nextId++, title, dueAt, done: false, createdAt: Date.now(), doneAt: null };
       s.todos.push(t);
       return t;
     });
@@ -167,7 +168,12 @@ export const mockBackend: Backend = {
     return todo;
   },
   async updateTodo(id, patch) {
-    mutate((s) => Object.assign(s.todos.find((t) => t.id === id) ?? {}, patch));
+    mutate((s) => {
+      const t = s.todos.find((x) => x.id === id);
+      if (!t) return;
+      if (patch.done !== undefined && patch.done !== t.done) t.doneAt = patch.done ? Date.now() : null;
+      Object.assign(t, patch);
+    });
     fire("todos-changed", null);
   },
   async clearDoneTodos() {
@@ -200,6 +206,7 @@ export const mockBackend: Backend = {
         enabled: true,
         snoozes: 0,
         missedAt: null,
+        rangAt: null,
       };
       s.alarms.push(a);
       return a;

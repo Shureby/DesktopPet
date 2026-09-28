@@ -87,7 +87,8 @@ async function renderTodos(): Promise<Node> {
   queueMicrotask(() => input.focus());
 
   const open = todos.filter((t) => !t.done).sort((a, b) => (a.dueAt ?? Infinity) - (b.dueAt ?? Infinity));
-  const done = todos.filter((t) => t.done).reverse();
+  // Most recently ticked off first.
+  const done = todos.filter((t) => t.done).sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0) || b.id - a.id);
   const row = (t: (typeof todos)[number]) =>
     h(
       "li",
@@ -102,6 +103,7 @@ async function renderTodos(): Promise<Node> {
       }),
       h("span", { class: "title" }, t.title),
       t.dueAt && !t.done ? h("span", { class: "when" }, formatWhen(t.dueAt)) : null,
+      t.done && t.doneAt ? h("span", { class: "when" }, `Done · ${formatWhen(t.doneAt)}`) : null,
       h("button", { class: "icon", title: "Delete", onclick: () => void backend.deleteTodo(t.id) }, "✕"),
     );
 
@@ -211,7 +213,10 @@ async function renderAlarms(): Promise<Node> {
   const isFinished = (a: Alarm) => a.repeat === "none" && (a.nextFire === null || a.nextFire <= now);
   const timers = alarms.filter((a) => isTimer(a) && !isFinished(a));
   const clocks = alarms.filter((a) => !isTimer(a) && !isFinished(a));
-  const finished = alarms.filter(isFinished);
+  // Most recently finished first.
+  const finished = alarms
+    .filter(isFinished)
+    .sort((a, b) => (b.missedAt ?? b.rangAt ?? 0) - (a.missedAt ?? a.rangAt ?? 0) || b.id - a.id);
 
   // Live countdowns for running timers.
   const countdowns: [HTMLElement, number][] = [];
@@ -266,13 +271,13 @@ async function renderAlarms(): Promise<Node> {
     h(
       "li",
       { class: "clock-row finished-row" },
-      // Once rung, a one-off alarm no longer has a time to show; the subtitle says when.
-      h("span", { class: "big" }, isTimer(a) ? "⏱" : a.repeat === "none" ? "⏰" : alarmTime(a)),
+      // A rung one-off has no next time any more; it shows when it rang (rangAt) instead.
+      h("span", { class: "big" }, isTimer(a) ? "⏱" : a.rangAt ? clock(a.rangAt) : "⏰"),
       h(
         "div",
         { class: "info" },
         h("span", { class: "title" }, isTimer(a) ? timerName(a) : a.label),
-        h("span", { class: `sub ${a.missedAt ? "missed" : ""}` }, a.missedAt ? `Missed · ${formatWhen(a.missedAt)}` : isTimer(a) ? "Done" : "Rang"),
+        h("span", { class: `sub ${a.missedAt ? "missed" : ""}` }, finishedStatus(a)),
       ),
       h("button", { class: "icon", title: "Delete", onclick: () => void backend.deleteAlarm(a.id) }, "✕"),
     );
@@ -318,6 +323,13 @@ function alarmTime(a: Alarm): string {
     return clock(d.getTime());
   }
   return a.nextFire ? clock(a.nextFire) : "--:--";
+}
+
+/** "Missed · Today 8:40 AM", "Done · Today 12:42 PM" (timers), "Rang · Yesterday 7:30 AM". */
+function finishedStatus(a: Alarm): string {
+  if (a.missedAt) return `Missed · ${formatWhen(a.missedAt)}`;
+  const word = isTimer(a) ? "Done" : "Rang";
+  return a.rangAt ? `${word} · ${formatWhen(a.rangAt)}` : word;
 }
 
 /** "Every day", "Once · Tomorrow", "Weekdays · Off"… */

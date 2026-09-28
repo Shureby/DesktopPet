@@ -82,6 +82,8 @@ export interface Todo {
   dueAt: number | null;
   done: boolean;
   createdAt: number;
+  /** When it was ticked off (null while open). */
+  doneAt: number | null;
 }
 
 export type Repeat = "none" | "daily" | "weekdays";
@@ -99,6 +101,8 @@ export interface Alarm {
   snoozes: number;
   /** When it rang unanswered (cleared once acknowledged). */
   missedAt: number | null;
+  /** When it last rang. Finished one-offs lose `nextFire`, so this is what they show. */
+  rangAt: number | null;
 }
 
 export type PomodoroPhase = "idle" | "focus" | "short_break" | "long_break";

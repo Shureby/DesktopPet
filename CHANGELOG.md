@@ -16,6 +16,21 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-09-28
+
+### Changed
+- **Finished things say when they finished.** Two "1 min timer · Done" rows could not be
+  told apart before.
+  - Alarms tab → Finished: "Done · Today 12:42 PM" for timers and "Rang · Today 8:40 AM"
+    for one-off alarms, which show their ring time instead of ⏰.
+  - To-dos → Done: "Done · Today 3:15 PM".
+  - Both lists put the most recent first.
+- Dates in the panel say "Yesterday" too, and times have no leading zero ("3:00 PM"),
+  matching the menus and badges.
+
+### Internal
+- Store migration v4: `alarms.rang_at`. To-dos now expose `done_at` (`doneAt`).
+
 ## [0.12.0] - 2026-09-28
 
 ### Added

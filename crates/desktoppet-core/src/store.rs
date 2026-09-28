@@ -60,9 +60,11 @@ const MIGRATIONS: &[&str] = &[
     // v3: snooze cycles and missed alarms.
     "ALTER TABLE alarms ADD COLUMN snoozes INTEGER NOT NULL DEFAULT 0;
      ALTER TABLE alarms ADD COLUMN missed_at INTEGER;",
+    // v4: when an alarm or timer last rang (one-offs lose next_fire then, so "Done at …" needs it).
+    "ALTER TABLE alarms ADD COLUMN rang_at INTEGER;",
 ];
 
-const ALARM_COLUMNS: &str = "id, label, next_fire, time_hm, repeat, enabled, snoozes, missed_at";
+const ALARM_COLUMNS: &str = "id, label, next_fire, time_hm, repeat, enabled, snoozes, missed_at, rang_at";
 
 pub struct Store {
     conn: Connection,
@@ -128,11 +130,19 @@ impl Store {
     // --- To-dos ---------------------------------------------------------------
 
     fn todo_row(r: &rusqlite::Row) -> rusqlite::Result<Todo> {
-        Ok(Todo { id: r.get(0)?, title: r.get(1)?, due_at: r.get(2)?, done: r.get(3)?, created_at: r.get(4)? })
+        Ok(Todo {
+            id: r.get(0)?,
+            title: r.get(1)?,
+            due_at: r.get(2)?,
+            done: r.get(3)?,
+            created_at: r.get(4)?,
+            done_at: r.get(5)?,
+        })
     }
 
     pub fn list_todos(&self) -> Result<Vec<Todo>> {
-        let mut stmt = self.conn.prepare("SELECT id, title, due_at, done, created_at FROM todos ORDER BY id")?;
+        let mut stmt =
+            self.conn.prepare("SELECT id, title, due_at, done, created_at, done_at FROM todos ORDER BY id")?;
         let rows = stmt.query_map([], Self::todo_row)?;
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
@@ -147,7 +157,7 @@ impl Store {
             params![title, due_at, now],
         )?;
         let id = self.conn.last_insert_rowid();
-        Ok(Todo { id, title: title.to_string(), due_at, done: false, created_at: now })
+        Ok(Todo { id, title: title.to_string(), due_at, done: false, created_at: now, done_at: None })
     }
 
     pub fn update_todo(&self, id: i64, patch: &TodoPatch, now: Millis) -> Result<()> {
@@ -182,6 +192,7 @@ impl Store {
             enabled: r.get(5)?,
             snoozes: r.get(6)?,
             missed_at: r.get(7)?,
+            rang_at: r.get(8)?,
         })
     }
 
@@ -222,6 +233,7 @@ impl Store {
             enabled: true,
             snoozes: 0,
             missed_at: None,
+            rang_at: None,
         })
     }
 
@@ -352,8 +364,8 @@ impl Store {
             // Rung alarms and timers stay (disabled) so the user can still snooze them;
             // "Stop" deletes a timer, and the daily clean-up removes the rest.
             self.conn.execute(
-                "UPDATE alarms SET next_fire = ?2, enabled = ?3 WHERE id = ?1",
-                params![a.id, next, next.is_some()],
+                "UPDATE alarms SET next_fire = ?2, enabled = ?3, rang_at = ?4 WHERE id = ?1",
+                params![a.id, next, next.is_some(), fire_at],
             )?;
         }
         Ok(out)
@@ -487,6 +499,9 @@ mod tests {
         )
         .unwrap();
         assert!(s.take_due(&London, at(16, 0)).unwrap().is_empty());
+        let done = &s.list_todos().unwrap()[0];
+        assert!(done.done);
+        assert_eq!(done.done_at, Some(at(15, 30)));
     }
 
     #[test]
@@ -505,6 +520,12 @@ mod tests {
         let saved = &s.list_alarms().unwrap()[0];
         assert!(!saved.enabled);
         assert_eq!(saved.next_fire, None);
+        // Finished, but it still knows when it rang ("Rang · Today 10:05").
+        assert_eq!(saved.rang_at, Some(at(10, 5)));
+        // Snoozed and rung again: the later time.
+        s.snooze_alarm(a.id, 5, at(10, 6)).unwrap();
+        s.take_due(&London, at(10, 11)).unwrap();
+        assert_eq!(s.list_alarms().unwrap()[0].rang_at, Some(at(10, 11)));
     }
 
     #[test]
