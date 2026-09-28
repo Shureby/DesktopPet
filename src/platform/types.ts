@@ -103,6 +103,8 @@ export interface Alarm {
   missedAt: number | null;
   /** When it last rang. Finished one-offs lose `nextFire`, so this is what they show. */
   rangAt: number | null;
+  /** When it was set (null for alarms saved before 0.14.0). Timers show "started 4:29 pm". */
+  createdAt: number | null;
 }
 
 export type PomodoroPhase = "idle" | "focus" | "short_break" | "long_break";

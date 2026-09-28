@@ -1,7 +1,7 @@
 import type { CharacterRegistry } from "../characters/registry";
 import type { CareAction, CharacterDef } from "../characters/schema";
 import { pick, type Rng } from "../engine/random";
-import { formatDuration, PRESET_MINUTES } from "../features/alarm/timers";
+import { formatDuration, PRESET_MINUTES, timerName } from "../features/alarm/timers";
 import { clock } from "../features/alarm/ringing";
 import type { Alarm, Backend, PanelTab, PomodoroStatus, Settings } from "../platform";
 
@@ -66,7 +66,6 @@ export function pickCare(character: CharacterDef, hungry: boolean, rng: Rng): Ca
  * countdown would always be stale there. The live countdown is on the badges by the pet.
  */
 export function taskItems(c: MenuContext): (Item | "sep")[] {
-  const timerName = (t: Alarm) => t.label.replace(/^Timer: /, "");
 
   // Presets keep fixed positions (muscle memory); the user's own lengths sit below a separator.
   const recent = c.settings.recentTimers.filter((m) => !PRESET_MINUTES.includes(m));

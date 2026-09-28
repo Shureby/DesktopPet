@@ -16,6 +16,19 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-09-28
+
+### Changed
+- **Running timers show when they were started:** "Started 4:29 PM · rings at 4:41 PM".
+  With several timers going, a forgotten one could be mistaken for part of an alarm
+  ringing at the same time.
+- **Hovering the ⏱ badge by the pet lists every running timer** and when it rings.
+
+### Internal
+- Store migration v5: `alarms.created_at`. Timers set before this version show no start
+  time.
+- `timerName()` is shared by the panel, menus and badges.
+
 ## [0.13.0] - 2026-09-28
 
 ### Changed

@@ -10,6 +10,7 @@ import {
   rememberCustomTimer,
   replaceCustomTimer,
   timerLabel,
+  timerName,
 } from "./timers";
 
 const alarm = (id: number, label: string, nextFire: number | null, enabled = true): Alarm => ({
@@ -22,6 +23,7 @@ const alarm = (id: number, label: string, nextFire: number | null, enabled = tru
   snoozes: 0,
   missedAt: null,
   rangAt: null,
+  createdAt: null,
 });
 
 describe("timers", () => {
@@ -93,5 +95,12 @@ describe("timers", () => {
     ];
     expect(isTimer(list[1])).toBe(false);
     expect(activeTimers(list, 1_000).map((a) => a.id)).toEqual([3, 1]);
+  });
+});
+
+describe("timerName", () => {
+  it("drops the stored prefix", () => {
+    expect(timerName(alarm(1, timerLabel(12), 0))).toBe("12 min");
+    expect(timerName(alarm(2, "Wake up", 0))).toBe("Wake up");
   });
 });

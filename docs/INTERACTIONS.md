@@ -105,6 +105,12 @@ Code: `src/features/alarm/ringing.ts`, the scheduler in `src-tauri/src/scheduler
   - one-off alarms: "Rang · Today 8:40 AM", with the ring time as the big time;
   - missed alarms: "Missed · Today 8:40 AM";
   - done to-dos: "Done · Today 3:15 PM".
+- **Running timers say when they were started** (since 0.14.0): "Started 4:29 PM · rings
+  at 4:41 PM". Without this, a forgotten test timer looked like part of an alarm that
+  happened to ring at the same time. The start time is `alarms.created_at` (v5 migration);
+  timers set before 0.14.0 show only "Rings at …".
+- **Hovering the ⏱ badge lists every running timer** with its ring time, so "+5" isn't a
+  mystery.
 - **Finished and done lists put the most recent first.**
 - **Dates read "Today", "Yesterday", "Tomorrow", otherwise a short date**
   (`formatWhen` in `src/panel/dom.ts`). Times follow the system's 12/24-hour setting,

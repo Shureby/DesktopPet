@@ -207,6 +207,7 @@ export const mockBackend: Backend = {
         snoozes: 0,
         missedAt: null,
         rangAt: null,
+        createdAt: Date.now(),
       };
       s.alarms.push(a);
       return a;

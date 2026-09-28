@@ -78,7 +78,7 @@ pub fn list_alarms(state: State<AppState>) -> CmdResult<Vec<Alarm>> {
 
 #[tauri::command]
 pub fn add_alarm(app: AppHandle, state: State<AppState>, label: String, at: i64, repeat: Repeat) -> CmdResult<Alarm> {
-    let alarm = state.store().add_alarm(&Local, &label, at, repeat).map_err(err)?;
+    let alarm = state.store().add_alarm(&Local, &label, at, repeat, now_ms()).map_err(err)?;
     let _ = app.emit("alarms-changed", ());
     Ok(alarm)
 }

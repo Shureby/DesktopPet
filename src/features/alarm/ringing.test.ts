@@ -12,6 +12,7 @@ const alarm = (over: Partial<Alarm> = {}): Alarm => ({
   snoozes: 0,
   missedAt: null,
   rangAt: null,
+  createdAt: null,
   ...over,
 });
 const s = DEFAULT_SETTINGS.alerts.alarm;

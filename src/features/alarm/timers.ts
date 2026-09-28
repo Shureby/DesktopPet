@@ -15,6 +15,11 @@ export function timerLabel(minutes: number): string {
   return `${TIMER_PREFIX}${formatDuration(minutes)}`;
 }
 
+/** "12 min" for "Timer: 12 min" (what timers are called in lists, menus and badges). */
+export function timerName(a: Alarm): string {
+  return a.label.startsWith(TIMER_PREFIX) ? a.label.slice(TIMER_PREFIX.length) : a.label;
+}
+
 /** "45 min", "1 hour", "1 h 30 min", "1 min 30 s", "90 s"… (accepts fractional minutes). */
 export function formatDuration(minutes: number): string {
   const total = Math.round(minutes * 60);

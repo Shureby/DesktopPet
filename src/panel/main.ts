@@ -15,8 +15,8 @@ import {
   PRESET_MINUTES,
   rememberCustomTimer,
   replaceCustomTimer,
-  TIMER_PREFIX,
   timerLabel,
+  timerName,
 } from "../features/alarm/timers";
 import { parseQuickAdd } from "../features/todo/quickAdd";
 import { GAMES } from "../features/games/catalog";
@@ -237,8 +237,8 @@ async function renderAlarms(): Promise<Node> {
       h(
         "div",
         { class: "info" },
-        h("span", { class: "title" }, `⏱ ${timerName(a)}`),
-        h("span", { class: "sub" }, a.nextFire ? `Rings at ${clock(a.nextFire)}` : ""),
+        h("span", { class: "title" }, `⏱ ${timerName(a)} timer`),
+        h("span", { class: "sub" }, timerTimes(a)),
         a.snoozes > 0 ? h("span", { class: "chip" }, `💤 snoozed ${a.snoozes}×`) : null,
       ),
       h("button", { onclick: () => void backend.deleteAlarm(a.id) }, "Cancel"),
@@ -276,7 +276,7 @@ async function renderAlarms(): Promise<Node> {
       h(
         "div",
         { class: "info" },
-        h("span", { class: "title" }, isTimer(a) ? timerName(a) : a.label),
+        h("span", { class: "title" }, isTimer(a) ? `${timerName(a)} timer` : a.label),
         h("span", { class: `sub ${a.missedAt ? "missed" : ""}` }, finishedStatus(a)),
       ),
       h("button", { class: "icon", title: "Delete", onclick: () => void backend.deleteAlarm(a.id) }, "✕"),
@@ -309,10 +309,6 @@ async function renderAlarms(): Promise<Node> {
 const REPEAT_TEXT: Record<Repeat, string> = { none: "Once", daily: "Every day", weekdays: "Weekdays" };
 
 /** "5 min timer" rather than the stored "Timer: 5 min". */
-function timerName(a: Alarm): string {
-  return `${a.label.slice(TIMER_PREFIX.length)} timer`;
-}
-
 /** The time of day the alarm rings, shown big like a phone clock app. */
 function alarmTime(a: Alarm): string {
   if (a.nextFire && a.snoozes === 0) return clock(a.nextFire);
@@ -323,6 +319,13 @@ function alarmTime(a: Alarm): string {
     return clock(d.getTime());
   }
   return a.nextFire ? clock(a.nextFire) : "--:--";
+}
+
+/** "Started 4:29 PM · rings at 4:41 PM", so identical timers can be told apart. */
+function timerTimes(a: Alarm): string {
+  const rings = a.nextFire ? `rings at ${clock(a.nextFire)}` : "";
+  if (!a.createdAt) return rings.replace(/^r/, "R");
+  return rings ? `Started ${clock(a.createdAt)} · ${rings}` : `Started ${clock(a.createdAt)}`;
 }
 
 /** "Missed · Today 8:40 AM", "Done · Today 12:42 PM" (timers), "Rang · Yesterday 7:30 AM". */

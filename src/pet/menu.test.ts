@@ -59,6 +59,7 @@ const timer = (id: number, min: number): Alarm & { nextFire: number } => ({
   snoozes: 0,
   missedAt: null,
   rangAt: null,
+  createdAt: null,
 });
 
 describe("pet menu", () => {

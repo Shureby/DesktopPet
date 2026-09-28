@@ -23,6 +23,7 @@ import {
   rememberCustomTimer,
   replaceCustomTimer,
   timerLabel,
+  timerName,
   TIMER_PREFIX,
 } from "../features/alarm/timers";
 import { formatRemaining } from "../features/pomodoro/logic";
@@ -328,7 +329,8 @@ export class PetHost {
     if (timers.length) {
       rows.push({
         text: `⏱ ${formatRemaining(timers[0].nextFire - now)}${more(timers.length)}`,
-        title: "Open the Alarms tab",
+        // Every running timer, so "+5" isn't a mystery.
+        title: [...timers.map((t) => `${timerName(t)} · rings at ${clock(t.nextFire)}`), "Click to open the Alarms tab"].join("\n"),
         onClick: () => void this.backend.openPanel("alarms"),
         live: true,
       });
@@ -364,7 +366,9 @@ export class PetHost {
     if (this.badges.dataset.text === key) {
       rows.forEach((r, i) => {
         const el = this.badges.children[i];
-        if (r.live && el && el.textContent !== r.text) el.textContent = r.text;
+        if (!r.live || !(el instanceof HTMLElement)) return;
+        if (el.textContent !== r.text) el.textContent = r.text;
+        if (r.title !== undefined && el.title !== r.title) el.title = r.title;
       });
     } else {
       this.badges.dataset.text = key;

@@ -62,9 +62,11 @@ const MIGRATIONS: &[&str] = &[
      ALTER TABLE alarms ADD COLUMN missed_at INTEGER;",
     // v4: when an alarm or timer last rang (one-offs lose next_fire then, so "Done at …" needs it).
     "ALTER TABLE alarms ADD COLUMN rang_at INTEGER;",
+    // v5: when it was set (timers show "started 4:29 pm").
+    "ALTER TABLE alarms ADD COLUMN created_at INTEGER;",
 ];
 
-const ALARM_COLUMNS: &str = "id, label, next_fire, time_hm, repeat, enabled, snoozes, missed_at, rang_at";
+const ALARM_COLUMNS: &str = "id, label, next_fire, time_hm, repeat, enabled, snoozes, missed_at, rang_at, created_at";
 
 pub struct Store {
     conn: Connection,
@@ -193,6 +195,7 @@ impl Store {
             snoozes: r.get(6)?,
             missed_at: r.get(7)?,
             rang_at: r.get(8)?,
+            created_at: r.get(9)?,
         })
     }
 
@@ -210,7 +213,14 @@ impl Store {
     }
 
     /// `at` is the first ring; repeating alarms remember its local time of day.
-    pub fn add_alarm<Tz: TimeZone>(&self, tz: &Tz, label: &str, at: Millis, repeat: Repeat) -> Result<Alarm> {
+    pub fn add_alarm<Tz: TimeZone>(
+        &self,
+        tz: &Tz,
+        label: &str,
+        at: Millis,
+        repeat: Repeat,
+        now: Millis,
+    ) -> Result<Alarm> {
         let time_hm = match repeat {
             Repeat::None => None,
             _ => {
@@ -221,8 +231,8 @@ impl Store {
             }
         };
         self.conn.execute(
-            "INSERT INTO alarms (label, next_fire, time_hm, repeat, enabled) VALUES (?1, ?2, ?3, ?4, 1)",
-            params![label.trim(), at, time_hm, repeat.as_str()],
+            "INSERT INTO alarms (label, next_fire, time_hm, repeat, enabled, created_at) VALUES (?1, ?2, ?3, ?4, 1, ?5)",
+            params![label.trim(), at, time_hm, repeat.as_str(), now],
         )?;
         Ok(Alarm {
             id: self.conn.last_insert_rowid(),
@@ -234,6 +244,7 @@ impl Store {
             snoozes: 0,
             missed_at: None,
             rang_at: None,
+            created_at: Some(now),
         })
     }
 
@@ -515,11 +526,12 @@ mod tests {
     #[test]
     fn one_shot_alarm_rings_then_disables() {
         let s = Store::open_in_memory().unwrap();
-        let a = s.add_alarm(&London, "Dentist", at(10, 5), Repeat::None).unwrap();
+        let a = s.add_alarm(&London, "Dentist", at(10, 5), Repeat::None, at(6, 0)).unwrap();
         assert_eq!(s.take_due(&London, at(10, 5)).unwrap()[0].id, a.id);
         let saved = &s.list_alarms().unwrap()[0];
         assert!(!saved.enabled);
         assert_eq!(saved.next_fire, None);
+        assert_eq!(saved.created_at, Some(at(6, 0)));
         // Finished, but it still knows when it rang ("Rang · Today 10:05").
         assert_eq!(saved.rang_at, Some(at(10, 5)));
         // Snoozed and rung again: the later time.
@@ -531,7 +543,7 @@ mod tests {
     #[test]
     fn daily_alarm_reschedules_and_snooze_works() {
         let s = Store::open_in_memory().unwrap();
-        let a = s.add_alarm(&London, "Wake up", at(7, 30), Repeat::Daily).unwrap();
+        let a = s.add_alarm(&London, "Wake up", at(7, 30), Repeat::Daily, at(6, 0)).unwrap();
         assert_eq!(a.time_hm.as_deref(), Some("07:30"));
         assert_eq!(s.take_due(&London, at(7, 30)).unwrap().len(), 1);
         let next = s.list_alarms().unwrap()[0].next_fire.unwrap();
@@ -546,7 +558,7 @@ mod tests {
     #[test]
     fn stale_repeating_alarms_are_skipped_not_rung_late() {
         let s = Store::open_in_memory().unwrap();
-        s.add_alarm(&London, "Wake up", at(7, 30), Repeat::Daily).unwrap();
+        s.add_alarm(&London, "Wake up", at(7, 30), Repeat::Daily, at(6, 0)).unwrap();
         assert!(s.take_due(&London, at(12, 0)).unwrap().is_empty());
         assert!(s.list_alarms().unwrap()[0].enabled);
     }
@@ -582,7 +594,7 @@ mod tests {
     #[test]
     fn a_rung_timer_can_still_be_snoozed_and_stays_visible() {
         let s = Store::open_in_memory().unwrap();
-        let t = s.add_alarm(&London, "Timer: 1 min", at(10, 1), Repeat::None).unwrap();
+        let t = s.add_alarm(&London, "Timer: 1 min", at(10, 1), Repeat::None, at(6, 0)).unwrap();
         assert_eq!(s.take_due(&London, at(10, 1)).unwrap().len(), 1);
         // Still there (finished) while the user decides.
         assert!(!s.list_alarms().unwrap()[0].enabled);
@@ -597,7 +609,7 @@ mod tests {
     #[test]
     fn snoozes_are_counted_and_done_ends_the_cycle() {
         let s = Store::open_in_memory().unwrap();
-        let a = s.add_alarm(&London, "Wake up", at(7, 0), Repeat::Daily).unwrap();
+        let a = s.add_alarm(&London, "Wake up", at(7, 0), Repeat::Daily, at(6, 0)).unwrap();
         s.take_due(&London, at(7, 0)).unwrap();
         s.snooze_alarm(a.id, 5, at(7, 1)).unwrap();
         s.take_due(&London, at(7, 6)).unwrap();
@@ -615,7 +627,7 @@ mod tests {
     #[test]
     fn missed_alarms_are_remembered_until_acknowledged() {
         let s = Store::open_in_memory().unwrap();
-        let a = s.add_alarm(&London, "Dentist", at(15, 0), Repeat::None).unwrap();
+        let a = s.add_alarm(&London, "Dentist", at(15, 0), Repeat::None, at(6, 0)).unwrap();
         s.take_due(&London, at(15, 0)).unwrap();
         let missed = s.mark_alarm_missed(a.id, at(15, 1)).unwrap().unwrap();
         assert_eq!(missed.missed_at, Some(at(15, 1)));
@@ -629,7 +641,7 @@ mod tests {
     #[test]
     fn snoozing_a_deleted_alarm_is_an_error_not_a_silent_no_op() {
         let s = Store::open_in_memory().unwrap();
-        let t = s.add_alarm(&London, "Timer: 1 min", at(10, 1), Repeat::None).unwrap();
+        let t = s.add_alarm(&London, "Timer: 1 min", at(10, 1), Repeat::None, at(6, 0)).unwrap();
         s.delete_alarm(t.id).unwrap();
         assert!(s.snooze_alarm(t.id, 5, at(10, 2)).is_err());
     }
@@ -637,7 +649,7 @@ mod tests {
     #[test]
     fn switching_a_one_shot_alarm_off_and_on_keeps_its_time() {
         let s = Store::open_in_memory().unwrap();
-        let a = s.add_alarm(&London, "Dentist", at(15, 0), Repeat::None).unwrap();
+        let a = s.add_alarm(&London, "Dentist", at(15, 0), Repeat::None, at(6, 0)).unwrap();
         s.set_alarm_enabled(&London, a.id, false, at(9, 0)).unwrap();
         assert!(!s.list_alarms().unwrap()[0].enabled);
         assert!(s.take_due(&London, at(15, 0)).unwrap().is_empty());
@@ -650,11 +662,11 @@ mod tests {
     #[test]
     fn clear_finished_keeps_upcoming_and_repeating() {
         let s = Store::open_in_memory().unwrap();
-        s.add_alarm(&London, "Rang", at(8, 0), Repeat::None).unwrap();
-        s.add_alarm(&London, "Later", at(18, 0), Repeat::None).unwrap();
-        let off = s.add_alarm(&London, "Switched off, still ahead", at(19, 0), Repeat::None).unwrap();
+        s.add_alarm(&London, "Rang", at(8, 0), Repeat::None, at(6, 0)).unwrap();
+        s.add_alarm(&London, "Later", at(18, 0), Repeat::None, at(6, 0)).unwrap();
+        let off = s.add_alarm(&London, "Switched off, still ahead", at(19, 0), Repeat::None, at(6, 0)).unwrap();
         s.set_alarm_enabled(&London, off.id, false, at(9, 0)).unwrap();
-        s.add_alarm(&London, "Daily", at(7, 0), Repeat::Daily).unwrap();
+        s.add_alarm(&London, "Daily", at(7, 0), Repeat::Daily, at(6, 0)).unwrap();
         s.take_due(&London, at(9, 0)).unwrap();
         assert_eq!(s.clear_finished_alarms(at(9, 0)).unwrap(), 1);
         let labels: Vec<_> = s.list_alarms().unwrap().into_iter().map(|a| a.label).collect();

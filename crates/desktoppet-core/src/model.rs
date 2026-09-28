@@ -75,6 +75,8 @@ pub struct Alarm {
     pub missed_at: Option<Millis>,
     /// When it last rang (the time it was due). Finished one-offs show it ("Done · Today 12:42").
     pub rang_at: Option<Millis>,
+    /// When it was set (null for alarms from before v5).
+    pub created_at: Option<Millis>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
