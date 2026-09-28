@@ -13,7 +13,8 @@
     "sprites": "node scripts/render-sprites.mjs",
     "icon": "node scripts/render-sprites.mjs --icon && tauri icon build/icon-source.png",
     "tauri": "tauri",
-    "set-version": "node scripts/version.mjs"
+    "set-version": "node scripts/version.mjs",
+    "test-checklist": "node scripts/test-checklist.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",

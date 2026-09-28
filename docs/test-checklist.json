@@ -1,0 +1,623 @@
+{
+  "$comment": "Source of truth for docs/TESTING.md and the online checklist. `rev` = the app version in which this item's expected behaviour last changed; results recorded on an older build show as 'needs retest'. Keep `id`s stable.",
+  "sections": [
+    {
+      "id": "install",
+      "title": "安装与启动",
+      "items": [
+        {
+          "id": "install.setup",
+          "rev": "0.1.0",
+          "do": "安装包安装",
+          "expect": "开始菜单/启动台里有应用，图标和名字正常"
+        },
+        {
+          "id": "install.first-launch",
+          "rev": "0.1.0",
+          "do": "首次启动",
+          "expect": "宠物从屏幕上方掉下来，落在任务栏/Dock 上方"
+        },
+        {
+          "id": "install.version",
+          "rev": "0.8.0",
+          "do": "右键宠物 → Open panel… → Settings，看页面底部",
+          "expect": "显示 `ePet {version} · …`，与安装包版本一致"
+        },
+        {
+          "id": "install.single-instance",
+          "rev": "0.1.0",
+          "do": "已经运行时再启动一次",
+          "expect": "不会出现第二只宠物（只打开面板）"
+        },
+        {
+          "id": "install.upgrade",
+          "rev": "0.1.0",
+          "do": "覆盖安装新版本",
+          "expect": "之前的待办、闹钟、设置、心情值都还在"
+        },
+        {
+          "id": "install.autostart",
+          "rev": "0.1.0",
+          "do": "Settings → 勾选 Start with my computer，重启电脑；再取消并重启",
+          "expect": "勾选时自动启动，取消后不启动"
+        }
+      ]
+    },
+    {
+      "id": "pet",
+      "title": "宠物移动与交互",
+      "items": [
+        {
+          "id": "pet.idle",
+          "rev": "0.1.0",
+          "do": "放着不管 1–2 分钟",
+          "expect": "自己走、跑、坐、睡，动作流畅不卡"
+        },
+        {
+          "id": "pet.windows",
+          "rev": "0.1.0",
+          "do": "让宠物走到普通窗口的顶边",
+          "expect": "能站在标题栏上；窗口移走或最小化后会掉下来"
+        },
+        {
+          "id": "pet.drag-throw",
+          "rev": "0.1.0",
+          "do": "拖起宠物，然后甩出去",
+          "expect": "拖动跟手；松手后按抛物线飞，撞墙反弹"
+        },
+        {
+          "id": "pet.multi-monitor",
+          "rev": "0.1.0",
+          "do": "多显示器：把宠物甩到另一块屏幕",
+          "expect": "能跨屏，落在那块屏的底边"
+        },
+        {
+          "id": "pet.click-through",
+          "rev": "0.1.0",
+          "do": "点击宠物身体以外的透明区域",
+          "expect": "点击穿透到下面的窗口，不挡桌面"
+        },
+        {
+          "id": "pet.hover-meter",
+          "rev": "0.4.0",
+          "do": "鼠标悬停在宠物上",
+          "expect": "左侧显示爱心和饱食度百分比，不被对话气泡挡住"
+        },
+        {
+          "id": "pet.cat-abilities",
+          "rev": "0.1.0",
+          "do": "用 Cat 观察一段时间",
+          "expect": "走到屏幕边缘会爬墙；偶尔扑向鼠标"
+        },
+        {
+          "id": "pet.rooster-glide",
+          "rev": "0.1.0",
+          "do": "用 Rooster 从高处甩下",
+          "expect": "会滑翔，下落变慢"
+        },
+        {
+          "id": "pet.hidpi",
+          "rev": "0.1.0",
+          "do": "在 125%/150% 缩放的屏幕上使用",
+          "expect": "宠物大小正常，位置不偏"
+        }
+      ]
+    },
+    {
+      "id": "menu",
+      "title": "右键菜单",
+      "items": [
+        {
+          "id": "menu.items",
+          "rev": "0.7.0",
+          "do": "右键宠物",
+          "expect": "菜单各项以动词开头：Set timer / 照顾动作 / Add to-do… / Set alarm… / Start focus session / Play Safe Landing / Switch character / Open panel… / Hide pet"
+        },
+        {
+          "id": "menu.care",
+          "rev": "0.3.0",
+          "do": "多次打开菜单；等宠物饿了再打开",
+          "expect": "照顾动作文字随机变化（Cat：Scratch the Cat's chin 等；Rooster：Scatter some corn 等）；饿时喂食排第一"
+        },
+        {
+          "id": "menu.hide",
+          "rev": "0.1.0",
+          "do": "Hide pet，再用托盘 Show / hide pet",
+          "expect": "宠物消失后重新出现"
+        },
+        {
+          "id": "menu.add-todo",
+          "rev": "0.2.0",
+          "do": "Add to-do…",
+          "expect": "面板打开到 To-dos；宠物继续正常动，不卡死"
+        },
+        {
+          "id": "menu.set-alarm",
+          "rev": "0.7.0",
+          "do": "Set alarm…",
+          "expect": "面板打开到 Alarms，时间框已获得焦点，可以直接输入"
+        }
+      ]
+    },
+    {
+      "id": "tray",
+      "title": "托盘",
+      "items": [
+        {
+          "id": "tray.items",
+          "rev": "0.7.0",
+          "do": "逐个点托盘菜单：Show / hide pet、Open panel…、Set alarm…、Start focus session 🍅、Play Safe Landing、Switch character…",
+          "expect": "每一项都能用"
+        },
+        {
+          "id": "tray.quit",
+          "rev": "0.1.0",
+          "do": "托盘 → Quit",
+          "expect": "宠物和所有窗口关闭，进程退出"
+        }
+      ]
+    },
+    {
+      "id": "timer",
+      "title": "计时器",
+      "items": [
+        {
+          "id": "timer.presets",
+          "rev": "0.8.0",
+          "do": "右键 → Set timer",
+          "expect": "1 min · 5 min · 10 min · 15 min · 30 min · 45 min · 1 hour，下面一条分隔线"
+        },
+        {
+          "id": "timer.confirm",
+          "rev": "0.3.0",
+          "do": "选 1 min",
+          "expect": "宠物说 “1 min timer set, I'll ring at …”；旁边出现 ⏱ 倒计时角标"
+        },
+        {
+          "id": "timer.several",
+          "rev": "0.3.0",
+          "do": "同时开 3 个计时器，再右键 → Cancel timer",
+          "expect": "角标显示最近的一个 + “+2”；子菜单列出全部及剩余时间"
+        },
+        {
+          "id": "timer.cancel",
+          "rev": "0.3.0",
+          "do": "取消其中一个",
+          "expect": "角标和面板里同时消失"
+        },
+        {
+          "id": "timer.ring",
+          "rev": "0.5.0",
+          "do": "等计时器到点",
+          "expect": "按 Settings → Alerts 响铃/跑到屏幕中间；气泡有 Snooze N min 和 Done"
+        },
+        {
+          "id": "timer.snooze",
+          "rev": "0.4.1",
+          "do": "响铃时点 Snooze",
+          "expect": "宠物说 “Snoozed until …”；面板 Timers 和角标里能看到，右键可以取消"
+        },
+        {
+          "id": "timer.done",
+          "rev": "0.5.0",
+          "do": "响铃时点 Done",
+          "expect": "停止，计时器被删除"
+        },
+        {
+          "id": "timer.unanswered",
+          "rev": "0.5.0",
+          "do": "响铃时不理会，等响完",
+          "expect": "不会自动贪睡；出现灰色 “⏱ Done 14:05” 角标，点击或 1 小时后消失"
+        }
+      ]
+    },
+    {
+      "id": "custom-timer",
+      "title": "自定义计时器",
+      "items": [
+        {
+          "id": "custom.prompt",
+          "rev": "0.8.0",
+          "do": "Set timer → Custom / Edit…",
+          "expect": "气泡出现 “How long?” 输入框，可以直接打字（Windows 上特别确认能拿到输入焦点）"
+        },
+        {
+          "id": "custom.formats",
+          "rev": "0.8.0",
+          "do": "依次输入 20、1:30、90s、2.5h、1h30m",
+          "expect": "下方实时显示 = 20 min / = 1 h 30 min / = 1 min 30 s / = 2 h 30 min / = 1 h 30 min"
+        },
+        {
+          "id": "custom.invalid",
+          "rev": "0.8.0",
+          "do": "输入 abc 回车",
+          "expect": "红字 “Try 20, 1:30 or 90s”，不启动"
+        },
+        {
+          "id": "custom.start",
+          "rev": "0.8.0",
+          "do": "输入 1:30 回车",
+          "expect": "启动 1 h 30 min 计时器，宠物确认"
+        },
+        {
+          "id": "custom.listed",
+          "rev": "0.8.0",
+          "do": "再打开 Set timer，点 “1 h 30 min (custom)”",
+          "expect": "分隔线下有这一项，点它直接启动"
+        },
+        {
+          "id": "custom.max-three",
+          "rev": "0.8.0",
+          "do": "再设 3 个不同的自定义时长",
+          "expect": "最多保留 3 个，最新的在最上面，最早的被挤掉"
+        },
+        {
+          "id": "custom.preset-skip",
+          "rev": "0.8.0",
+          "do": "自定义输入 30（与预设相同）",
+          "expect": "不会出现在 (custom) 列表里"
+        },
+        {
+          "id": "custom.edit",
+          "rev": "0.8.0",
+          "do": "Custom / Edit… → 点中间那个的 ✎，改成 25 回车",
+          "expect": "输入框先填入原值，提示 “Change X → …”；启动后原位置变成 25 min，其他两个不动、顺序不变"
+        },
+        {
+          "id": "custom.forget",
+          "rev": "0.8.0",
+          "do": "Custom / Edit… → 点某个的 ✕",
+          "expect": "立刻从气泡和 Set timer 菜单里消失"
+        },
+        {
+          "id": "custom.cancel",
+          "rev": "0.8.0",
+          "do": "按 Esc 或 ✕；再试一次什么都不做等 45 秒",
+          "expect": "气泡关闭，不启动计时器"
+        },
+        {
+          "id": "custom.chatter",
+          "rev": "0.8.0",
+          "do": "输入框打开时等一会儿",
+          "expect": "宠物的普通闲聊不会顶掉输入框"
+        }
+      ]
+    },
+    {
+      "id": "alarm",
+      "title": "闹钟",
+      "items": [
+        {
+          "id": "alarm.create",
+          "rev": "0.6.0",
+          "do": "面板 Alarms：新建一个 2 分钟后的 Once 闹钟",
+          "expect": "出现在 Alarms 列表：大字时间 + “Once · Today”，右侧开关为开"
+        },
+        {
+          "id": "alarm.repeat",
+          "rev": "0.6.0",
+          "do": "新建 Every day 和 Weekdays 闹钟",
+          "expect": "下一次时间说明正确（周五设 Weekdays 显示下周一）"
+        },
+        {
+          "id": "alarm.switch",
+          "rev": "0.6.0",
+          "do": "关掉开关，再打开",
+          "expect": "关闭时变灰（不划线）；打开后恢复，时间不变"
+        },
+        {
+          "id": "alarm.delete",
+          "rev": "0.6.0",
+          "do": "鼠标悬停一行，点 ✕",
+          "expect": "出现 ✕，点后删除"
+        },
+        {
+          "id": "alarm.ring",
+          "rev": "0.5.0",
+          "do": "等闹钟到点",
+          "expect": "宠物响铃/跑到中间（按设置），气泡有 Snooze 5 min / Done"
+        },
+        {
+          "id": "alarm.auto-snooze",
+          "rev": "0.6.0",
+          "do": "不理会，等它响完",
+          "expect": "自动贪睡：宠物旁 “💤 9:05”，面板显示 (snooze 1/3)，右键菜单有 “Cancel snooze: …”"
+        },
+        {
+          "id": "alarm.missed",
+          "rev": "0.5.0",
+          "do": "第 3 次贪睡后仍不理会",
+          "expect": "系统通知 + 橙色 “⏰ Missed 9:00” 角标，点击才消失"
+        },
+        {
+          "id": "alarm.welcome-back",
+          "rev": "0.5.0",
+          "do": "之后第一次把鼠标移到宠物上",
+          "expect": "宠物说一次你错过了什么（只说一次）"
+        },
+        {
+          "id": "alarm.done-ends",
+          "rev": "0.5.0",
+          "do": "任意一次贪睡响铃时点 Done",
+          "expect": "整个贪睡周期结束，不再响"
+        },
+        {
+          "id": "alarm.repeat-missed",
+          "rev": "0.5.0",
+          "do": "让 Every day 闹钟被错过",
+          "expect": "明天照常响"
+        },
+        {
+          "id": "alarm.finished",
+          "rev": "0.6.0",
+          "do": "看 Finished 区，点 Clear",
+          "expect": "响过的一次性闹钟显示 Missed / Rang / Done；Clear 后清空"
+        },
+        {
+          "id": "alarm.daily-cleanup",
+          "rev": "0.4.0",
+          "do": "跨天后（或改系统日期）打开面板",
+          "expect": "前一天已结束的项目被自动清理"
+        }
+      ]
+    },
+    {
+      "id": "quick-timer",
+      "title": "面板 Quick timer",
+      "items": [
+        {
+          "id": "quick.row",
+          "rev": "0.8.0",
+          "do": "面板 → Alarms → Quick timer",
+          "expect": "1m 5m 10m 15m 30m 45m 1h + 虚线的自定义按钮（如 1h30m、25m）"
+        },
+        {
+          "id": "quick.edit",
+          "rev": "0.8.0",
+          "do": "鼠标移到虚线按钮，点 ✎，改值回车",
+          "expect": "出现 ✎ ✕；输入框填入该值，提示 “25m → …”；回车后原位替换"
+        },
+        {
+          "id": "quick.forget",
+          "rev": "0.8.0",
+          "do": "点虚线按钮的 ✕",
+          "expect": "按钮消失，宠物右键菜单里也同步消失"
+        },
+        {
+          "id": "quick.custom-input",
+          "rev": "0.8.0",
+          "do": "Custom 输入框输入 2h 回车",
+          "expect": "启动计时器，Timers 区出现大字倒计时 + Cancel"
+        }
+      ]
+    },
+    {
+      "id": "todo",
+      "title": "待办",
+      "items": [
+        {
+          "id": "todo.parse-time",
+          "rev": "0.1.0",
+          "do": "输入 call mom at 3pm",
+          "expect": "标题 “call mom”，今天 15:00 提醒"
+        },
+        {
+          "id": "todo.parse-more",
+          "rev": "0.1.0",
+          "do": "输入 standup tomorrow 9:30、stretch in 20m、pay rent fri 10am、just a note",
+          "expect": "时间解析正确；最后一个没有提醒时间"
+        },
+        {
+          "id": "todo.feedback",
+          "rev": "0.3.0",
+          "do": "面板添加待办，再勾选完成",
+          "expect": "添加时宠物确认一句；完成时宠物夸奖，爱心增加"
+        },
+        {
+          "id": "todo.remind",
+          "rev": "0.2.0",
+          "do": "等待办提醒到点",
+          "expect": "按 Alerts → To-do reminders 设置提示，只响一次"
+        },
+        {
+          "id": "todo.clear",
+          "rev": "0.4.0",
+          "do": "Done 区点 Clear",
+          "expect": "已完成的待办被清空"
+        }
+      ]
+    },
+    {
+      "id": "focus",
+      "title": "专注时段",
+      "items": [
+        {
+          "id": "focus.start",
+          "rev": "0.3.0",
+          "do": "右键 → Start focus session 🍅",
+          "expect": "角标显示专注倒计时（在计时器角标上方）"
+        },
+        {
+          "id": "focus.timer-during",
+          "rev": "0.3.0",
+          "do": "专注中让一个计时器响",
+          "expect": "宠物不离开原位"
+        },
+        {
+          "id": "focus.cycle",
+          "rev": "0.1.0",
+          "do": "让专注时段结束",
+          "expect": "提示休息；每 N 轮进入长休息（按 Focus 页设置）"
+        },
+        {
+          "id": "focus.stop",
+          "rev": "0.3.0",
+          "do": "右键 → Stop focus session",
+          "expect": "菜单显示剩余时间；点后停止"
+        },
+        {
+          "id": "focus.stats",
+          "rev": "0.1.0",
+          "do": "Focus 页看 Last 7 days",
+          "expect": "有统计记录"
+        }
+      ]
+    },
+    {
+      "id": "mood",
+      "title": "心情与照顾",
+      "items": [
+        {
+          "id": "mood.start",
+          "rev": "0.4.0",
+          "do": "新角色放着几分钟",
+          "expect": "心情为 content（约 60%），不会自己变 grumpy"
+        },
+        {
+          "id": "mood.care",
+          "rev": "0.4.0",
+          "do": "抚摸/喂食，短时间内多次抚摸",
+          "expect": "飘出 “+3 ♥”；抚摸太多时说 “That's plenty for now”"
+        },
+        {
+          "id": "mood.carry",
+          "rev": "0.4.0",
+          "do": "拖起来带着走；再用力甩出去砸地",
+          "expect": "带着走算玩耍，爱心增加；砸地轻微扣分"
+        },
+        {
+          "id": "mood.full",
+          "rev": "0.3.0",
+          "do": "一直喂到饱",
+          "expect": "饱食度满，再喂有反应"
+        },
+        {
+          "id": "mood.cards",
+          "rev": "0.3.0",
+          "do": "面板 → Characters",
+          "expect": "每个角色一张心情卡片"
+        },
+        {
+          "id": "mood.offline",
+          "rev": "0.3.0",
+          "do": "关掉应用一段时间再打开",
+          "expect": "心情不会因为关着的时间而下降"
+        }
+      ]
+    },
+    {
+      "id": "settings",
+      "title": "设置",
+      "items": [
+        {
+          "id": "settings.size-speed",
+          "rev": "0.1.0",
+          "do": "拖动 Pet size / Pet speed 滑块",
+          "expect": "实时生效"
+        },
+        {
+          "id": "settings.alerts",
+          "rev": "0.2.0",
+          "do": "Alerts 里分别切换跑到中间、Ring、铃声、音量",
+          "expect": "▶ 试听有声音；实际提醒按设置执行"
+        },
+        {
+          "id": "settings.ringtones",
+          "rev": "0.2.0",
+          "do": "逐个试听 6 种铃声",
+          "expect": "classic / chime / digital / gentle rise / marimba / rooster crow 都能播"
+        },
+        {
+          "id": "settings.unanswered",
+          "rev": "0.5.0",
+          "do": "改 Ring for 和 If nobody answers",
+          "expect": "按设置执行（响铃时长、贪睡次数或直接标记 missed）"
+        },
+        {
+          "id": "settings.quiet-hours",
+          "rev": "0.1.0",
+          "do": "Quiet hours 设成包含当前时间",
+          "expect": "宠物安静，但闹钟照常响"
+        },
+        {
+          "id": "settings.other-sounds",
+          "rev": "0.3.0",
+          "do": "关掉 Other sounds",
+          "expect": "抚摸、专注提示不再有声音"
+        }
+      ]
+    },
+    {
+      "id": "characters",
+      "title": "角色",
+      "items": [
+        {
+          "id": "characters.switch",
+          "rev": "0.3.0",
+          "do": "右键 → Switch character → Rooster，再切回 Cat",
+          "expect": "换成公鸡，菜单打勾正确；切回后 Cat 的心情值还在"
+        },
+        {
+          "id": "characters.folder",
+          "rev": "0.1.0",
+          "do": "Characters 页点 “your characters folder”",
+          "expect": "打开用户角色文件夹"
+        }
+      ]
+    },
+    {
+      "id": "game",
+      "title": "小游戏 Safe Landing",
+      "items": [
+        {
+          "id": "game.open",
+          "rev": "0.2.0",
+          "do": "右键 → Play Safe Landing",
+          "expect": "游戏窗口打开，宠物主窗口仍正常"
+        },
+        {
+          "id": "game.controls",
+          "rev": "0.1.0",
+          "do": "← → / A D 移动；Space 或 Enter 开始",
+          "expect": "操作正常"
+        },
+        {
+          "id": "game.abilities",
+          "rev": "0.1.0",
+          "do": "分别用 Cat 和 Rooster 玩",
+          "expect": "Cat 抓 ☂ 减速；Rooster 按住 Space 滑翔，提示文字对应"
+        },
+        {
+          "id": "game.finish",
+          "rev": "0.3.0",
+          "do": "结束后按 R 重来，再关闭窗口",
+          "expect": "可以重来；关闭后回到桌面，宠物爱心增加"
+        }
+      ]
+    },
+    {
+      "id": "stability",
+      "title": "稳定性",
+      "items": [
+        {
+          "id": "stability.windows",
+          "rev": "0.2.0",
+          "do": "连续打开/关闭面板和游戏窗口 10 次",
+          "expect": "不卡死、没有黑窗、任务栏不消失"
+        },
+        {
+          "id": "stability.sleep",
+          "rev": "0.5.0",
+          "do": "电脑睡眠后唤醒",
+          "expect": "宠物正常；错过的闹钟按贪睡/Missed 规则处理"
+        },
+        {
+          "id": "stability.long-run",
+          "rev": "0.1.0",
+          "do": "运行 1 小时以上，看任务管理器/活动监视器",
+          "expect": "CPU、内存占用稳定，不持续上涨"
+        }
+      ]
+    }
+  ]
+}

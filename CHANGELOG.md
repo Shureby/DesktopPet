@@ -9,6 +9,11 @@ How to release a build: add entries under **Unreleased** as you go, then run
 version field (package.json, Cargo.toml, tauri.conf.json, lockfiles). CI fails if the
 versions disagree or this file has no section for the current version.
 
+Manual tests live in `docs/test-checklist.json` (rendered to `docs/TESTING.md` by
+`npm run test-checklist`). Each item's `rev` is the version in which its expected
+behaviour last changed: when a change makes earlier results meaningless, set the
+affected items' `rev` to the new version so the online checklist asks for a retest.
+
 ## [Unreleased]
 
 ## [0.8.0] - 2026-09-27
