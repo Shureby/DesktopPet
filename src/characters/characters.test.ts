@@ -264,3 +264,64 @@ describe("display scale", () => {
     expect(pet.body.h).toBeCloseTo(h);
   });
 });
+
+describe("mouse resting on the pet (docs/INTERACTIONS.md)", () => {
+  function walkingCat() {
+    const pet = spawn(registry.get("cat")!.def);
+    simulate(pet, 2);
+    pet.fsm.set("run", true);
+    simulate(pet, 0.3);
+    return pet;
+  }
+
+  it("stops and faces the cursor, stays put, and carries on once released", () => {
+    const pet = walkingCat();
+    pet.cursor = { x: pet.body.x - 200, y: pet.body.y - 20 };
+    pet.react({ type: "hover", phase: "attend" });
+    simulate(pet, 0.5);
+    expect(pet.state).toBe("attend");
+    expect(pet.body.vx).toBe(0);
+    expect(pet.facing).toBe(-1);
+    const x = pet.body.x;
+    simulate(pet, 20);
+    expect(pet.state).toBe("attend");
+    expect(pet.body.x).toBeCloseTo(x);
+    pet.react({ type: "hover", phase: "release" });
+    expect(pet.state).not.toBe("attend");
+    expect(pet.attending).toBe(false);
+  });
+
+  it("goes back to attending after a happy hop", () => {
+    const pet = walkingCat();
+    pet.cursor = { x: pet.body.x, y: pet.body.y - 20 };
+    pet.react({ type: "hover", phase: "attend" });
+    pet.react({ type: "petted" });
+    expect(pet.state).toBe("happy");
+    simulate(pet, 3);
+    expect(pet.state).toBe("attend");
+  });
+
+  it("an unhappy pet steps about a body length away, says why, and turns back", () => {
+    const pet = walkingCat();
+    const said: string[] = [];
+    pet.onSay = (t) => said.push(t);
+    pet.cursor = { x: pet.body.x + 5, y: pet.body.y - 20 };
+    const x = pet.body.x;
+    pet.react({ type: "hover", phase: "dodge", reason: "hungry" });
+    expect(pet.state).toBe("dodge");
+    simulate(pet, 1.5);
+    const moved = x - pet.body.x;
+    expect(moved).toBeGreaterThan(pet.spriteSize.w * 0.6);
+    expect(moved).toBeLessThan(pet.spriteSize.w * 2);
+    expect(pet.facing).toBe(1);
+    expect(registry.get("cat")!.def.personality.lines.dodgeHungry).toContain(said[0]);
+  });
+
+  it("every bundled character has the hover lines", () => {
+    for (const c of registry.list()) {
+      for (const key of ["dodgeHungry", "dodgeGrumpy", "noticed", "noticedHappy", "release"]) {
+        expect(c.def.personality.lines[key]?.length, `${c.def.id}.${key}`).toBeGreaterThan(0);
+      }
+    }
+  });
+});

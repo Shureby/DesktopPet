@@ -78,6 +78,8 @@ that folder is also the path for Steam Workshop content.
 
 ## More
 
+- [docs/INTERACTIONS.md](docs/INTERACTIONS.md): how the pet responds to the mouse, menus, badges and unanswered alarms (the rules and why)
 - [docs/CHARACTERS.md](docs/CHARACTERS.md): character format and how to add abilities
 - [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md): Steam, Epic, the website build, signing, renaming
 - [docs/ROADMAP.md](docs/ROADMAP.md): next characters, games, tools and the LLM tier
+- [docs/TESTING.md](docs/TESTING.md): the manual test checklist (generated from `docs/test-checklist.json`)

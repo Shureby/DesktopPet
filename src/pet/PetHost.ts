@@ -1,3 +1,4 @@
+import { HoverTracker } from "../brain/hover";
 import { applyMoodEvent, isHungry, moodTier, parseMood, type MoodEvent } from "../brain/mood";
 import { RulesBrain } from "../brain/RulesBrain";
 import { Pet } from "../characters/Pet";
@@ -76,6 +77,8 @@ export class PetHost {
   /** The bubble is asking for a custom timer length; chatter must not replace it. */
   private prompting = false;
   private hovering = false;
+  /** The mouse resting on the pet: stop, react, stroke (brain/hover.ts, docs/INTERACTIONS.md). */
+  private readonly hover = new HoverTracker();
   /** False while the pet is hidden from its menu or the tray. */
   private petVisible = true;
   /** Tray menus still referenced: the current one and the one before (it may be open). */
@@ -422,6 +425,7 @@ export class PetHost {
           this.welcomeBack();
         }
         this.hovering = overPet;
+        this.updateHover(cursor, winX, winY);
         this.ignoringCursor = !overPet && !this.drag;
         // In the browser mock the full-page canvas must not block the fake windows underneath.
         this.canvas.style.pointerEvents = this.ignoringCursor ? "none" : "auto";
@@ -432,6 +436,38 @@ export class PetHost {
     } finally {
       this.framePending = false;
     }
+  }
+
+  /** Feeds the hover rules and turns what they decide into pet reactions or petting. */
+  private updateHover(cursor: { x: number; y: number }, winX: number, winY: number): void {
+    const tier = moodTier(this.pet.mood);
+    const events = this.hover.update(performance.now(), {
+      over: this.isNearSprite(cursor.x, cursor.y, winX, winY),
+      cursor,
+      unit: this.dpr,
+      canAttend:
+        !this.drag && !this.activeRing && !this.hidden && this.pet.mode === "free" && this.pet.state !== "goto",
+      unhappy: isHungry(this.pet.mood) ? "hungry" : tier === "grumpy" || tier === "sulking" ? "grumpy" : null,
+    });
+    for (const e of events) {
+      if (e.type === "stroke") this.care({ label: "", kind: "pet" });
+      else if (e.type === "dodge") this.pet.react({ type: "hover", phase: "dodge", reason: e.reason });
+      else this.pet.react({ type: "hover", phase: e.type });
+    }
+  }
+
+  /**
+   * The sprite's bounding box: hovering and stroking use this rather than exact pixels,
+   * so rubbing across a gap in the art (between the legs) isn't leaving and coming back.
+   */
+  private isNearSprite(cx: number, cy: number, winX: number, winY: number): boolean {
+    if (this.hidden) return false;
+    const lx = this.windowed ? (cx - winX) / this.dpr : cx;
+    const ly = this.windowed ? (cy - winY) / this.dpr : cy;
+    const f = this.feet();
+    const w = this.atlas.width * this.artScale;
+    const h = this.atlas.height * this.artScale;
+    return Math.abs(lx - f.x) <= w / 2 && ly <= f.y + 2 && ly >= f.y - h;
   }
 
   /** Hit test in the pet's own pixels (plus bubble/badge) so clicks elsewhere pass through. */

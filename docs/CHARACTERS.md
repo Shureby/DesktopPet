@@ -26,6 +26,7 @@ Point `"$schema"` at `schema/character.schema.json` for autocompletion. The main
 | `personality` | Weights for idle behaviours, `sleepiness`, `sociability` and speech `lines` (greet, petted, thrown, landed, reminder, alarm, focusStart, breakStart, focusEnd, bored). `{title}` is replaced with the reminder text. |
 | `personality.care` | Right-click menu actions (`{ "label": "Scratch the {name}'s chin", "kind": "pet" }`, `kind` is `pet` or `feed`). One is shown at random; feeding comes first when the pet is hungry. |
 | mood lines | `fed`, `full`, `enough` (petting capped for the hour), `hungry`, `grumpy`, `adoring`, `sulk`, `praise`, `timerSet` (`{duration}`, `{time}`), `noted` (`{title}`, `{when}`). Missing lines fall back to neutral text. |
+| hover lines | `dodgeHungry`, `dodgeGrumpy` (stepping away from the mouse), `noticed`, `noticedHappy` (after 2 s of hovering), `release` (moving on from a parked mouse). See [INTERACTIONS.md](INTERACTIONS.md). Missing lines just stay silent. |
 | `moveset` | Fighting style for Stickman Fight: light/heavy/special/aerial moves with timings, damage, range and knockback. |
 
 ## Abilities (shared special movements)

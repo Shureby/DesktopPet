@@ -717,6 +717,31 @@
       "enough": [
         "Enough fuss, I'm good!",
         "Bawk, that's plenty!"
+      ],
+      "dodgeHungry": [
+        "Bawk! Not till I've had some corn!",
+        "My crop is empty. EMPTY.",
+        "*pecks at nothing pointedly*"
+      ],
+      "dodgeGrumpy": [
+        "Oh, NOW you visit the coop?",
+        "Bawk. Too busy for me, were you?",
+        "*turns tail feathers to you*"
+      ],
+      "noticed": [
+        "Bawk?",
+        "*tilts head*",
+        "Cluck? What is it?"
+      ],
+      "noticedHappy": [
+        "*happy clucking* ♥",
+        "*fluffs up proudly*",
+        "Bawk bawk! Hello!"
+      ],
+      "release": [
+        "I'll be pecking around.",
+        "*struts off*",
+        "Back to guarding the coop!"
       ]
     }
   },

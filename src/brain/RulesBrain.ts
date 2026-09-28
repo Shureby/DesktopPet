@@ -84,10 +84,42 @@ export class RulesBrain implements Brain {
 
   next(pet: Pet): string {
     if (!pet.grounded) return "fall";
+    // Stopped for the mouse (e.g. after landing or a happy hop, it goes back to attending).
+    if (pet.attending) return "attend";
     const name = weightedPick(pet.rng, this.weights(pet)) ?? "idle";
     const state = pet.behaviors[name]?.state ?? "idle";
     if (state !== "idle" && state !== "sit" && state !== "sleep") this.needs.boredom *= 0.7;
     return state;
+  }
+
+  /** The mouse resting on the pet; the rules are in brain/hover.ts and docs/INTERACTIONS.md. */
+  private onHover(pet: Pet, e: Extract<PetEvent, { type: "hover" }>, busy: boolean): void {
+    const tier = moodTier(pet.mood);
+    switch (e.phase) {
+      case "attend":
+        pet.attending = true;
+        // A happy hop or a perked-up alert finishes first; landing does too (see next()).
+        if (!busy && !["goto", "happy", "alert", "attend"].includes(pet.state)) pet.fsm.set("attend", true);
+        break;
+      case "dodge":
+        pet.attending = false;
+        pet.say(e.reason === "hungry" ? "dodgeHungry" : "dodgeGrumpy", {}, 3500);
+        if (!busy) pet.fsm.set("dodge", true);
+        break;
+      case "react":
+        this.needs.boredom = Math.max(0, this.needs.boredom - 0.3);
+        if (tier === "adoring" || (tier === "content" && pet.rng() < 0.5)) {
+          pet.say("noticedHappy", {}, 2500);
+          if (!busy) pet.fsm.set("happy", true);
+        } else pet.say("noticed", {}, 2500);
+        break;
+      case "release":
+      case "leave":
+        pet.attending = false;
+        if (e.phase === "release") pet.say("release", {}, 2500);
+        if (pet.state === "attend") pet.fsm.set(this.next(pet), true);
+        break;
+    }
   }
 
   onEvent(pet: Pet, e: PetEvent): void {
@@ -135,6 +167,9 @@ export class RulesBrain implements Brain {
         } else pet.fsm.set("alert", true);
         break;
       }
+      case "hover":
+        this.onHover(pet, e, busy);
+        break;
       case "pomodoro":
         pet.say(e.phase === "focus" ? "focusStart" : e.phase === "idle" ? "focusEnd" : "breakStart", {}, 5000);
         if (!busy) pet.fsm.set(e.phase === "focus" ? "sit" : "happy", true);

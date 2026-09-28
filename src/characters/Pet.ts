@@ -39,6 +39,8 @@ export class Pet {
   mode: PetMode = "free";
   /** Last known cursor position in physical px (null when unknown). */
   cursor: { x: number; y: number } | null = null;
+  /** The mouse is resting on the pet and it has stopped for you (`attend` state). */
+  attending = false;
   /** Destination for the `goto` state. */
   target: { x: number } | null = null;
   /** Scratch space for ability states (e.g. the wall being climbed). */

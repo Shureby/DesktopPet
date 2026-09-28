@@ -11,7 +11,10 @@ export type PetEvent =
   | { type: "landedHard" }
   /** `run: false` keeps the pet where it is (user setting). */
   | { type: "reminder"; kind: "todo" | "alarm"; title: string; run?: boolean }
-  | { type: "pomodoro"; phase: "focus" | "short_break" | "long_break" | "idle" };
+  | { type: "pomodoro"; phase: "focus" | "short_break" | "long_break" | "idle" }
+  /** The mouse resting on the pet (see brain/hover.ts and docs/INTERACTIONS.md). */
+  | { type: "hover"; phase: "attend" | "react" | "release" | "leave" }
+  | { type: "hover"; phase: "dodge"; reason: "hungry" | "grumpy" };
 
 /** How the pet is allowed to behave right now. */
 export type PetMode = "free" | "focus" | "quiet" | "hidden";

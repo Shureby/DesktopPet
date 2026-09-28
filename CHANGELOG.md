@@ -16,6 +16,24 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-09-28
+
+### Added
+- **The pet responds to the mouse resting on it**
+  (rules and reasons: [docs/INTERACTIONS.md](docs/INTERACTIONS.md)).
+  - It stops and faces the cursor instead of running on, and reacts after 2 seconds.
+  - Moving the mouse over it after that is stroking, the same as a click: at most once
+    every 1.5 s, within the hourly petting cap.
+  - A hungry or unhappy pet first steps a little away and says why ("My tummy's flat…",
+    "Oh, *now* you remember me?"). Hovering again within 10 s counts as insisting, and it
+    stays. It steps away at most once every 2 minutes.
+  - A mouse left still on it for 8 s lets it carry on, so it never parks on top of what
+    you are working on.
+  - New speech lines for cat and rooster: `dodgeHungry`, `dodgeGrumpy`, `noticed`,
+    `noticedHappy`, `release`.
+- `docs/INTERACTIONS.md` records the interaction rules: hovering, menus, badges, the
+  "Open panel…" tab choice and unanswered alarms.
+
 ## [0.11.0] - 2026-09-28
 
 ### Added

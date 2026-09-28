@@ -109,6 +109,42 @@ export const core: AbilityModule<Record<string, never>> = {
         p.body.vx = 0;
       },
     },
+    /** Stopped for the mouse resting on it: brakes, then keeps facing the cursor. */
+    attend: {
+      anim: "idle",
+      update: (p) => {
+        p.body.vx *= 0.8;
+        if (Math.abs(p.body.vx) < p.u(5)) p.body.vx = 0;
+        // Turn only when the cursor is clearly to one side, so stroking doesn't make it flicker.
+        const c = p.cursor;
+        if (c && Math.abs(c.x - p.body.x) > p.body.w * 0.6) p.facing = c.x > p.body.x ? 1 : -1;
+        return p.attending ? undefined : p.next();
+      },
+      exit: (p) => {
+        p.body.vx = 0;
+      },
+    },
+    /** An unhappy pet steps about one body length away from the cursor, then turns back. */
+    dodge: {
+      anim: "walk",
+      enter: (p) => {
+        const c = p.cursor;
+        p.facing = c ? (c.x > p.body.x ? -1 : 1) : p.facing === 1 ? -1 : 1;
+        p.activity(1, 1.2);
+      },
+      update: (p) => {
+        const speed = Math.max(p.walkSpeed(), p.spriteSize.w / 1.1);
+        p.body.vx = p.facing * speed;
+        if (!p.activityDone() && !p.lastStep?.hitWall) return;
+        p.body.vx = 0;
+        const c = p.cursor;
+        if (c) p.facing = c.x > p.body.x ? 1 : -1;
+        return "idle";
+      },
+      exit: (p) => {
+        p.body.vx = 0;
+      },
+    },
     /** Run to `pet.target` (e.g. to the middle of the screen for a reminder), then alert. */
     goto: {
       anim: "run",

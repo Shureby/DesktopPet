@@ -637,6 +637,31 @@
       "enough": [
         "That's plenty for now.",
         "*walks away, satisfied*"
+      ],
+      "dodgeHungry": [
+        "My tummy's flat as a pancake. Feed me first.",
+        "No pets on an empty stomach. 🐟",
+        "Mrrow… food first, cuddles later."
+      ],
+      "dodgeGrumpy": [
+        "Oh, *now* you remember me?",
+        "Hmph. Where were you all day?",
+        "I'm not talking to you. …Maybe."
+      ],
+      "noticed": [
+        "Mrrp?",
+        "*blinks slowly*",
+        "Yes? Can I help you?"
+      ],
+      "noticedHappy": [
+        "Purrrr… ♥",
+        "*headbutts your hand*",
+        "Oh hi! Scritches?"
+      ],
+      "release": [
+        "I'll be around.",
+        "*wanders off, tail up*",
+        "Call me if you need me."
       ]
     }
   },
