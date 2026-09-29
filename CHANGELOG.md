@@ -16,6 +16,15 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-09-29
+
+### Added
+- **Skip once for repeating alarms.** Switching off an alarm that repeats now asks, like a
+  phone: `Skip once · Sep 30 7:00 PM (Today)`, `Turn off repeating alarm`, or Cancel.
+  - A skipped alarm stays on and shows `⏭ Skips … · Undo` until that time passes.
+  - Skipping a snoozed alarm ends today's snoozes.
+  - One-off alarms still switch off straight away.
+
 ## [0.17.0] - 2026-09-29
 
 ### Added

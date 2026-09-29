@@ -123,6 +123,7 @@ export function startMockScheduler(): () => void {
           events.push(["reminder", { kind: "alarm", id: a.id, title: a.label }]);
           // Same rules as the Rust store: a snoozed ring keeps the cycle's first ring time,
           // and a new cycle forgets the previous one's missed state.
+          a.skippedFire = null;
           if (a.snoozes === 0) {
             a.rangAt = a.nextFire;
             a.missedAt = null;
@@ -213,6 +214,7 @@ export const mockBackend: Backend = {
         snoozes: 0,
         missedAt: null,
         missedSeenAt: null,
+        skippedFire: null,
         rangAt: null,
         createdAt: Date.now(),
       };
@@ -227,11 +229,31 @@ export const mockBackend: Backend = {
       const a = s.alarms.find((x) => x.id === id);
       if (!a) return;
       a.enabled = enabled;
+      a.skippedFire = null;
       if (a.repeat !== "none") a.snoozes = 0;
       if (enabled && a.timeHm) a.nextFire = nextOccurrence(a.timeHm, a.repeat, Date.now());
       // One-shot alarms keep their time so they can be switched back on.
       if (!enabled && a.repeat !== "none") a.nextFire = null;
       if (enabled && a.repeat === "none" && (a.nextFire ?? 0) <= Date.now()) a.enabled = false;
+    });
+    fire("alarms-changed", null);
+  },
+  async skipAlarmOnce(id) {
+    mutate((s) => {
+      const a = s.alarms.find((x) => x.id === id);
+      if (!a || a.repeat === "none" || !a.enabled || a.nextFire === null || !a.timeHm) return;
+      a.skippedFire = a.nextFire;
+      a.snoozes = 0;
+      a.nextFire = nextOccurrence(a.timeHm, a.repeat, Math.max(a.nextFire, Date.now()));
+    });
+    fire("alarms-changed", null);
+  },
+  async unskipAlarm(id) {
+    mutate((s) => {
+      const a = s.alarms.find((x) => x.id === id);
+      if (!a || !a.timeHm) return;
+      a.skippedFire = null;
+      if (a.enabled) a.nextFire = nextOccurrence(a.timeHm, a.repeat, Date.now());
     });
     fire("alarms-changed", null);
   },

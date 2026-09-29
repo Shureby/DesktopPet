@@ -23,7 +23,7 @@ import { GAMES } from "../features/games/catalog";
 import { backend, clampUpcomingMinutes, type Alarm, type AlertSettings, type PanelTab, type Repeat, type Settings } from "../platform";
 import { playRingtone, RINGTONE_IDS, RINGTONES, type RingtoneId } from "../pet/sound";
 import "../styles/panel.css";
-import { bigTime, finishedAt, finishedStatus, timerTimes } from "./alarmText";
+import { bigTime, finishedAt, finishedStatus, skipWhen, timerTimes } from "./alarmText";
 import { formatWhen, h } from "./dom";
 
 const TABS: { id: PanelTab; label: string }[] = [
@@ -264,9 +264,23 @@ async function renderAlarms(): Promise<Node> {
               `💤 ${clock(a.nextFire)} (${a.snoozes}/${Math.max(a.snoozes, settings.alerts.alarm.autoSnoozeMax)})`,
             )
           : null,
+        a.enabled && a.skippedFire && a.skippedFire > Date.now()
+          ? h(
+              "span",
+              { class: "chip skip" },
+              `⏭ Skips ${skipWhen(a.skippedFire)} · `,
+              h("button", { class: "link", onclick: () => void backend.unskipAlarm(a.id) }, "Undo"),
+            )
+          : null,
       ),
       h("button", { class: "icon delete", title: "Delete", onclick: () => void backend.deleteAlarm(a.id) }, "✕"),
-      toggle(a.enabled, a.label, () => void backend.setAlarmEnabled(a.id, !a.enabled)),
+      toggle(a.enabled, a.label, (input) => {
+        // Switching off a repeating alarm asks, like a phone: skip just the next ring, or all?
+        if (a.enabled && a.repeat !== "none") {
+          input.checked = true;
+          askTurnOff(a);
+        } else void backend.setAlarmEnabled(a.id, !a.enabled);
+      }),
     );
 
   const finishedRow = (a: Alarm) =>
@@ -322,12 +336,56 @@ function alarmSubtitle(a: Alarm): string {
   return parts.join(" · ");
 }
 
+/**
+ * Switching off a repeating alarm: "Skip once · Sep 30 7:00 PM (Today)", "Turn off repeating
+ * alarm" or Cancel. Once a ring is skipped, only the last two.
+ */
+function askTurnOff(a: Alarm): void {
+  const skipped = a.skippedFire !== null && a.skippedFire > Date.now();
+  const close = () => {
+    overlay.remove();
+    document.removeEventListener("keydown", onKey);
+  };
+  const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
+  const choice = (text: string, action: (() => Promise<void>) | null, cls = "") =>
+    h(
+      "button",
+      {
+        class: cls,
+        onclick: () => {
+          close();
+          if (action) void action();
+        },
+      },
+      text,
+    );
+  const box = h(
+    "div",
+    { class: "ask", role: "dialog", "aria-modal": "true" },
+    h("p", { class: "title" }, a.label),
+    h("p", { class: "sub" }, REPEAT_TEXT[a.repeat]),
+    !skipped && a.nextFire ? choice(`Skip once · ${skipWhen(a.nextFire)}`, () => backend.skipAlarmOnce(a.id), "primary") : null,
+    choice("Turn off repeating alarm", () => backend.setAlarmEnabled(a.id, false)),
+    choice("Cancel", null, "cancel"),
+  );
+  const overlay = h("div", { class: "ask-overlay", onclick: (e: Event) => e.target === overlay && close() }, box);
+  document.addEventListener("keydown", onKey);
+  document.body.append(overlay);
+  (box.querySelector("button") as HTMLButtonElement | null)?.focus();
+}
+
 /** A phone-style on/off switch (not a checkbox: a tick reads as "done"). */
-function toggle(on: boolean, name: string, onChange: () => void): Node {
+function toggle(on: boolean, name: string, onChange: (input: HTMLInputElement) => void): Node {
   return h(
     "label",
     { class: "switch", title: on ? "On: will ring" : "Off" },
-    h("input", { type: "checkbox", role: "switch", checked: on, "aria-label": `${name} on/off`, onchange: onChange }),
+    h("input", {
+      type: "checkbox",
+      role: "switch",
+      checked: on,
+      "aria-label": `${name} on/off`,
+      onchange: (e: Event) => onChange(e.target as HTMLInputElement),
+    }),
     h("span", { class: "slider" }),
   );
 }

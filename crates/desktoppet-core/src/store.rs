@@ -68,10 +68,12 @@ const MIGRATIONS: &[&str] = &[
     // Labels no longer carry the time ("Alarm 21:40" mixed 24-hour text into 12-hour UIs).
     "ALTER TABLE alarms ADD COLUMN missed_seen_at INTEGER;
      UPDATE alarms SET label = 'Alarm' WHERE label GLOB 'Alarm [0-9][0-9]:[0-9][0-9]';",
+    // v7: a repeating alarm skipped once ("Skip once · Sep 30 7:00 PM"): the ring it skips.
+    "ALTER TABLE alarms ADD COLUMN skipped_fire INTEGER;",
 ];
 
 const ALARM_COLUMNS: &str =
-    "id, label, next_fire, time_hm, repeat, enabled, snoozes, missed_at, rang_at, created_at, missed_seen_at";
+    "id, label, next_fire, time_hm, repeat, enabled, snoozes, missed_at, rang_at, created_at, missed_seen_at, skipped_fire";
 
 pub struct Store {
     conn: Connection,
@@ -202,6 +204,7 @@ impl Store {
             rang_at: r.get(8)?,
             created_at: r.get(9)?,
             missed_seen_at: r.get(10)?,
+            skipped_fire: r.get(11)?,
         })
     }
 
@@ -252,6 +255,7 @@ impl Store {
             rang_at: None,
             created_at: Some(now),
             missed_seen_at: None,
+            skipped_fire: None,
         })
     }
 
@@ -272,12 +276,48 @@ impl Store {
             // One-shot alarms re-enabled after they rang have nothing to ring for.
             alarm.next_fire.filter(|&n| n > now)
         };
-        // Switching a repeating alarm off or on ends any snooze cycle, so its next ring starts a new one.
+        // Switching a repeating alarm off or on ends any snooze cycle, so its next ring starts a
+        // new one, and forgets a skipped ring.
         self.conn.execute(
-            "UPDATE alarms SET enabled = ?2, next_fire = ?3,
+            "UPDATE alarms SET enabled = ?2, next_fire = ?3, skipped_fire = NULL,
                snoozes = CASE WHEN repeat = 'none' THEN snoozes ELSE 0 END WHERE id = ?1",
             params![id, enabled && next.is_some_and(|n| n > now), next],
         )?;
+        Ok(())
+    }
+
+    /// "Skip once" on a repeating alarm: its next ring (or the rest of a snooze cycle) is
+    /// skipped and remembered in `skipped_fire`; it rings again at the occurrence after.
+    pub fn skip_alarm_once<Tz: TimeZone>(&self, tz: &Tz, id: i64, now: Millis) -> Result<()> {
+        let Some(alarm) = self.alarm(id)? else {
+            return Ok(());
+        };
+        let (Some(skipped), Some(t), true) =
+            (alarm.next_fire, alarm.time_hm.as_deref().and_then(parse_hm), alarm.enabled)
+        else {
+            return Err(StoreError::Invalid("only a repeating alarm that is on can skip a ring".into()));
+        };
+        if alarm.repeat == Repeat::None {
+            return Err(StoreError::Invalid("only a repeating alarm can skip a ring".into()));
+        }
+        let next = next_occurrence(tz, skipped.max(now), t, alarm.repeat);
+        self.conn.execute(
+            "UPDATE alarms SET next_fire = ?2, skipped_fire = ?3, snoozes = 0 WHERE id = ?1",
+            params![id, next, skipped],
+        )?;
+        Ok(())
+    }
+
+    /// "Undo" a skipped ring: the alarm rings at its next regular time again.
+    pub fn unskip_alarm<Tz: TimeZone>(&self, tz: &Tz, id: i64, now: Millis) -> Result<()> {
+        let Some(alarm) = self.alarm(id)? else {
+            return Ok(());
+        };
+        let Some(t) = alarm.time_hm.as_deref().and_then(parse_hm) else {
+            return Ok(());
+        };
+        let next = if alarm.enabled { next_occurrence(tz, now, t, alarm.repeat) } else { alarm.next_fire };
+        self.conn.execute("UPDATE alarms SET next_fire = ?2, skipped_fire = NULL WHERE id = ?1", params![id, next])?;
         Ok(())
     }
 
@@ -404,8 +444,9 @@ impl Store {
             // `rang_at` is when this ringing cycle began: a ring after a snooze keeps it, so
             // "Alarm 9:40 PM" stays 9:40 however often it was snoozed. A new cycle (no
             // snoozes yet) also forgets the previous cycle's missed state.
+            // A ring means any skipped one is behind it.
             self.conn.execute(
-                "UPDATE alarms SET next_fire = ?2, enabled = ?3,
+                "UPDATE alarms SET next_fire = ?2, enabled = ?3, skipped_fire = NULL,
                    rang_at = CASE WHEN snoozes = 0 THEN ?4 ELSE COALESCE(rang_at, ?4) END,
                    missed_at = CASE WHEN snoozes = 0 THEN NULL ELSE missed_at END,
                    missed_seen_at = CASE WHEN snoozes = 0 THEN NULL ELSE missed_seen_at END
@@ -750,6 +791,65 @@ mod tests {
         s.take_due(&London, tomorrow).unwrap();
         let next = &s.list_alarms().unwrap()[0];
         assert_eq!((next.missed_at, next.rang_at), (None, Some(tomorrow)));
+    }
+
+    const DAY: Millis = 24 * 60 * MIN;
+
+    #[test]
+    fn skip_once_skips_the_next_ring_and_undo_brings_it_back() {
+        let s = Store::open_in_memory().unwrap();
+        let a = s.add_alarm(&London, "Wake up", at(7, 0), Repeat::Daily, at(6, 0)).unwrap();
+        s.skip_alarm_once(&London, a.id, at(6, 10)).unwrap();
+        let skipped = &s.list_alarms().unwrap()[0];
+        assert_eq!(
+            (skipped.next_fire, skipped.skipped_fire, skipped.enabled),
+            (Some(at(7, 0) + DAY), Some(at(7, 0)), true)
+        );
+        // Today's ring doesn't come.
+        assert!(s.take_due(&London, at(7, 0)).unwrap().is_empty());
+        // Undo: it rings today again.
+        s.unskip_alarm(&London, a.id, at(6, 20)).unwrap();
+        let back = &s.list_alarms().unwrap()[0];
+        assert_eq!((back.next_fire, back.skipped_fire), (Some(at(7, 0)), None));
+        // Skipped again, then tomorrow's ring clears the skip.
+        s.skip_alarm_once(&London, a.id, at(6, 30)).unwrap();
+        assert_eq!(s.take_due(&London, at(7, 0) + DAY).unwrap().len(), 1);
+        assert_eq!(s.list_alarms().unwrap()[0].skipped_fire, None);
+    }
+
+    #[test]
+    fn a_weekday_alarm_skipped_on_friday_rings_on_monday() {
+        let s = Store::open_in_memory().unwrap();
+        // 2026-01-07 is a Wednesday; Friday is two days on.
+        let friday = at(7, 0) + 2 * DAY;
+        let a = s.add_alarm(&London, "Work", friday, Repeat::Weekdays, at(6, 0) + 2 * DAY).unwrap();
+        s.skip_alarm_once(&London, a.id, at(6, 0) + 2 * DAY).unwrap();
+        assert_eq!(s.list_alarms().unwrap()[0].next_fire, Some(friday + 3 * DAY));
+    }
+
+    #[test]
+    fn skipping_a_snoozed_alarm_ends_todays_cycle() {
+        let s = Store::open_in_memory().unwrap();
+        let a = s.add_alarm(&London, "Wake up", at(7, 0), Repeat::Daily, at(6, 0)).unwrap();
+        s.take_due(&London, at(7, 0)).unwrap();
+        s.snooze_alarm(a.id, 5, at(7, 1)).unwrap();
+        s.skip_alarm_once(&London, a.id, at(7, 2)).unwrap();
+        let x = &s.list_alarms().unwrap()[0];
+        assert_eq!((x.next_fire, x.skipped_fire, x.snoozes), (Some(at(7, 0) + DAY), Some(at(7, 6)), 0));
+    }
+
+    #[test]
+    fn only_repeating_alarms_that_are_on_can_skip() {
+        let s = Store::open_in_memory().unwrap();
+        let once = s.add_alarm(&London, "Once", at(9, 0), Repeat::None, at(6, 0)).unwrap();
+        assert!(s.skip_alarm_once(&London, once.id, at(6, 0)).is_err());
+        let daily = s.add_alarm(&London, "Daily", at(9, 0), Repeat::Daily, at(6, 0)).unwrap();
+        s.skip_alarm_once(&London, daily.id, at(6, 0)).unwrap();
+        // Switching it off (or on) forgets the skip.
+        s.set_alarm_enabled(&London, daily.id, false, at(6, 1)).unwrap();
+        let off = s.list_alarms().unwrap().into_iter().find(|a| a.id == daily.id).unwrap();
+        assert_eq!(off.skipped_fire, None);
+        assert!(s.skip_alarm_once(&London, daily.id, at(6, 2)).is_err());
     }
 
     #[test]

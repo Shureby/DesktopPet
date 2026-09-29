@@ -116,6 +116,8 @@ export interface Alarm {
   missedAt: number | null;
   /** When the user saw it was missed (clicked its badge); the badge only shows unseen ones. */
   missedSeenAt: number | null;
+  /** The ring a repeating alarm skips ("Skip once"); it rings again at the one after. */
+  skippedFire: number | null;
   /**
    * When the current ringing cycle began: the alarm's own time, not a later snoozed ring.
    * Finished one-offs lose `nextFire`, so this is what they show.
@@ -205,6 +207,10 @@ export interface Backend {
   listAlarms(): Promise<Alarm[]>;
   addAlarm(label: string, at: number, repeat: Repeat): Promise<Alarm>;
   setAlarmEnabled(id: number, enabled: boolean): Promise<void>;
+  /** Repeating alarms: skip the next ring (or the rest of today's snoozes). */
+  skipAlarmOnce(id: number): Promise<void>;
+  /** Undo "Skip once": ring at the next regular time again. */
+  unskipAlarm(id: number): Promise<void>;
   deleteAlarm(id: number): Promise<void>;
   /** Removes one-shot alarms and timers that already rang; returns how many. */
   clearFinishedAlarms(): Promise<number>;

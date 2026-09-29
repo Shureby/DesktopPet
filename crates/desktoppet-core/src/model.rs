@@ -79,6 +79,8 @@ pub struct Alarm {
     pub created_at: Option<Millis>,
     /// When the user saw that it was missed (clicked its badge). It stays missed in the history.
     pub missed_seen_at: Option<Millis>,
+    /// The ring a repeating alarm skips ("Skip once"); cleared when it rings or is switched.
+    pub skipped_fire: Option<Millis>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

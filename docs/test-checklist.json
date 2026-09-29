@@ -310,6 +310,12 @@
           "rev": "0.17.0",
           "do": "设两个 1 小时内响的闹钟和一个 1.5 小时后响的闹钟；悬停并点击 🔔 角标；再到 Settings → Alerts 关掉/打开 “Show upcoming alarms by the pet”，把 Within 改成 30、0、500",
           "expect": "宠物旁出现 “🔔 最近那个闹钟的时间 +1”，悬停小框逐行列出这两个闹钟（自定义名字的写成 “Login CMC · 10:05 PM”），1.5 小时后的不在内；点击打开 Alarms 页；贪睡中的闹钟只在 💤 角标里；关掉后 🔔 消失且 Within 一行隐藏，打开后重新出现；Within 只接受 1–120（0 变 1，500 变 120），改小后超出范围的闹钟从 🔔 里消失"
+        },
+        {
+          "id": "alarm.skip-once",
+          "rev": "0.18.0",
+          "do": "设一个每天响的闹钟和一个工作日闹钟（周五晚上测最好），在 Alarms 页点它们的开关；分别试 Skip once、Undo、Turn off repeating alarm、Cancel/Esc；再点一个一次性闹钟的开关",
+          "expect": "重复闹钟弹框：闹钟名、重复方式，按钮 “Skip once · Sep 30 7:00 PM (Today)”（明天写 (Tomorrow)，更远写星期几，如周五跳工作日闹钟写 (Monday)），“Turn off repeating alarm”，“Cancel”；Cancel/Esc/点框外不改变任何东西，开关仍开着；Skip once 后开关仍开着，行里出现 “⏭ Skips … · Undo”，下次响铃变成再下一次，那一次不响，也不出现在 🔔 角标里；Undo 恢复；已跳过时再点开关只有 Turn off 和 Cancel；一次性闹钟直接关，不弹框"
         }
       ]
     },

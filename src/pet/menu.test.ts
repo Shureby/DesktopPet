@@ -59,6 +59,7 @@ const timer = (id: number, min: number): Alarm & { nextFire: number } => ({
   snoozes: 0,
   missedAt: null,
   missedSeenAt: null,
+  skippedFire: null,
   rangAt: null,
   createdAt: null,
 });

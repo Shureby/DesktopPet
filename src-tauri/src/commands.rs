@@ -90,6 +90,21 @@ pub fn set_alarm_enabled(app: AppHandle, state: State<AppState>, id: i64, enable
     Ok(())
 }
 
+/// "Skip once" on a repeating alarm (the panel asks when you switch one off).
+#[tauri::command]
+pub fn skip_alarm_once(app: AppHandle, state: State<AppState>, id: i64) -> CmdResult<()> {
+    state.store().skip_alarm_once(&Local, id, now_ms()).map_err(err)?;
+    let _ = app.emit("alarms-changed", ());
+    Ok(())
+}
+
+#[tauri::command]
+pub fn unskip_alarm(app: AppHandle, state: State<AppState>, id: i64) -> CmdResult<()> {
+    state.store().unskip_alarm(&Local, id, now_ms()).map_err(err)?;
+    let _ = app.emit("alarms-changed", ());
+    Ok(())
+}
+
 #[tauri::command]
 pub fn snooze_alarm(app: AppHandle, state: State<AppState>, id: i64, minutes: i64) -> CmdResult<()> {
     state.store().snooze_alarm(id, minutes.clamp(1, 24 * 60), now_ms()).map_err(err)?;

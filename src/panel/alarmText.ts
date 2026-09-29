@@ -35,3 +35,18 @@ export function finishedStatus(a: Alarm, now = Date.now()): string {
   if (a.snoozes > 0) parts.push(`snoozed ${a.snoozes}×`);
   return parts.join(" · ");
 }
+
+/**
+ * The ring "Skip once" skips: "Sep 30 7:00 PM (Today)", "Oct 1 7:00 PM (Tomorrow)",
+ * "Oct 5 7:00 PM (Monday)". The date and the day, so there's no doubt which ring it is.
+ */
+export function skipWhen(ms: number, now = Date.now()): string {
+  const d = new Date(ms);
+  const day =
+    d.toDateString() === new Date(now).toDateString()
+      ? "Today"
+      : d.toDateString() === new Date(now + 86_400_000).toDateString()
+        ? "Tomorrow"
+        : d.toLocaleDateString([], { weekday: "long" });
+  return `${d.toLocaleDateString([], { month: "short", day: "numeric" })} ${clock(ms)} (${day})`;
+}

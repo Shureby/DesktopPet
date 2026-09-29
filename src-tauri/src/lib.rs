@@ -57,6 +57,8 @@ pub fn run() {
             commands::list_alarms,
             commands::add_alarm,
             commands::set_alarm_enabled,
+            commands::skip_alarm_once,
+            commands::unskip_alarm,
             commands::snooze_alarm,
             commands::delete_alarm,
             commands::clear_finished_alarms,

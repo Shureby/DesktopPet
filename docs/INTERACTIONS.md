@@ -135,6 +135,29 @@ Code: `src/features/alarm/ringing.ts`, the scheduler in `src-tauri/src/scheduler
   it, so the timers you answered disappeared and the unanswered ones stayed. Cancel on a
   running timer still deletes it: that is before it rang.
 
+## Switching off a repeating alarm (since 0.18.0)
+
+Code: `askTurnOff` in `src/panel/main.ts`, `skip_alarm_once` / `unskip_alarm` in
+`crates/desktoppet-core/src/store.rs`, `skipWhen` in `src/panel/alarmText.ts`.
+
+- **Like a phone, the switch asks first** for an alarm that repeats (every day, weekdays):
+  - `Skip once · Sep 30 7:00 PM (Today)`: only the next ring is skipped. The alarm stays
+    on and rings again at the one after.
+  - `Turn off repeating alarm`: off, as before.
+  - `Cancel` (or Esc, or a click outside): nothing changes.
+- **The skip button names the exact ring:** date, time and day. The day is "Today",
+  "Tomorrow" or the weekday ("Oct 5 7:00 PM (Monday)"): a weekday alarm skipped on a
+  Friday evening next rings on Monday.
+- **A skipped alarm says so** in its row: `⏭ Skips Sep 30 7:00 PM (Today) · Undo`.
+  - Undo brings the skipped ring back.
+  - The mark goes once the skipped time has passed.
+  - Switching it off again asks with only "Turn off repeating alarm" and Cancel.
+- **Skipping a snoozed alarm ends today's snoozes;** it rings next at its regular time.
+- **One-off alarms and timers switch off without asking,** and switching anything on
+  never asks.
+- The skipped ring is kept in `alarms.skipped_fire` (v7 migration). It is cleared when the
+  alarm rings or is switched off or on.
+
 ## Showing when things happened (since 0.13.0)
 
 - **Anything finished says when,** so identical items can be told apart ("1 min timer"
