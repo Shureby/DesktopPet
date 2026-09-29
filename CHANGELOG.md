@@ -16,6 +16,20 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-09-29
+
+### Added
+- **🔔 badge for alarms coming up soon:** the nearest alarm's time, "+n" for the others,
+  and every one of them on hover. Before, an alarm had no badge until it snoozed, while
+  timers always had one.
+  - Settings → Alerts → "Show upcoming alarms by the pet" (on by default).
+  - "Within N minutes" (1–120, 60 by default) shows only while it's on.
+
+### Changed
+- **A badge's info box can be clicked.** It stays while you move the mouse onto it, and
+  clicking it does what the badge does. Its last line is a link ("Open the Alarms tab",
+  "Mark as seen", "Dismiss"); before, the box vanished as soon as you moved toward it.
+
 ## [0.16.1] - 2026-09-29
 
 ### Fixed

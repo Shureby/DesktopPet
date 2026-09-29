@@ -77,7 +77,7 @@ Code: `src/pet/menu.ts`. Tests: `pet/menu.test.ts`.
   - Focus for a focus session or break;
   - Alarms for a missed alarm;
   - otherwise the panel's default.
-- **Clicking a badge opens its tab:** ⏱ opens Alarms; 🍅 or ☕ opens Focus.
+- **Clicking a badge opens its tab:** ⏱, 💤 and 🔔 open Alarms; 🍅 or ☕ opens Focus.
 - **Clicking a note badge clears it:** the missed-alarm badge and the "⏱ Done" badge.
 - **Countdown badges update their text in place** rather than being rebuilt, so a click
   never lands on a replaced element.
@@ -148,6 +148,14 @@ Code: `src/features/alarm/ringing.ts`, the scheduler in `src-tauri/src/scheduler
   happened to ring at the same time. The start time is `alarms.created_at` (v5 migration).
   For timers set before 0.14.0 it is worked out from the ring time and the length in the
   label (`timerStartedAt`), unless a snooze moved the ring.
+- **The badges show what happens within the next while** (since 0.17.0): running timers,
+  the focus session, snoozed alarms and, with 🔔, alarms that ring within the next 60 min.
+  - Before, an alarm had no badge until it snoozed, while timers always had one.
+  - Settings → Alerts → "Show upcoming alarms by the pet" turns 🔔 off. While on, "Within
+    N minutes" sets the look-ahead, 1–120. The field is hidden while it's off.
+  - 🔔 shows the nearest alarm's clock time (not a countdown: it may be an hour away) and
+    "+n" for the others within the look-ahead, like ⏱.
+  - A snoozed alarm is under 💤, not 🔔.
 - **Hovering a badge shows what it stands for,** in the same shape for every badge (since
   0.16.0): what and when, then what a click does on the last line.
 
@@ -156,8 +164,9 @@ Code: `src/features/alarm/ringing.ts`, the scheduler in `src-tauri/src/scheduler
   | ⏱ | every running timer: `12 min · 8:10 → 8:22 PM`; a snoozed one `1 min · 💤×1 · 9:38 → 9:45 PM` | Open the Alarms tab |
   | 🍅 / ☕ | `Focus · 8:00 → 8:25 PM` (or `Break …`) | Open the Focus tab |
   | 💤 | `Alarm 9:40 PM · snoozed 1×`, `next ring 9:46 PM` | Open the Alarms tab |
-  | ⏰ Missed | `Alarm 9:40 PM · snoozed 3×` | Click when you've seen it |
-  | ⏱ Done | `12 min timer · done 8:22 PM` | Click to dismiss |
+  | 🔔 | every upcoming alarm: `Alarm 9:40 PM`, `Login CMC · 10:05 PM` | Open the Alarms tab |
+  | ⏰ Missed | `Alarm 9:40 PM · snoozed 3×` | Mark as seen |
+  | ⏱ Done | `12 min timer · done 8:22 PM` | Dismiss |
 
   - The ⏱ list is why "+5" isn't a mystery.
   - Times are ranges, not "Started … · rings at …", because the box is small. A shared
@@ -168,6 +177,12 @@ Code: `src/features/alarm/ringing.ts`, the scheduler in `src-tauri/src/scheduler
     without the mark "1 min · 9:38 → 9:45 PM" looks wrong.
   - The pet draws the box itself (`.badge-info`): native tooltips don't show reliably in
     its transparent, never-focused window.
+  - **The box can be clicked** (since 0.17.0). Its last line looks like a link, so people
+    move to it and click it; before, the box closed as soon as the mouse left the badge.
+    - Clicking anywhere in the box does what clicking its badge does.
+    - It touches the badge. It stays while the mouse is on it, and for 0.4 s after the
+      mouse leaves both, which is enough to cross over at an angle.
+    - The last line is always a verb: "Open the Alarms tab", "Mark as seen", "Dismiss".
 - **The heart meter only shows with the cursor on the pet itself,** not on its badges or
   bubble. There you're after the alarm or the focus session, not the pet's mood.
 - **The pet window is 340 px wide** (since 0.15.0), so badges beside the pet fit. A badge

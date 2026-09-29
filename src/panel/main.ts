@@ -20,7 +20,7 @@ import {
 } from "../features/alarm/timers";
 import { parseQuickAdd } from "../features/todo/quickAdd";
 import { GAMES } from "../features/games/catalog";
-import { backend, type Alarm, type AlertSettings, type PanelTab, type Repeat, type Settings } from "../platform";
+import { backend, clampUpcomingMinutes, type Alarm, type AlertSettings, type PanelTab, type Repeat, type Settings } from "../platform";
 import { playRingtone, RINGTONE_IDS, RINGTONES, type RingtoneId } from "../pet/sound";
 import "../styles/panel.css";
 import { bigTime, finishedAt, finishedStatus, timerTimes } from "./alarmText";
@@ -623,6 +623,42 @@ function alertRow(kind: "alarm" | "todo", title: string): Node {
       volume,
     ),
     kind === "alarm" ? unansweredRow(a, update) : null,
+    kind === "alarm" ? upcomingRow() : null,
+  );
+}
+
+/** Alarm-only: a 🔔 badge by the pet for alarms coming up soon; the look-ahead only when it's on. */
+function upcomingRow(): Node {
+  const u = settings.upcomingAlarms;
+  return h(
+    "div",
+    { class: "upcoming" },
+    h(
+      "label",
+      { class: "check" },
+      h("input", { type: "checkbox", checked: u.show, onchange: () => void save({ upcomingAlarms: { ...u, show: !u.show } }) }),
+      "Show upcoming alarms by the pet",
+    ),
+    u.show
+      ? h(
+          "label",
+          { class: "row" },
+          "Within",
+          h("input", {
+            type: "number",
+            min: 1,
+            max: 120,
+            value: u.minutes,
+            onchange: (e: Event) => {
+              const input = e.target as HTMLInputElement;
+              const minutes = clampUpcomingMinutes(input.value);
+              input.value = String(minutes);
+              void save({ upcomingAlarms: { ...u, minutes } });
+            },
+          }),
+          "minutes (1–120)",
+        )
+      : null,
   );
 }
 

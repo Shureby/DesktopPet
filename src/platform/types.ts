@@ -39,6 +39,8 @@ export interface Settings {
   /** Custom timer lengths in minutes, most recent first (at most three). */
   recentTimers: number[];
   quietHours: { enabled: boolean; start: string; end: string };
+  /** A 🔔 badge by the pet for alarms ringing within `minutes` (1–120). */
+  upcomingAlarms: { show: boolean; minutes: number };
   pomodoro: PomodoroConfig;
   autostart: boolean;
 }
@@ -54,9 +56,16 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   recentTimers: [],
   quietHours: { enabled: false, start: "22:00", end: "08:00" },
+  upcomingAlarms: { show: true, minutes: 60 },
   pomodoro: { focusMin: 25, shortBreakMin: 5, longBreakMin: 15, roundsBeforeLong: 4, autoContinue: true },
   autostart: false,
 };
+
+/** The 🔔 badge's look-ahead: whole minutes, 1–120 (60 if it isn't a number). */
+export function clampUpcomingMinutes(m: unknown): number {
+  const n = Math.round(Number(m));
+  return Number.isFinite(n) ? Math.min(120, Math.max(1, n)) : DEFAULT_SETTINGS.upcomingAlarms.minutes;
+}
 
 /** Fills in defaults for settings saved by older versions (nested objects merge too). */
 export function mergeSettings(stored: Partial<Settings> | null | undefined): Settings {
@@ -67,6 +76,10 @@ export function mergeSettings(stored: Partial<Settings> | null | undefined): Set
     ...s,
     quietHours: { ...d.quietHours, ...s.quietHours },
     recentTimers: Array.isArray(s.recentTimers) ? s.recentTimers.filter((m) => typeof m === "number" && m > 0).slice(0, 3) : [],
+    upcomingAlarms: (() => {
+      const u = { ...d.upcomingAlarms, ...s.upcomingAlarms };
+      return { show: u.show !== false, minutes: clampUpcomingMinutes(u.minutes) };
+    })(),
     pomodoro: { ...d.pomodoro, ...s.pomodoro },
     alerts: {
       alarm: { ...d.alerts.alarm, ...s.alerts?.alarm },

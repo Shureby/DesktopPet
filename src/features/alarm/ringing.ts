@@ -40,6 +40,20 @@ export function snoozedAlarms(alarms: Alarm[], now = Date.now()): (Alarm & { nex
     .sort((a, b) => a.nextFire - b.nextFire);
 }
 
+/**
+ * Alarms that will ring within `minutes` and haven't rung yet in this cycle (a snoozed one has
+ * its own 💤 badge); soonest first. Shown as the 🔔 badge when Settings allow it.
+ */
+export function upcomingAlarms(alarms: Alarm[], minutes: number, now = Date.now()): (Alarm & { nextFire: number })[] {
+  const until = now + minutes * 60_000;
+  return alarms
+    .filter(
+      (a): a is Alarm & { nextFire: number } =>
+        !isTimer(a) && a.enabled && a.snoozes === 0 && a.nextFire !== null && a.nextFire > now && a.nextFire <= until,
+    )
+    .sort((a, b) => a.nextFire - b.nextFire);
+}
+
 /** Missed alarms the user hasn't seen yet (their badge by the pet); newest first. */
 export function missedAlarms(alarms: Alarm[]): (Alarm & { missedAt: number })[] {
   return alarms
@@ -102,4 +116,11 @@ export function alarmName(a: Alarm): string {
   if (label && label !== DEFAULT_ALARM_LABEL) return label;
   const t = alarmTime(a);
   return t === null ? DEFAULT_ALARM_LABEL : `${DEFAULT_ALARM_LABEL} ${clock(t)}`;
+}
+
+/** An upcoming alarm in the 🔔 badge's info: "Alarm 9:40 PM", or "Login CMC · 9:40 PM". */
+export function upcomingBadgeLine(a: Alarm & { nextFire: number }): string {
+  const name = alarmName(a);
+  const at = clock(a.nextFire);
+  return name.endsWith(at) ? name : `${name} · ${at}`;
 }

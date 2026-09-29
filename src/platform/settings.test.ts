@@ -17,6 +17,15 @@ describe("mergeSettings", () => {
     expect(s.alerts.todo).toEqual(DEFAULT_SETTINGS.alerts.todo);
   });
 
+  it("shows upcoming alarms by default and keeps the look-ahead within 1–120 minutes", () => {
+    expect(mergeSettings({}).upcomingAlarms).toEqual({ show: true, minutes: 60 });
+    const m = (minutes: unknown) => mergeSettings({ upcomingAlarms: { show: false, minutes } } as unknown as Partial<Settings>).upcomingAlarms;
+    expect(m(30)).toEqual({ show: false, minutes: 30 });
+    expect(m(0).minutes).toBe(1);
+    expect(m(500).minutes).toBe(120);
+    expect(m("abc").minutes).toBe(60);
+  });
+
   it("handles missing settings", () => {
     expect(mergeSettings(null)).toEqual(DEFAULT_SETTINGS);
   });

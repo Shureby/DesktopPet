@@ -151,8 +151,17 @@ body {
   font-size: 11px;
   line-height: 1.35;
   white-space: pre-line;
-  pointer-events: none;
+  /* Clickable: it does what its badge does (PetHost.updateBadgeInfo). */
+  cursor: pointer;
   z-index: 4;
+}
+.badge-info .link {
+  display: block;
+  color: #2f6fd6;
+  text-decoration: underline;
+}
+.badge-info:hover .link {
+  color: #1c4fa8;
 }
 .bubble .note {
   margin-top: 3px;

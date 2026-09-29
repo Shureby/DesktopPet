@@ -14,6 +14,8 @@ import {
   timerBadgeLine,
   onUnanswered,
   snoozedAlarms,
+  upcomingAlarms,
+  upcomingBadgeLine,
   visibleDoneTimers,
   type DoneTimer,
 } from "../features/alarm/ringing";
@@ -42,6 +44,9 @@ const STEP = 1 / 30;
  * Logical size of the pet window in Tauri mode (must match tauri.conf.json). Wide enough
  * for the badges beside the pet ("⏰ Missed 9:40 PM +1"); the empty parts click through.
  */
+/** How long a badge's info box stays after the cursor leaves the badge, to reach the box. */
+const BADGE_INFO_GRACE_MS = 400;
+
 export const PET_WINDOW = { w: 340, h: 240 };
 
 interface BubbleAction {
@@ -103,6 +108,10 @@ export class PetHost {
   private readonly hover = new HoverTracker();
   /** What the hovered badge stands for (see updateBadgeInfo). */
   private readonly badgeInfo = Object.assign(document.createElement("div"), { className: "badge-info", hidden: true });
+  /** The badge the info box is about; clicking the box clicks it. */
+  private badgeInfoFor: HTMLElement | null = null;
+  /** When the cursor left both the badge and its box (0 while on either). */
+  private badgeInfoAwaySince = 0;
   /** False while the pet is hidden from its menu or the tray. */
   private petVisible = true;
   /** Tray menus still referenced: the current one and the one before (it may be open). */
@@ -128,6 +137,14 @@ export class PetHost {
 
   async start(): Promise<void> {
     document.body.append(this.badgeInfo);
+    // The box does what its badge does, so its last line can be a link you move to and click.
+    this.badgeInfo.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const badge = this.badgeInfoFor;
+      this.badgeInfo.hidden = true;
+      this.badgeInfoFor = null;
+      badge?.click();
+    });
     const snap = await this.backend.desktopSnapshot();
     this.dpr = this.windowed ? window.devicePixelRatio || 1 : snap.scale;
     const area = snap.areas[0] ?? { x: 0, y: 0, w: 1280, h: 720 };
@@ -379,6 +396,16 @@ export class PetHost {
         onClick: () => void this.backend.openPanel("alarms"),
       });
     }
+    const up = this.settings.upcomingAlarms;
+    const upcoming = up.show ? upcomingAlarms(this.timers, up.minutes, now) : [];
+    if (upcoming.length) {
+      rows.push({
+        // Clock times: it may be an hour away, a countdown would just be noise.
+        text: `🔔 ${clock(upcoming[0].nextFire)}${more(upcoming.length)}`,
+        title: info(upcoming.map(upcomingBadgeLine), "Open the Alarms tab"),
+        onClick: () => void this.backend.openPanel("alarms"),
+      });
+    }
     const missed = missedAlarms(this.timers);
     if (missed.length) {
       const m = missed[0];
@@ -386,7 +413,7 @@ export class PetHost {
         // The alarm's own time (9:40), not when it was finally given up on (9:59).
         text: `⏰ Missed ${clock(alarmTime(m) ?? m.missedAt)}${more(missed.length)}`,
         cls: "missed",
-        title: info([`${alarmName(m)}${m.snoozes ? ` · snoozed ${m.snoozes}×` : ""}`], "Click when you've seen it"),
+        title: info([`${alarmName(m)}${m.snoozes ? ` · snoozed ${m.snoozes}×` : ""}`], "Mark as seen"),
         onClick: () => {
           // Seen: the badge goes (right away; the refresh confirms), the history keeps it.
           this.timers = this.timers.map((a) => (a.id === m.id ? { ...a, missedSeenAt: Date.now() } : a));
@@ -401,7 +428,7 @@ export class PetHost {
         cls: "quiet",
         title: info(
           done.map((t) => `${t.label.startsWith(TIMER_PREFIX) ? t.label.slice(TIMER_PREFIX.length) : t.label} timer · done ${clock(t.at)}`),
-          "Click to dismiss",
+          "Dismiss",
         ),
         onClick: () => (this.doneTimers = []),
       });
@@ -490,30 +517,58 @@ export class PetHost {
     }
   }
 
-  /** Shows what the badge under the cursor stands for (e.g. every running timer), or hides it. */
+  /**
+   * Shows what the badge under the cursor stands for (e.g. every running timer), or hides it.
+   * The box stays while the cursor is on it, and for a moment on the way there, so its link
+   * can be clicked (docs/INTERACTIONS.md).
+   */
   private updateBadgeInfo(cursor: { x: number; y: number }, winX: number, winY: number): void {
     const lx = this.windowed ? (cursor.x - winX) / this.dpr : cursor.x;
     const ly = this.windowed ? (cursor.y - winY) / this.dpr : cursor.y;
-    let hit: HTMLElement | null = null;
-    if (!this.badges.hidden) {
+    const under = (el: Element) => {
+      const r = el.getBoundingClientRect();
+      return lx >= r.left && lx <= r.right && ly >= r.top && ly <= r.bottom;
+    };
+    let target: HTMLElement | null = null;
+    const current = this.badgeInfoFor?.isConnected && !this.badges.hidden && !this.hidden ? this.badgeInfoFor : null;
+    if (current && !this.badgeInfo.hidden && under(this.badgeInfo)) {
+      // On the box (which may cover the badges above): keep it.
+      target = current;
+    } else if (!this.badges.hidden && !this.hidden) {
       for (const el of this.badges.children) {
-        const r = el.getBoundingClientRect();
-        if (el instanceof HTMLElement && el.dataset.info && lx >= r.left && lx <= r.right && ly >= r.top && ly <= r.bottom) {
-          hit = el;
-        }
+        if (el instanceof HTMLElement && el.dataset.info && under(el)) target = el;
       }
     }
-    if (!hit) {
+    const now = performance.now();
+    if (target) this.badgeInfoAwaySince = 0;
+    else if (current) {
+      // Moving from the badge to its box: keep it for a moment.
+      this.badgeInfoAwaySince ||= now;
+      if (now - this.badgeInfoAwaySince < BADGE_INFO_GRACE_MS) target = current;
+    }
+    if (!target) {
       this.badgeInfo.hidden = true;
+      this.badgeInfoFor = null;
       return;
     }
-    const r = hit.getBoundingClientRect();
-    const viewW = this.windowed ? PET_WINDOW.w : window.innerWidth;
-    this.badgeInfo.textContent = hit.dataset.info ?? "";
+    this.badgeInfoFor = target;
+    const info = target.dataset.info ?? "";
+    // Rebuilt only when the text changes, so a click never lands on a replaced element.
+    if (this.badgeInfo.dataset.info !== info) {
+      this.badgeInfo.dataset.info = info;
+      const lines = info.split("\n");
+      const action = lines.pop() ?? "";
+      this.badgeInfo.replaceChildren(
+        document.createTextNode(lines.join("\n")),
+        Object.assign(document.createElement("span"), { className: "link", textContent: action }),
+      );
+    }
     this.badgeInfo.hidden = false;
-    // Above the badge, kept inside the window.
+    const r = target.getBoundingClientRect();
+    const viewW = this.windowed ? PET_WINDOW.w : window.innerWidth;
+    // Just above the badge, touching it, kept inside the window.
     this.badgeInfo.style.left = `${Math.max(2, Math.min(r.left, viewW - this.badgeInfo.offsetWidth - 2))}px`;
-    this.badgeInfo.style.top = `${r.top - 3}px`;
+    this.badgeInfo.style.top = `${r.top + 1}px`;
   }
 
   /** Feeds the hover rules and turns what they decide into pet reactions or petting. */
@@ -554,7 +609,7 @@ export class PetHost {
     // Cursor in canvas CSS px.
     const lx = this.windowed ? (cx - winX) / this.dpr : cx;
     const ly = this.windowed ? (cy - winY) / this.dpr : cy;
-    for (const el of [this.bubble, this.badges, this.moodMeter]) {
+    for (const el of [this.bubble, this.badges, this.moodMeter, this.badgeInfo]) {
       if (el.hidden) continue;
       const r = el.getBoundingClientRect();
       if (lx >= r.left && lx <= r.right && ly >= r.top && ly <= r.bottom) return true;

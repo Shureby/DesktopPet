@@ -541,3 +541,17 @@ button.custom {
 input.custom-timer {
   flex: 1;
 }
+
+fieldset.alert .upcoming {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+fieldset.alert .upcoming input[type="number"] {
+  width: 4em;
+}
+fieldset.alert .upcoming .row {
+  justify-content: flex-start;
+  gap: 6px;
+}

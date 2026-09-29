@@ -9,6 +9,8 @@ import {
   snoozedAlarms,
   timeRange,
   timerBadgeLine,
+  upcomingAlarms,
+  upcomingBadgeLine,
   visibleDoneTimers,
 } from "./ringing";
 import { timerLabel } from "./timers";
@@ -118,5 +120,32 @@ describe("an alarm's own time and name", () => {
     expect(alarmName(oneOff({ nextFire: t940 + 12 * min, rangAt: t940, snoozes: 2 }))).toBe(`Alarm ${clock(t940)}`);
     expect(alarmName(oneOff({ label: "", nextFire: t940 }))).toBe(`Alarm ${clock(t940)}`);
     expect(alarmName(oneOff({ label: "Login CMC", nextFire: t940 }))).toBe("Login CMC");
+  });
+});
+
+describe("upcoming alarms (the 🔔 badge)", () => {
+  const now = new Date(2026, 8, 29, 21, 0).getTime();
+  const min = 60_000;
+  const oneOff = (id: number, over: Partial<Alarm>) => alarm({ id, label: "Alarm", repeat: "none", timeHm: null, ...over });
+
+  it("lists alarms ringing within the look-ahead, soonest first", () => {
+    const list = [
+      oneOff(1, { nextFire: now + 50 * min }),
+      oneOff(2, { nextFire: now + 10 * min }),
+      oneOff(3, { nextFire: now + 61 * min }), // too far
+      oneOff(4, { nextFire: now + 5 * min, snoozes: 1 }), // snoozed: its own 💤 badge
+      oneOff(5, { nextFire: now + 5 * min, enabled: false }),
+      oneOff(6, { label: timerLabel(5), nextFire: now + 5 * min }), // a timer
+    ];
+    expect(upcomingAlarms(list, 60, now).map((a) => a.id)).toEqual([2, 1]);
+    expect(upcomingAlarms(list, 5, now)).toEqual([]);
+  });
+
+  it("names the alarm with its time once", () => {
+    const at = now + 40 * min;
+    expect(upcomingBadgeLine(oneOff(1, { nextFire: at }) as Alarm & { nextFire: number })).toBe(`Alarm ${clock(at)}`);
+    expect(upcomingBadgeLine(oneOff(1, { label: "Login CMC", nextFire: at }) as Alarm & { nextFire: number })).toBe(
+      `Login CMC · ${clock(at)}`,
+    );
   });
 });
