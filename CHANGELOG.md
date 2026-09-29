@@ -16,6 +16,14 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.16.1] - 2026-09-29
+
+### Fixed
+- **A snoozed timer is marked in the ⏱ badge's info:** `1 min · 💤×1 · 9:38 → 9:45 PM`.
+  Its range runs to the next ring, so it looked like a normal timer with the wrong times.
+- **Badge info lines separate their parts with ` · `** (`12 min · 8:10 → 8:22 PM`,
+  `Focus · 8:00 → 8:25 PM`). The spaces between them were collapsed into one.
+
 ## [0.16.0] - 2026-09-29
 
 ### Changed

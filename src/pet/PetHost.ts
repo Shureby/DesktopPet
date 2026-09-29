@@ -355,7 +355,7 @@ export class PetHost {
       const name = p.phase === "focus" ? "Focus" : "Break";
       rows.push({
         text: `${icon} ${formatRemaining(p.endsAt - now)}`,
-        title: info([`${name}   ${timeRange(p.endsAt - minutes * 60_000, p.endsAt)}`], "Open the Focus tab"),
+        title: info([`${name} · ${timeRange(p.endsAt - minutes * 60_000, p.endsAt)}`], "Open the Focus tab"),
         onClick: () => void this.backend.openPanel("focus"),
         live: true,
       });

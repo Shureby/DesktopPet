@@ -153,8 +153,8 @@ Code: `src/features/alarm/ringing.ts`, the scheduler in `src-tauri/src/scheduler
 
   | Badge | Info | Last line |
   |---|---|---|
-  | ⏱ | every running timer: `12 min 8:10 → 8:22 PM` | Open the Alarms tab |
-  | 🍅 / ☕ | `Focus 8:00 → 8:25 PM` (or `Break …`) | Open the Focus tab |
+  | ⏱ | every running timer: `12 min · 8:10 → 8:22 PM`; a snoozed one `1 min · 💤×1 · 9:38 → 9:45 PM` | Open the Alarms tab |
+  | 🍅 / ☕ | `Focus · 8:00 → 8:25 PM` (or `Break …`) | Open the Focus tab |
   | 💤 | `Alarm 9:40 PM · snoozed 1×`, `next ring 9:46 PM` | Open the Alarms tab |
   | ⏰ Missed | `Alarm 9:40 PM · snoozed 3×` | Click when you've seen it |
   | ⏱ Done | `12 min timer · done 8:22 PM` | Click to dismiss |
@@ -162,6 +162,10 @@ Code: `src/features/alarm/ringing.ts`, the scheduler in `src-tauri/src/scheduler
   - The ⏱ list is why "+5" isn't a mystery.
   - Times are ranges, not "Started … · rings at …", because the box is small. A shared
     AM/PM is written once (`timeRange`).
+  - Parts of a line are separated by ` · `, as everywhere else (since 0.16.1). The box
+    collapses repeated spaces, so spaces alone ran the parts together.
+  - A snoozed timer is marked `💤×N` (since 0.16.1). Its range runs to the next ring, so
+    without the mark "1 min · 9:38 → 9:45 PM" looks wrong.
   - The pet draws the box itself (`.badge-info`): native tooltips don't show reliably in
     its transparent, never-focused window.
 - **The heart meter only shows with the cursor on the pet itself,** not on its badges or

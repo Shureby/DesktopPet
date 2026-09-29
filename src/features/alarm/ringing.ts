@@ -68,10 +68,14 @@ export function timeRange(start: number, end: number): string {
   return `${shared} → ${b}`;
 }
 
-/** A running timer in the ⏱ badge's info: "12 min   8:10 → 8:22 PM" (or "12 min   rings 8:22 PM"). */
+/**
+ * A running timer in the ⏱ badge's info: "12 min · 8:10 → 8:22 PM" (or "12 min · rings 8:22 PM").
+ * A snoozed one says so, since its range is longer than its length: "1 min · 💤×1 · 9:38 → 9:45 PM".
+ */
 export function timerBadgeLine(a: Alarm & { nextFire: number }): string {
   const started = timerStartedAt(a);
-  return `${timerName(a)}   ${started === null ? `rings ${clock(a.nextFire)}` : timeRange(started, a.nextFire)}`;
+  const when = started === null ? `rings ${clock(a.nextFire)}` : timeRange(started, a.nextFire);
+  return [timerName(a), a.snoozes > 0 ? `💤×${a.snoozes}` : null, when].filter(Boolean).join(" · ");
 }
 
 /** The label an alarm gets when the user doesn't name it; shown as "Alarm 9:40 PM". */

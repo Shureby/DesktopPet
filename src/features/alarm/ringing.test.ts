@@ -83,7 +83,12 @@ describe("badge info", () => {
 
   it("lists a timer by length and range", () => {
     const t = alarm({ label: timerLabel(12), repeat: "none", timeHm: null, nextFire: at(20, 22), createdAt: at(20, 10) });
-    expect(timerBadgeLine(t as Alarm & { nextFire: number })).toBe(`12 min   ${timeRange(at(20, 10), at(20, 22))}`);
+    expect(timerBadgeLine(t as Alarm & { nextFire: number })).toBe(`12 min · ${timeRange(at(20, 10), at(20, 22))}`);
+  });
+
+  it("marks a snoozed timer, whose range is longer than its length", () => {
+    const t = alarm({ label: timerLabel(1), repeat: "none", timeHm: null, nextFire: at(21, 45), createdAt: at(21, 38), snoozes: 1 });
+    expect(timerBadgeLine(t as Alarm & { nextFire: number })).toBe(`1 min · 💤×1 · ${timeRange(at(21, 38), at(21, 45))}`);
   });
 });
 
