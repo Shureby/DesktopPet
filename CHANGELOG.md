@@ -16,6 +16,19 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-09-29
+
+### Changed
+- **Every badge by the pet explains itself the same way on hover:** what and when first,
+  then what a click does.
+  - ⏱ lists each timer as a short range: `12 min 8:10 → 8:22 PM`. It said only when it
+    rings, while the panel also said when it started.
+  - 🍅/☕ shows the session's range.
+  - 💤 names the snoozed alarm and its next ring. Clicking it now opens the Alarms tab.
+  - ⏰ Missed and ⏱ Done say what they are for.
+- **The heart meter only appears with the cursor on the pet itself,** not on its badges or
+  speech bubble.
+
 ## [0.15.0] - 2026-09-28
 
 ### Fixed

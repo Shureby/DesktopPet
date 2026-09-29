@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_SETTINGS, type Alarm } from "../../platform/types";
-import { alarmName, alarmTime, clock, missedAlarms, onUnanswered, snoozedAlarms, visibleDoneTimers } from "./ringing";
+import {
+  alarmName,
+  alarmTime,
+  clock,
+  missedAlarms,
+  onUnanswered,
+  snoozedAlarms,
+  timeRange,
+  timerBadgeLine,
+  visibleDoneTimers,
+} from "./ringing";
+import { timerLabel } from "./timers";
 
 const alarm = (over: Partial<Alarm> = {}): Alarm => ({
   id: 1,
@@ -56,6 +67,23 @@ describe("unanswered alarms", () => {
 
   it("stops badging a missed alarm once it has been seen (it stays missed in the history)", () => {
     expect(missedAlarms([alarm({ missedAt: 500, missedSeenAt: 900 })])).toEqual([]);
+  });
+});
+
+describe("badge info", () => {
+  const at = (h: number, m: number) => new Date(2026, 8, 29, h, m).getTime();
+  it("writes a time range short, with a shared AM/PM once", () => {
+    // The exact text depends on the system's clock format; check it where it is 12-hour.
+    if (clock(at(20, 19)) === "8:19 PM") {
+      expect(timeRange(at(20, 19), at(20, 20))).toBe("8:19 → 8:20 PM");
+      expect(timeRange(at(11, 50), at(12, 5))).toBe("11:50 AM → 12:05 PM");
+    }
+    expect(timeRange(at(20, 19), at(20, 20)).endsWith(clock(at(20, 20)))).toBe(true);
+  });
+
+  it("lists a timer by length and range", () => {
+    const t = alarm({ label: timerLabel(12), repeat: "none", timeHm: null, nextFire: at(20, 22), createdAt: at(20, 10) });
+    expect(timerBadgeLine(t as Alarm & { nextFire: number })).toBe(`12 min   ${timeRange(at(20, 10), at(20, 22))}`);
   });
 });
 

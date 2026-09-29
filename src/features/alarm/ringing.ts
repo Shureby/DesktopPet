@@ -1,5 +1,5 @@
 import type { Alarm, AlertSettings } from "../../platform/types";
-import { isTimer } from "./timers";
+import { isTimer, timerName, timerStartedAt } from "./timers";
 
 /**
  * What happens when an alarm or timer rang for its full time and nobody pressed
@@ -54,6 +54,24 @@ export function missedAlarms(alarms: Alarm[]): (Alarm & { missedAt: number })[] 
  */
 export function clock(ms: number): string {
   return new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+/**
+ * "8:19 → 8:20 PM": a short time range for tight spaces (badge info). A shared AM/PM is
+ * written once; "11:50 AM → 12:05 PM" keeps both; 24-hour clocks have none to share.
+ */
+export function timeRange(start: number, end: number): string {
+  const a = clock(start);
+  const b = clock(end);
+  const suffix = /\s*[^\d\s:.]+$/.exec(a)?.[0];
+  const shared = suffix && b.endsWith(suffix) ? a.slice(0, -suffix.length) : a;
+  return `${shared} → ${b}`;
+}
+
+/** A running timer in the ⏱ badge's info: "12 min   8:10 → 8:22 PM" (or "12 min   rings 8:22 PM"). */
+export function timerBadgeLine(a: Alarm & { nextFire: number }): string {
+  const started = timerStartedAt(a);
+  return `${timerName(a)}   ${started === null ? `rings ${clock(a.nextFire)}` : timeRange(started, a.nextFire)}`;
 }
 
 /** The label an alarm gets when the user doesn't name it; shown as "Alarm 9:40 PM". */

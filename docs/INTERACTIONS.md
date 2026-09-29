@@ -148,9 +148,24 @@ Code: `src/features/alarm/ringing.ts`, the scheduler in `src-tauri/src/scheduler
   happened to ring at the same time. The start time is `alarms.created_at` (v5 migration).
   For timers set before 0.14.0 it is worked out from the ring time and the length in the
   label (`timerStartedAt`), unless a snooze moved the ring.
-- **Hovering the ⏱ badge lists every running timer** with its ring time, so "+5" isn't a
-  mystery. The pet draws this list itself (`.badge-info`), because native tooltips don't
-  show reliably in its transparent, never-focused window.
+- **Hovering a badge shows what it stands for,** in the same shape for every badge (since
+  0.16.0): what and when, then what a click does on the last line.
+
+  | Badge | Info | Last line |
+  |---|---|---|
+  | ⏱ | every running timer: `12 min 8:10 → 8:22 PM` | Open the Alarms tab |
+  | 🍅 / ☕ | `Focus 8:00 → 8:25 PM` (or `Break …`) | Open the Focus tab |
+  | 💤 | `Alarm 9:40 PM · snoozed 1×`, `next ring 9:46 PM` | Open the Alarms tab |
+  | ⏰ Missed | `Alarm 9:40 PM · snoozed 3×` | Click when you've seen it |
+  | ⏱ Done | `12 min timer · done 8:22 PM` | Click to dismiss |
+
+  - The ⏱ list is why "+5" isn't a mystery.
+  - Times are ranges, not "Started … · rings at …", because the box is small. A shared
+    AM/PM is written once (`timeRange`).
+  - The pet draws the box itself (`.badge-info`): native tooltips don't show reliably in
+    its transparent, never-focused window.
+- **The heart meter only shows with the cursor on the pet itself,** not on its badges or
+  bubble. There you're after the alarm or the focus session, not the pet's mood.
 - **The pet window is 340 px wide** (since 0.15.0), so badges beside the pet fit. A badge
   that is still too long ends in "…" rather than being cut off.
 - **Finished and done lists put the most recent first.**

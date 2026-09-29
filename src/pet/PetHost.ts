@@ -10,6 +10,8 @@ import {
   alarmTime,
   clock,
   missedAlarms,
+  timeRange,
+  timerBadgeLine,
   onUnanswered,
   snoozedAlarms,
   visibleDoneTimers,
@@ -95,6 +97,8 @@ export class PetHost {
   /** The bubble is asking for a custom timer length; chatter must not replace it. */
   private prompting = false;
   private hovering = false;
+  /** The cursor is on the pet itself (not its bubble or badges): shows the heart meter. */
+  private overSprite = false;
   /** The mouse resting on the pet: stop, react, stroke (brain/hover.ts, docs/INTERACTIONS.md). */
   private readonly hover = new HoverTracker();
   /** What the hovered badge stands for (see updateBadgeInfo). */
@@ -326,7 +330,7 @@ export class PetHost {
     const viewW = this.windowed ? PET_WINDOW.w : window.innerWidth;
     this.badges.style.maxWidth = `${Math.max(40, viewW - badgesLeft - 4)}px`;
     this.renderBadges();
-    this.moodMeter.hidden = !this.hovering || !!this.drag;
+    this.moodMeter.hidden = !this.overSprite || !!this.drag;
   }
 
   /**
@@ -340,11 +344,18 @@ export class PetHost {
     // a click never lands on an element that was just replaced.
     const rows: { text: string; cls?: string; title?: string; onClick?: () => void; live?: boolean }[] = [];
     const more = (n: number) => (n > 1 ? ` +${n - 1}` : "");
-    if (this.pomodoro.phase !== "idle" && this.pomodoro.endsAt) {
-      const icon = this.pomodoro.phase === "focus" ? "🍅" : "☕";
+    // Hovering a badge shows what it stands for (updateBadgeInfo): what, then when, then
+    // what a click does, on its own last line. Same shape for every badge.
+    const info = (lines: string[], action: string) => [...lines, action].join("\n");
+    const p = this.pomodoro;
+    if (p.phase !== "idle" && p.endsAt) {
+      const icon = p.phase === "focus" ? "🍅" : "☕";
+      const pc = this.settings.pomodoro;
+      const minutes = p.phase === "focus" ? pc.focusMin : p.phase === "short_break" ? pc.shortBreakMin : pc.longBreakMin;
+      const name = p.phase === "focus" ? "Focus" : "Break";
       rows.push({
-        text: `${icon} ${formatRemaining(this.pomodoro.endsAt - now)}`,
-        title: "Open the Focus tab",
+        text: `${icon} ${formatRemaining(p.endsAt - now)}`,
+        title: info([`${name}   ${timeRange(p.endsAt - minutes * 60_000, p.endsAt)}`], "Open the Focus tab"),
         onClick: () => void this.backend.openPanel("focus"),
         live: true,
       });
@@ -354,7 +365,7 @@ export class PetHost {
       rows.push({
         text: `⏱ ${formatRemaining(timers[0].nextFire - now)}${more(timers.length)}`,
         // Every running timer, so "+5" isn't a mystery.
-        title: [...timers.map((t) => `${timerName(t)} · rings at ${clock(t.nextFire)}`), "Click to open the Alarms tab"].join("\n"),
+        title: info(timers.map(timerBadgeLine), "Open the Alarms tab"),
         onClick: () => void this.backend.openPanel("alarms"),
         live: true,
       });
@@ -364,7 +375,8 @@ export class PetHost {
       const s = snoozed[0];
       rows.push({
         text: `💤 ${clock(s.nextFire)}${more(snoozed.length)}`,
-        title: `${alarmName(s)} (snoozed ${s.snoozes}×) rings again at ${clock(s.nextFire)}`,
+        title: info([`${alarmName(s)} · snoozed ${s.snoozes}×`, `next ring ${clock(s.nextFire)}`], "Open the Alarms tab"),
+        onClick: () => void this.backend.openPanel("alarms"),
       });
     }
     const missed = missedAlarms(this.timers);
@@ -374,7 +386,7 @@ export class PetHost {
         // The alarm's own time (9:40), not when it was finally given up on (9:59).
         text: `⏰ Missed ${clock(alarmTime(m) ?? m.missedAt)}${more(missed.length)}`,
         cls: "missed",
-        title: `${alarmName(m)}${m.snoozes ? `, snoozed ${m.snoozes}×` : ""}. Click when you've seen it.`,
+        title: info([`${alarmName(m)}${m.snoozes ? ` · snoozed ${m.snoozes}×` : ""}`], "Click when you've seen it"),
         onClick: () => {
           // Seen: the badge goes (right away; the refresh confirms), the history keeps it.
           this.timers = this.timers.map((a) => (a.id === m.id ? { ...a, missedSeenAt: Date.now() } : a));
@@ -387,7 +399,10 @@ export class PetHost {
       rows.push({
         text: `⏱ Done ${clock(done[0].at)}${more(done.length)}`,
         cls: "quiet",
-        title: "Click to dismiss",
+        title: info(
+          done.map((t) => `${t.label.startsWith(TIMER_PREFIX) ? t.label.slice(TIMER_PREFIX.length) : t.label} timer · done ${clock(t.at)}`),
+          "Click to dismiss",
+        ),
         onClick: () => (this.doneTimers = []),
       });
     }
@@ -454,11 +469,13 @@ export class PetHost {
       if (cursor) {
         this.pet.cursor = this.windowed ? cursor : { x: cursor.x * this.dpr, y: cursor.y * this.dpr };
         const overPet = this.isOverPet(cursor.x, cursor.y, winX, winY);
-        if (overPet && !this.hovering) {
-          this.renderMoodMeter();
-          this.welcomeBack();
-        }
+        if (overPet && !this.hovering) this.welcomeBack();
         this.hovering = overPet;
+        // The heart meter is about the pet: on a badge or the bubble you're after the
+        // alarm or the focus session, so it stays hidden there.
+        const overSprite = this.isNearSprite(cursor.x, cursor.y, winX, winY);
+        if (overSprite && !this.overSprite) this.renderMoodMeter();
+        this.overSprite = overSprite;
         this.updateHover(cursor, winX, winY);
         this.updateBadgeInfo(cursor, winX, winY);
         this.ignoringCursor = !overPet && !this.drag;
