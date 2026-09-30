@@ -16,6 +16,15 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.19.1] - 2026-09-30
+
+### Fixed
+- **Nothing by the pet is cut off at the edge of the screen.**
+  - Badges move to the pet's other side when they don't fit. They move back only with
+    room to spare, and never while the mouse is on them.
+  - The heart meter takes the free side, or goes above the pet.
+  - The speech bubble and badge info box shift to stay on screen.
+
 ## [0.19.0] - 2026-09-30
 
 ### Changed

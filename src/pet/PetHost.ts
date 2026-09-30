@@ -3,6 +3,7 @@ import { applyMoodEvent, isHungry, moodTier, parseMood, type MoodEvent } from ".
 import { RulesBrain } from "../brain/RulesBrain";
 import { Pet } from "../characters/Pet";
 import type { CharacterRegistry, LoadedCharacter } from "../characters/registry";
+import { areaIndexAt } from "../engine/physics";
 import { createRng } from "../engine/random";
 import { SpriteAtlas } from "../engine/sprites";
 import {
@@ -46,6 +47,8 @@ const STEP = 1 / 30;
  */
 /** How long a badge's info box stays after the cursor leaves the badge, to reach the box. */
 const BADGE_INFO_GRACE_MS = 400;
+/** Badges moved left of the pet go back right only with this much room to spare (no flicker). */
+const BADGE_FLIP_SLACK = 40;
 
 export const PET_WINDOW = { w: 340, h: 240 };
 
@@ -112,6 +115,8 @@ export class PetHost {
   private badgeInfoFor: HTMLElement | null = null;
   /** When the cursor left both the badge and its box (0 while on either). */
   private badgeInfoAwaySince = 0;
+  /** Which side of the pet the badges are on; "left" only when they don't fit on the right. */
+  private badgeSide: "left" | "right" = "right";
   /** False while the pet is hidden from its menu or the tray. */
   private petVisible = true;
   /** Tray menus still referenced: the current one and the one before (it may be open). */
@@ -299,6 +304,25 @@ export class PetHost {
     return this.character.def.sprite.scale * this.settings.size;
   }
 
+  /**
+   * The part of the canvas that is on screen (the pet's work area), in canvas CSS px. Near a
+   * screen edge the pet window hangs off it, and what's drawn there can't be seen.
+   */
+  private visibleRange(): { left: number; right: number } {
+    const viewW = this.windowed ? PET_WINDOW.w : window.innerWidth;
+    const world = this.pet.world;
+    const b = this.pet.body;
+    const i = world ? areaIndexAt(world, b.x, b.y - 1) : -1;
+    if (!world || i < 0) return { left: 0, right: viewW };
+    const a = world.areas[i];
+    // Canvas x 0 in screen CSS px.
+    const origin = this.windowed ? b.x / this.dpr - PET_WINDOW.w / 2 : 0;
+    return {
+      left: Math.max(0, a.x / this.dpr - origin),
+      right: Math.min(viewW, (a.x + a.w) / this.dpr - origin),
+    };
+  }
+
   /** Where the pet's feet are drawn, in canvas CSS px. */
   private feet(): { x: number; y: number } {
     if (this.windowed) return { x: PET_WINDOW.w / 2, y: PET_WINDOW.h - 2 };
@@ -330,22 +354,50 @@ export class PetHost {
     this.atlas.draw(this.ctx, this.pet.anim.frame, f.x, f.y, this.artScale, this.pet.facing);
 
     const spriteH = this.atlas.height * this.artScale;
-    const place = (el: HTMLElement, dy: number, dx = 0) => {
-      el.style.left = `${f.x + dx}px`;
-      el.style.top = `${f.y - spriteH - dy}px`;
-    };
-    place(this.bubble, 8);
-    // Left of the pet (badges are on the right), so it never hides behind the bubble.
-    this.moodMeter.style.left = `${f.x - this.atlas.width * this.artScale / 2 - 4}px`;
-    this.moodMeter.style.top = `${f.y - 2}px`;
     const spriteW = this.atlas.width * this.artScale;
+    const halfW = spriteW / 2;
+    // What of the window is on screen: near a screen edge, part of it isn't
+    // (docs/INTERACTIONS.md, "At the edge of the screen").
+    const vis = this.visibleRange();
+
+    // The speech bubble stays on screen; its tail keeps pointing at the pet.
+    const bw = this.bubble.offsetWidth;
+    const bx = Math.max(vis.left + 2 + bw / 2, Math.min(f.x, vis.right - 2 - bw / 2));
+    this.bubble.style.left = `${bw ? bx : f.x}px`;
+    this.bubble.style.top = `${f.y - spriteH - 8}px`;
+    this.bubble.style.setProperty("--tail", `${Math.max(-(bw / 2 - 12), Math.min(bw / 2 - 12, f.x - bx))}px`);
+
+    // Badges go right of the pet, or left when they don't fit on screen there. They flip back
+    // only once there is room to spare, and never while the mouse is on them.
+    const rightSpace = vis.right - (f.x + halfW + 4) - 2;
+    const leftSpace = f.x - halfW - 4 - (vis.left + 2);
+    let needed = 0;
+    for (const el of this.badges.children) needed = Math.max(needed, (el as HTMLElement).scrollWidth + 4);
+    if (!this.badgeInfoFor && needed > 0) {
+      if (this.badgeSide === "right" && rightSpace < needed && leftSpace > rightSpace) this.badgeSide = "left";
+      else if (this.badgeSide === "left" && rightSpace >= needed + BADGE_FLIP_SLACK) this.badgeSide = "right";
+    }
+    const left = this.badgeSide === "left";
+    this.badges.classList.toggle("left", left);
     // Anchored at the feet and growing upward, so extra rows never fall off the window.
-    const badgesLeft = f.x + spriteW / 2 + 4;
-    this.badges.style.left = `${badgesLeft}px`;
+    this.badges.style.left = `${left ? f.x - halfW - 4 : f.x + halfW + 4}px`;
     this.badges.style.top = `${f.y - 2}px`;
-    // Never wider than the window: a long badge ends in "…" instead of being cut off mid-border.
-    const viewW = this.windowed ? PET_WINDOW.w : window.innerWidth;
-    this.badges.style.maxWidth = `${Math.max(40, viewW - badgesLeft - 4)}px`;
+    // Never wider than what's visible: a long badge ends in "…" instead of being cut off.
+    this.badges.style.maxWidth = `${Math.max(40, left ? leftSpace : rightSpace)}px`;
+
+    // The heart meter takes the other side; if that is off screen too, above the pet's head
+    // (above the bubble, if one shows).
+    const mw = this.moodMeter.offsetWidth;
+    const meterSide = !left ? (leftSpace >= mw ? "left" : "above") : rightSpace >= mw ? "right" : "above";
+    this.moodMeter.dataset.side = meterSide;
+    if (meterSide === "above") {
+      const top = this.bubble.hidden ? f.y - spriteH - 4 : this.bubble.getBoundingClientRect().top - 4;
+      this.moodMeter.style.left = `${Math.max(vis.left + 2 + mw / 2, Math.min(f.x, vis.right - 2 - mw / 2))}px`;
+      this.moodMeter.style.top = `${top}px`;
+    } else {
+      this.moodMeter.style.left = `${meterSide === "left" ? f.x - halfW - 4 : f.x + halfW + 4}px`;
+      this.moodMeter.style.top = `${f.y - 2}px`;
+    }
     this.renderBadges();
     this.moodMeter.hidden = !this.overSprite || !!this.drag;
   }
@@ -558,9 +610,12 @@ export class PetHost {
     }
     this.badgeInfo.hidden = false;
     const r = target.getBoundingClientRect();
-    const viewW = this.windowed ? PET_WINDOW.w : window.innerWidth;
-    // Just above the badge, touching it, kept inside the window.
-    this.badgeInfo.style.left = `${Math.max(2, Math.min(r.left, viewW - this.badgeInfo.offsetWidth - 2))}px`;
+    const vis = this.visibleRange();
+    const w = this.badgeInfo.offsetWidth;
+    // Just above the badge, touching it, kept on screen: from the badge's left edge, or its
+    // right edge when the badges are left of the pet.
+    const x = this.badgeSide === "left" ? r.right - w : r.left;
+    this.badgeInfo.style.left = `${Math.max(vis.left + 2, Math.min(x, vis.right - w - 2))}px`;
     this.badgeInfo.style.top = `${r.top + 1}px`;
   }
 

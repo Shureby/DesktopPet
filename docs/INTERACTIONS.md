@@ -214,6 +214,19 @@ Code: `askTurnOff` in `src/panel/main.ts`, `skip_alarm_once` / `unskip_alarm` in
   bubble. There you're after the alarm or the focus session, not the pet's mood.
 - **The pet window is 340 px wide** (since 0.15.0), so badges beside the pet fit. A badge
   that is still too long ends in "…" rather than being cut off.
+- **At the edge of the screen** (since 0.19.1), nothing by the pet is cut off:
+  - **Badges move to the pet's left** when they don't fit on screen to its right.
+    - This is the same way menus and tooltips flip near a screen edge.
+    - They go back right only with 40 px to spare (`BADGE_FLIP_SLACK`), so a pet walking
+      along the edge doesn't make them flicker.
+    - They never move while the mouse is on a badge or its info box.
+  - **The heart meter takes the side the badges don't use.** If that side is off screen
+    too, it goes above the pet's head (above the bubble, if one shows). The badges come
+    first: they are what you act on.
+  - **The speech bubble and the info box shift to stay on screen.** The bubble's tail
+    keeps pointing at the pet.
+  - What counts as "on screen" is the work area the pet is in (`visibleRange`). The pet
+    window itself is centred on the pet and can hang off the edge.
 - **Finished and done lists put the most recent first.**
 - **Dates read "Today", "Yesterday", "Tomorrow", otherwise a short date**
   (`formatWhen` in `src/panel/dom.ts`). Times follow the system's 12/24-hour setting,

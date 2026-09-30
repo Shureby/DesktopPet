@@ -43,7 +43,8 @@ body {
 .bubble::after {
   content: "";
   position: absolute;
-  left: 50%;
+  /* Points at the pet even when the bubble is shifted to stay on screen (PetHost). */
+  left: calc(50% + var(--tail, 0px));
   bottom: -8px;
   margin-left: -6px;
   border: 6px solid transparent;
@@ -120,6 +121,11 @@ body {
   align-items: flex-start;
   gap: 2px;
   z-index: 1;
+}
+/* Left of the pet when they don't fit on screen to its right (PetHost.render). */
+.badges.left {
+  transform: translate(-100%, -100%);
+  align-items: flex-end;
 }
 .badges > div {
   max-width: 100%;
@@ -279,6 +285,14 @@ body.demo .demo-help a {
   letter-spacing: 1px;
   white-space: pre;
   z-index: 2;
+}
+.mood[data-side="right"] {
+  transform: translateY(-100%);
+  text-align: left;
+}
+.mood[data-side="above"] {
+  transform: translate(-50%, -100%);
+  text-align: center;
 }
 .mood.hungry {
   box-shadow: 0 0 0 1.5px #e8743b;
