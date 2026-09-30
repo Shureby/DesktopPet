@@ -22,6 +22,37 @@
 - Sticky notes pinned next to the pet. A system glance: battery, CPU, next meeting from an ICS feed.
 - Screenshot + annotate, colour picker.
 
+## To-dos with progress, tied to focus (idea, not scheduled)
+
+> **Status: idea for later.** Recorded 2026-09-30 after looking at a competitor's
+> five-column task board. Not planned for any version yet. It's a direction to extend
+> into when to-dos need more than open/done.
+
+**Why not a full board now:** ePet's to-dos are quick one-liners with reminders. A
+multi-column board with custom statuses and drag-and-drop competes with Trello and Notion,
+looks empty with the handful of tasks a desktop-pet user keeps, and would cost about as
+much as the whole to-do module. What's worth taking from it is *progress*: to do → doing
+→ done.
+
+**Step 1: a "doing" state for to-dos.**
+- A ▶ on a to-do marks it as what you're working on now (one at a time).
+- The pet shows it: in a badge or its info box ("Doing: write the weekly report").
+
+**Step 2: focus on a to-do.**
+- Start a tomato-clock session from a to-do; the session belongs to it.
+- When the focus ends, the pet asks "Done with *write the weekly report*?" [✓ Done]
+  [Not yet].
+- Each to-do counts its sessions ("🍅×3"). The Focus stats can also show time per task.
+
+**Later: a board view built on the same data.**
+- Columns such as To do / Doing / Waiting / Done, and user-defined statuses.
+- Moving a card into **Doing** starts a focus session on it, and moving it out (or
+  finishing) stops it. A card moved to Done gets the pet's congratulations and its 🍅
+  count.
+- "Clear done" at the end of the day, like finished alarms.
+- Steps 1–2 should store status and sessions per to-do so that a board is only a new
+  view, not a new data model.
+
 ## More mini-games
 
 A taskbar hurdle runner, catching falling food (feeds the pet's mood) and
