@@ -1,6 +1,6 @@
 import { alarmTime, clock } from "../features/alarm/ringing";
 import { isTimer, timerStartedAt } from "../features/alarm/timers";
-import type { Alarm } from "../platform/types";
+import { EVERY_DAY, repeatMask, WEEKDAYS, type Alarm, type DayMask } from "../platform/types";
 import { formatWhen } from "./dom";
 
 /** The time the alarm is set for, shown big like a phone clock app (the same through snoozes). */
@@ -49,4 +49,21 @@ export function skipWhen(ms: number, now = Date.now()): string {
         ? "Tomorrow"
         : d.toLocaleDateString([], { weekday: "long" });
   return `${d.toLocaleDateString([], { month: "short", day: "numeric" })} ${clock(ms)} (${day})`;
+}
+
+const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/** "Every day", "Weekdays", "Weekends", "Mon, Wed, Fri" (Monday first); "No days" for none. */
+export function daysText(mask: DayMask): string {
+  const m = mask & EVERY_DAY;
+  if (m === EVERY_DAY) return "Every day";
+  if (m === WEEKDAYS) return "Weekdays";
+  if (m === 0b100_0001) return "Weekends";
+  const days = [1, 2, 3, 4, 5, 6, 0].filter((d) => m & (1 << d)).map((d) => SHORT_DAYS[d]);
+  return days.length ? days.join(", ") : "No days";
+}
+
+/** How an alarm repeats: "Once", "Every day", "Weekdays", "Mon, Wed, Fri". */
+export function repeatText(a: Pick<Alarm, "repeat" | "repeatDays">): string {
+  return a.repeat === "none" ? "Once" : daysText(repeatMask(a.repeat, a.repeatDays ?? 0));
 }

@@ -1,7 +1,10 @@
 import { nextPhase, startFocus, tick } from "../features/pomodoro/logic";
+import { currentWorkPeriod, runCutoff } from "../features/pomodoro/workHours";
 import {
   DEFAULT_SETTINGS,
+  EVERY_DAY,
   mergeSettings,
+  repeatMask,
   type Alarm,
   type Backend,
   type BackendEvents,
@@ -26,6 +29,8 @@ interface MockState {
   scores: Score[];
   moods?: Record<string, unknown>;
   nextId: number;
+  /** The work period the tomato clock was last started in (or found running in). */
+  autoPeriod?: number;
 }
 
 const KEY = "desktoppet-mock";
@@ -85,15 +90,19 @@ function dayKey(ms: number) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function nextOccurrence(timeHm: string, repeat: Alarm["repeat"], after: number): number {
+/** Next time after `after` at `timeHm` on one of `days` (a DayMask); like schedule.rs. */
+function nextOccurrence(timeHm: string, days: number, after: number): number | null {
+  if (!days) return null;
   const [h, m] = timeHm.split(":").map(Number);
   const d = new Date(after);
   d.setHours(h, m, 0, 0);
-  while (d.getTime() <= after || (repeat === "weekdays" && (d.getDay() === 0 || d.getDay() === 6))) {
-    d.setDate(d.getDate() + 1);
-  }
+  while (d.getTime() <= after || !(days & (1 << d.getDay()))) d.setDate(d.getDate() + 1);
   return d.getTime();
 }
+
+const daysOf = (a: Alarm) => repeatMask(a.repeat, a.repeatDays ?? 0);
+const cutoffOf = (s: MockState) =>
+  s.pomodoro.runStartedAt ? runCutoff(s.settings.pomodoro.workHours, s.pomodoro.runStartedAt) : null;
 
 function setPomodoro(s: MockState, next: PomodoroStatus, now: number) {
   const prev = s.pomodoro;
@@ -129,14 +138,21 @@ export function startMockScheduler(): () => void {
             a.missedAt = null;
             a.missedSeenAt = null;
           } else a.rangAt ??= a.nextFire;
-          if (a.repeat !== "none" && a.timeHm) a.nextFire = nextOccurrence(a.timeHm, a.repeat, now);
+          if (a.repeat !== "none" && a.timeHm) a.nextFire = nextOccurrence(a.timeHm, daysOf(a), now);
           else {
             a.nextFire = null;
             a.enabled = false;
           }
         }
       }
-      const next = tick(s.pomodoro, now, s.settings.pomodoro);
+      // Work hours: start it once per work period (see tick_pomodoro in store.rs).
+      const period = currentWorkPeriod(s.settings.pomodoro.workHours, now);
+      let next: PomodoroStatus | null = null;
+      if (period !== null && s.autoPeriod !== period) {
+        s.autoPeriod = period;
+        if (s.pomodoro.phase === "idle") next = startFocus(now, s.settings.pomodoro);
+      }
+      next ??= tick(s.pomodoro, now, s.settings.pomodoro, cutoffOf(s));
       if (next) {
         setPomodoro(s, next, now);
         events.push(["pomodoro", next]);
@@ -200,14 +216,18 @@ export const mockBackend: Backend = {
   async listAlarms() {
     return load().alarms;
   },
-  async addAlarm(label, at, repeat) {
+  async addAlarm(label, at, repeat, days = 0) {
+    const repeatDays = repeat === "days" ? days & EVERY_DAY : 0;
+    if (repeat === "days" && !repeatDays) throw new Error("pick at least one day");
     const alarm = mutate((s) => {
       const d = new Date(at);
       const timeHm = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+      const first = repeat === "none" ? at : (nextOccurrence(timeHm, repeatMask(repeat, repeatDays), at - 1) ?? at);
       const a: Alarm = {
         id: s.nextId++,
         label,
-        nextFire: at,
+        nextFire: first,
+        repeatDays,
         timeHm: repeat === "none" ? null : timeHm,
         repeat,
         enabled: true,
@@ -231,7 +251,7 @@ export const mockBackend: Backend = {
       a.enabled = enabled;
       a.skippedFire = null;
       if (a.repeat !== "none") a.snoozes = 0;
-      if (enabled && a.timeHm) a.nextFire = nextOccurrence(a.timeHm, a.repeat, Date.now());
+      if (enabled && a.timeHm) a.nextFire = nextOccurrence(a.timeHm, daysOf(a), Date.now());
       // One-shot alarms keep their time so they can be switched back on.
       if (!enabled && a.repeat !== "none") a.nextFire = null;
       if (enabled && a.repeat === "none" && (a.nextFire ?? 0) <= Date.now()) a.enabled = false;
@@ -244,7 +264,7 @@ export const mockBackend: Backend = {
       if (!a || a.repeat === "none" || !a.enabled || a.nextFire === null || !a.timeHm) return;
       a.skippedFire = a.nextFire;
       a.snoozes = 0;
-      a.nextFire = nextOccurrence(a.timeHm, a.repeat, Math.max(a.nextFire, Date.now()));
+      a.nextFire = nextOccurrence(a.timeHm, daysOf(a), Math.max(a.nextFire, Date.now()));
     });
     fire("alarms-changed", null);
   },
@@ -253,7 +273,7 @@ export const mockBackend: Backend = {
       const a = s.alarms.find((x) => x.id === id);
       if (!a || !a.timeHm) return;
       a.skippedFire = null;
-      if (a.enabled) a.nextFire = nextOccurrence(a.timeHm, a.repeat, Date.now());
+      if (a.enabled) a.nextFire = nextOccurrence(a.timeHm, daysOf(a), Date.now());
     });
     fire("alarms-changed", null);
   },
@@ -264,7 +284,7 @@ export const mockBackend: Backend = {
       if (a.repeat !== "none") a.snoozes = 0;
       if (a.missedAt) a.missedSeenAt ??= Date.now();
       if (a.repeat !== "none" && a.timeHm) {
-        a.nextFire = nextOccurrence(a.timeHm, a.repeat, Date.now());
+        a.nextFire = nextOccurrence(a.timeHm, daysOf(a), Date.now());
         a.enabled = true;
       } else {
         a.nextFire = null;
@@ -331,7 +351,7 @@ export const mockBackend: Backend = {
   async pomodoroSkip() {
     const now = Date.now();
     const st = mutate((s) => {
-      setPomodoro(s, nextPhase(s.pomodoro, now, s.settings.pomodoro), now);
+      setPomodoro(s, nextPhase(s.pomodoro, now, s.settings.pomodoro, cutoffOf(s)), now);
       return s.pomodoro;
     });
     fire("pomodoro", st);
@@ -340,7 +360,7 @@ export const mockBackend: Backend = {
   async pomodoroStop() {
     const now = Date.now();
     const st = mutate((s) => {
-      setPomodoro(s, { phase: "idle", round: 0, endsAt: null }, now);
+      setPomodoro(s, { phase: "idle", round: 0, endsAt: null, runStartedAt: null }, now);
       return s.pomodoro;
     });
     fire("pomodoro", st);

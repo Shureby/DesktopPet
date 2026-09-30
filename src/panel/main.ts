@@ -4,7 +4,7 @@ import { isHungry, moodTier, parseMood, type Mood } from "../brain/mood";
 import { ABILITIES } from "../characters/abilities";
 import { loadBundled, loadUser, type CharacterRegistry, type LoadedCharacter } from "../characters/registry";
 import { SpriteAtlas } from "../engine/sprites";
-import { formatRemaining } from "../features/pomodoro/logic";
+import { formatRemaining, gameHeld } from "../features/pomodoro/logic";
 import { clock, DEFAULT_ALARM_LABEL } from "../features/alarm/ringing";
 import {
   durationInput,
@@ -20,10 +20,23 @@ import {
 } from "../features/alarm/timers";
 import { parseQuickAdd } from "../features/todo/quickAdd";
 import { GAMES } from "../features/games/catalog";
-import { backend, clampUpcomingMinutes, type Alarm, type AlertSettings, type PanelTab, type Repeat, type Settings } from "../platform";
+import {
+  backend,
+  clampUpcomingMinutes,
+  WEEKDAYS,
+  type Alarm,
+  type AlertSettings,
+  type DayMask,
+  type PanelTab,
+  type Repeat,
+  type Settings,
+  type WorkHours,
+} from "../platform";
 import { playRingtone, RINGTONE_IDS, RINGTONES, type RingtoneId } from "../pet/sound";
 import "../styles/panel.css";
-import { bigTime, finishedAt, finishedStatus, skipWhen, timerTimes } from "./alarmText";
+import { bigTime, finishedAt, finishedStatus, repeatText, skipWhen, timerTimes } from "./alarmText";
+import { dayPicker } from "./dayPicker";
+import { formatHm, timeField } from "./timeField";
 import { formatWhen, h } from "./dom";
 
 const TABS: { id: PanelTab; label: string }[] = [
@@ -41,8 +54,26 @@ let registry: CharacterRegistry;
 const view = document.getElementById("view")!;
 const nav = document.getElementById("tabs")!;
 let cleanup: (() => void)[] = [];
+/** The new alarm being set up, kept across re-renders of the Alarms tab. */
+let alarmDraft: { time: string; repeat: Repeat; days: DayMask; label: string } | null = null;
+
+/** Runs `f` once things have been quiet for `ms` (a dragged time field changes many times). */
+function debounced<T>(f: (v: T) => void, ms = 300): (v: T) => void {
+  let id: ReturnType<typeof setTimeout> | undefined;
+  return (v: T) => {
+    clearTimeout(id);
+    id = setTimeout(() => f(v), ms);
+  };
+}
+
+function nowHm(): string {
+  const d = new Date();
+  return formatHm(d.getHours(), d.getMinutes());
+}
 
 function select(tab: PanelTab) {
+  // Opening the Alarms tab starts a new alarm at the current time; re-renders keep the draft.
+  if (tab === "alarms") alarmDraft = null;
   current = tab;
   for (const b of nav.querySelectorAll("button")) b.classList.toggle("active", b.dataset.tab === tab);
   cleanup.forEach((f) => f());
@@ -123,28 +154,59 @@ async function renderTodos(): Promise<Node> {
 
 async function renderAlarms(): Promise<Node> {
   const alarms = await backend.listAlarms();
-  const label = h("input", { type: "text", placeholder: "Label (optional)" });
-  const time = h("input", { type: "time", value: "07:30" });
+  alarmDraft ??= { time: nowHm(), repeat: "none", days: WEEKDAYS, label: "" };
+  const draft = alarmDraft;
+  const label = h("input", {
+    type: "text",
+    placeholder: "Label (optional)",
+    value: draft.label,
+    oninput: (e: Event) => (draft.label = (e.target as HTMLInputElement).value),
+  });
+  // Starts at the current time, so it's quick to set one for a little later.
+  const time = timeField(draft.time, (v) => (draft.time = v), "Alarm time");
   // Opened from "Set alarm…": start with the time field ready to type.
   // (Only when nothing else has focus, so a re-render never steals it mid-typing.)
   queueMicrotask(() => {
     if (!document.activeElement || document.activeElement === document.body) time.focus();
   });
+  const addButton = h("button", { class: "primary", onclick: () => void add() }, "Add");
+  const days = dayPicker(draft.days, (m) => {
+    draft.days = m;
+    refresh();
+  });
+  const daysRow = h("div", { class: "row days-row" }, days);
+  const refresh = () => {
+    daysRow.hidden = draft.repeat !== "days";
+    // Custom days with none picked would never ring.
+    addButton.disabled = draft.repeat === "days" && !draft.days;
+  };
   const repeat = h(
     "select",
-    {},
-    h("option", { value: "none" }, "Once"),
-    h("option", { value: "daily" }, "Every day"),
-    h("option", { value: "weekdays" }, "Weekdays"),
+    {
+      onchange: (e: Event) => {
+        draft.repeat = (e.target as HTMLSelectElement).value as Repeat;
+        refresh();
+      },
+    },
+    ...(
+      [
+        ["none", "Once"],
+        ["daily", "Every day"],
+        ["weekdays", "Weekdays"],
+        ["days", "Custom days"],
+      ] as const
+    ).map(([v, text]) => h("option", { value: v, selected: draft.repeat === v }, text)),
   );
+  refresh();
   const add = async () => {
     const [hh, mm] = time.value.split(":").map(Number);
     const d = new Date();
     d.setHours(hh, mm, 0, 0);
     if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 1);
-    while (repeat.value === "weekdays" && (d.getDay() === 0 || d.getDay() === 6)) d.setDate(d.getDate() + 1);
     // No time in the label: it is shown from the alarm's own time, in the system's format.
-    await backend.addAlarm(label.value.trim() || DEFAULT_ALARM_LABEL, d.getTime(), repeat.value as Repeat);
+    // A repeating alarm's first ring is its first day at or after this (the store works it out).
+    await backend.addAlarm(label.value.trim() || DEFAULT_ALARM_LABEL, d.getTime(), draft.repeat, draft.days);
+    draft.label = "";
     label.value = "";
   };
   // Custom length, with a live preview of how it's understood. `editing` is the saved
@@ -310,7 +372,8 @@ async function renderAlarms(): Promise<Node> {
     ),
     h("div", { class: "row custom-row" }, customInput, h("button", { onclick: startCustom }, "Start"), customHint),
     h("h3", {}, "New alarm"),
-    h("div", { class: "row" }, time, repeat, label, h("button", { class: "primary", onclick: add }, "Add")),
+    h("div", { class: "row" }, time, repeat, label, addButton),
+    daysRow,
     timers.length ? h("h3", {}, "Timers") : null,
     timers.length ? h("ul", { class: "list clocks" }, ...timers.map(timerRow)) : null,
     h("h3", {}, "Alarms"),
@@ -322,12 +385,9 @@ async function renderAlarms(): Promise<Node> {
   return section;
 }
 
-const REPEAT_TEXT: Record<Repeat, string> = { none: "Once", daily: "Every day", weekdays: "Weekdays" };
-
-
 /** "Every day", "Once · Tomorrow", "Weekdays · Off"… */
 function alarmSubtitle(a: Alarm): string {
-  const parts = [REPEAT_TEXT[a.repeat]];
+  const parts = [repeatText(a)];
   if (!a.enabled) parts.push("Off");
   else if (a.nextFire && a.snoozes === 0) {
     const day = formatWhen(a.nextFire).replace(/\s*\d{1,2}:\d{2}.*$/, "");
@@ -337,11 +397,10 @@ function alarmSubtitle(a: Alarm): string {
 }
 
 /**
- * Switching off a repeating alarm: "Skip once · Sep 30 7:00 PM (Today)", "Turn off repeating
- * alarm" or Cancel. Once a ring is skipped, only the last two.
+ * A small dialog like a phone's: a title, a line under it, the choices, then Cancel (also Esc
+ * or a click outside). Used by "Skip once" and by games during a focus session.
  */
-function askTurnOff(a: Alarm): void {
-  const skipped = a.skippedFire !== null && a.skippedFire > Date.now();
+function ask(title: string, sub: string, choices: { text: string; action: () => Promise<void>; primary?: boolean }[]): void {
   const close = () => {
     overlay.remove();
     document.removeEventListener("keydown", onKey);
@@ -362,16 +421,38 @@ function askTurnOff(a: Alarm): void {
   const box = h(
     "div",
     { class: "ask", role: "dialog", "aria-modal": "true" },
-    h("p", { class: "title" }, a.label),
-    h("p", { class: "sub" }, REPEAT_TEXT[a.repeat]),
-    !skipped && a.nextFire ? choice(`Skip once · ${skipWhen(a.nextFire)}`, () => backend.skipAlarmOnce(a.id), "primary") : null,
-    choice("Turn off repeating alarm", () => backend.setAlarmEnabled(a.id, false)),
+    h("p", { class: "title" }, title),
+    h("p", { class: "sub" }, sub),
+    ...choices.map((c) => choice(c.text, c.action, c.primary ? "primary" : "")),
     choice("Cancel", null, "cancel"),
   );
   const overlay = h("div", { class: "ask-overlay", onclick: (e: Event) => e.target === overlay && close() }, box);
   document.addEventListener("keydown", onKey);
   document.body.append(overlay);
   (box.querySelector("button") as HTMLButtonElement | null)?.focus();
+}
+
+/**
+ * Switching off a repeating alarm: "Skip once · Sep 30 7:00 PM (Today)", "Turn off repeating
+ * alarm" or Cancel. Once a ring is skipped, only the last two.
+ */
+function askTurnOff(a: Alarm): void {
+  const skipped = a.skippedFire !== null && a.skippedFire > Date.now();
+  ask(a.label, repeatText(a), [
+    ...(!skipped && a.nextFire
+      ? [{ text: `Skip once · ${skipWhen(a.nextFire)}`, action: () => backend.skipAlarmOnce(a.id), primary: true }]
+      : []),
+    { text: "Turn off repeating alarm", action: () => backend.setAlarmEnabled(a.id, false) },
+  ]);
+}
+
+/** Play, or during a focus session ask first (Focus → "Ask before games"). */
+async function playGame(game: string): Promise<void> {
+  const status = await backend.pomodoroStatus();
+  if (!gameHeld(settings.pomodoro, status)) return backend.openGame(game);
+  ask(`Focusing until ${clock(status.endsAt ?? Date.now())}`, "Play anyway?", [
+    { text: "Play anyway", action: () => backend.openGame(game), primary: true },
+  ]);
 }
 
 /** A phone-style on/off switch (not a checkbox: a tick reads as "done"). */
@@ -482,7 +563,52 @@ async function renderFocus(): Promise<Node> {
         h("input", { type: "checkbox", checked: c.autoContinue, onchange: () => void save({ pomodoro: { ...settings.pomodoro, autoContinue: !c.autoContinue } }) }),
         "Start the next round automatically",
       ),
+      h(
+        "label",
+        { class: "check" },
+        h("input", { type: "checkbox", checked: c.holdGames, onchange: () => void save({ pomodoro: { ...settings.pomodoro, holdGames: !c.holdGames } }) }),
+        "Ask before games during a focus session",
+      ),
     ),
+    workHoursSection(),
+  );
+}
+
+/** Focus → Work hours: work days and times; hidden while off (docs/INTERACTIONS.md). */
+function workHoursSection(): Node {
+  const w = settings.pomodoro.workHours;
+  const update = (patch: Partial<WorkHours>) =>
+    save({ pomodoro: { ...settings.pomodoro, workHours: { ...settings.pomodoro.workHours, ...patch } } });
+  const later = debounced(update);
+  return h(
+    "div",
+    { class: "work-hours" },
+    h("h3", {}, "Work hours"),
+    h(
+      "label",
+      { class: "check" },
+      h("input", { type: "checkbox", checked: w.enabled, onchange: () => void update({ enabled: !w.enabled }) }),
+      "Focus on work days: start by itself, and stop after work",
+    ),
+    w.enabled
+      ? h(
+          "div",
+          { class: "work-hours-body" },
+          dayPicker(w.days, (days) => later({ days })),
+          h(
+            "div",
+            { class: "row" },
+            timeField(w.start, (start) => later({ start }), "Work starts"),
+            "to",
+            timeField(w.end, (end) => later({ end }), "Work ends"),
+          ),
+          h(
+            "p",
+            { class: "hint" },
+            "Starts by itself when work starts (once a day: if you stop it, it stays stopped). No new focus begins after work ends. Started by hand outside work, it runs until the next end of work.",
+          ),
+        )
+      : null,
   );
 }
 
@@ -564,11 +690,20 @@ async function renderGames(): Promise<Node> {
         "li",
         { class: "game" },
         h("div", {}, h("strong", {}, g.name), h("p", {}, g.description), top.length ? h("p", { class: "hint" }, `🏆 ${top.map((s) => `${s.score} (${s.character})`).join(" · ")}`) : null),
-        g.available ? h("button", { class: "primary", onclick: () => void backend.openGame(g.id) }, "Play") : h("span", { class: "soon" }, "Coming soon"),
+        g.available ? h("button", { class: "primary", onclick: () => void playGame(g.id) }, "Play") : h("span", { class: "soon" }, "Coming soon"),
       );
     }),
   );
-  return h("section", {}, h("ul", { class: "games" }, ...items));
+  const status = await backend.pomodoroStatus();
+  return h(
+    "section",
+    {},
+    // Opened from the pet during a focus session: say why Play will ask.
+    gameHeld(settings.pomodoro, status)
+      ? h("p", { class: "note focus-note" }, `🍅 Focusing until ${clock(status.endsAt ?? Date.now())}. Games will ask first.`)
+      : null,
+    h("ul", { class: "games" }, ...items),
+  );
 }
 
 // --- Settings ---------------------------------------------------------------
@@ -626,9 +761,9 @@ async function renderSettings(): Promise<Node> {
       "div",
       { class: "row" },
       h("input", { type: "checkbox", checked: q.enabled, onchange: () => void save({ quietHours: { ...q, enabled: !q.enabled } }) }),
-      h("input", { type: "time", value: q.start, onchange: (e: Event) => void save({ quietHours: { ...q, start: (e.target as HTMLInputElement).value } }) }),
+      timeField(q.start, debounced((start: string) => void save({ quietHours: { ...settings.quietHours, start } })), "Quiet from"),
       "to",
-      h("input", { type: "time", value: q.end, onchange: (e: Event) => void save({ quietHours: { ...q, end: (e.target as HTMLInputElement).value } }) }),
+      timeField(q.end, debounced((end: string) => void save({ quietHours: { ...settings.quietHours, end } })), "Quiet until"),
     ),
     h(
       "footer",
@@ -790,6 +925,8 @@ async function main() {
   await backend.on("pomodoro", () => current === "focus" && void render());
   await backend.on("settings", (s) => {
     settings = s;
+    // Not while a time field or day picker is being used: rebuilding would drop the drag.
+    if (document.activeElement?.closest(".time-field, .day-picker")) return;
     if (["characters", "focus", "settings", "alarms"].includes(current)) void render();
   });
   await backend.on("panel-tab", (tab) => select(tab));

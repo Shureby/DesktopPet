@@ -603,3 +603,83 @@ fieldset.alert .upcoming .row {
   background: none;
   color: var(--muted);
 }
+
+/* ----- Time field: drag, scroll or type each part (src/panel/timeField.ts) ----- */
+.time-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  touch-action: none;
+}
+.time-field .part {
+  min-width: 1.6em;
+  padding: 3px 3px;
+  border-radius: 5px;
+  text-align: center;
+  cursor: ns-resize;
+  outline: none;
+}
+.time-field .part.period {
+  min-width: 2.2em;
+  margin-left: 4px;
+  cursor: pointer;
+}
+.time-field .part:focus,
+.time-field .part.dragging {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.time-field .sep {
+  color: var(--muted);
+}
+
+/* ----- Day picker: M T W T F S S (src/panel/dayPicker.ts) ----- */
+.day-picker {
+  display: flex;
+  gap: 5px;
+}
+.day-picker button {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.day-picker button.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+}
+.days-row {
+  margin-top: 6px;
+}
+.work-hours-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.work-hours-body .row {
+  justify-content: flex-start;
+  gap: 8px;
+}
+.focus-note {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.work-hours {
+  text-align: left;
+}

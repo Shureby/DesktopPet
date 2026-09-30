@@ -25,7 +25,7 @@ fn tick<R: Runtime>(app: &AppHandle<R>) {
     let now = now_ms();
     let (reminders, pomodoro, cleaned) = {
         let store = state.store();
-        (store.take_due(&Local, now), store.tick_pomodoro(now), daily_cleanup(&store, now))
+        (store.take_due(&Local, now), store.tick_pomodoro(&Local, now), daily_cleanup(&store, now))
     };
     if cleaned {
         let _ = app.emit("todos-changed", ());

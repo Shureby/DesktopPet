@@ -1,22 +1,21 @@
 //! Alarm recurrence in the user's local time zone.
 
-use chrono::{DateTime, Datelike, Duration, LocalResult, NaiveTime, TimeZone, Utc, Weekday};
+use chrono::{DateTime, Datelike, Duration, LocalResult, NaiveTime, TimeZone, Utc};
 
-use crate::model::{Millis, Repeat};
+use crate::model::{DayMask, Millis};
 
 /// Parses "HH:MM".
 pub fn parse_hm(hm: &str) -> Option<NaiveTime> {
     NaiveTime::parse_from_str(hm, "%H:%M").ok()
 }
 
-/// Next time strictly after `after` that the local clock in `tz` reads `time`,
-/// skipping weekends for `Repeat::Weekdays`. Handles DST gaps by moving forward.
-pub fn next_occurrence<Tz: TimeZone>(tz: &Tz, after: Millis, time: NaiveTime, repeat: Repeat) -> Option<Millis> {
+/// Next time strictly after `after` that the local clock in `tz` reads `time`, on one of
+/// `days` (see `DayMask`; `Repeat::mask`). Handles DST gaps by moving forward.
+pub fn next_occurrence<Tz: TimeZone>(tz: &Tz, after: Millis, time: NaiveTime, days: DayMask) -> Option<Millis> {
     let after_utc = DateTime::<Utc>::from_timestamp_millis(after)?;
     let mut date = after_utc.with_timezone(tz).date_naive();
     for _ in 0..16 {
-        let weekend = matches!(date.weekday(), Weekday::Sat | Weekday::Sun);
-        if !(repeat == Repeat::Weekdays && weekend) {
+        if days & (1 << date.weekday().num_days_from_sunday()) != 0 {
             let local = date.and_time(time);
             let resolved = match tz.from_local_datetime(&local) {
                 LocalResult::Single(t) => Some(t),
@@ -39,6 +38,7 @@ pub fn next_occurrence<Tz: TimeZone>(tz: &Tz, after: Millis, time: NaiveTime, re
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model::{Repeat, EVERY_DAY, WEEKDAYS};
     use chrono_tz::Europe::London;
 
     fn ms(tz: &chrono_tz::Tz, y: i32, mo: u32, d: u32, h: u32, mi: u32) -> Millis {
@@ -49,9 +49,9 @@ mod tests {
     fn daily_rolls_to_tomorrow_once_passed() {
         let t = parse_hm("07:30").unwrap();
         let now = ms(&London, 2026, 1, 7, 9, 0);
-        assert_eq!(next_occurrence(&London, now, t, Repeat::Daily), Some(ms(&London, 2026, 1, 8, 7, 30)));
+        assert_eq!(next_occurrence(&London, now, t, EVERY_DAY), Some(ms(&London, 2026, 1, 8, 7, 30)));
         let early = ms(&London, 2026, 1, 7, 6, 0);
-        assert_eq!(next_occurrence(&London, early, t, Repeat::Daily), Some(ms(&London, 2026, 1, 7, 7, 30)));
+        assert_eq!(next_occurrence(&London, early, t, EVERY_DAY), Some(ms(&London, 2026, 1, 7, 7, 30)));
     }
 
     #[test]
@@ -59,7 +59,20 @@ mod tests {
         let t = parse_hm("08:00").unwrap();
         // Friday 2026-01-09 09:00 → Monday 2026-01-12 08:00
         let fri = ms(&London, 2026, 1, 9, 9, 0);
-        assert_eq!(next_occurrence(&London, fri, t, Repeat::Weekdays), Some(ms(&London, 2026, 1, 12, 8, 0)));
+        assert_eq!(next_occurrence(&London, fri, t, WEEKDAYS), Some(ms(&London, 2026, 1, 12, 8, 0)));
+    }
+
+    #[test]
+    fn chosen_days_ring_only_on_those_days() {
+        let t = parse_hm("08:00").unwrap();
+        let mon_wed_fri = Repeat::Days.mask(0b010_1010);
+        // Friday 2026-01-09 09:00 → Monday 12th; Monday 09:00 → Wednesday 14th.
+        let fri = ms(&London, 2026, 1, 9, 9, 0);
+        assert_eq!(next_occurrence(&London, fri, t, mon_wed_fri), Some(ms(&London, 2026, 1, 12, 8, 0)));
+        let mon = ms(&London, 2026, 1, 12, 9, 0);
+        assert_eq!(next_occurrence(&London, mon, t, mon_wed_fri), Some(ms(&London, 2026, 1, 14, 8, 0)));
+        // No days: never.
+        assert_eq!(next_occurrence(&London, mon, t, 0), None);
     }
 
     #[test]
@@ -67,7 +80,7 @@ mod tests {
         // UK clocks jump 01:00 → 02:00 on 2026-03-29.
         let t = parse_hm("01:30").unwrap();
         let before = ms(&London, 2026, 3, 28, 12, 0);
-        let got = next_occurrence(&London, before, t, Repeat::Daily).unwrap();
+        let got = next_occurrence(&London, before, t, EVERY_DAY).unwrap();
         assert_eq!(got, ms(&London, 2026, 3, 29, 2, 30));
     }
 }

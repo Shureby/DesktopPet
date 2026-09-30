@@ -17,6 +17,7 @@ const alarm = (over: Partial<Alarm>): Alarm => ({
   missedAt: null,
   missedSeenAt: null,
   skippedFire: null,
+  repeatDays: 0,
   rangAt: null,
   createdAt: null,
   ...over,

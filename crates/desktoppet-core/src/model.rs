@@ -39,7 +39,14 @@ pub enum Repeat {
     None,
     Daily,
     Weekdays,
+    /// The days in `Alarm::repeat_days` (e.g. Mon, Wed, Fri).
+    Days,
 }
+
+/// Days of the week as bits, Sunday = bit 0 … Saturday = bit 6 (like JavaScript's getDay()).
+pub type DayMask = u8;
+pub const EVERY_DAY: DayMask = 0b111_1111;
+pub const WEEKDAYS: DayMask = 0b011_1110;
 
 impl Repeat {
     pub fn as_str(self) -> &'static str {
@@ -47,6 +54,7 @@ impl Repeat {
             Repeat::None => "none",
             Repeat::Daily => "daily",
             Repeat::Weekdays => "weekdays",
+            Repeat::Days => "days",
         }
     }
 
@@ -54,7 +62,18 @@ impl Repeat {
         match s {
             "daily" => Repeat::Daily,
             "weekdays" => Repeat::Weekdays,
+            "days" => Repeat::Days,
             _ => Repeat::None,
+        }
+    }
+
+    /// The days it rings on; `custom` is used for `Repeat::Days`.
+    pub fn mask(self, custom: DayMask) -> DayMask {
+        match self {
+            Repeat::None => 0,
+            Repeat::Daily => EVERY_DAY,
+            Repeat::Weekdays => WEEKDAYS,
+            Repeat::Days => custom & EVERY_DAY,
         }
     }
 }
@@ -81,6 +100,15 @@ pub struct Alarm {
     pub missed_seen_at: Option<Millis>,
     /// The ring a repeating alarm skips ("Skip once"); cleared when it rings or is switched.
     pub skipped_fire: Option<Millis>,
+    /// The days a `Repeat::Days` alarm rings on (0 otherwise).
+    pub repeat_days: DayMask,
+}
+
+impl Alarm {
+    /// The days it rings on (0 for a one-off).
+    pub fn days(&self) -> DayMask {
+        self.repeat.mask(self.repeat_days)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -98,15 +126,37 @@ pub struct PomodoroStatus {
     pub phase: Phase,
     pub round: u32,
     pub ends_at: Option<Millis>,
+    /// When this run of focus/break cycles began (work hours stop it at the next end of work).
+    #[serde(default)]
+    pub run_started_at: Option<Millis>,
 }
 
 impl Default for PomodoroStatus {
     fn default() -> Self {
-        Self { phase: Phase::Idle, round: 0, ends_at: None }
+        Self { phase: Phase::Idle, round: 0, ends_at: None, run_started_at: None }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+/// Focus work hours: on work days the tomato clock starts by itself at `start`, and no new
+/// focus begins after `end`. Off = every day is all work (it runs until stopped), except that
+/// it never starts by itself.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct WorkHours {
+    pub enabled: bool,
+    pub days: DayMask,
+    /// "HH:MM"; an `end` at or before `start` is on the next day (a night shift).
+    pub start: String,
+    pub end: String,
+}
+
+impl Default for WorkHours {
+    fn default() -> Self {
+        Self { enabled: false, days: WEEKDAYS, start: "09:00".into(), end: "17:30".into() }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct PomodoroConfig {
     pub focus_min: f64,
@@ -114,11 +164,19 @@ pub struct PomodoroConfig {
     pub long_break_min: f64,
     pub rounds_before_long: u32,
     pub auto_continue: bool,
+    pub work_hours: WorkHours,
 }
 
 impl Default for PomodoroConfig {
     fn default() -> Self {
-        Self { focus_min: 25.0, short_break_min: 5.0, long_break_min: 15.0, rounds_before_long: 4, auto_continue: true }
+        Self {
+            focus_min: 25.0,
+            short_break_min: 5.0,
+            long_break_min: 15.0,
+            rounds_before_long: 4,
+            auto_continue: true,
+            work_hours: WorkHours::default(),
+        }
     }
 }
 

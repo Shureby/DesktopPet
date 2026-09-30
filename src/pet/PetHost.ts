@@ -33,7 +33,7 @@ import {
   timerName,
   TIMER_PREFIX,
 } from "../features/alarm/timers";
-import { formatRemaining } from "../features/pomodoro/logic";
+import { formatRemaining, gameHeld } from "../features/pomodoro/logic";
 import type { Alarm, Backend, PetActivity, PomodoroStatus, ReminderEvent, Settings } from "../platform";
 import type { CareAction } from "../characters/schema";
 import { buildTrayItems, nativeMenu, showPetMenu, type MenuContext } from "./menu";
@@ -729,7 +729,29 @@ export class PetHost {
       setTimer: (min) => void this.startTimer(min),
       // The length is asked for in the pet's bubble; with the pet hidden, the panel asks.
       customTimer: () => void (this.petVisible ? this.askCustomTimer() : this.backend.openPanel("alarms")),
+      playGame: (game) => this.playGame(game),
     };
+  }
+
+  /**
+   * Opens a game; during a focus session (Focus → "Ask before games") the pet asks first.
+   * With the pet hidden, the panel's Games tab says so and its Play button asks.
+   */
+  private playGame(game: string): void {
+    if (!gameHeld(this.settings.pomodoro, this.pomodoro)) {
+      void this.backend.openGame(game);
+      return;
+    }
+    // Hidden, or busy ringing: the panel's Games tab says so and its Play button asks.
+    if (!this.petVisible || this.hidden || this.activeRing) {
+      void this.backend.openPanel("games");
+      return;
+    }
+    const until = this.pomodoro.endsAt ? ` until ${clock(this.pomodoro.endsAt)}` : "";
+    this.say(`We're focusing${until}. Play anyway?`, 15_000, [
+      { label: "Play anyway", run: () => void this.backend.openGame(game) },
+      { label: "Cancel", run: () => {} },
+    ]);
   }
 
   private onContextMenu(e: MouseEvent): void {

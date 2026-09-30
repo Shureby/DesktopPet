@@ -77,8 +77,15 @@ pub fn list_alarms(state: State<AppState>) -> CmdResult<Vec<Alarm>> {
 }
 
 #[tauri::command]
-pub fn add_alarm(app: AppHandle, state: State<AppState>, label: String, at: i64, repeat: Repeat) -> CmdResult<Alarm> {
-    let alarm = state.store().add_alarm(&Local, &label, at, repeat, now_ms()).map_err(err)?;
+pub fn add_alarm(
+    app: AppHandle,
+    state: State<AppState>,
+    label: String,
+    at: i64,
+    repeat: Repeat,
+    days: Option<u8>,
+) -> CmdResult<Alarm> {
+    let alarm = state.store().add_alarm(&Local, &label, at, repeat, days.unwrap_or(0), now_ms()).map_err(err)?;
     let _ = app.emit("alarms-changed", ());
     Ok(alarm)
 }
@@ -162,12 +169,14 @@ pub fn delete_alarm(app: AppHandle, state: State<AppState>, id: i64) -> CmdResul
 fn set_pomodoro(
     app: &AppHandle,
     state: &AppState,
-    f: impl FnOnce(&PomodoroStatus, i64, &desktoppet_core::PomodoroConfig) -> PomodoroStatus,
+    f: impl FnOnce(&PomodoroStatus, i64, &desktoppet_core::PomodoroConfig, Option<i64>) -> PomodoroStatus,
 ) -> CmdResult<PomodoroStatus> {
     let now = now_ms();
     let status = {
         let store = state.store();
-        let next = f(&store.pomodoro_status().map_err(err)?, now, &store.pomodoro_config().map_err(err)?);
+        let (status, config) = (store.pomodoro_status().map_err(err)?, store.pomodoro_config().map_err(err)?);
+        let cutoff = store.pomodoro_cutoff(&Local, &status, &config);
+        let next = f(&status, now, &config, cutoff);
         store.set_pomodoro(&next, now).map_err(err)?;
         next
     };
@@ -177,7 +186,7 @@ fn set_pomodoro(
 
 #[tauri::command]
 pub fn pomodoro_start(app: AppHandle, state: State<AppState>) -> CmdResult<PomodoroStatus> {
-    set_pomodoro(&app, &state, |_, now, c| pomodoro::start_focus(now, c, 0))
+    set_pomodoro(&app, &state, |_, now, c, _| pomodoro::start_focus(now, c, 0))
 }
 
 #[tauri::command]
@@ -187,7 +196,7 @@ pub fn pomodoro_skip(app: AppHandle, state: State<AppState>) -> CmdResult<Pomodo
 
 #[tauri::command]
 pub fn pomodoro_stop(app: AppHandle, state: State<AppState>) -> CmdResult<PomodoroStatus> {
-    set_pomodoro(&app, &state, |_, _, _| PomodoroStatus::default())
+    set_pomodoro(&app, &state, |_, _, _, _| PomodoroStatus::default())
 }
 
 #[tauri::command]

@@ -9,6 +9,23 @@ export interface PomodoroConfig {
   roundsBeforeLong: number;
   /** Start the next focus/break automatically. */
   autoContinue: boolean;
+  /** Work days and hours: starts by itself, no new focus after the end (docs/INTERACTIONS.md). */
+  workHours: WorkHours;
+  /** During a focus, playing a game asks first. */
+  holdGames: boolean;
+}
+
+/** Days of the week as bits, Sunday = bit 0 … Saturday = bit 6 (like Date.getDay()). */
+export type DayMask = number;
+export const EVERY_DAY: DayMask = 0b111_1111;
+export const WEEKDAYS: DayMask = 0b011_1110;
+
+export interface WorkHours {
+  enabled: boolean;
+  days: DayMask;
+  /** "HH:MM"; an end at or before the start is the next day. */
+  start: string;
+  end: string;
 }
 
 /** How the pet announces one kind of reminder. */
@@ -57,7 +74,15 @@ export const DEFAULT_SETTINGS: Settings = {
   recentTimers: [],
   quietHours: { enabled: false, start: "22:00", end: "08:00" },
   upcomingAlarms: { show: true, minutes: 60 },
-  pomodoro: { focusMin: 25, shortBreakMin: 5, longBreakMin: 15, roundsBeforeLong: 4, autoContinue: true },
+  pomodoro: {
+    focusMin: 25,
+    shortBreakMin: 5,
+    longBreakMin: 15,
+    roundsBeforeLong: 4,
+    autoContinue: true,
+    workHours: { enabled: false, days: WEEKDAYS, start: "09:00", end: "17:30" },
+    holdGames: true,
+  },
   autostart: false,
 };
 
@@ -80,7 +105,7 @@ export function mergeSettings(stored: Partial<Settings> | null | undefined): Set
       const u = { ...d.upcomingAlarms, ...s.upcomingAlarms };
       return { show: u.show !== false, minutes: clampUpcomingMinutes(u.minutes) };
     })(),
-    pomodoro: { ...d.pomodoro, ...s.pomodoro },
+    pomodoro: { ...d.pomodoro, ...s.pomodoro, workHours: { ...d.pomodoro.workHours, ...s.pomodoro?.workHours } },
     alerts: {
       alarm: { ...d.alerts.alarm, ...s.alerts?.alarm },
       todo: { ...d.alerts.todo, ...s.alerts?.todo },
@@ -99,7 +124,13 @@ export interface Todo {
   doneAt: number | null;
 }
 
-export type Repeat = "none" | "daily" | "weekdays";
+/** "days": the days in `Alarm.repeatDays` (e.g. Mon, Wed, Fri). */
+export type Repeat = "none" | "daily" | "weekdays" | "days";
+
+/** The days an alarm rings on (0 for a one-off); `days` is used for "days". */
+export function repeatMask(repeat: Repeat, days: DayMask): DayMask {
+  return repeat === "daily" ? EVERY_DAY : repeat === "weekdays" ? WEEKDAYS : repeat === "days" ? days & EVERY_DAY : 0;
+}
 
 export interface Alarm {
   id: number;
@@ -125,6 +156,8 @@ export interface Alarm {
   rangAt: number | null;
   /** When it was set (null for alarms saved before 0.14.0). Timers show "started 4:29 pm". */
   createdAt: number | null;
+  /** The days a "days" alarm rings on (0 otherwise). */
+  repeatDays: DayMask;
 }
 
 export type PomodoroPhase = "idle" | "focus" | "short_break" | "long_break";
@@ -134,6 +167,8 @@ export interface PomodoroStatus {
   /** Focus sessions completed in the current cycle. */
   round: number;
   endsAt: number | null;
+  /** When this run of focus/break cycles began (work hours stop it at the next end of work). */
+  runStartedAt?: number | null;
 }
 
 export interface DayStat {
@@ -205,7 +240,8 @@ export interface Backend {
   clearDoneTodos(): Promise<number>;
 
   listAlarms(): Promise<Alarm[]>;
-  addAlarm(label: string, at: number, repeat: Repeat): Promise<Alarm>;
+  /** `days` is for repeat "days". */
+  addAlarm(label: string, at: number, repeat: Repeat, days?: DayMask): Promise<Alarm>;
   setAlarmEnabled(id: number, enabled: boolean): Promise<void>;
   /** Repeating alarms: skip the next ring (or the rest of today's snoozes). */
   skipAlarmOnce(id: number): Promise<void>;

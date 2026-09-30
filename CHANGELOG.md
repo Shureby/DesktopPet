@@ -16,6 +16,25 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-09-30
+
+### Added
+- **Custom repeat days for alarms:** Once / Every day / Weekdays / Custom days, with
+  M T W T F S S toggles (e.g. Mon, Wed, Fri). Rows name the days.
+- **Focus work hours** (Focus tab, off by default): work days and hours (Mon–Fri
+  09:00–17:30 by default).
+  - The tomato clock starts by itself when work starts, once a day.
+  - No new focus begins after work ends.
+  - A run started by hand outside work keeps going until the next end of work.
+- **Games ask first during a focus session** ("Play anyway?"), with a Focus option to turn
+  this off. Menus say "(focusing)".
+
+### Changed
+- **Time fields are the pet's own:** drag each part up or down, scroll, use ↑/↓ or type.
+  Used for new alarms, Quiet hours and work hours.
+- **A new alarm starts at the current time** instead of 7:30 AM. Your changes survive the
+  tab redrawing.
+
 ## [0.19.1] - 2026-09-30
 
 ### Fixed

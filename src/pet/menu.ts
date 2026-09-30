@@ -3,6 +3,7 @@ import type { CareAction, CharacterDef } from "../characters/schema";
 import { pick, type Rng } from "../engine/random";
 import { formatDuration, PRESET_MINUTES, timerName } from "../features/alarm/timers";
 import { alarmName, clock } from "../features/alarm/ringing";
+import { gameHeld } from "../features/pomodoro/logic";
 import type { Alarm, Backend, PanelTab, PomodoroStatus, Settings } from "../platform";
 
 /** What both menus (the pet's right-click menu and the tray menu) need. */
@@ -20,6 +21,8 @@ export interface MenuContext {
   setTimer: (minutes: number) => void;
   /** Asks for a custom length (in the pet's speech bubble). */
   customTimer: () => void;
+  /** Opens a game, asking first during a focus session (see `gameHeld`). */
+  playGame: (game: string) => void;
 }
 
 /** The pet's own menu adds a care action and "Hide pet". */
@@ -128,7 +131,11 @@ export function panelTabFor(c: MenuContext): PanelTab | undefined {
 /** Shared too: the mini-game and switching characters. */
 export function playItems(c: MenuContext): (Item | "sep")[] {
   return [
-    { text: "Play Safe Landing", action: () => void c.backend.openGame("safe-landing") },
+    {
+      // Says so during a focus session: it will ask first.
+      text: `Play Safe Landing${gameHeld(c.settings.pomodoro, c.pomodoro) ? " (focusing)" : ""}`,
+      action: () => c.playGame("safe-landing"),
+    },
     {
       text: "Switch character",
       items: c.registry.list().map((ch) => ({

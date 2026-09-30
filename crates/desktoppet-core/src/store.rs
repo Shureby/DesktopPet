@@ -2,7 +2,7 @@
 
 use std::path::Path;
 
-use chrono::{DateTime, Duration, TimeZone, Timelike, Utc};
+use chrono::{DateTime, Duration, NaiveTime, TimeZone, Timelike, Utc};
 use rusqlite::{params, Connection, OptionalExtension};
 use serde_json::Value;
 
@@ -70,10 +70,15 @@ const MIGRATIONS: &[&str] = &[
      UPDATE alarms SET label = 'Alarm' WHERE label GLOB 'Alarm [0-9][0-9]:[0-9][0-9]';",
     // v7: a repeating alarm skipped once ("Skip once · Sep 30 7:00 PM"): the ring it skips.
     "ALTER TABLE alarms ADD COLUMN skipped_fire INTEGER;",
+    // v8: repeating on chosen days (repeat = 'days'): the days as bits, Sunday = bit 0.
+    "ALTER TABLE alarms ADD COLUMN repeat_days INTEGER NOT NULL DEFAULT 0;",
 ];
 
+/// The work period the tomato clock was last started in (or found running in).
+const AUTO_PERIOD_KEY: &str = "pomodoro_auto_period";
+
 const ALARM_COLUMNS: &str =
-    "id, label, next_fire, time_hm, repeat, enabled, snoozes, missed_at, rang_at, created_at, missed_seen_at, skipped_fire";
+    "id, label, next_fire, time_hm, repeat, enabled, snoozes, missed_at, rang_at, created_at, missed_seen_at, skipped_fire, repeat_days";
 
 pub struct Store {
     conn: Connection,
@@ -205,6 +210,7 @@ impl Store {
             created_at: r.get(9)?,
             missed_seen_at: r.get(10)?,
             skipped_fire: r.get(11)?,
+            repeat_days: r.get(12)?,
         })
     }
 
@@ -221,32 +227,41 @@ impl Store {
             .optional()?)
     }
 
-    /// `at` is the first ring; repeating alarms remember its local time of day.
+    /// `at` is the first ring; repeating alarms remember its local time of day and ring first
+    /// on the first of their days at or after `at`. `days` is only for `Repeat::Days`.
     pub fn add_alarm<Tz: TimeZone>(
         &self,
         tz: &Tz,
         label: &str,
         at: Millis,
         repeat: Repeat,
+        days: DayMask,
         now: Millis,
     ) -> Result<Alarm> {
-        let time_hm = match repeat {
-            Repeat::None => None,
+        let repeat_days = if repeat == Repeat::Days { days & EVERY_DAY } else { 0 };
+        if repeat == Repeat::Days && repeat_days == 0 {
+            return Err(StoreError::Invalid("pick at least one day".into()));
+        }
+        let (time_hm, first) = match repeat {
+            Repeat::None => (None, at),
             _ => {
                 let local = DateTime::<Utc>::from_timestamp_millis(at)
                     .ok_or_else(|| StoreError::Invalid("bad time".into()))?
                     .with_timezone(tz);
-                Some(format!("{:02}:{:02}", local.hour(), local.minute()))
+                let t = NaiveTime::from_hms_opt(local.hour(), local.minute(), 0).unwrap_or_default();
+                let first = next_occurrence(tz, at - 1, t, repeat.mask(repeat_days)).unwrap_or(at);
+                (Some(format!("{:02}:{:02}", local.hour(), local.minute())), first)
             }
         };
         self.conn.execute(
-            "INSERT INTO alarms (label, next_fire, time_hm, repeat, enabled, created_at) VALUES (?1, ?2, ?3, ?4, 1, ?5)",
-            params![label.trim(), at, time_hm, repeat.as_str(), now],
+            "INSERT INTO alarms (label, next_fire, time_hm, repeat, enabled, created_at, repeat_days)
+             VALUES (?1, ?2, ?3, ?4, 1, ?5, ?6)",
+            params![label.trim(), first, time_hm, repeat.as_str(), now, repeat_days],
         )?;
         Ok(Alarm {
             id: self.conn.last_insert_rowid(),
             label: label.trim().into(),
-            next_fire: Some(at),
+            next_fire: Some(first),
             time_hm,
             repeat,
             enabled: true,
@@ -256,6 +271,7 @@ impl Store {
             created_at: Some(now),
             missed_seen_at: None,
             skipped_fire: None,
+            repeat_days,
         })
     }
 
@@ -271,7 +287,7 @@ impl Store {
                 None
             }
         } else if let Some(t) = alarm.time_hm.as_deref().and_then(parse_hm) {
-            next_occurrence(tz, now, t, alarm.repeat)
+            next_occurrence(tz, now, t, alarm.days())
         } else {
             // One-shot alarms re-enabled after they rang have nothing to ring for.
             alarm.next_fire.filter(|&n| n > now)
@@ -300,7 +316,7 @@ impl Store {
         if alarm.repeat == Repeat::None {
             return Err(StoreError::Invalid("only a repeating alarm can skip a ring".into()));
         }
-        let next = next_occurrence(tz, skipped.max(now), t, alarm.repeat);
+        let next = next_occurrence(tz, skipped.max(now), t, alarm.days());
         self.conn.execute(
             "UPDATE alarms SET next_fire = ?2, skipped_fire = ?3, snoozes = 0 WHERE id = ?1",
             params![id, next, skipped],
@@ -316,7 +332,7 @@ impl Store {
         let Some(t) = alarm.time_hm.as_deref().and_then(parse_hm) else {
             return Ok(());
         };
-        let next = if alarm.enabled { next_occurrence(tz, now, t, alarm.repeat) } else { alarm.next_fire };
+        let next = if alarm.enabled { next_occurrence(tz, now, t, alarm.days()) } else { alarm.next_fire };
         self.conn.execute("UPDATE alarms SET next_fire = ?2, skipped_fire = NULL WHERE id = ?1", params![id, next])?;
         Ok(())
     }
@@ -369,7 +385,7 @@ impl Store {
         };
         let next = match (alarm.repeat, alarm.time_hm.as_deref().and_then(parse_hm)) {
             (Repeat::None, _) | (_, None) => None,
-            (repeat, Some(t)) => next_occurrence(tz, now, t, repeat),
+            (_, Some(t)) => next_occurrence(tz, now, t, alarm.days()),
         };
         self.conn.execute(
             "UPDATE alarms SET next_fire = ?2, enabled = ?3,
@@ -433,7 +449,7 @@ impl Store {
             let fire_at = a.next_fire.unwrap_or(now);
             let next = a.time_hm.as_deref().and_then(parse_hm).and_then(|t| match a.repeat {
                 Repeat::None => None,
-                r => next_occurrence(tz, now, t, r),
+                _ => next_occurrence(tz, now, t, a.days()),
             });
             let stale = next.is_some() && now - fire_at > MISSED_ALARM_GRACE_MS;
             if !stale {
@@ -483,17 +499,37 @@ impl Store {
         self.set_kv("pomodoro", &serde_json::to_string(next)?)
     }
 
-    /// Advances the tomato clock if its phase ended. Returns the new status on change.
-    pub fn tick_pomodoro(&self, now: Millis) -> Result<Option<PomodoroStatus>> {
+    /// Advances the tomato clock if its phase ended, and starts it at the start of work hours.
+    /// Returns the new status on change.
+    pub fn tick_pomodoro<Tz: TimeZone>(&self, tz: &Tz, now: Millis) -> Result<Option<PomodoroStatus>> {
         let status = self.pomodoro_status()?;
         let config = self.pomodoro_config()?;
-        match pomodoro::tick(&status, now, &config) {
+        // Work hours: once per work period, start it if it isn't running. A period that began
+        // with it running counts too, so stopping it by hand keeps it stopped until the next.
+        if let Some(period) = pomodoro::current_work_period(tz, &config.work_hours, now) {
+            let seen = self.get_kv(AUTO_PERIOD_KEY)?.and_then(|v| v.parse::<Millis>().ok());
+            if seen != Some(period) {
+                self.set_kv(AUTO_PERIOD_KEY, &period.to_string())?;
+                if status.phase == Phase::Idle {
+                    let next = pomodoro::start_focus(now, &config, 0);
+                    self.set_pomodoro(&next, now)?;
+                    return Ok(Some(next));
+                }
+            }
+        }
+        let cutoff = self.pomodoro_cutoff(tz, &status, &config);
+        match pomodoro::tick(&status, now, &config, cutoff) {
             Some(next) => {
                 self.set_pomodoro(&next, status.ends_at.unwrap_or(now))?;
                 Ok(Some(next))
             }
             None => Ok(None),
         }
+    }
+
+    /// When the current run must stop (work hours), if it must.
+    pub fn pomodoro_cutoff<Tz: TimeZone>(&self, tz: &Tz, s: &PomodoroStatus, c: &PomodoroConfig) -> Option<Millis> {
+        pomodoro::run_cutoff(tz, &c.work_hours, s.run_started_at?)
     }
 
     pub fn pomodoro_stats<Tz: TimeZone>(&self, tz: &Tz, days: u32, now: Millis) -> Result<Vec<DayStat>> {
@@ -601,7 +637,7 @@ mod tests {
     #[test]
     fn one_shot_alarm_rings_then_disables() {
         let s = Store::open_in_memory().unwrap();
-        let a = s.add_alarm(&London, "Dentist", at(10, 5), Repeat::None, at(6, 0)).unwrap();
+        let a = s.add_alarm(&London, "Dentist", at(10, 5), Repeat::None, 0, at(6, 0)).unwrap();
         assert_eq!(s.take_due(&London, at(10, 5)).unwrap()[0].id, a.id);
         let saved = &s.list_alarms().unwrap()[0];
         assert!(!saved.enabled);
@@ -618,7 +654,7 @@ mod tests {
     #[test]
     fn alarms_serialize_with_the_fields_the_ui_reads() {
         let s = Store::open_in_memory().unwrap();
-        let t = s.add_alarm(&London, "Timer: 12 min", at(10, 12), Repeat::None, at(10, 0)).unwrap();
+        let t = s.add_alarm(&London, "Timer: 12 min", at(10, 12), Repeat::None, 0, at(10, 0)).unwrap();
         let json = serde_json::to_value(&s.list_alarms().unwrap()[0]).unwrap();
         assert_eq!(json["createdAt"], serde_json::json!(at(10, 0)));
         assert_eq!(json["id"], serde_json::json!(t.id));
@@ -655,6 +691,8 @@ mod tests {
         assert_eq!(alarms[0].label, "Alarm");
         assert_eq!(alarms[0].created_at, Some(7));
         assert_eq!(alarms[1].label, "Alarm for the 21:40 train");
+        // Later columns (v7, v8) get their defaults.
+        assert_eq!((alarms[0].skipped_fire, alarms[0].repeat_days), (None, 0));
         drop(s);
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -662,7 +700,7 @@ mod tests {
     #[test]
     fn daily_alarm_reschedules_and_snooze_works() {
         let s = Store::open_in_memory().unwrap();
-        let a = s.add_alarm(&London, "Wake up", at(7, 30), Repeat::Daily, at(6, 0)).unwrap();
+        let a = s.add_alarm(&London, "Wake up", at(7, 30), Repeat::Daily, 0, at(6, 0)).unwrap();
         assert_eq!(a.time_hm.as_deref(), Some("07:30"));
         assert_eq!(s.take_due(&London, at(7, 30)).unwrap().len(), 1);
         let next = s.list_alarms().unwrap()[0].next_fire.unwrap();
@@ -677,7 +715,7 @@ mod tests {
     #[test]
     fn stale_repeating_alarms_are_skipped_not_rung_late() {
         let s = Store::open_in_memory().unwrap();
-        s.add_alarm(&London, "Wake up", at(7, 30), Repeat::Daily, at(6, 0)).unwrap();
+        s.add_alarm(&London, "Wake up", at(7, 30), Repeat::Daily, 0, at(6, 0)).unwrap();
         assert!(s.take_due(&London, at(12, 0)).unwrap().is_empty());
         assert!(s.list_alarms().unwrap()[0].enabled);
     }
@@ -687,7 +725,7 @@ mod tests {
         let s = Store::open_in_memory().unwrap();
         let config = s.pomodoro_config().unwrap();
         s.set_pomodoro(&pomodoro::start_focus(at(9, 0), &config, 0), at(9, 0)).unwrap();
-        let change = s.tick_pomodoro(at(9, 25)).unwrap().unwrap();
+        let change = s.tick_pomodoro(&London, at(9, 25)).unwrap().unwrap();
         assert_eq!(change.phase, Phase::ShortBreak);
         // Stop a second session early (10 of 25 minutes).
         s.set_pomodoro(&pomodoro::start_focus(at(10, 0), &config, 1), at(10, 0)).unwrap();
@@ -697,6 +735,103 @@ mod tests {
         assert_eq!(stats.len(), 2);
         assert_eq!(stats[1], DayStat { day: "2026-01-07".into(), completed: 1, focus_minutes: 35 });
         assert_eq!(stats[0].completed, 0);
+    }
+
+    /// Work hours Mon–Fri 09:00–17:30 (plus overrides), short sessions to keep the maths easy.
+    fn work_store(extra: serde_json::Value) -> Store {
+        let s = Store::open_in_memory().unwrap();
+        let mut wh = serde_json::json!({"enabled": true, "days": 0b011_1110, "start": "09:00", "end": "17:30"});
+        if let (Some(w), Some(e)) = (wh.as_object_mut(), extra.as_object()) {
+            w.extend(e.clone());
+        }
+        s.set_settings(&serde_json::json!({"pomodoro": {"focusMin": 25, "shortBreakMin": 5, "workHours": wh}}))
+            .unwrap();
+        s
+    }
+
+    #[test]
+    fn work_hours_start_it_once_a_day() {
+        // 2026-01-07 is a Wednesday.
+        let s = work_store(serde_json::json!({}));
+        assert_eq!(s.tick_pomodoro(&London, at(8, 59)).unwrap(), None);
+        let started = s.tick_pomodoro(&London, at(9, 0)).unwrap().unwrap();
+        assert_eq!((started.phase, started.run_started_at), (Phase::Focus, Some(at(9, 0))));
+        // Stopped by hand: it stays stopped for the rest of the day…
+        s.set_pomodoro(&PomodoroStatus::default(), at(9, 10)).unwrap();
+        assert_eq!(s.tick_pomodoro(&London, at(9, 11)).unwrap(), None);
+        assert_eq!(s.tick_pomodoro(&London, at(12, 0)).unwrap(), None);
+        // …and starts again the next work day (a computer switched on at 10:00 counts).
+        let thu = at(10, 0) + DAY;
+        assert_eq!(s.tick_pomodoro(&London, thu).unwrap().map(|p| p.phase), Some(Phase::Focus));
+        // Not at the weekend.
+        s.set_pomodoro(&PomodoroStatus::default(), thu).unwrap();
+        assert_eq!(s.tick_pomodoro(&London, at(9, 0) + 3 * DAY).unwrap(), None);
+    }
+
+    #[test]
+    fn a_period_that_began_with_it_running_counts_as_started() {
+        let s = work_store(serde_json::json!({}));
+        let c = s.pomodoro_config().unwrap();
+        s.set_pomodoro(&pomodoro::start_focus(at(8, 50), &c, 0), at(8, 50)).unwrap();
+        s.tick_pomodoro(&London, at(9, 0)).unwrap();
+        s.set_pomodoro(&PomodoroStatus::default(), at(9, 5)).unwrap();
+        assert_eq!(s.tick_pomodoro(&London, at(9, 6)).unwrap(), None);
+    }
+
+    #[test]
+    fn no_new_focus_after_the_end_of_work() {
+        let s = work_store(serde_json::json!({}));
+        let c = s.pomodoro_config().unwrap();
+        // A focus ending after 17:30 skips its break.
+        let run = PomodoroStatus { run_started_at: Some(at(9, 0)), ..pomodoro::start_focus(at(17, 20), &c, 3) };
+        s.set_pomodoro(&run, at(17, 20)).unwrap();
+        s.set_kv(AUTO_PERIOD_KEY, &at(9, 0).to_string()).unwrap();
+        assert_eq!(s.tick_pomodoro(&London, at(17, 45)).unwrap().map(|p| p.phase), Some(Phase::Idle));
+        // A break ending after 17:30 doesn't start another focus.
+        let brk = PomodoroStatus {
+            phase: Phase::ShortBreak,
+            round: 1,
+            ends_at: Some(at(17, 32)),
+            run_started_at: Some(at(9, 0)),
+        };
+        s.set_pomodoro(&brk, at(17, 27)).unwrap();
+        assert_eq!(s.tick_pomodoro(&London, at(17, 32)).unwrap().map(|p| p.phase), Some(Phase::Idle));
+        // Before 17:30 it carries on.
+        let early = PomodoroStatus { ends_at: Some(at(12, 0)), ..brk };
+        s.set_pomodoro(&early, at(11, 55)).unwrap();
+        assert_eq!(s.tick_pomodoro(&London, at(12, 0)).unwrap().map(|p| p.phase), Some(Phase::Focus));
+    }
+
+    #[test]
+    fn a_run_started_in_the_evening_stops_at_the_next_days_end_of_work() {
+        let s = work_store(serde_json::json!({}));
+        let c = s.pomodoro_config().unwrap();
+        let evening = pomodoro::start_focus(at(20, 0), &c, 0);
+        assert_eq!(s.pomodoro_cutoff(&London, &evening, &c), Some(at(17, 30) + DAY));
+        // Friday evening: Monday's end of work.
+        let fri = pomodoro::start_focus(at(20, 0) + 2 * DAY, &c, 0);
+        assert_eq!(s.pomodoro_cutoff(&London, &fri, &c), Some(at(17, 30) + 5 * DAY));
+    }
+
+    #[test]
+    fn night_shift_hours_end_the_next_morning() {
+        let s = work_store(serde_json::json!({"start": "22:00", "end": "06:00"}));
+        let c = s.pomodoro_config().unwrap();
+        let run = pomodoro::start_focus(at(23, 0), &c, 0);
+        assert_eq!(s.pomodoro_cutoff(&London, &run, &c), Some(at(6, 0) + DAY));
+        // 01:00 Thursday is inside Wednesday's shift.
+        assert_eq!(pomodoro::current_work_period(&London, &c.work_hours, at(1, 0) + DAY), Some(at(22, 0)));
+    }
+
+    #[test]
+    fn work_hours_off_changes_nothing() {
+        let s = work_store(serde_json::json!({"enabled": false}));
+        let c = s.pomodoro_config().unwrap();
+        assert_eq!(s.tick_pomodoro(&London, at(9, 0)).unwrap(), None);
+        let run = pomodoro::start_focus(at(17, 20), &c, 0);
+        assert_eq!(s.pomodoro_cutoff(&London, &run, &c), None);
+        s.set_pomodoro(&run, at(17, 20)).unwrap();
+        assert_eq!(s.tick_pomodoro(&London, at(17, 45)).unwrap().map(|p| p.phase), Some(Phase::ShortBreak));
     }
 
     #[test]
@@ -713,7 +848,7 @@ mod tests {
     #[test]
     fn a_rung_timer_can_still_be_snoozed_and_stays_visible() {
         let s = Store::open_in_memory().unwrap();
-        let t = s.add_alarm(&London, "Timer: 1 min", at(10, 1), Repeat::None, at(6, 0)).unwrap();
+        let t = s.add_alarm(&London, "Timer: 1 min", at(10, 1), Repeat::None, 0, at(6, 0)).unwrap();
         assert_eq!(s.take_due(&London, at(10, 1)).unwrap().len(), 1);
         // Still there (finished) while the user decides.
         assert!(!s.list_alarms().unwrap()[0].enabled);
@@ -728,7 +863,7 @@ mod tests {
     #[test]
     fn snoozes_are_counted_and_done_ends_the_cycle() {
         let s = Store::open_in_memory().unwrap();
-        let a = s.add_alarm(&London, "Wake up", at(7, 0), Repeat::Daily, at(6, 0)).unwrap();
+        let a = s.add_alarm(&London, "Wake up", at(7, 0), Repeat::Daily, 0, at(6, 0)).unwrap();
         s.take_due(&London, at(7, 0)).unwrap();
         s.snooze_alarm(a.id, 5, at(7, 1)).unwrap();
         s.take_due(&London, at(7, 6)).unwrap();
@@ -746,7 +881,7 @@ mod tests {
     #[test]
     fn missed_alarms_are_remembered_until_acknowledged() {
         let s = Store::open_in_memory().unwrap();
-        let a = s.add_alarm(&London, "Dentist", at(15, 0), Repeat::None, at(6, 0)).unwrap();
+        let a = s.add_alarm(&London, "Dentist", at(15, 0), Repeat::None, 0, at(6, 0)).unwrap();
         s.take_due(&London, at(15, 0)).unwrap();
         let missed = s.mark_alarm_missed(a.id, at(15, 1)).unwrap().unwrap();
         assert_eq!(missed.missed_at, Some(at(15, 1)));
@@ -765,7 +900,7 @@ mod tests {
     #[test]
     fn a_missed_one_off_keeps_its_snooze_count_and_first_ring() {
         let s = Store::open_in_memory().unwrap();
-        let a = s.add_alarm(&London, "Alarm", at(21, 40), Repeat::None, at(6, 0)).unwrap();
+        let a = s.add_alarm(&London, "Alarm", at(21, 40), Repeat::None, 0, at(6, 0)).unwrap();
         s.take_due(&London, at(21, 40)).unwrap();
         for i in 0..3 {
             s.snooze_alarm(a.id, 5, at(21, 41 + 6 * i)).unwrap();
@@ -779,7 +914,7 @@ mod tests {
     #[test]
     fn a_repeating_alarm_starts_each_day_afresh() {
         let s = Store::open_in_memory().unwrap();
-        let a = s.add_alarm(&London, "Wake up", at(7, 0), Repeat::Daily, at(6, 0)).unwrap();
+        let a = s.add_alarm(&London, "Wake up", at(7, 0), Repeat::Daily, 0, at(6, 0)).unwrap();
         s.take_due(&London, at(7, 0)).unwrap();
         s.snooze_alarm(a.id, 5, at(7, 1)).unwrap();
         s.take_due(&London, at(7, 6)).unwrap();
@@ -798,7 +933,7 @@ mod tests {
     #[test]
     fn skip_once_skips_the_next_ring_and_undo_brings_it_back() {
         let s = Store::open_in_memory().unwrap();
-        let a = s.add_alarm(&London, "Wake up", at(7, 0), Repeat::Daily, at(6, 0)).unwrap();
+        let a = s.add_alarm(&London, "Wake up", at(7, 0), Repeat::Daily, 0, at(6, 0)).unwrap();
         s.skip_alarm_once(&London, a.id, at(6, 10)).unwrap();
         let skipped = &s.list_alarms().unwrap()[0];
         assert_eq!(
@@ -822,15 +957,35 @@ mod tests {
         let s = Store::open_in_memory().unwrap();
         // 2026-01-07 is a Wednesday; Friday is two days on.
         let friday = at(7, 0) + 2 * DAY;
-        let a = s.add_alarm(&London, "Work", friday, Repeat::Weekdays, at(6, 0) + 2 * DAY).unwrap();
+        let a = s.add_alarm(&London, "Work", friday, Repeat::Weekdays, 0, at(6, 0) + 2 * DAY).unwrap();
         s.skip_alarm_once(&London, a.id, at(6, 0) + 2 * DAY).unwrap();
         assert_eq!(s.list_alarms().unwrap()[0].next_fire, Some(friday + 3 * DAY));
     }
 
     #[test]
+    fn an_alarm_on_chosen_days_rings_only_on_them() {
+        let s = Store::open_in_memory().unwrap();
+        let mon_wed_fri = 0b010_1010;
+        // Set on Thursday for 7:00: the first ring is Friday.
+        let thu = at(6, 0) + DAY;
+        let a = s.add_alarm(&London, "Gym", at(7, 0) + DAY, Repeat::Days, mon_wed_fri, thu).unwrap();
+        let fri = at(7, 0) + 2 * DAY;
+        assert_eq!((a.next_fire, a.repeat_days, a.days()), (Some(fri), mon_wed_fri, mon_wed_fri));
+        // Friday's ring: next is Monday.
+        assert_eq!(s.take_due(&London, fri).unwrap().len(), 1);
+        let mon = fri + 3 * DAY;
+        assert_eq!(s.list_alarms().unwrap()[0].next_fire, Some(mon));
+        // Skipping Monday: Wednesday.
+        s.skip_alarm_once(&London, a.id, fri + DAY).unwrap();
+        assert_eq!(s.list_alarms().unwrap()[0].next_fire, Some(mon + 2 * DAY));
+        // No days: refused.
+        assert!(s.add_alarm(&London, "None", at(7, 0), Repeat::Days, 0, at(6, 0)).is_err());
+    }
+
+    #[test]
     fn skipping_a_snoozed_alarm_ends_todays_cycle() {
         let s = Store::open_in_memory().unwrap();
-        let a = s.add_alarm(&London, "Wake up", at(7, 0), Repeat::Daily, at(6, 0)).unwrap();
+        let a = s.add_alarm(&London, "Wake up", at(7, 0), Repeat::Daily, 0, at(6, 0)).unwrap();
         s.take_due(&London, at(7, 0)).unwrap();
         s.snooze_alarm(a.id, 5, at(7, 1)).unwrap();
         s.skip_alarm_once(&London, a.id, at(7, 2)).unwrap();
@@ -841,9 +996,9 @@ mod tests {
     #[test]
     fn only_repeating_alarms_that_are_on_can_skip() {
         let s = Store::open_in_memory().unwrap();
-        let once = s.add_alarm(&London, "Once", at(9, 0), Repeat::None, at(6, 0)).unwrap();
+        let once = s.add_alarm(&London, "Once", at(9, 0), Repeat::None, 0, at(6, 0)).unwrap();
         assert!(s.skip_alarm_once(&London, once.id, at(6, 0)).is_err());
-        let daily = s.add_alarm(&London, "Daily", at(9, 0), Repeat::Daily, at(6, 0)).unwrap();
+        let daily = s.add_alarm(&London, "Daily", at(9, 0), Repeat::Daily, 0, at(6, 0)).unwrap();
         s.skip_alarm_once(&London, daily.id, at(6, 0)).unwrap();
         // Switching it off (or on) forgets the skip.
         s.set_alarm_enabled(&London, daily.id, false, at(6, 1)).unwrap();
@@ -855,7 +1010,7 @@ mod tests {
     #[test]
     fn snoozing_a_deleted_alarm_is_an_error_not_a_silent_no_op() {
         let s = Store::open_in_memory().unwrap();
-        let t = s.add_alarm(&London, "Timer: 1 min", at(10, 1), Repeat::None, at(6, 0)).unwrap();
+        let t = s.add_alarm(&London, "Timer: 1 min", at(10, 1), Repeat::None, 0, at(6, 0)).unwrap();
         s.delete_alarm(t.id).unwrap();
         assert!(s.snooze_alarm(t.id, 5, at(10, 2)).is_err());
     }
@@ -863,7 +1018,7 @@ mod tests {
     #[test]
     fn switching_a_one_shot_alarm_off_and_on_keeps_its_time() {
         let s = Store::open_in_memory().unwrap();
-        let a = s.add_alarm(&London, "Dentist", at(15, 0), Repeat::None, at(6, 0)).unwrap();
+        let a = s.add_alarm(&London, "Dentist", at(15, 0), Repeat::None, 0, at(6, 0)).unwrap();
         s.set_alarm_enabled(&London, a.id, false, at(9, 0)).unwrap();
         assert!(!s.list_alarms().unwrap()[0].enabled);
         assert!(s.take_due(&London, at(15, 0)).unwrap().is_empty());
@@ -876,11 +1031,11 @@ mod tests {
     #[test]
     fn clear_finished_keeps_upcoming_and_repeating() {
         let s = Store::open_in_memory().unwrap();
-        s.add_alarm(&London, "Rang", at(8, 0), Repeat::None, at(6, 0)).unwrap();
-        s.add_alarm(&London, "Later", at(18, 0), Repeat::None, at(6, 0)).unwrap();
-        let off = s.add_alarm(&London, "Switched off, still ahead", at(19, 0), Repeat::None, at(6, 0)).unwrap();
+        s.add_alarm(&London, "Rang", at(8, 0), Repeat::None, 0, at(6, 0)).unwrap();
+        s.add_alarm(&London, "Later", at(18, 0), Repeat::None, 0, at(6, 0)).unwrap();
+        let off = s.add_alarm(&London, "Switched off, still ahead", at(19, 0), Repeat::None, 0, at(6, 0)).unwrap();
         s.set_alarm_enabled(&London, off.id, false, at(9, 0)).unwrap();
-        s.add_alarm(&London, "Daily", at(7, 0), Repeat::Daily, at(6, 0)).unwrap();
+        s.add_alarm(&London, "Daily", at(7, 0), Repeat::Daily, 0, at(6, 0)).unwrap();
         s.take_due(&London, at(9, 0)).unwrap();
         assert_eq!(s.clear_finished_alarms(at(9, 0)).unwrap(), 1);
         let labels: Vec<_> = s.list_alarms().unwrap().into_iter().map(|a| a.label).collect();

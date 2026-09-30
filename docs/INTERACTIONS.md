@@ -158,6 +158,67 @@ Code: `askTurnOff` in `src/panel/main.ts`, `skip_alarm_once` / `unskip_alarm` in
 - The skipped ring is kept in `alarms.skipped_fire` (v7 migration). It is cleared when the
   alarm rings or is switched off or on.
 
+## Setting an alarm (since 0.20.0)
+
+Code: `renderAlarms` in `src/panel/main.ts`, `src/panel/timeField.ts`, `src/panel/dayPicker.ts`,
+`Repeat::Days` in `crates/desktoppet-core/src/model.rs`.
+
+- **A new alarm starts at the current time,** so it's quick to set one for a little later.
+  Opening the Alarms tab takes the time afresh. While you're setting it up, the tab
+  redrawing (a timer ending, say) keeps what you've entered.
+- **Time fields work like a phone's time wheel.** Hour, minute and AM/PM each change by:
+  - dragging up or down (up is more, one step per 8 px);
+  - the mouse wheel, or ↑/↓;
+  - typing ("7", "3", "0" → 7:30; A or P for AM/PM). A click on AM/PM flips it.
+  - Parts wrap without carrying (59 → 00 keeps the hour; 12-hour clocks go 12 → 1 keeping
+    AM/PM).
+  - This replaces the system time field, which only took the wheel.
+  - It follows the system's 12/24-hour setting. The same field is used for Quiet hours and
+    work hours.
+- **Repeat:** Once, Every day, Weekdays, or **Custom days** (M T W T F S S toggles), e.g.
+  Mon, Wed, Fri. Add is disabled while no day is picked.
+  - An alarm on chosen days is `repeat = 'days'` with the days in `alarms.repeat_days`
+    (v8 migration; bits, Sunday = bit 0).
+  - Its first ring is the first chosen day at or after the time set. Skip once, snoozes and
+    new cycles all go through `next_occurrence`.
+  - Rows and the Skip-once dialog name the days: "Mon, Wed, Fri", "Weekends"…
+
+## Focus work hours (since 0.20.0)
+
+Code: `run_cutoff`, `current_work_period` in `crates/desktoppet-core/src/pomodoro.rs` (mirrored
+in `src/features/pomodoro/workHours.ts`), `tick_pomodoro` in `store.rs`, `workHoursSection`
+in the panel.
+
+- **Off (the default), the tomato clock runs until you stop it,** as before.
+- **On (Focus → Work hours):** work days (Mon–Fri by default) and hours (09:00–17:30 by
+  default). An end at or before the start is the next morning (a night shift).
+  - **It starts by itself** when work starts on a work day, if it isn't running.
+    - This happens once per work period. If you stop it, it stays stopped until the next
+      work day. A period that begins with it already running counts as started too.
+    - A computer switched on mid-morning starts it then.
+  - **No new focus begins after the end of work.** A focus that ends after it skips its
+    break; a break that ends after it doesn't start another focus.
+  - **Every run stops at the next end of work after it began** ("cutoff"). A run started
+    by hand in the evening keeps going until the next work day's end of work.
+- **Off works the same way:** every day is all work, so there is no cutoff. The only
+  difference is that it never starts by itself (it would start at midnight).
+- The run's start is `PomodoroStatus.runStartedAt`. The cutoff is worked out when needed,
+  so changing the hours applies at once.
+
+## Games during a focus session (since 0.20.0)
+
+Code: `gameHeld` in `src/features/pomodoro/logic.ts`, `PetHost.playGame`, `playGame` in the
+panel.
+
+- **During a focus session games ask first** (Focus → "Ask before games during a focus
+  session", on by default). Breaks don't ask.
+  - The menus say "Play Safe Landing (focusing)".
+  - From the pet or tray menu, the pet asks: "We're focusing until 4:10 PM. Play anyway?"
+    [Play anyway] [Cancel].
+  - With the pet hidden (or busy ringing), the panel's Games tab opens instead. It says
+    "Focusing until 4:10 PM. Games will ask first", and its Play button asks the same in
+    a dialog.
+
 ## Showing when things happened (since 0.13.0)
 
 - **Anything finished says when,** so identical items can be told apart ("1 min timer"

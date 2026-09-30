@@ -30,15 +30,16 @@ function ctx(over: Partial<PetMenuContext> = {}): PetMenuContext {
     care: () => {},
     setTimer: () => {},
     customTimer: () => {},
+    playGame: () => {},
     hide: () => {},
     ...over,
   };
 }
 
 function trayCtx(over: Partial<TrayMenuContext> = {}): TrayMenuContext {
-  const { backend, registry, settings, pomodoro, timers, snoozed, setTimer, customTimer } = ctx();
+  const { backend, registry, settings, pomodoro, timers, snoozed, setTimer, customTimer, playGame } = ctx();
   return {
-    backend, registry, settings, pomodoro, timers, snoozed, setTimer, customTimer,
+    backend, registry, settings, pomodoro, timers, snoozed, setTimer, customTimer, playGame,
     petVisible: true,
     ...over,
   };
@@ -60,6 +61,7 @@ const timer = (id: number, min: number): Alarm & { nextFire: number } => ({
   missedAt: null,
   missedSeenAt: null,
   skippedFire: null,
+  repeatDays: 0,
   rangAt: null,
   createdAt: null,
 });
@@ -163,5 +165,27 @@ describe("Open panel…", () => {
   it("opens Alarms for a missed alarm, and the default tab when nothing is going on", () => {
     expect(panelTabFor(ctx({ missed: [{ ...timer(9, 0), missedAt: Date.now() }] }))).toBe("alarms");
     expect(panelTabFor(ctx())).toBeUndefined();
+  });
+});
+
+describe("games during a focus session", () => {
+  const focusing = { phase: "focus" as const, round: 0, endsAt: Date.now() + 10 * 60_000 };
+  const play = (c: PetMenuContext) => (buildItems(c).find((i) => i !== "sep" && i.text.startsWith("Play")) as { text: string }).text;
+
+  it("marks the game as held while focusing, not during breaks or with the option off", () => {
+    expect(play(ctx())).toBe("Play Safe Landing");
+    expect(play(ctx({ pomodoro: focusing }))).toBe("Play Safe Landing (focusing)");
+    expect(play(ctx({ pomodoro: { ...focusing, phase: "short_break" } }))).toBe("Play Safe Landing");
+    const off = { ...DEFAULT_SETTINGS, pomodoro: { ...DEFAULT_SETTINGS.pomodoro, holdGames: false } };
+    expect(play(ctx({ pomodoro: focusing, settings: off }))).toBe("Play Safe Landing");
+  });
+
+  it("asks through the host rather than opening the game directly", () => {
+    let asked = "";
+    const item = buildItems(ctx({ pomodoro: focusing, playGame: (g) => (asked = g) })).find(
+      (i) => i !== "sep" && i.text.startsWith("Play"),
+    ) as { action: () => void };
+    item.action();
+    expect(asked).toBe("safe-landing");
   });
 });
