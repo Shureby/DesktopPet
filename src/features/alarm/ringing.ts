@@ -118,9 +118,27 @@ export function alarmName(a: Alarm): string {
   return t === null ? DEFAULT_ALARM_LABEL : `${DEFAULT_ALARM_LABEL} ${clock(t)}`;
 }
 
-/** An upcoming alarm in the 🔔 badge's info: "Alarm 9:40 PM", or "Login CMC · 9:40 PM". */
-export function upcomingBadgeLine(a: Alarm & { nextFire: number }): string {
+/**
+ * The alarms by the pet's 🔔 badge, by next ring: every snoozed one (its ringing cycle isn't
+ * over, so it always shows) and, if Settings allow, those ringing within the look-ahead.
+ */
+export function badgeAlarms(
+  alarms: Alarm[],
+  upcoming: { show: boolean; minutes: number },
+  now = Date.now(),
+): (Alarm & { nextFire: number })[] {
+  return [...snoozedAlarms(alarms, now), ...(upcoming.show ? upcomingAlarms(alarms, upcoming.minutes, now) : [])].sort(
+    (a, b) => a.nextFire - b.nextFire,
+  );
+}
+
+/**
+ * An alarm in the 🔔 badge's info: "Alarm 9:40 PM", "Login CMC · 9:40 PM", or a snoozed one
+ * "Alarm 9:25 PM · 💤×1 · next 9:33 PM" (its own time, then the snoozed ring).
+ */
+export function alarmBadgeLine(a: Alarm & { nextFire: number }): string {
   const name = alarmName(a);
   const at = clock(a.nextFire);
+  if (a.snoozes > 0) return `${name} · 💤×${a.snoozes} · next ${at}`;
   return name.endsWith(at) ? name : `${name} · ${at}`;
 }

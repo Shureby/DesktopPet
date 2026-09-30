@@ -16,6 +16,15 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-09-30
+
+### Changed
+- **Snoozed and upcoming alarms share one badge,** in ring order, like timers. The icon
+  is the nearest one's (`💤 11:33 AM +2` when that is a snooze). The info box marks
+  snoozed ones: `Alarm 11:25 AM · 💤×1 · next 11:33 AM`.
+  - Snoozed alarms show even with "Show upcoming alarms" off.
+  - Before, a separate 💤 badge could sit above an earlier 🔔 one.
+
 ## [0.18.0] - 2026-09-29
 
 ### Added

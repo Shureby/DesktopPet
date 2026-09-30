@@ -9,8 +9,9 @@ import {
   snoozedAlarms,
   timeRange,
   timerBadgeLine,
+  alarmBadgeLine,
+  badgeAlarms,
   upcomingAlarms,
-  upcomingBadgeLine,
   visibleDoneTimers,
 } from "./ringing";
 import { timerLabel } from "./timers";
@@ -142,11 +143,26 @@ describe("upcoming alarms (the 🔔 badge)", () => {
     expect(upcomingAlarms(list, 5, now)).toEqual([]);
   });
 
-  it("names the alarm with its time once", () => {
+  it("names the alarm with its time once; a snoozed one with its own time and next ring", () => {
     const at = now + 40 * min;
-    expect(upcomingBadgeLine(oneOff(1, { nextFire: at }) as Alarm & { nextFire: number })).toBe(`Alarm ${clock(at)}`);
-    expect(upcomingBadgeLine(oneOff(1, { label: "Login CMC", nextFire: at }) as Alarm & { nextFire: number })).toBe(
-      `Login CMC · ${clock(at)}`,
+    const line = (a: Alarm) => alarmBadgeLine(a as Alarm & { nextFire: number });
+    expect(line(oneOff(1, { nextFire: at }))).toBe(`Alarm ${clock(at)}`);
+    expect(line(oneOff(1, { label: "Login CMC", nextFire: at }))).toBe(`Login CMC · ${clock(at)}`);
+    const rang = now - 5 * min;
+    expect(line(oneOff(1, { nextFire: now + 3 * min, rangAt: rang, snoozes: 1 }))).toBe(
+      `Alarm ${clock(rang)} · 💤×1 · next ${clock(now + 3 * min)}`,
     );
+  });
+
+  it("puts snoozed and upcoming alarms in one list by next ring; snoozed ones always show", () => {
+    const list = [
+      oneOff(1, { nextFire: now + 30 * min }),
+      oneOff(2, { nextFire: now + 3 * min, rangAt: now - 2 * min, snoozes: 1 }),
+      oneOff(3, { nextFire: now + 1 * min }),
+    ];
+    expect(badgeAlarms(list, { show: true, minutes: 60 }, now).map((a) => a.id)).toEqual([3, 2, 1]);
+    // Off, or a short look-ahead: the snoozed one still shows.
+    expect(badgeAlarms(list, { show: false, minutes: 60 }, now).map((a) => a.id)).toEqual([2]);
+    expect(badgeAlarms(list, { show: true, minutes: 1 }, now).map((a) => a.id)).toEqual([3, 2]);
   });
 });

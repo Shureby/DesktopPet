@@ -77,7 +77,7 @@ Code: `src/pet/menu.ts`. Tests: `pet/menu.test.ts`.
   - Focus for a focus session or break;
   - Alarms for a missed alarm;
   - otherwise the panel's default.
-- **Clicking a badge opens its tab:** ⏱, 💤 and 🔔 open Alarms; 🍅 or ☕ opens Focus.
+- **Clicking a badge opens its tab:** ⏱ and 🔔/💤 open Alarms; 🍅 or ☕ opens Focus.
 - **Clicking a note badge clears it:** the missed-alarm badge and the "⏱ Done" badge.
 - **Countdown badges update their text in place** rather than being rebuilt, so a click
   never lands on a replaced element.
@@ -177,8 +177,13 @@ Code: `askTurnOff` in `src/panel/main.ts`, `skip_alarm_once` / `unskip_alarm` in
   - Settings → Alerts → "Show upcoming alarms by the pet" turns 🔔 off. While on, "Within
     N minutes" sets the look-ahead, 1–120. The field is hidden while it's off.
   - 🔔 shows the nearest alarm's clock time (not a countdown: it may be an hour away) and
-    "+n" for the others within the look-ahead, like ⏱.
-  - A snoozed alarm is under 💤, not 🔔.
+    "+n" for the others, like ⏱.
+  - **Snoozed and upcoming alarms share that one badge** (since 0.19.0), in ring order,
+    the way snoozed timers stay in the ⏱ list. Two badges put the times out of order
+    (💤 11:33 above 🔔 11:30).
+    - The icon is the nearest alarm's: `💤 11:33 AM +2` when that one is snoozed.
+    - A snoozed alarm always shows, whatever the look-ahead and even with upcoming
+      alarms off: its ringing cycle isn't over.
 - **Hovering a badge shows what it stands for,** in the same shape for every badge (since
   0.16.0): what and when, then what a click does on the last line.
 
@@ -186,8 +191,7 @@ Code: `askTurnOff` in `src/panel/main.ts`, `skip_alarm_once` / `unskip_alarm` in
   |---|---|---|
   | ⏱ | every running timer: `12 min · 8:10 → 8:22 PM`; a snoozed one `1 min · 💤×1 · 9:38 → 9:45 PM` | Open the Alarms tab |
   | 🍅 / ☕ | `Focus · 8:00 → 8:25 PM` (or `Break …`) | Open the Focus tab |
-  | 💤 | `Alarm 9:40 PM · snoozed 1×`, `next ring 9:46 PM` | Open the Alarms tab |
-  | 🔔 | every upcoming alarm: `Alarm 9:40 PM`, `Login CMC · 10:05 PM` | Open the Alarms tab |
+  | 🔔 / 💤 | every snoozed or upcoming alarm: `Alarm 9:40 PM`, `Login CMC · 10:05 PM`, a snoozed one `Alarm 9:25 PM · 💤×1 · next 9:33 PM` | Open the Alarms tab |
   | ⏰ Missed | `Alarm 9:40 PM · snoozed 3×` | Mark as seen |
   | ⏱ Done | `12 min timer · done 8:22 PM` | Dismiss |
 

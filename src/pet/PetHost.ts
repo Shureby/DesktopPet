@@ -14,8 +14,8 @@ import {
   timerBadgeLine,
   onUnanswered,
   snoozedAlarms,
-  upcomingAlarms,
-  upcomingBadgeLine,
+  badgeAlarms,
+  alarmBadgeLine,
   visibleDoneTimers,
   type DoneTimer,
 } from "../features/alarm/ringing";
@@ -387,22 +387,15 @@ export class PetHost {
         live: true,
       });
     }
-    const snoozed = snoozedAlarms(this.timers, now);
-    if (snoozed.length) {
-      const s = snoozed[0];
-      rows.push({
-        text: `💤 ${clock(s.nextFire)}${more(snoozed.length)}`,
-        title: info([`${alarmName(s)} · snoozed ${s.snoozes}×`, `next ring ${clock(s.nextFire)}`], "Open the Alarms tab"),
-        onClick: () => void this.backend.openPanel("alarms"),
-      });
-    }
-    const up = this.settings.upcomingAlarms;
-    const upcoming = up.show ? upcomingAlarms(this.timers, up.minutes, now) : [];
-    if (upcoming.length) {
+    // Snoozed and upcoming alarms share one badge, in ring order, like timers do. Its icon is
+    // the nearest one's: 💤 if that is a snooze.
+    const alarms = badgeAlarms(this.timers, this.settings.upcomingAlarms, now);
+    if (alarms.length) {
+      const first = alarms[0];
       rows.push({
         // Clock times: it may be an hour away, a countdown would just be noise.
-        text: `🔔 ${clock(upcoming[0].nextFire)}${more(upcoming.length)}`,
-        title: info(upcoming.map(upcomingBadgeLine), "Open the Alarms tab"),
+        text: `${first.snoozes > 0 ? "💤" : "🔔"} ${clock(first.nextFire)}${more(alarms.length)}`,
+        title: info(alarms.map(alarmBadgeLine), "Open the Alarms tab"),
         onClick: () => void this.backend.openPanel("alarms"),
       });
     }
