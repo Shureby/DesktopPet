@@ -670,12 +670,6 @@ fieldset.alert .upcoming .row {
   justify-content: flex-start;
   gap: 8px;
 }
-.focus-note {
-  margin: 0 0 10px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: var(--accent-soft);
-}
 button:disabled {
   opacity: 0.5;
   cursor: default;

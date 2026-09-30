@@ -173,7 +173,9 @@ export function buildTrayItems(c: TrayMenuContext): (Item | "sep")[] {
     "sep",
     ...taskItems(c),
     "sep",
-    ...playItems(c),
+    // The one difference in the shared part: with the pet hidden during a focus session there
+    // is no pet to ask "Play anyway?", so the game is left out until the focus ends.
+    ...playItems(c).filter((i) => c.petVisible || !gameHeld(c.settings.pomodoro, c.pomodoro) || i === "sep" || !i.text.startsWith("Play")),
     "sep",
     { text: "Open panel…", action: () => void c.backend.openPanel(panelTabFor(c)) },
     "sep",

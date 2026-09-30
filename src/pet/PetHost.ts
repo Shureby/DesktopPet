@@ -98,6 +98,8 @@ export class PetHost {
   private ringEndsAt = 0;
   /** Reminders that came due while something was ringing (to-dos); shown next. */
   private queued: ReminderEvent[] = [];
+  /** A game asked for during a focus session while something was ringing (see playGame). */
+  private pendingGame: string | null = null;
   /** Until when an important bubble (a missed-alarm notice) can't be talked over. */
   private importantUntil = 0;
   /** Finished timers the pet already mentioned (their badge stays until it expires or is clicked). */
@@ -734,17 +736,17 @@ export class PetHost {
   }
 
   /**
-   * Opens a game; during a focus session (Focus → "Ask before games") the pet asks first.
-   * With the pet hidden, the panel's Games tab says so and its Play button asks.
+   * Opens a game; during a focus session (Focus → "Ask before games") the pet asks first,
+   * before anything opens. While an alarm or timer rings, it asks once the ring is over.
+   * (With the pet hidden the tray leaves the game out while focusing: see buildTrayItems.)
    */
   private playGame(game: string): void {
     if (!gameHeld(this.settings.pomodoro, this.pomodoro)) {
       void this.backend.openGame(game);
       return;
     }
-    // Hidden, or busy ringing: the panel's Games tab says so and its Play button asks.
-    if (!this.petVisible || this.hidden || this.activeRing) {
-      void this.backend.openPanel("games");
+    if (this.activeRing) {
+      this.pendingGame = game;
       return;
     }
     const until = this.pomodoro.endsAt ? ` until ${clock(this.pomodoro.endsAt)}` : "";
@@ -1214,6 +1216,12 @@ export class PetHost {
     if (this.activeRing) return;
     const r = this.queued.shift();
     if (r) this.onReminder(r);
+    else if (this.pendingGame) {
+      // A game asked for while ringing: ask now (or just open it, if the focus is over).
+      const game = this.pendingGame;
+      this.pendingGame = null;
+      this.playGame(game);
+    }
   }
 
   /**

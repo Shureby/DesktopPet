@@ -189,3 +189,16 @@ describe("games during a focus session", () => {
     expect(asked).toBe("safe-landing");
   });
 });
+
+describe("the tray's game while the pet is hidden", () => {
+  const focusing = { phase: "focus" as const, round: 0, endsAt: Date.now() + 10 * 60_000 };
+  const games = (c: TrayMenuContext) => buildTrayItems(c).filter((i) => i !== "sep" && i.text.startsWith("Play")).map((i) => (i as { text: string }).text);
+
+  it("is left out during a focus session (there's no pet to ask), and back otherwise", () => {
+    expect(games(trayCtx({ petVisible: false, pomodoro: focusing }))).toEqual([]);
+    expect(games(trayCtx({ petVisible: false }))).toEqual(["Play Safe Landing"]);
+    expect(games(trayCtx({ petVisible: true, pomodoro: focusing }))).toEqual(["Play Safe Landing (focusing)"]);
+    // The rest of the section stays.
+    expect(buildTrayItems(trayCtx({ petVisible: false, pomodoro: focusing })).some((i) => i !== "sep" && i.text === "Switch character")).toBe(true);
+  });
+});

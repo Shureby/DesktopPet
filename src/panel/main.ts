@@ -694,16 +694,7 @@ async function renderGames(): Promise<Node> {
       );
     }),
   );
-  const status = await backend.pomodoroStatus();
-  return h(
-    "section",
-    {},
-    // Opened from the pet during a focus session: say why Play will ask.
-    gameHeld(settings.pomodoro, status)
-      ? h("p", { class: "note focus-note" }, `🍅 Focusing until ${clock(status.endsAt ?? Date.now())}. Games will ask first.`)
-      : null,
-    h("ul", { class: "games" }, ...items),
-  );
+  return h("section", {}, h("ul", { class: "games" }, ...items));
 }
 
 // --- Settings ---------------------------------------------------------------

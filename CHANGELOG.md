@@ -16,6 +16,14 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.20.1] - 2026-09-30
+
+### Fixed
+- **During a focus session, a game never opens anything before you answer "Play anyway?".**
+  - With the pet hidden, the tray leaves the game out until the focus ends. Before, it
+    opened the panel's Games tab and asked only on Play.
+  - While something rings, the pet asks once the ring is over.
+
 ## [0.20.0] - 2026-09-30
 
 ### Added

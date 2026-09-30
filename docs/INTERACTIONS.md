@@ -54,7 +54,8 @@ Code: `src/pet/menu.ts`. Tests: `pet/menu.test.ts`.
     Stop focus session;
   - Play Safe Landing / Switch character ▸;
   - Open panel….
-- **The only differences:**
+- **The only differences** (plus one exception: during a focus session with the pet hidden,
+  the tray leaves out the game; see "Games during a focus session"):
   - **Top:** the pet menu has a care action; the tray has Show pet / Hide pet.
   - **Bottom:** the pet menu ends with Hide pet; Quit is only in the tray (the OS
     convention, and it can't be hit by accident on the pet).
@@ -215,9 +216,15 @@ panel.
   - The menus say "Play Safe Landing (focusing)".
   - From the pet or tray menu, the pet asks: "We're focusing until 4:10 PM. Play anyway?"
     [Play anyway] [Cancel].
-  - With the pet hidden (or busy ringing), the panel's Games tab opens instead. It says
-    "Focusing until 4:10 PM. Games will ask first", and its Play button asks the same in
-    a dialog.
+  - The panel's Games tab asks the same in a dialog when you press Play.
+  - **Nothing opens before you answer** (since 0.20.1).
+  - **With the pet hidden, the tray leaves the game out during a focus session.** There's
+    no pet to ask, and a system dialog would need an extra dependency for a rare case.
+    - It comes back when the focus ends or the pet is shown.
+    - This is the one place the two menus differ in their shared part.
+    - Before 0.20.1 the panel's Games tab opened first and asked only on Play.
+  - **While an alarm or timer rings,** the pet asks once the ring is over (like a to-do
+    that comes due meanwhile).
 
 ## Showing when things happened (since 0.13.0)
 

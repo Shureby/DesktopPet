@@ -721,9 +721,9 @@
         },
         {
           "id": "focus.games-held",
-          "rev": "0.20.0",
-          "do": "开始专注后：右键宠物和托盘里看 Play Safe Landing；点它，分别选 Cancel 和 Play anyway；隐藏宠物后再从托盘点；在面板 Games 页点 Play；到休息时间再点；最后在 Focus 页关掉 “Ask before games during a focus session”",
-          "expect": "专注中菜单写 “Play Safe Landing (focusing)”；宠物气泡问 “We're focusing until … Play anyway?”，Cancel 不开游戏，Play anyway 打开游戏；宠物隐藏时打开面板 Games 页，顶部写 “Focusing until … Games will ask first.”，点 Play 弹出同样的询问；休息时和关掉选项后不再询问，菜单也没有 (focusing)"
+          "rev": "0.20.1",
+          "do": "开始专注后：右键宠物和托盘里看 Play Safe Landing；点它，分别选 Cancel 和 Play anyway；隐藏宠物后看托盘；让一个计时器响铃时从托盘点游戏；在面板 Games 页点 Play；到休息时间再点；最后在 Focus 页关掉 “Ask before games during a focus session”",
+          "expect": "专注中菜单写 “Play Safe Landing (focusing)”；宠物气泡先问 “We're focusing until … Play anyway?”，回答前不打开任何界面，Cancel 不开游戏，Play anyway 才打开；宠物隐藏时托盘里没有 Play Safe Landing（专注结束或显示宠物后重新出现）；响铃时点游戏，响铃结束后宠物再问；面板 Games 页点 Play 先弹框询问；休息时和关掉选项后不再询问，菜单也没有 (focusing)"
         },
         {
           "id": "game.controls",
