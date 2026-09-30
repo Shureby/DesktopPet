@@ -2,14 +2,14 @@
 
 <!-- Generated from test-checklist.json by `npm run test-checklist`. Edit the JSON, not this file. -->
 
-当前版本 `0.20.1`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
+当前版本 `0.21.0`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
 在线勾选页面（保存结果，自动标出需要重测的项目）：https://claude.ai/artifact/XQVzPKq4w2MThVnTLYCGy1
 
 ## 1. 安装与启动
 
 - [ ] 1.1 安装包安装 → **开始菜单/启动台里有应用，图标和名字正常**
 - [ ] 1.2 首次启动 → **宠物从屏幕上方掉下来，落在任务栏/Dock 上方**
-- [ ] 1.3 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.20.1 · …`，与安装包版本一致**
+- [ ] 1.3 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.21.0 · …`，与安装包版本一致**
 - [ ] 1.4 已经运行时再启动一次 → **不会出现第二只宠物（只打开面板）**
 - [ ] 1.5 覆盖安装新版本 → **之前的待办、闹钟、设置、心情值都还在**
 - [ ] 1.6 Settings → 勾选 Start with my computer，重启电脑；再取消并重启 → **勾选时自动启动，取消后不启动**
@@ -89,7 +89,7 @@
 - [ ] 7.2 打开 Alarms 页，改时间和填标签，改到一半时让一个计时器到点（或开始一个新计时器）；再切到别的页回来 → **时间框一开始是当前时间；计时器到点页面刷新后，改了一半的时间和标签都还在；切走再回来时时间重新变成当前时间**
 - [ ] 7.3 在 New alarm 的时间框里：按住小时往上/往下拖；在分钟上滚滚轮；点小时直接打 7、3、0；点 AM/PM；用 ↑/↓ 键；在 Settings → Quiet hours 里也试一下 → **往上拖变大、往下拖变小，拖得越远变得越多；滚轮、↑/↓ 每次一格；打 7 3 0 变成 7:30；点 AM/PM 切换；分钟 59 再加变 00（小时不变）；12 小时制时 12 再加变 1（AM/PM 不变）；24 小时制系统下没有 AM/PM 格；Quiet hours 的时间改完后保存（切页再回来还在）**
 - [ ] 7.4 新建 Every day 和 Weekdays 闹钟 → **下一次时间说明正确（周五设 Weekdays 显示下周一）**
-- [ ] 7.5 New alarm 选 Custom days，把星期几全部取消，再选一、三、五，Add；在周五响过之后看下一次；对它用 Skip once → **选 Custom days 时出现 M T W T F S S；一个都没选时 Add 是灰的；添加后这一行写 “Mon, Wed, Fri”；第一次响铃在最近的选中日；周五响后下一次是周一；Skip once 按钮写的是下一个选中日，跳过后下一次是再下一个选中日**
+- [ ] 7.5 **【新】** New alarm 依次选 Once、Every day、Weekdays、Weekends、Custom days；在 Weekdays 下点掉周一、再点回来、再加周六；手动点成只有周六周日；Custom days 下全部取消；分别添加一个 Once、一个 Weekends 和一个一三五的闹钟，并在周五响过之后看一三五那个的下一次 → **Once 和 Every day 不显示星期选择器；Weekdays 显示并选中周一到五，Weekends 选中周六周日；在 Weekdays 下点掉周一，下拉框自动变 Custom days，点回来又变回 Weekdays，加上周六变 Custom days；手动点成周六周日时变 Weekends；从 Once 选 Custom days 时默认选中今天星期几；一天都没选时 Add 是灰的；Once 添加后是单次闹钟（写 Once · 今天/明天）；Weekends 那行写 “Weekends”；一三五那行写 “Mon, Wed, Fri”，周五响后下一次是周一**
 - [ ] 7.6 关掉开关，再打开 → **关闭时变灰（不划线）；打开后恢复，时间不变**
 - [ ] 7.7 鼠标悬停一行，点 ✕ → **出现 ✕，点后删除**
 - [ ] 7.8 等闹钟到点 → **宠物响铃/跑到中间（按设置），气泡有 Snooze 5 min / Done**
@@ -152,7 +152,7 @@
 ## 14. 小游戏 Safe Landing
 
 - [ ] 14.1 右键 → Play Safe Landing → **游戏窗口打开，宠物主窗口仍正常**
-- [ ] 14.2 **【新】** 开始专注后：右键宠物和托盘里看 Play Safe Landing；点它，分别选 Cancel 和 Play anyway；隐藏宠物后看托盘；让一个计时器响铃时从托盘点游戏；在面板 Games 页点 Play；到休息时间再点；最后在 Focus 页关掉 “Ask before games during a focus session” → **专注中菜单写 “Play Safe Landing (focusing)”；宠物气泡先问 “We're focusing until … Play anyway?”，回答前不打开任何界面，Cancel 不开游戏，Play anyway 才打开；宠物隐藏时托盘里没有 Play Safe Landing（专注结束或显示宠物后重新出现）；响铃时点游戏，响铃结束后宠物再问；面板 Games 页点 Play 先弹框询问；休息时和关掉选项后不再询问，菜单也没有 (focusing)**
+- [ ] 14.2 开始专注后：右键宠物和托盘里看 Play Safe Landing；点它，分别选 Cancel 和 Play anyway；隐藏宠物后看托盘；让一个计时器响铃时从托盘点游戏；在面板 Games 页点 Play；到休息时间再点；最后在 Focus 页关掉 “Ask before games during a focus session” → **专注中菜单写 “Play Safe Landing (focusing)”；宠物气泡先问 “We're focusing until … Play anyway?”，回答前不打开任何界面，Cancel 不开游戏，Play anyway 才打开；宠物隐藏时托盘里没有 Play Safe Landing（专注结束或显示宠物后重新出现）；响铃时点游戏，响铃结束后宠物再问；面板 Games 页点 Play 先弹框询问；休息时和关掉选项后不再询问，菜单也没有 (focusing)**
 - [ ] 14.3 ← → / A D 移动；Space 或 Enter 开始 → **操作正常**
 - [ ] 14.4 分别用 Cat 和 Rooster 玩 → **Cat 抓 ☂ 减速；Rooster 按住 Space 滑翔，提示文字对应**
 - [ ] 14.5 结束后按 R 重来，再关闭窗口 → **可以重来；关闭后回到桌面，宠物爱心增加**

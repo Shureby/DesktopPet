@@ -1,3 +1,7 @@
+/* `hidden` always hides, even on elements whose class sets a display (e.g. .row). */
+[hidden] {
+  display: none !important;
+}
 :root {
   color-scheme: light dark;
   --bg: #fbf7f2;

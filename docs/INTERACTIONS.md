@@ -176,8 +176,19 @@ Code: `renderAlarms` in `src/panel/main.ts`, `src/panel/timeField.ts`, `src/pane
   - This replaces the system time field, which only took the wheel.
   - It follows the system's 12/24-hour setting. The same field is used for Quiet hours and
     work hours.
-- **Repeat:** Once, Every day, Weekdays, or **Custom days** (M T W T F S S toggles), e.g.
-  Mon, Wed, Fri. Add is disabled while no day is picked.
+- **Repeat:** Once, Every day, Weekdays, Weekends (since 0.21.0) or Custom days.
+  - **The day picker (M T W T F S S) shows only for Weekdays, Weekends and Custom days.**
+    Once and Every day have no days to pick. Before 0.21.0 it also showed under Once,
+    where it did nothing.
+  - Weekdays shows Mon–Fri ticked, Weekends Sat + Sun.
+  - **Picking days by hand names them.** Mon–Fri is Weekdays, Sat + Sun is Weekends,
+    anything else is Custom days, and the menu follows. All seven stay Custom days, so the
+    picker doesn't vanish under the mouse; the saved alarm says "Every day".
+  - Choosing Custom days from the menu starts from the days shown (to tweak Weekdays), or
+    from today's weekday after Once or Every day.
+  - Add is disabled while no day is picked.
+  - Weekends and custom days are saved as chosen days (`repeatFor`). Every day and
+    Weekdays keep their own kinds.
   - An alarm on chosen days is `repeat = 'days'` with the days in `alarms.repeat_days`
     (v8 migration; bits, Sunday = bit 0).
   - Its first ring is the first chosen day at or after the time set. Skip once, snoozes and

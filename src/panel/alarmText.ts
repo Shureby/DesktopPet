@@ -1,6 +1,6 @@
 import { alarmTime, clock } from "../features/alarm/ringing";
 import { isTimer, timerStartedAt } from "../features/alarm/timers";
-import { EVERY_DAY, repeatMask, WEEKDAYS, type Alarm, type DayMask } from "../platform/types";
+import { EVERY_DAY, repeatMask, WEEKDAYS, type Alarm, type DayMask, type Repeat } from "../platform/types";
 import { formatWhen } from "./dom";
 
 /** The time the alarm is set for, shown big like a phone clock app (the same through snoozes). */
@@ -58,7 +58,7 @@ export function daysText(mask: DayMask): string {
   const m = mask & EVERY_DAY;
   if (m === EVERY_DAY) return "Every day";
   if (m === WEEKDAYS) return "Weekdays";
-  if (m === 0b100_0001) return "Weekends";
+  if (m === WEEKENDS) return "Weekends";
   const days = [1, 2, 3, 4, 5, 6, 0].filter((d) => m & (1 << d)).map((d) => SHORT_DAYS[d]);
   return days.length ? days.join(", ") : "No days";
 }
@@ -66,4 +66,36 @@ export function daysText(mask: DayMask): string {
 /** How an alarm repeats: "Once", "Every day", "Weekdays", "Mon, Wed, Fri". */
 export function repeatText(a: Pick<Alarm, "repeat" | "repeatDays">): string {
   return a.repeat === "none" ? "Once" : daysText(repeatMask(a.repeat, a.repeatDays ?? 0));
+}
+
+/** What the New alarm "Repeat" menu offers. Weekends and custom days are saved as "days". */
+export type RepeatChoice = "none" | "daily" | "weekdays" | "weekends" | "days";
+export const WEEKENDS: DayMask = 0b100_0001;
+
+/** The menu entry for a set of days picked by hand: Weekdays, Weekends, or Custom days. */
+export function choiceForDays(mask: DayMask): "weekdays" | "weekends" | "days" {
+  return mask === WEEKDAYS ? "weekdays" : mask === WEEKENDS ? "weekends" : "days";
+}
+
+/**
+ * The days shown when a menu entry is chosen. Custom days start from what was shown (so
+ * Weekdays can be tweaked), or today's weekday coming from Once or Every day.
+ */
+export function daysForChoice(choice: RepeatChoice, previous: RepeatChoice, days: DayMask, today: number): DayMask {
+  if (choice === "weekdays") return WEEKDAYS;
+  if (choice === "weekends") return WEEKENDS;
+  if (choice === "days") return previous === "weekdays" || previous === "weekends" || previous === "days" ? days : 1 << today;
+  return days;
+}
+
+/** Whether a menu entry shows the day picker (only those that pick days). */
+export function showsDays(choice: RepeatChoice): boolean {
+  return choice === "weekdays" || choice === "weekends" || choice === "days";
+}
+
+/** What is saved for a menu entry. */
+export function repeatFor(choice: RepeatChoice, days: DayMask): { repeat: Repeat; days: DayMask } {
+  if (choice === "weekends") return { repeat: "days", days: WEEKENDS };
+  if (choice === "days") return { repeat: "days", days };
+  return { repeat: choice, days: 0 };
 }

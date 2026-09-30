@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { partText, stepPart, typeDigit } from "./timeField";
-import { daysText, repeatText } from "./alarmText";
+import { choiceForDays, daysForChoice, daysText, repeatFor, repeatText, showsDays } from "./alarmText";
 
 describe("time field", () => {
   it("steps each part and wraps without carrying", () => {
@@ -47,5 +47,37 @@ describe("day names", () => {
     expect(daysText(0b000_0001)).toBe("Sun");
     expect(repeatText({ repeat: "none", repeatDays: 0 })).toBe("Once");
     expect(repeatText({ repeat: "days", repeatDays: 0b010_1010 })).toBe("Mon, Wed, Fri");
+  });
+});
+
+describe("the Repeat menu and the day picker", () => {
+  const MON_FRI = 0b011_1110;
+  const SAT_SUN = 0b100_0001;
+  it("shows the days only for Weekdays, Weekends and Custom days", () => {
+    expect((["none", "daily", "weekdays", "weekends", "days"] as const).map(showsDays)).toEqual([false, false, true, true, true]);
+  });
+
+  it("names days picked by hand", () => {
+    expect(choiceForDays(MON_FRI)).toBe("weekdays");
+    expect(choiceForDays(SAT_SUN)).toBe("weekends");
+    expect(choiceForDays(MON_FRI & ~0b10)).toBe("days"); // Monday off
+    expect(choiceForDays(MON_FRI | 0b1)).toBe("days"); // Sunday added
+    expect(choiceForDays(0b111_1111)).toBe("days");
+    expect(choiceForDays(0)).toBe("days");
+  });
+
+  it("starts Custom days from what was shown, or today", () => {
+    expect(daysForChoice("weekdays", "none", 0, 3)).toBe(MON_FRI);
+    expect(daysForChoice("weekends", "days", 0b1010, 3)).toBe(SAT_SUN);
+    expect(daysForChoice("days", "weekdays", MON_FRI, 3)).toBe(MON_FRI);
+    expect(daysForChoice("days", "none", MON_FRI, 3)).toBe(1 << 3);
+    expect(daysForChoice("days", "daily", MON_FRI, 0)).toBe(1);
+  });
+
+  it("saves Weekends and custom days as chosen days", () => {
+    expect(repeatFor("none", MON_FRI)).toEqual({ repeat: "none", days: 0 });
+    expect(repeatFor("weekdays", MON_FRI)).toEqual({ repeat: "weekdays", days: 0 });
+    expect(repeatFor("weekends", 0)).toEqual({ repeat: "days", days: SAT_SUN });
+    expect(repeatFor("days", 0b010_1010)).toEqual({ repeat: "days", days: 0b010_1010 });
   });
 });

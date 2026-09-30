@@ -427,9 +427,9 @@
         },
         {
           "id": "alarm.custom-days",
-          "rev": "0.20.0",
-          "do": "New alarm 选 Custom days，把星期几全部取消，再选一、三、五，Add；在周五响过之后看下一次；对它用 Skip once",
-          "expect": "选 Custom days 时出现 M T W T F S S；一个都没选时 Add 是灰的；添加后这一行写 “Mon, Wed, Fri”；第一次响铃在最近的选中日；周五响后下一次是周一；Skip once 按钮写的是下一个选中日，跳过后下一次是再下一个选中日"
+          "rev": "0.21.0",
+          "do": "New alarm 依次选 Once、Every day、Weekdays、Weekends、Custom days；在 Weekdays 下点掉周一、再点回来、再加周六；手动点成只有周六周日；Custom days 下全部取消；分别添加一个 Once、一个 Weekends 和一个一三五的闹钟，并在周五响过之后看一三五那个的下一次",
+          "expect": "Once 和 Every day 不显示星期选择器；Weekdays 显示并选中周一到五，Weekends 选中周六周日；在 Weekdays 下点掉周一，下拉框自动变 Custom days，点回来又变回 Weekdays，加上周六变 Custom days；手动点成周六周日时变 Weekends；从 Once 选 Custom days 时默认选中今天星期几；一天都没选时 Add 是灰的；Once 添加后是单次闹钟（写 Once · 今天/明天）；Weekends 那行写 “Weekends”；一三五那行写 “Mon, Wed, Fri”，周五响后下一次是周一"
         },
         {
           "id": "alarm.switch",

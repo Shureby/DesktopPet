@@ -8,8 +8,9 @@ const NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
  * Seven round toggles, M T W T F S S, for an alarm's repeat days and the focus work days.
  * `onChange` gets the new mask; unticking the last day is allowed (the caller decides).
  */
-export function dayPicker(mask: DayMask, onChange: (mask: DayMask) => void): HTMLElement {
-  const root = document.createElement("div");
+export function dayPicker(mask: DayMask, onChange: (mask: DayMask) => void): HTMLElement & { setMask(mask: DayMask): void } {
+  const root = document.createElement("div") as unknown as HTMLElement & { setMask(mask: DayMask): void };
+  const painters: (() => void)[] = [];
   root.className = "day-picker";
   root.setAttribute("role", "group");
   root.setAttribute("aria-label", "Days");
@@ -30,7 +31,13 @@ export function dayPicker(mask: DayMask, onChange: (mask: DayMask) => void): HTM
       onChange(current);
     });
     paint();
+    painters.push(paint);
     root.append(b);
   }
+  /** Shows another set of days (e.g. Weekdays chosen from a menu) without calling onChange. */
+  root.setMask = (m: DayMask) => {
+    current = m;
+    painters.forEach((p) => p());
+  };
   return root;
 }

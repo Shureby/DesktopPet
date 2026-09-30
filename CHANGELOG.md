@@ -16,6 +16,21 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-09-30
+
+### Added
+- **A Weekends repeat** for new alarms (Sat + Sun).
+
+### Changed
+- **The day picker only shows for Weekdays, Weekends and Custom days.**
+  - Picking days by hand switches the menu: Mon–Fri is Weekdays, Sat + Sun is Weekends,
+    anything else Custom days.
+  - Custom days starts from the days shown, or today's weekday.
+
+### Fixed
+- **The day picker showed under Once and Every day,** where it did nothing (a style kept
+  it visible).
+
 ## [0.20.1] - 2026-09-30
 
 ### Fixed

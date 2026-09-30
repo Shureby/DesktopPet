@@ -28,13 +28,24 @@ import {
   type AlertSettings,
   type DayMask,
   type PanelTab,
-  type Repeat,
   type Settings,
   type WorkHours,
 } from "../platform";
 import { playRingtone, RINGTONE_IDS, RINGTONES, type RingtoneId } from "../pet/sound";
 import "../styles/panel.css";
-import { bigTime, finishedAt, finishedStatus, repeatText, skipWhen, timerTimes } from "./alarmText";
+import {
+  bigTime,
+  choiceForDays,
+  daysForChoice,
+  finishedAt,
+  finishedStatus,
+  repeatFor,
+  repeatText,
+  showsDays,
+  skipWhen,
+  timerTimes,
+  type RepeatChoice,
+} from "./alarmText";
 import { dayPicker } from "./dayPicker";
 import { formatHm, timeField } from "./timeField";
 import { formatWhen, h } from "./dom";
@@ -55,7 +66,7 @@ const view = document.getElementById("view")!;
 const nav = document.getElementById("tabs")!;
 let cleanup: (() => void)[] = [];
 /** The new alarm being set up, kept across re-renders of the Alarms tab. */
-let alarmDraft: { time: string; repeat: Repeat; days: DayMask; label: string } | null = null;
+let alarmDraft: { time: string; choice: RepeatChoice; days: DayMask; label: string } | null = null;
 
 /** Runs `f` once things have been quiet for `ms` (a dragged time field changes many times). */
 function debounced<T>(f: (v: T) => void, ms = 300): (v: T) => void {
@@ -154,7 +165,7 @@ async function renderTodos(): Promise<Node> {
 
 async function renderAlarms(): Promise<Node> {
   const alarms = await backend.listAlarms();
-  alarmDraft ??= { time: nowHm(), repeat: "none", days: WEEKDAYS, label: "" };
+  alarmDraft ??= { time: nowHm(), choice: "none", days: WEEKDAYS, label: "" };
   const draft = alarmDraft;
   const label = h("input", {
     type: "text",
@@ -170,21 +181,28 @@ async function renderAlarms(): Promise<Node> {
     if (!document.activeElement || document.activeElement === document.body) time.focus();
   });
   const addButton = h("button", { class: "primary", onclick: () => void add() }, "Add");
+  // Only Weekdays, Weekends and Custom days show the days. Picking days by hand names them:
+  // Mon–Fri is Weekdays, Sat + Sun is Weekends, anything else Custom days.
   const days = dayPicker(draft.days, (m) => {
     draft.days = m;
+    draft.choice = choiceForDays(m);
+    repeat.value = draft.choice;
     refresh();
   });
   const daysRow = h("div", { class: "row days-row" }, days);
   const refresh = () => {
-    daysRow.hidden = draft.repeat !== "days";
+    daysRow.hidden = !showsDays(draft.choice);
     // Custom days with none picked would never ring.
-    addButton.disabled = draft.repeat === "days" && !draft.days;
+    addButton.disabled = draft.choice === "days" && !draft.days;
   };
   const repeat = h(
     "select",
     {
       onchange: (e: Event) => {
-        draft.repeat = (e.target as HTMLSelectElement).value as Repeat;
+        const choice = (e.target as HTMLSelectElement).value as RepeatChoice;
+        draft.days = daysForChoice(choice, draft.choice, draft.days, new Date().getDay());
+        draft.choice = choice;
+        days.setMask(draft.days);
         refresh();
       },
     },
@@ -193,9 +211,10 @@ async function renderAlarms(): Promise<Node> {
         ["none", "Once"],
         ["daily", "Every day"],
         ["weekdays", "Weekdays"],
+        ["weekends", "Weekends"],
         ["days", "Custom days"],
       ] as const
-    ).map(([v, text]) => h("option", { value: v, selected: draft.repeat === v }, text)),
+    ).map(([v, text]) => h("option", { value: v, selected: draft.choice === v }, text)),
   );
   refresh();
   const add = async () => {
@@ -205,7 +224,8 @@ async function renderAlarms(): Promise<Node> {
     if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 1);
     // No time in the label: it is shown from the alarm's own time, in the system's format.
     // A repeating alarm's first ring is its first day at or after this (the store works it out).
-    await backend.addAlarm(label.value.trim() || DEFAULT_ALARM_LABEL, d.getTime(), draft.repeat, draft.days);
+    const r = repeatFor(draft.choice, draft.days);
+    await backend.addAlarm(label.value.trim() || DEFAULT_ALARM_LABEL, d.getTime(), r.repeat, r.days);
     draft.label = "";
     label.value = "";
   };
