@@ -176,7 +176,8 @@ async function renderAlarms(): Promise<Node> {
   const draft = alarmDraft;
   const label = h("input", {
     type: "text",
-    placeholder: "Label (optional)",
+    placeholder: "Label",
+    title: "A name for it (optional)",
     value: draft.label,
     oninput: (e: Event) => (draft.label = (e.target as HTMLInputElement).value),
   });
@@ -205,6 +206,7 @@ async function renderAlarms(): Promise<Node> {
   const repeat = h(
     "select",
     {
+      class: "repeat",
       onchange: (e: Event) => {
         const choice = (e.target as HTMLSelectElement).value as RepeatChoice;
         draft.days = daysForChoice(choice, draft.choice, draft.days, new Date().getDay());
@@ -940,7 +942,7 @@ const UNANSWERED = [
   [5, 3, "Snooze 5 min × 3"],
   [10, 3, "Snooze 10 min × 3"],
   [5, 5, "Snooze 5 min × 5"],
-  [5, 0, "Stop and mark as missed"],
+  [5, 0, "Mark as missed"],
 ] as const;
 
 /** Alarm-only: how long to ring and what happens when nobody answers, side by side. */

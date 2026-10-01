@@ -188,7 +188,7 @@ Code: `take_due` in `store.rs` (mirrored in the browser mock).
   - The snoozes that time would have used count. A 9:00 alarm rung at 9:12 has used two,
     so with no answer it is missed at about 9:17, as if ePet had been running.
   - Started after 9:15, it doesn't ring and isn't missed.
-- Timers, to-dos and alarms set to "Stop and mark as missed" have no such grace.
+- Timers, to-dos and alarms set to "Mark as missed" (no snoozes) have no such grace.
 - A scheduler tick up to a minute late (a busy machine, just woken) is still on time.
 - Example: a daily 9:00 alarm, off at 8:30, on at 10:00 the next day: nothing rings,
   nothing is missed.

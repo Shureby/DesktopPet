@@ -729,8 +729,10 @@ h3.split small {
   width: 80px;
   flex: none;
 }
+/* Room for "120" plus the spin arrows Windows always shows. */
 .upcoming input[type="number"] {
-  width: 52px;
+  width: 76px;
+  box-sizing: border-box;
 }
 .pair.labelled select {
   font-size: 13px;
@@ -752,4 +754,9 @@ h3.split small {
 .box .time-field .part {
   min-width: 1.4em;
   padding: 2px;
+}
+
+/* "Custom days" whole, in wider fonts too (Segoe UI). */
+select.repeat {
+  min-width: 142px;
 }

@@ -16,6 +16,14 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.22.2] - 2026-10-01
+
+### Fixed
+- **Fields too narrow for their text:**
+  - the 🔔 look-ahead showed "12" for 120 (Windows' spin arrows took the room);
+  - "Stop and mark as missed" was cut off (now "Mark as missed");
+  - the repeat menu and the alarm label's placeholder ("Label") are no longer clipped.
+
 ## [0.22.1] - 2026-10-01
 
 ### Changed
