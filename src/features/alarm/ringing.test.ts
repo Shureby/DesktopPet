@@ -9,6 +9,7 @@ import {
   snoozedAlarms,
   timeRange,
   timerBadgeLine,
+  unseenLines,
   alarmBadgeLine,
   badgeAlarms,
   upcomingAlarms,
@@ -165,5 +166,28 @@ describe("upcoming alarms (the 🔔 badge)", () => {
     // Off, or a short look-ahead: the snoozed one still shows.
     expect(badgeAlarms(list, { show: false, minutes: 60 }, now).map((a) => a.id)).toEqual([2]);
     expect(badgeAlarms(list, { show: true, minutes: 1 }, now).map((a) => a.id)).toEqual([3, 2]);
+  });
+});
+
+describe("While I was hidden you missed…", () => {
+  const now = new Date(2026, 9, 1, 12, 0).getTime();
+  const u = (id: number, kind: "alarm" | "timer" | "todo", title: string, at: number, snoozes = 0) => ({ id, kind, refId: id, title, at, snoozes });
+
+  it("lists each item with its own date, oldest first", () => {
+    const fri = new Date(2026, 8, 26, 20, 55).getTime();
+    const yesterday = new Date(2026, 8, 30, 21, 10).getTime();
+    const today = new Date(2026, 9, 1, 9, 0).getTime();
+    const lines = unseenLines([u(3, "todo", "Call mom", today), u(1, "alarm", "Alarm", fri, 3), u(2, "timer", "12 min timer", yesterday)], now);
+    expect(lines[0]).toBe("While I was hidden you missed:");
+    expect(lines[1]).toMatch(/^• ⏰ Alarm · .*Sep 26.* \(snoozed 3×\)$/);
+    expect(lines[2]).toMatch(/^• ⏱ 12 min timer · Yesterday /);
+    expect(lines[3]).toMatch(/^• 📝 Call mom · Today /);
+  });
+
+  it("shows five and says how many more", () => {
+    const list = Array.from({ length: 8 }, (_, i) => u(i, "todo", `To-do ${i}`, now - (8 - i) * 60_000));
+    const lines = unseenLines(list, now);
+    expect(lines).toHaveLength(7);
+    expect(lines[6]).toBe("…and 3 more");
   });
 });

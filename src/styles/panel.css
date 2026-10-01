@@ -681,3 +681,13 @@ button:disabled {
 .work-hours {
   text-align: left;
 }
+
+/* ----- When the pet is hidden (Settings → Alerts) ----- */
+fieldset.hidden-alerts .warning {
+  margin: 6px 0 0;
+  color: #c0392b;
+}
+.list .when.overdue {
+  color: #c0392b;
+  font-weight: 700;
+}

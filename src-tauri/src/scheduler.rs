@@ -3,11 +3,11 @@
 use std::time::Duration;
 
 use chrono::{Local, TimeZone};
-use desktoppet_core::{Phase, PomodoroStatus, Reminder, ReminderKind};
+use desktoppet_core::{Reminder, ReminderKind};
+use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, Runtime};
-use tauri_plugin_notification::NotificationExt;
 
-use crate::app_windows::{product_name, PET};
+use crate::app_windows::peek;
 use crate::state::{now_ms, AppState};
 
 pub fn spawn<R: Runtime>(app: AppHandle<R>) {
@@ -33,16 +33,14 @@ fn tick<R: Runtime>(app: &AppHandle<R>) {
     }
     state.storefront.run_callbacks();
 
-    let pet_visible = app.get_webview_window(PET).and_then(|w| w.is_visible().ok()).unwrap_or(false);
+    // The pet announces everything itself. Hidden, it comes out for what Settings → Alerts
+    // ticks ("When your pet is hidden, it comes out for…"); there are no OS notifications.
+    let comes_out = state.store().settings().map(|s| HiddenAlerts::from(&s)).unwrap_or_default();
     match reminders {
         Ok(list) if !list.is_empty() => {
-            for r in &list {
-                let _ = app.emit("reminder", r);
-                // The pet announces reminders itself; the OS notification is the fallback
-                // (always used for alarms, which must not be missed).
-                if !pet_visible || r.kind == ReminderKind::Alarm {
-                    notify(app, &reminder_title(r), &r.title);
-                }
+            for r in list {
+                let peeks = comes_out.covers(&r) && peek(app);
+                let _ = app.emit("reminder", Reminder { peek: peeks, ..r });
             }
             let _ = app.emit("todos-changed", ());
             let _ = app.emit("alarms-changed", ());
@@ -53,12 +51,51 @@ fn tick<R: Runtime>(app: &AppHandle<R>) {
     match pomodoro {
         Ok(Some(status)) => {
             let _ = app.emit("pomodoro", status);
-            if !pet_visible {
-                notify(app, &product_name(app), phase_message(&status));
+            if comes_out.focus && peek(app) {
+                let _ = app.emit("pet-peek", "focus");
             }
         }
         Ok(None) => {}
         Err(e) => log::error!("tomato clock tick failed: {e}"),
+    }
+}
+
+/// Settings → Alerts → "When your pet is hidden, it comes out for…" (settings.hiddenAlerts).
+struct HiddenAlerts {
+    alarms: bool,
+    timers: bool,
+    todos: bool,
+    focus: bool,
+}
+
+impl Default for HiddenAlerts {
+    fn default() -> Self {
+        Self { alarms: true, timers: true, todos: true, focus: false }
+    }
+}
+
+impl From<&Value> for HiddenAlerts {
+    fn from(settings: &Value) -> Self {
+        let d = Self::default();
+        let h = settings.get("hiddenAlerts");
+        let flag = |key: &str, default: bool| h.and_then(|h| h.get(key)).and_then(Value::as_bool).unwrap_or(default);
+        Self {
+            alarms: flag("alarms", d.alarms),
+            timers: flag("timers", d.timers),
+            todos: flag("todos", d.todos),
+            focus: flag("focus", d.focus),
+        }
+    }
+}
+
+impl HiddenAlerts {
+    fn covers(&self, r: &Reminder) -> bool {
+        match r.kind {
+            ReminderKind::Todo => self.todos,
+            // Timers are alarms labelled "Timer: …" (src/features/alarm/timers.ts).
+            ReminderKind::Alarm if r.title.starts_with("Timer: ") => self.timers,
+            ReminderKind::Alarm => self.alarms,
+        }
     }
 }
 
@@ -73,27 +110,5 @@ fn daily_cleanup(store: &desktoppet_core::Store, now: i64) -> bool {
             log::error!("daily clean-up failed: {e}");
             false
         }
-    }
-}
-
-fn reminder_title(r: &Reminder) -> String {
-    match r.kind {
-        ReminderKind::Alarm => "⏰ Alarm".into(),
-        ReminderKind::Todo => "📝 Reminder".into(),
-    }
-}
-
-fn phase_message(s: &PomodoroStatus) -> &'static str {
-    match s.phase {
-        Phase::Focus => "🍅 Focus time! Let's go.",
-        Phase::ShortBreak => "☕ Short break — stretch a little.",
-        Phase::LongBreak => "🌿 Long break — you earned it.",
-        Phase::Idle => "Tomato clock finished.",
-    }
-}
-
-fn notify<R: Runtime>(app: &AppHandle<R>, title: &str, body: &str) {
-    if let Err(e) = app.notification().builder().title(title).body(body).show() {
-        log::warn!("notification failed: {e}");
     }
 }

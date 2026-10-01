@@ -23,7 +23,6 @@ pub fn run() {
             let _ = app_windows::open_panel(app, None);
         }))
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
-        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
@@ -65,6 +64,10 @@ pub fn run() {
             commands::dismiss_alarm,
             commands::mark_alarm_missed,
             commands::acknowledge_missed,
+            commands::record_unseen,
+            commands::list_unseen,
+            commands::clear_unseen,
+            commands::end_peek,
             commands::pomodoro_start,
             commands::pomodoro_skip,
             commands::pomodoro_stop,

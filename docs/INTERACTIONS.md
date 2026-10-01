@@ -89,7 +89,6 @@ Code: `src/features/alarm/ringing.ts`, the scheduler in `src-tauri/src/scheduler
 
 - **An alarm rings for "Ring for" (60 s by default), then snoozes itself** for 5 min, up
   to 3 times (both in Settings → Alerts). After that it is marked **missed**:
-  - an OS notification;
   - an orange "⏰ Missed 9:40 PM" badge that stays until clicked;
   - the pet mentions it once, the next time you hover or click it.
 - **Done on any ring ends the whole snooze cycle.**
@@ -106,7 +105,7 @@ Code: `src/features/alarm/ringing.ts`, the scheduler in `src-tauri/src/scheduler
   - the menu;
   - the badges;
   - the Finished list;
-  - the OS notification.
+  - "While I was hidden you missed…".
 - **The ring time is kept in `rang_at`:** when the current ringing cycle began. A ring
   after a snooze keeps it; a repeating alarm's next day starts a new cycle.
 - **A ring after a snooze says so:** "Snoozed 2× · first rang 9:40 PM". The last automatic
@@ -135,6 +134,64 @@ Code: `src/features/alarm/ringing.ts`, the scheduler in `src-tauri/src/scheduler
 - **Done keeps a timer in the Finished list** ("Done · Today 12:42 PM"). It used to delete
   it, so the timers you answered disappeared and the unanswered ones stayed. Cancel on a
   running timer still deletes it: that is before it rang.
+
+## When the pet is hidden (since 0.22.0)
+
+Code: `peek` / `end_peek` in `src-tauri/src/app_windows.rs`, the scheduler
+(`src-tauri/src/scheduler.rs`), `enterPeek` / `watchPeek` / `tellUnseen` in `PetHost`, the
+`unseen` table in `store.rs`.
+
+- **There are no system notifications.** The pet announces everything itself. Before
+  0.22.0 alarms also sent "ePet / Alarm / Alarm": it said nothing, did nothing when
+  clicked, and repeated the bubble.
+- **Hidden, the pet comes out** for what Settings → Alerts → "When your pet is hidden, it
+  comes out for" ticks:
+  - Alarms, Timers and To-do reminders are on by default.
+  - Focus sessions (a focus or break ending) is off by default: it happens a dozen times a
+    day.
+  - Anything unticked shows a red ❗ "While your pet is hidden, … will not alert you."
+- **Coming out:**
+  - The app shows the window natively (the hidden window's script may be throttled), without
+    announcing it as shown. The tray still says "Show pet".
+  - The pet steps in from the nearest screen edge, walks to the middle and rings as usual.
+  - Once nothing rings, waits or talks, it walks back to the edge and hides again
+    (`end_peek`).
+  - Showing it meanwhile ("Show pet") keeps it out.
+  - Behind a mini-game, an alarm brings the pet out too.
+- **Nobody answers while it's hidden:** alarms snooze themselves as usual (the pet goes
+  back in between); a missed alarm, an unanswered timer or to-do reminder goes on a list.
+  The pet goes back in either way.
+- **Unticked kinds** count as unanswered at once (an alarm is missed straight away: nobody
+  can answer its snoozes) and go on the same list.
+- **"While I was hidden you missed:"** When you show the pet (or start ePet with it shown),
+  it lists them in an important bubble that stays until **Done**:
+  - each with its own date ("⏰ Alarm · Fri, Sep 26 8:55 PM (snoozed 3×)"), oldest first, up
+    to five and "…and N more";
+  - Done clears the list and the badges of the missed alarms in it (still Missed in the
+    history);
+  - a to-do stays open (it shows as Overdue).
+  - The list is kept in the `unseen` table (v9), so it survives a restart.
+
+## When ePet wasn't running (since 0.22.0)
+
+Code: `take_due` in `store.rs` (mirrored in the browser mock).
+
+- **What came due while ePet wasn't running (switched off, asleep, closed) isn't missed:**
+  there was no one to ring for. It doesn't ring late either.
+  - Repeating alarms wait for their next day.
+  - One-off alarms and timers finish without ringing: "Didn't ring · Today 9:00 AM · ePet
+    wasn't running" in Finished (`alarms.off_at`). No badge.
+  - To-dos show as **Overdue** ("Overdue · Today 9:00 AM", red) until done or given a new
+    time. Any to-do past its reminder time shows this way, however it was missed.
+- **Except an alarm that snoozes itself:** it still rings within its snooze time (snooze
+  length × automatic snoozes, 5 × 3 = 15 min by default, from Settings).
+  - The snoozes that time would have used count. A 9:00 alarm rung at 9:12 has used two,
+    so with no answer it is missed at about 9:17, as if ePet had been running.
+  - Started after 9:15, it doesn't ring and isn't missed.
+- Timers, to-dos and alarms set to "Stop and mark as missed" have no such grace.
+- A scheduler tick up to a minute late (a busy machine, just woken) is still on time.
+- Example: a daily 9:00 alarm, off at 8:30, on at 10:00 the next day: nothing rings,
+  nothing is missed.
 
 ## Switching off a repeating alarm (since 0.18.0)
 

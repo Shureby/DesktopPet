@@ -17,6 +17,7 @@ import {
   snoozedAlarms,
   badgeAlarms,
   alarmBadgeLine,
+  unseenLines,
   visibleDoneTimers,
   type DoneTimer,
 } from "../features/alarm/ringing";
@@ -34,7 +35,7 @@ import {
   TIMER_PREFIX,
 } from "../features/alarm/timers";
 import { formatRemaining, gameHeld } from "../features/pomodoro/logic";
-import type { Alarm, Backend, PetActivity, PomodoroStatus, ReminderEvent, Settings } from "../platform";
+import type { Alarm, Backend, PetActivity, PomodoroStatus, ReminderEvent, Settings, Unseen } from "../platform";
 import type { CareAction } from "../characters/schema";
 import { buildTrayItems, nativeMenu, showPetMenu, type MenuContext } from "./menu";
 import { inQuietHours } from "./quietHours";
@@ -100,6 +101,15 @@ export class PetHost {
   private queued: ReminderEvent[] = [];
   /** A game asked for during a focus session while something was ringing (see playGame). */
   private pendingGame: string | null = null;
+  /**
+   * The hidden pet is out for a reminder ("peek", docs/INTERACTIONS.md): when it was brought
+   * out, and whether it is walking back to the edge to hide again.
+   */
+  private peek: { since: number; leaving: { x: number; since: number } | null } | null = null;
+  /** A mini-game is open (the pet is hidden for it). */
+  private gameOn = false;
+  /** "While I was hidden you missed…" waits for a ring to finish. */
+  private unseenPending = false;
   /** Until when an important bubble (a missed-alarm notice) can't be talked over. */
   private importantUntil = 0;
   /** Finished timers the pet already mentioned (their badge stays until it expires or is clicked). */
@@ -183,16 +193,31 @@ export class PetHost {
     });
     await this.backend.on("pet-visibility", (visible) => {
       this.petVisible = visible;
+      // Shown while out for a reminder: it just stays out.
+      if (visible) this.peek = null;
       if (!this.windowed) this.setHidden(!visible);
       this.scheduleTray();
+      if (visible) void this.tellUnseen();
     });
-    await this.backend.on("game", (g) => this.setHidden(g.state === "started"));
+    await this.backend.on("pet-peek", () => {
+      // A focus session or break ended: the pet comes out, says so (the "pomodoro" event),
+      // and goes back once the line is gone.
+      this.enterPeek();
+    });
+    await this.backend.on("game", (g) => {
+      this.gameOn = g.state === "started";
+      this.setHidden(this.gameOn);
+    });
     await this.backend.on("pet-command", (c) => {
       if (c === "greet") this.pet.react({ type: "greet" });
     });
     await this.backend.on("alarms-changed", () => void this.refreshTimers());
     await this.backend.on("pet-event", (e) => this.onActivity(e));
     await this.refreshTimers();
+    // Anything the hidden pet couldn't tell you before ePet was last closed.
+    if (this.petVisible) void this.tellUnseen();
+    // The pet out for a reminder goes back once it's answered (see watchPeek).
+    setInterval(() => this.watchPeek(), 300);
     // Timers that ran out leave the tray menu even if no event arrives (unchanged menus aren't rebuilt).
     setInterval(() => this.scheduleTray(), 30_000);
     // Mood is saved every minute and when leaving, not every tick.
@@ -1103,6 +1128,14 @@ export class PetHost {
    * silently counting as unanswered. A to-do that comes due meanwhile waits its turn.
    */
   private onReminder(r: ReminderEvent): void {
+    // Hidden and not coming out for this kind (Settings → Alerts): nobody can answer it, so
+    // it counts as unanswered at once and waits in "While I was hidden you missed…".
+    if (!r.peek && !this.petVisible) {
+      void this.unansweredWhileHidden(r);
+      return;
+    }
+    // Hidden (or behind a mini-game): come out for it.
+    if (r.peek || this.hidden) this.enterPeek();
     if (r.kind === "todo") {
       if (this.activeRing) this.queued.push(r);
       else this.remindTodo(r);
@@ -1208,7 +1241,8 @@ export class PetHost {
       },
       { label: "Later", run: () => void this.backend.updateTodo(r.id, { dueAt: Date.now() + 10 * 60_000 }) },
     ];
-    this.say(text, 60_000, actions);
+    // Out of hiding for it, an unanswered reminder is recorded for when you show the pet.
+    this.say(text, 60_000, actions, this.peek ? () => void this.unansweredWhileHidden(r) : undefined);
     if (alert.ring) playRingtone(alert.ringtone, alert.volume);
   }
 
@@ -1216,6 +1250,7 @@ export class PetHost {
     if (this.activeRing) return;
     const r = this.queued.shift();
     if (r) this.onReminder(r);
+    else if (this.unseenPending && this.petVisible) void this.tellUnseen();
     else if (this.pendingGame) {
       // A game asked for while ringing: ask now (or just open it, if the focus is over).
       const game = this.pendingGame;
@@ -1246,11 +1281,136 @@ export class PetHost {
         8000,
       );
     } else if (next.action === "missed") {
-      await this.backend.markAlarmMissed(id, alarmName(alarm));
+      await this.backend.markAlarmMissed(id);
+      if (this.peek) await this.recordUnseen(alarm);
+    } else if (this.peek) {
+      // Rung out of hiding: told when the pet is shown again, not as a badge.
+      await this.recordUnseen(alarm);
     } else {
       this.doneTimers = [...this.doneTimers, { id, label: alarm.label, at: Date.now() }];
     }
     await this.refreshTimers();
+  }
+
+  /** Remembers an alarm, timer or to-do the hidden pet couldn't get answered. */
+  private async recordUnseen(item: Alarm | ReminderEvent, todoDue?: number): Promise<void> {
+    let entry: Omit<Unseen, "id">;
+    if ("kind" in item && item.kind === "todo") {
+      entry = { kind: "todo", refId: item.id, title: item.title, at: todoDue ?? Date.now(), snoozes: 0 };
+    } else {
+      const a = item as Alarm;
+      entry = isTimer(a)
+        ? { kind: "timer", refId: a.id, title: `${timerName(a)} timer`, at: a.rangAt ?? Date.now(), snoozes: 0 }
+        : // The label, not alarmName: the line adds the date and time itself.
+          { kind: "alarm", refId: a.id, title: a.label || "Alarm", at: alarmTime(a) ?? Date.now(), snoozes: a.snoozes };
+    }
+    await this.backend.recordUnseen(entry);
+  }
+
+  /**
+   * Due while the pet is hidden and not coming out for it (or unanswered out of hiding): an
+   * alarm is missed at once (nobody can answer its snoozes), a timer is done, and each waits
+   * in "While I was hidden you missed…".
+   */
+  private async unansweredWhileHidden(r: ReminderEvent): Promise<void> {
+    if (r.kind === "todo") {
+      const todo = (await this.backend.listTodos()).find((t) => t.id === r.id);
+      await this.recordUnseen(r, todo?.dueAt ?? undefined);
+      return;
+    }
+    await this.refreshTimers();
+    const alarm = this.timers.find((a) => a.id === r.id);
+    if (!alarm) return;
+    if (!isTimer(alarm)) await this.backend.markAlarmMissed(alarm.id);
+    await this.refreshTimers();
+    await this.recordUnseen(this.timers.find((a) => a.id === r.id) ?? alarm);
+  }
+
+  /**
+   * Shown again: "While I was hidden you missed:" and the list, with each item's date. It
+   * stays until Done (an important bubble: chatter and petting can't replace it), which
+   * clears the list and the badges of the missed alarms in it.
+   */
+  private async tellUnseen(): Promise<void> {
+    const list = await this.backend.listUnseen();
+    if (!list.length) return;
+    if (this.activeRing) {
+      this.unseenPending = true;
+      return;
+    }
+    this.unseenPending = false;
+    // Its alarms are told here, not again on hover (welcomeBack).
+    for (const u of list) if (u.kind === "alarm") this.announcedMissed.add(u.refId);
+    this.say(
+      unseenLines(list),
+      24 * 60 * 60_000,
+      [{ label: "Done", run: () => void this.backend.clearUnseen().then(() => this.refreshTimers()) }],
+      undefined,
+      true,
+    );
+  }
+
+  // --- Out of hiding for a reminder ("peek") --------------------------------
+
+  /** Brought out (or still out): from the nearest screen edge; the reminder sends it to the middle. */
+  private enterPeek(): void {
+    if (this.peek) {
+      this.peek.leaving = null;
+      return;
+    }
+    this.peek = { since: Date.now(), leaving: null };
+    const area = this.peekArea();
+    if (area) {
+      const b = this.pet.body;
+      const margin = this.pet.spriteSize.w;
+      b.x = b.x - area.x < area.x + area.w - b.x ? area.x + margin : area.x + area.w - margin;
+      b.support = null;
+      b.vx = 0;
+      b.y = Math.min(b.y, area.y + area.h);
+    }
+    if (this.hidden) this.setHidden(false);
+    // Out for something: it goes to the middle of the screen whatever its mood.
+    if (area) {
+      this.pet.target = { x: area.x + area.w / 2 };
+      this.pet.fsm.set("goto", true);
+    }
+  }
+
+  private peekArea() {
+    const world = this.pet.world;
+    if (!world?.areas.length) return null;
+    const i = areaIndexAt(world, this.pet.body.x, this.pet.body.y - 1);
+    return world.areas[Math.max(0, i)];
+  }
+
+  /**
+   * Out for a reminder: once nothing rings, waits or talks any more, walk to the nearest
+   * edge, then hide again (end_peek; the user may have shown the pet meanwhile).
+   */
+  private watchPeek(): void {
+    const peek = this.peek;
+    if (!peek) return;
+    const busy = this.activeRing || this.queued.length || !this.bubble.hidden || this.prompting || this.drag;
+    if (busy || Date.now() - peek.since < 3000) {
+      peek.leaving = null;
+      return;
+    }
+    const area = this.peekArea();
+    if (!peek.leaving) {
+      const b = this.pet.body;
+      const x = !area ? b.x : b.x - area.x < area.x + area.w - b.x ? area.x : area.x + area.w;
+      peek.leaving = { x, since: Date.now() };
+      this.pet.target = { x };
+      this.pet.fsm.set("goto", true);
+      return;
+    }
+    const arrived = Math.abs(this.pet.body.x - peek.leaving.x) < this.pet.spriteSize.w;
+    if (arrived || Date.now() - peek.leaving.since > 10_000) {
+      this.peek = null;
+      void this.backend.endPeek();
+      // In the browser (and behind a mini-game) the pet hides itself.
+      if ((!this.windowed && !this.petVisible) || this.gameOn) this.setHidden(true);
+    }
   }
 
   /**

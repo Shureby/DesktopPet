@@ -3,11 +3,10 @@
 use std::sync::atomic::Ordering;
 
 use chrono::Local;
-use desktoppet_core::{pomodoro, Alarm, DayStat, PomodoroStatus, Repeat, Score, Todo, TodoPatch};
+use desktoppet_core::{pomodoro, Alarm, DayStat, NewUnseen, PomodoroStatus, Repeat, Score, Todo, TodoPatch, Unseen};
 use serde::Serialize;
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, State};
-use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_opener::OpenerExt;
 
 use crate::app_windows::{self, PET};
@@ -127,18 +126,37 @@ pub fn dismiss_alarm(app: AppHandle, state: State<AppState>, id: i64) -> CmdResu
     Ok(())
 }
 
-/// Nobody answered an alarm (after its auto-snoozes): remember it and tell the OS.
-/// `name` is how the UI shows it ("Alarm 9:40 PM"), so the notification matches the app's
-/// 12/24-hour format.
+/// Nobody answered an alarm after its automatic snoozes: it is missed (the pet shows a badge).
 #[tauri::command]
-pub fn mark_alarm_missed(app: AppHandle, state: State<AppState>, id: i64, name: Option<String>) -> CmdResult<()> {
-    let alarm = state.store().mark_alarm_missed(id, now_ms()).map_err(err)?;
-    if let Some(a) = alarm {
-        let body = name.unwrap_or(a.label);
-        let _ = app.notification().builder().title("⏰ Missed alarm").body(&body).show();
-    }
+pub fn mark_alarm_missed(app: AppHandle, state: State<AppState>, id: i64) -> CmdResult<()> {
+    state.store().mark_alarm_missed(id, now_ms()).map_err(err)?;
     let _ = app.emit("alarms-changed", ());
     Ok(())
+}
+
+/// The hidden pet rang something nobody answered: it tells you when you show it again.
+#[tauri::command]
+pub fn record_unseen(state: State<AppState>, item: NewUnseen) -> CmdResult<()> {
+    state.store().record_unseen(&item, now_ms()).map_err(err)
+}
+
+#[tauri::command]
+pub fn list_unseen(state: State<AppState>) -> CmdResult<Vec<Unseen>> {
+    state.store().list_unseen().map_err(err)
+}
+
+/// "Done" on "While I was hidden you missed…".
+#[tauri::command]
+pub fn clear_unseen(app: AppHandle, state: State<AppState>) -> CmdResult<()> {
+    state.store().clear_unseen(now_ms()).map_err(err)?;
+    let _ = app.emit("alarms-changed", ());
+    Ok(())
+}
+
+/// The hidden pet has answered its reminder and walked off: hide it again.
+#[tauri::command]
+pub fn end_peek(app: AppHandle) -> CmdResult<()> {
+    app_windows::end_peek(&app).map_err(err)
 }
 
 /// The user saw a missed alarm (clicked its badge): the badge goes, it stays missed in the history.

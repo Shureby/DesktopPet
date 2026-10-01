@@ -1,7 +1,11 @@
 //! The pet, panel and game windows.
 
 use serde::Serialize;
+use std::sync::atomic::Ordering;
+
 use tauri::{AppHandle, Emitter, Manager, Runtime, WebviewUrl, WebviewWindowBuilder};
+
+use crate::state::AppState;
 
 pub const PET: &str = "pet";
 pub const PANEL: &str = "panel";
@@ -86,6 +90,10 @@ pub fn close_game<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
 /// Shows or hides the pet and announces it ("pet-visibility"), so the tray menu can offer
 /// the opposite. Showing it also makes the pet say hello.
 pub fn set_pet_visible<R: Runtime>(app: &AppHandle<R>, visible: bool) -> tauri::Result<()> {
+    let state = app.state::<AppState>();
+    state.pet_hidden.store(!visible, Ordering::Relaxed);
+    // Shown while out for a reminder: it stays out.
+    state.peeking.store(false, Ordering::Relaxed);
     if let Some(w) = app.get_webview_window(PET) {
         if visible {
             w.show()?;
@@ -94,6 +102,36 @@ pub fn set_pet_visible<R: Runtime>(app: &AppHandle<R>, visible: bool) -> tauri::
             w.hide()?;
         }
         app.emit("pet-visibility", visible)?;
+    }
+    Ok(())
+}
+
+/// The hidden pet comes out for a reminder: the window is shown natively (the hidden
+/// window's script may be throttled), without announcing a visibility change, so the tray
+/// still offers "Show pet". Returns whether the pet is hidden (and so now peeking).
+pub fn peek<R: Runtime>(app: &AppHandle<R>) -> bool {
+    let state = app.state::<AppState>();
+    if !state.pet_hidden.load(Ordering::Relaxed) {
+        return false;
+    }
+    if !state.peeking.swap(true, Ordering::Relaxed) {
+        if let Some(w) = app.get_webview_window(PET) {
+            if let Err(e) = w.show() {
+                log::warn!("could not show the pet for a reminder: {e}");
+            }
+        }
+    }
+    true
+}
+
+/// The reminder is answered and the pet has walked off: hide it again, unless the user
+/// showed it meanwhile.
+pub fn end_peek<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
+    let state = app.state::<AppState>();
+    if state.peeking.swap(false, Ordering::Relaxed) && state.pet_hidden.load(Ordering::Relaxed) {
+        if let Some(w) = app.get_webview_window(PET) {
+            w.hide()?;
+        }
     }
     Ok(())
 }

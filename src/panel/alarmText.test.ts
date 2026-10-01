@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { clock } from "../features/alarm/ringing";
 import { timerLabel } from "../features/alarm/timers";
 import type { Alarm } from "../platform/types";
-import { finishedStatus, skipWhen, timerTimes } from "./alarmText";
+import { finishedStatus, hiddenWarning, skipWhen, timerTimes } from "./alarmText";
 
 const now = new Date(2026, 8, 28, 22, 30).getTime();
 const at = (h: number, m: number) => new Date(2026, 8, 28, h, m).getTime();
@@ -63,5 +63,23 @@ describe("skipWhen", () => {
     if (clock(at(30)) === "7:00 PM" && date(at(30)) === "Sep 30") {
       expect(skipWhen(monday, now)).toBe("Oct 5 7:00 PM (Monday)");
     }
+  });
+});
+
+describe("hidden pet: warnings and what didn't ring", () => {
+  const all = { alarms: true, timers: true, todos: true, focus: false };
+  it("warns about what can't reach you while the pet is hidden", () => {
+    expect(hiddenWarning(all)).toBeNull();
+    expect(hiddenWarning({ ...all, focus: true })).toBeNull();
+    expect(hiddenWarning({ ...all, todos: false })).toBe("While your pet is hidden, to-do reminders will not alert you.");
+    expect(hiddenWarning({ ...all, alarms: false, timers: false })).toBe("While your pet is hidden, alarms and timers will not alert you.");
+    expect(hiddenWarning({ alarms: false, timers: false, todos: false, focus: true })).toBe(
+      "While your pet is hidden, alarms, timers and to-do reminders will not alert you.",
+    );
+  });
+
+  it("says an alarm didn't ring while ePet wasn't running (not missed)", () => {
+    const off = alarm({ nextFire: null, enabled: false, offAt: at(9, 0) });
+    expect(finishedStatus(off, now)).toBe(`Didn't ring · Today ${clock(at(9, 0))} · ePet wasn't running`);
   });
 });

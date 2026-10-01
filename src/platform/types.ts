@@ -56,6 +56,7 @@ export interface Settings {
   /** Custom timer lengths in minutes, most recent first (at most three). */
   recentTimers: number[];
   quietHours: { enabled: boolean; start: string; end: string };
+  hiddenAlerts: HiddenAlerts;
   /** A 🔔 badge by the pet for alarms ringing within `minutes` (1–120). */
   upcomingAlarms: { show: boolean; minutes: number };
   pomodoro: PomodoroConfig;
@@ -73,6 +74,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   recentTimers: [],
   quietHours: { enabled: false, start: "22:00", end: "08:00" },
+  hiddenAlerts: { alarms: true, timers: true, todos: true, focus: false },
   upcomingAlarms: { show: true, minutes: 60 },
   pomodoro: {
     focusMin: 25,
@@ -100,6 +102,7 @@ export function mergeSettings(stored: Partial<Settings> | null | undefined): Set
     ...d,
     ...s,
     quietHours: { ...d.quietHours, ...s.quietHours },
+    hiddenAlerts: { ...d.hiddenAlerts, ...s.hiddenAlerts },
     recentTimers: Array.isArray(s.recentTimers) ? s.recentTimers.filter((m) => typeof m === "number" && m > 0).slice(0, 3) : [],
     upcomingAlarms: (() => {
       const u = { ...d.upcomingAlarms, ...s.upcomingAlarms };
@@ -158,6 +161,8 @@ export interface Alarm {
   createdAt: number | null;
   /** The days a "days" alarm rings on (0 otherwise). */
   repeatDays: DayMask;
+  /** It came due while ePet wasn't running and didn't ring (the time it was due). Not missed. */
+  offAt?: number | null;
 }
 
 export type PomodoroPhase = "idle" | "focus" | "short_break" | "long_break";
@@ -195,6 +200,29 @@ export interface ReminderEvent {
   kind: "todo" | "alarm";
   id: number;
   title: string;
+  /** The pet is hidden and was brought out just for this (docs/INTERACTIONS.md). */
+  peek?: boolean;
+}
+
+/** "While I was hidden you missed…": something the hidden pet rang that nobody answered. */
+export interface Unseen {
+  id: number;
+  kind: "alarm" | "timer" | "todo";
+  /** The alarm, timer or to-do. */
+  refId: number;
+  title: string;
+  /** When it was due (an alarm's own time, a timer's end, a to-do's reminder time). */
+  at: number;
+  snoozes: number;
+}
+
+/** Settings → Alerts → "When your pet is hidden, it comes out for…". */
+export interface HiddenAlerts {
+  alarms: boolean;
+  timers: boolean;
+  todos: boolean;
+  /** When a focus session or break ends. */
+  focus: boolean;
 }
 
 export type PanelTab = "todos" | "alarms" | "focus" | "characters" | "games" | "settings";
@@ -210,6 +238,8 @@ export interface BackendEvents {
   "pet-command": "show" | "hide" | "greet";
   /** The pet was shown or hidden (from its menu, the tray, …). */
   "pet-visibility": boolean;
+  /** The hidden pet was brought out for a focus session or break ending. */
+  "pet-peek": "focus";
   /** Mood saved for a character (the panel shows it). */
   mood: { character: string; mood: unknown };
   /** Something the user did elsewhere that the pet reacts to. */
@@ -257,7 +287,14 @@ export interface Backend {
    */
   dismissAlarm(id: number): Promise<void>;
   /** Nobody answered: it stays missed (also sends an OS notification showing `name`). */
-  markAlarmMissed(id: number, name?: string): Promise<void>;
+  markAlarmMissed(id: number): Promise<void>;
+  /** The hidden pet rang something nobody answered (shown when the pet is shown again). */
+  recordUnseen(item: Omit<Unseen, "id">): Promise<void>;
+  listUnseen(): Promise<Unseen[]>;
+  /** "Done" on the list; missed alarms in it count as seen. */
+  clearUnseen(): Promise<void>;
+  /** The hidden pet has answered its reminder and walked off: hide it again. */
+  endPeek(): Promise<void>;
   /** The user saw a missed alarm (clicked its badge): the badge goes, the history keeps it. */
   acknowledgeMissed(id: number): Promise<void>;
 

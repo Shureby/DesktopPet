@@ -9,7 +9,6 @@
     "core:tray:default",
     "core:window:allow-set-focus",
     "core:window:allow-hide",
-    "notification:default",
     "autostart:allow-enable",
     "autostart:allow-disable",
     "autostart:allow-is-enabled"

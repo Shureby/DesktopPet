@@ -27,6 +27,7 @@ import {
   type Alarm,
   type AlertSettings,
   type DayMask,
+  type HiddenAlerts,
   type PanelTab,
   type Settings,
   type WorkHours,
@@ -35,6 +36,7 @@ import { playRingtone, RINGTONE_IDS, RINGTONES, type RingtoneId } from "../pet/s
 import "../styles/panel.css";
 import {
   bigTime,
+  hiddenWarning,
   choiceForDays,
   daysForChoice,
   finishedAt,
@@ -145,7 +147,12 @@ async function renderTodos(): Promise<Node> {
         },
       }),
       h("span", { class: "title" }, t.title),
-      t.dueAt && !t.done ? h("span", { class: "when" }, formatWhen(t.dueAt)) : null,
+      // Its reminder time has passed (answered or not, or while ePet wasn't running).
+      t.dueAt && !t.done
+        ? t.dueAt < Date.now()
+          ? h("span", { class: "when overdue" }, `Overdue · ${formatWhen(t.dueAt)}`)
+          : h("span", { class: "when" }, formatWhen(t.dueAt))
+        : null,
       t.done && t.doneAt ? h("span", { class: "when" }, `Done · ${formatWhen(t.doneAt)}`) : null,
       h("button", { class: "icon", title: "Delete", onclick: () => void backend.deleteTodo(t.id) }, "✕"),
     );
@@ -747,6 +754,7 @@ async function renderSettings(): Promise<Node> {
     h("h3", {}, "Alerts"),
     alertRow("alarm", "Alarms & timers"),
     alertRow("todo", "To-do reminders"),
+    hiddenAlertsRow(),
     h(
       "label",
       { class: "check" },
@@ -782,6 +790,33 @@ async function renderSettings(): Promise<Node> {
       `${product.productName} ${version} · ${product.publisher} · ${await backend.storefront()} build · `,
       h("a", { href: product.website, target: "_blank" }, product.website),
     ),
+  );
+}
+
+/**
+ * "When your pet is hidden, it comes out for…" (docs/INTERACTIONS.md). There are no system
+ * notifications, so anything unticked can't reach you while the pet is hidden: say so in red.
+ */
+function hiddenAlertsRow(): Node {
+  const ha = settings.hiddenAlerts;
+  const box = (key: keyof HiddenAlerts, text: string) =>
+    h(
+      "label",
+      { class: "check" },
+      h("input", { type: "checkbox", checked: ha[key], onchange: () => void save({ hiddenAlerts: { ...ha, [key]: !ha[key] } }) }),
+      text,
+    );
+  const warning = hiddenWarning(ha);
+  return h(
+    "fieldset",
+    { class: "alert hidden-alerts" },
+    h("legend", {}, "When your pet is hidden, it comes out for"),
+    box("alarms", "Alarms"),
+    box("timers", "Timers"),
+    box("todos", "To-do reminders"),
+    box("focus", "Focus sessions (when a focus or break ends)"),
+    warning ? h("p", { class: "warning" }, h("strong", {}, `❗ ${warning}`), " Show your pet, or tick them above, to get them again.") : null,
+    h("p", { class: "hint" }, "It comes out, rings, and goes back once you answer. Anything nobody answered waits until you show it."),
   );
 }
 

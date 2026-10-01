@@ -22,8 +22,12 @@ pub enum StoreError {
 
 pub type Result<T> = std::result::Result<T, StoreError>;
 
-/// Repeating alarms missed by more than this while the app was closed are skipped, not rung late.
-const MISSED_ALARM_GRACE_MS: Millis = 60 * 60 * 1000;
+/// Lateness that still counts as on time: the scheduler can run a little late (a busy
+/// machine, the first tick after waking). Anything later came due while ePet wasn't running.
+const LATE_TOLERANCE_MS: Millis = 60 * 1000;
+
+/// Timers are alarms whose label starts with this (see src/features/alarm/timers.ts).
+const TIMER_PREFIX: &str = "Timer: ";
 
 const MIGRATIONS: &[&str] = &[
     // v1
@@ -72,13 +76,24 @@ const MIGRATIONS: &[&str] = &[
     "ALTER TABLE alarms ADD COLUMN skipped_fire INTEGER;",
     // v8: repeating on chosen days (repeat = 'days'): the days as bits, Sunday = bit 0.
     "ALTER TABLE alarms ADD COLUMN repeat_days INTEGER NOT NULL DEFAULT 0;",
+    // v9: what came due while ePet wasn't running (it didn't ring), and what the hidden pet
+    // rang that nobody answered ("While I was hidden you missed…").
+    "ALTER TABLE alarms ADD COLUMN off_at INTEGER;
+     CREATE TABLE unseen (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       kind TEXT NOT NULL,
+       ref_id INTEGER NOT NULL,
+       title TEXT NOT NULL,
+       at INTEGER NOT NULL,
+       snoozes INTEGER NOT NULL DEFAULT 0,
+       recorded_at INTEGER NOT NULL);",
 ];
 
 /// The work period the tomato clock was last started in (or found running in).
 const AUTO_PERIOD_KEY: &str = "pomodoro_auto_period";
 
 const ALARM_COLUMNS: &str =
-    "id, label, next_fire, time_hm, repeat, enabled, snoozes, missed_at, rang_at, created_at, missed_seen_at, skipped_fire, repeat_days";
+    "id, label, next_fire, time_hm, repeat, enabled, snoozes, missed_at, rang_at, created_at, missed_seen_at, skipped_fire, repeat_days, off_at";
 
 pub struct Store {
     conn: Connection,
@@ -211,6 +226,7 @@ impl Store {
             missed_seen_at: r.get(10)?,
             skipped_fire: r.get(11)?,
             repeat_days: r.get(12)?,
+            off_at: r.get(13)?,
         })
     }
 
@@ -272,6 +288,7 @@ impl Store {
             missed_seen_at: None,
             skipped_fire: None,
             repeat_days,
+            off_at: None,
         })
     }
 
@@ -425,24 +442,34 @@ impl Store {
 
     // --- Due reminders --------------------------------------------------------
 
-    /// Returns everything that should ring now and marks it handled
-    /// (to-dos are notified once; alarms are rescheduled or disabled).
+    /// Returns everything that should ring now and marks it handled (to-dos are notified
+    /// once; alarms are rescheduled or disabled).
+    ///
+    /// What came due while ePet wasn't running doesn't ring late (docs/INTERACTIONS.md, "When
+    /// ePet wasn't running"), except an alarm that snoozes itself: it still rings within its
+    /// snooze time (snooze length × automatic snoozes, 5 × 3 = 15 min by default), with the
+    /// snoozes that time would have used already counted.
     pub fn take_due<Tz: TimeZone>(&self, tz: &Tz, now: Millis) -> Result<Vec<Reminder>> {
         let mut out = vec![];
+        let mut todos: Vec<(i64, String, Millis)> = vec![];
         {
             let mut stmt = self.conn.prepare(
-                "SELECT id, title FROM todos WHERE done = 0 AND due_at IS NOT NULL AND due_at <= ?1 AND notified_at IS NULL",
+                "SELECT id, title, due_at FROM todos WHERE done = 0 AND due_at IS NOT NULL AND due_at <= ?1 AND notified_at IS NULL",
             )?;
-            let rows = stmt.query_map([now], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))?;
+            let rows = stmt.query_map([now], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?;
             for row in rows {
-                let (id, title) = row?;
-                out.push(Reminder { kind: ReminderKind::Todo, id, title });
+                todos.push(row?);
             }
         }
-        for r in &out {
-            self.conn.execute("UPDATE todos SET notified_at = ?2 WHERE id = ?1", params![r.id, now])?;
+        for (id, title, due) in todos {
+            // Late (ePet wasn't running): no ring; the to-do shows as overdue.
+            if now - due <= LATE_TOLERANCE_MS {
+                out.push(Reminder { kind: ReminderKind::Todo, id, title, peek: false });
+            }
+            self.conn.execute("UPDATE todos SET notified_at = ?2 WHERE id = ?1", params![id, now])?;
         }
 
+        let (snooze_ms, auto_snoozes) = self.snooze_rules()?;
         let due: Vec<Alarm> =
             self.list_alarms()?.into_iter().filter(|a| a.enabled && a.next_fire.is_some_and(|n| n <= now)).collect();
         for a in due {
@@ -451,26 +478,105 @@ impl Store {
                 Repeat::None => None,
                 _ => next_occurrence(tz, now, t, a.days()),
             });
-            let stale = next.is_some() && now - fire_at > MISSED_ALARM_GRACE_MS;
-            if !stale {
-                out.push(Reminder { kind: ReminderKind::Alarm, id: a.id, title: a.label.clone() });
+            // The ringing cycle began at its first ring; a snoozed ring keeps that time.
+            let cycle_start = if a.snoozes > 0 { a.rang_at.unwrap_or(fire_at) } else { fire_at };
+            let snoozes_itself = !a.label.starts_with(TIMER_PREFIX) && auto_snoozes > 0 && snooze_ms > 0;
+            let on_time = now - fire_at <= LATE_TOLERANCE_MS;
+            let within_snoozes = snoozes_itself && now - cycle_start <= snooze_ms * auto_snoozes as Millis;
+            if on_time || within_snoozes {
+                // Rung late within its snooze time: the snoozes that time used are counted, so
+                // it gives up when it would have anyway (9:00 rung at 9:12 → 2 used, 1 left).
+                let snoozes = if on_time {
+                    a.snoozes
+                } else {
+                    (((now - cycle_start) / snooze_ms) as u32).min(auto_snoozes).max(a.snoozes)
+                };
+                out.push(Reminder { kind: ReminderKind::Alarm, id: a.id, title: a.label.clone(), peek: false });
+                // Rung alarms and timers stay (disabled) so the user can still snooze them, and
+                // finished ones stay in the history until the daily clean-up.
+                // `rang_at` is when this ringing cycle began, so "Alarm 9:40 PM" stays 9:40
+                // however often it was snoozed. A new cycle (no snoozes before) also forgets the
+                // previous cycle's missed state. A ring means any skipped one is behind it.
+                self.conn.execute(
+                    "UPDATE alarms SET next_fire = ?2, enabled = ?3, skipped_fire = NULL, off_at = NULL,
+                       rang_at = ?4, snoozes = ?5,
+                       missed_at = CASE WHEN snoozes = 0 THEN NULL ELSE missed_at END,
+                       missed_seen_at = CASE WHEN snoozes = 0 THEN NULL ELSE missed_seen_at END
+                     WHERE id = ?1",
+                    params![a.id, next, next.is_some(), cycle_start, snoozes],
+                )?;
+            } else if next.is_some() {
+                // Came due while ePet wasn't running: a repeating alarm just waits for its next day.
+                self.conn.execute(
+                    "UPDATE alarms SET next_fire = ?2, enabled = 1, skipped_fire = NULL, snoozes = 0 WHERE id = ?1",
+                    params![a.id, next],
+                )?;
+            } else {
+                // A one-off alarm or a timer: finished without ringing ("ePet wasn't running"),
+                // not missed.
+                self.conn.execute(
+                    "UPDATE alarms SET next_fire = NULL, enabled = 0, skipped_fire = NULL, off_at = ?2 WHERE id = ?1",
+                    params![a.id, cycle_start],
+                )?;
             }
-            // Rung alarms and timers stay (disabled) so the user can still snooze them, and
-            // finished ones stay in the history until the daily clean-up.
-            // `rang_at` is when this ringing cycle began: a ring after a snooze keeps it, so
-            // "Alarm 9:40 PM" stays 9:40 however often it was snoozed. A new cycle (no
-            // snoozes yet) also forgets the previous cycle's missed state.
-            // A ring means any skipped one is behind it.
-            self.conn.execute(
-                "UPDATE alarms SET next_fire = ?2, enabled = ?3, skipped_fire = NULL,
-                   rang_at = CASE WHEN snoozes = 0 THEN ?4 ELSE COALESCE(rang_at, ?4) END,
-                   missed_at = CASE WHEN snoozes = 0 THEN NULL ELSE missed_at END,
-                   missed_seen_at = CASE WHEN snoozes = 0 THEN NULL ELSE missed_seen_at END
-                 WHERE id = ?1",
-                params![a.id, next, next.is_some(), fire_at],
-            )?;
         }
         Ok(out)
+    }
+
+    /// Snooze length (ms) and automatic snoozes for alarms (Settings → Alerts; 5 min × 3).
+    fn snooze_rules(&self) -> Result<(Millis, u32)> {
+        let settings = self.settings()?;
+        let alarm = settings.get("alerts").and_then(|a| a.get("alarm"));
+        let minutes = alarm.and_then(|a| a.get("snoozeMinutes")).and_then(Value::as_f64).unwrap_or(5.0);
+        let max = alarm.and_then(|a| a.get("autoSnoozeMax")).and_then(Value::as_u64).unwrap_or(3);
+        Ok(((minutes * 60_000.0) as Millis, max as u32))
+    }
+
+    // --- What the hidden pet couldn't tell you ----------------------------------
+
+    /// Something the hidden pet rang that nobody answered. Shown when the pet is shown again.
+    pub fn record_unseen(&self, u: &NewUnseen, now: Millis) -> Result<()> {
+        // Once per thing (an alarm's cycle, a timer, a to-do's reminder).
+        let exists: bool = self.conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM unseen WHERE kind = ?1 AND ref_id = ?2 AND at = ?3)",
+            params![u.kind.as_str(), u.ref_id, u.at],
+            |r| r.get(0),
+        )?;
+        if !exists {
+            self.conn.execute(
+                "INSERT INTO unseen (kind, ref_id, title, at, snoozes, recorded_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![u.kind.as_str(), u.ref_id, u.title, u.at, u.snoozes, now],
+            )?;
+        }
+        Ok(())
+    }
+
+    /// Oldest first.
+    pub fn list_unseen(&self) -> Result<Vec<Unseen>> {
+        let mut stmt = self.conn.prepare("SELECT id, kind, ref_id, title, at, snoozes FROM unseen ORDER BY at, id")?;
+        let rows = stmt.query_map([], |r| {
+            Ok(Unseen {
+                id: r.get(0)?,
+                kind: UnseenKind::parse(&r.get::<_, String>(1)?),
+                ref_id: r.get(2)?,
+                title: r.get(3)?,
+                at: r.get(4)?,
+                snoozes: r.get(5)?,
+            })
+        })?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
+    /// "Done" on the list: it's seen. Missed alarms in it count as seen too (their badge goes;
+    /// the history still says Missed).
+    pub fn clear_unseen(&self, now: Millis) -> Result<()> {
+        for u in self.list_unseen()? {
+            if u.kind == UnseenKind::Alarm {
+                self.acknowledge_missed(u.ref_id, now)?;
+            }
+        }
+        self.conn.execute("DELETE FROM unseen", [])?;
+        Ok(())
     }
 
     // --- Tomato clock ---------------------------------------------------------
@@ -608,7 +714,7 @@ mod tests {
         assert_eq!(t.title, "call mom");
         assert!(s.take_due(&London, at(14, 59)).unwrap().is_empty());
         let due = s.take_due(&London, at(15, 0)).unwrap();
-        assert_eq!(due, vec![Reminder { kind: ReminderKind::Todo, id: t.id, title: "call mom".into() }]);
+        assert_eq!(due, vec![Reminder { kind: ReminderKind::Todo, id: t.id, title: "call mom".into(), peek: false }]);
         assert!(s.take_due(&London, at(15, 1)).unwrap().is_empty());
 
         s.update_todo(t.id, &TodoPatch { due_at: Some(Some(at(15, 10))), ..Default::default() }, at(15, 5)).unwrap();
@@ -980,6 +1086,90 @@ mod tests {
         assert_eq!(s.list_alarms().unwrap()[0].next_fire, Some(mon + 2 * DAY));
         // No days: refused.
         assert!(s.add_alarm(&London, "None", at(7, 0), Repeat::Days, 0, at(6, 0)).is_err());
+    }
+
+    #[test]
+    fn nothing_rings_or_counts_as_missed_for_the_time_epet_was_off() {
+        // Off at 8:30, a daily 9:00 alarm, back on at 10:00 the next day.
+        let s = Store::open_in_memory().unwrap();
+        let a = s.add_alarm(&London, "Wake up", at(9, 0), Repeat::Daily, 0, at(8, 0)).unwrap();
+        assert!(s.take_due(&London, at(10, 0) + DAY).unwrap().is_empty());
+        let after = s.list_alarms().unwrap().into_iter().find(|x| x.id == a.id).unwrap();
+        assert_eq!((after.next_fire, after.missed_at, after.snoozes), (Some(at(9, 0) + 2 * DAY), None, 0));
+        // A one-off and a timer finish without ringing, marked as "ePet wasn't running".
+        let once = s.add_alarm(&London, "Once", at(9, 0), Repeat::None, 0, at(8, 0)).unwrap();
+        let timer = s.add_alarm(&London, "Timer: 5 min", at(9, 5), Repeat::None, 0, at(9, 0)).unwrap();
+        assert!(s.take_due(&London, at(12, 0)).unwrap().is_empty());
+        for id in [once.id, timer.id] {
+            let x = s.list_alarms().unwrap().into_iter().find(|x| x.id == id).unwrap();
+            assert_eq!((x.enabled, x.next_fire, x.missed_at, x.rang_at), (false, None, None, None));
+            assert!(x.off_at.is_some());
+        }
+    }
+
+    #[test]
+    fn an_alarm_that_snoozes_itself_still_rings_within_its_snooze_time() {
+        // 5 min × 3 by default: 9:00 rung at 9:12 has used 2 snoozes; at 9:16 it doesn't ring.
+        let s = Store::open_in_memory().unwrap();
+        let a = s.add_alarm(&London, "Alarm", at(9, 0), Repeat::None, 0, at(8, 0)).unwrap();
+        let rung = s.take_due(&London, at(9, 12)).unwrap();
+        assert_eq!(rung.iter().map(|r| r.id).collect::<Vec<_>>(), vec![a.id]);
+        let x = s.list_alarms().unwrap()[0].clone();
+        assert_eq!((x.snoozes, x.rang_at), (2, Some(at(9, 0))));
+
+        let b = s.add_alarm(&London, "Alarm", at(9, 0) + DAY, Repeat::None, 0, at(8, 0)).unwrap();
+        assert!(s.take_due(&London, at(9, 16) + DAY).unwrap().is_empty());
+        let y = s.list_alarms().unwrap().into_iter().find(|x| x.id == b.id).unwrap();
+        assert_eq!((y.off_at, y.missed_at), (Some(at(9, 0) + DAY), None));
+    }
+
+    #[test]
+    fn the_snooze_time_follows_the_settings() {
+        let s = Store::open_in_memory().unwrap();
+        s.set_settings(&serde_json::json!({"alerts": {"alarm": {"snoozeMinutes": 10, "autoSnoozeMax": 3}}})).unwrap();
+        s.add_alarm(&London, "Alarm", at(9, 0), Repeat::None, 0, at(8, 0)).unwrap();
+        assert_eq!(s.take_due(&London, at(9, 25)).unwrap().len(), 1);
+        assert_eq!(s.list_alarms().unwrap()[0].snoozes, 2);
+        // "Stop and mark as missed": no snooze time, so late is late.
+        s.set_settings(&serde_json::json!({"alerts": {"alarm": {"snoozeMinutes": 5, "autoSnoozeMax": 0}}})).unwrap();
+        s.add_alarm(&London, "Alarm", at(9, 0) + DAY, Repeat::None, 0, at(8, 0)).unwrap();
+        assert!(s.take_due(&London, at(9, 2) + DAY).unwrap().is_empty());
+    }
+
+    #[test]
+    fn timers_and_to_dos_have_no_grace_but_a_late_scheduler_tick_is_fine() {
+        let s = Store::open_in_memory().unwrap();
+        s.add_alarm(&London, "Timer: 1 min", at(9, 1), Repeat::None, 0, at(9, 0)).unwrap();
+        let todo = s.add_todo("Call mom", Some(at(9, 1)), at(9, 0)).unwrap();
+        // 50 s late: still on time.
+        assert_eq!(s.take_due(&London, at(9, 1) + 50_000).unwrap().len(), 2);
+        s.add_alarm(&London, "Timer: 1 min", at(10, 1), Repeat::None, 0, at(10, 0)).unwrap();
+        s.update_todo(todo.id, &TodoPatch { due_at: Some(Some(at(10, 1))), ..Default::default() }, at(10, 0)).unwrap();
+        // 2 min late: neither rings; the to-do keeps its time (it shows as overdue).
+        assert!(s.take_due(&London, at(10, 3)).unwrap().is_empty());
+        let t = s.list_todos().unwrap()[0].clone();
+        assert_eq!((t.done, t.due_at), (false, Some(at(10, 1))));
+    }
+
+    #[test]
+    fn what_the_hidden_pet_rang_unanswered_waits_until_done() {
+        let s = Store::open_in_memory().unwrap();
+        let a = s.add_alarm(&London, "Alarm", at(9, 0), Repeat::None, 0, at(8, 0)).unwrap();
+        s.take_due(&London, at(9, 0)).unwrap();
+        s.mark_alarm_missed(a.id, at(9, 16)).unwrap();
+        let alarm =
+            NewUnseen { kind: UnseenKind::Alarm, ref_id: a.id, title: "Alarm".into(), at: at(9, 0), snoozes: 3 };
+        let todo = NewUnseen { kind: UnseenKind::Todo, ref_id: 7, title: "Call mom".into(), at: at(8, 30), snoozes: 0 };
+        s.record_unseen(&alarm, at(9, 16)).unwrap();
+        s.record_unseen(&alarm, at(9, 17)).unwrap(); // once
+        s.record_unseen(&todo, at(8, 31)).unwrap();
+        let list = s.list_unseen().unwrap();
+        assert_eq!(list.iter().map(|u| u.title.as_str()).collect::<Vec<_>>(), vec!["Call mom", "Alarm"]);
+        // Done: the list goes; the missed alarm is seen but still missed.
+        s.clear_unseen(at(12, 0)).unwrap();
+        assert!(s.list_unseen().unwrap().is_empty());
+        let x = s.list_alarms().unwrap()[0].clone();
+        assert_eq!((x.missed_at, x.missed_seen_at), (Some(at(9, 16)), Some(at(12, 0))));
     }
 
     #[test]

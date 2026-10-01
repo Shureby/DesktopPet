@@ -457,13 +457,13 @@
         },
         {
           "id": "alarm.missed",
-          "rev": "0.15.0",
+          "rev": "0.22.0",
           "do": "第 3 次贪睡后仍不理会",
-          "expect": "系统通知写 “Alarm 9:40 PM”；橙色 “⏰ Missed 9:40 PM” 角标（闹钟本来的时间，不是最后放弃的时间），完整显示不被截断，点击才消失"
+          "expect": "不再有系统通知；橙色 “⏰ Missed 9:40 PM” 角标（闹钟本来的时间，不是最后放弃的时间），完整显示不被截断，点击才消失"
         },
         {
           "id": "alarm.welcome-back",
-          "rev": "0.15.0",
+          "rev": "0.22.0",
           "do": "之后第一次把鼠标移到宠物上，并马上点一下宠物",
           "expect": "宠物说 “You missed Alarm 9:40 PM (I tried 3 more times)…”，只说一次；点击不会把这句换成闲聊或抚摸台词（爱心照常增加）"
         },
@@ -490,6 +490,36 @@
           "rev": "0.4.0",
           "do": "跨天后（或改系统日期）打开面板",
           "expect": "前一天已结束的项目被自动清理"
+        },
+        {
+          "id": "hidden.peek-alarm",
+          "rev": "0.22.0",
+          "do": "隐藏宠物（托盘 Hide pet），设一个 2 分钟后的闹钟；到点后点 Done；再设一个，到点后点 Snooze；再设一个，到点时在托盘点 Show pet",
+          "expect": "到点时宠物从最近的屏幕边缘出来，走到屏幕中央响铃，托盘仍写 Show pet；不再弹出系统通知；Done 或 Snooze 后宠物走回边缘隐藏；Snooze 后下次响铃时又出来；响铃时点 Show pet，宠物留在外面不再隐藏"
+        },
+        {
+          "id": "hidden.peek-timer-todo",
+          "rev": "0.22.0",
+          "do": "隐藏宠物，设一个 1 分钟计时器和一个 2 分钟后提醒的待办，都不理；然后打开 Focus sessions 勾选，开始一个 1 分钟的专注（Focus 设为 1 分钟）",
+          "expect": "计时器和待办到点时宠物都会出来响铃，没人理后走回边缘隐藏；勾了 Focus sessions 时，专注结束宠物出来说一句话，几秒后回去；没勾时不出来"
+        },
+        {
+          "id": "hidden.unseen-list",
+          "rev": "0.22.0",
+          "do": "接上一项（或隐藏时让一个闹钟贪睡 3 次后被标记为错过），然后点 Show pet；先不点 Done，摸摸宠物、悬停；退出 ePet 再打开；最后点 Done",
+          "expect": "宠物出来后气泡写 “While I was hidden you missed:”，每条带日期（Today/Yesterday/具体日期）和类型图标，按时间先后，超过 5 条显示 “…and N more”；摸宠物或闲聊不会把它替换掉；重启后仍然出现；点 Done 后清单和 ⏰ Missed 角标消失（Finished 里仍写 Missed）；待办仍在列表里显示红色 Overdue"
+        },
+        {
+          "id": "hidden.settings-warning",
+          "rev": "0.22.0",
+          "do": "Settings → Alerts 找到 “When your pet is hidden, it comes out for”，逐个取消 Alarms、Timers、To-do reminders，再勾回来；取消 Timers 后隐藏宠物，让一个计时器到点",
+          "expect": "默认 Alarms、Timers、To-do reminders 勾选，Focus sessions 不勾；取消任一前三项时出现红色 ❗ “While your pet is hidden, … will not alert you.”，写出具体是哪几项，全部勾回后消失；取消 Timers 时计时器到点宠物不出来，也没有声音，显示宠物时出现在 “While I was hidden you missed” 清单里"
+        },
+        {
+          "id": "alarm.off-while-shut",
+          "rev": "0.22.0",
+          "do": "设一个 3 分钟后的一次性闹钟、一个 3 分钟后的计时器、一个 3 分钟后提醒的待办，然后退出 ePet，等 10 分钟后再打开；另设一个 2 分钟后的闹钟（贪睡 5 分钟 × 3 次），退出后等约 12 分钟再打开",
+          "expect": "第一组都不响：闹钟和计时器在 Finished 里写 “Didn't ring · … · ePet wasn't running”，没有 Missed 角标，也不在 “While I was hidden” 清单里；待办显示红色 “Overdue · …”；第二个闹钟打开后立刻补响，气泡写 “Snoozed 2× · first rang …”，不理的话再贪睡一次后被标记为错过；如果超过 15 分钟才打开则不响"
         }
       ]
     },

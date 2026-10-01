@@ -16,6 +16,28 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-10-01
+
+### Added
+- **The hidden pet comes out for reminders.** It steps in from the screen edge, rings in
+  the middle, and goes back once you answer.
+  - Settings → Alerts → "When your pet is hidden, it comes out for": Alarms, Timers and
+    To-do reminders (on), Focus sessions (off).
+  - Anything unticked shows a red warning.
+- **"While I was hidden you missed:"** Showing the pet lists what nobody answered while it
+  was hidden, each with its date, until you press Done. It is kept across restarts.
+- **Overdue to-dos** are marked in red.
+
+### Changed
+- **What came due while ePet wasn't running isn't missed, and doesn't ring late.**
+  - One-off alarms and timers say "Didn't ring · ePet wasn't running".
+  - An alarm that snoozes itself still rings within its snooze time (5 min × 3 by default),
+    with the snoozes already used counted.
+
+### Removed
+- **System notifications** (they said "ePet / Alarm / Alarm" and did nothing), and the
+  notification plugin with them.
+
 ## [0.21.0] - 2026-09-30
 
 ### Added

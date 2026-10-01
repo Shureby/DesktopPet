@@ -1,6 +1,6 @@
 import { alarmTime, clock } from "../features/alarm/ringing";
 import { isTimer, timerStartedAt } from "../features/alarm/timers";
-import { EVERY_DAY, repeatMask, WEEKDAYS, type Alarm, type DayMask, type Repeat } from "../platform/types";
+import { EVERY_DAY, repeatMask, WEEKDAYS, type Alarm, type DayMask, type HiddenAlerts, type Repeat } from "../platform/types";
 import { formatWhen } from "./dom";
 
 /** The time the alarm is set for, shown big like a phone clock app (the same through snoozes). */
@@ -11,7 +11,7 @@ export function bigTime(a: Alarm): string {
 
 /** When a finished item happened, for sorting: its own time, not a later snoozed ring. */
 export function finishedAt(a: Alarm): number | null {
-  return isTimer(a) ? (a.rangAt ?? a.missedAt) : (alarmTime(a) ?? a.missedAt);
+  return isTimer(a) ? (a.rangAt ?? a.offAt ?? a.missedAt) : (alarmTime(a) ?? a.missedAt);
 }
 
 /** "Started 4:29 PM · rings at 4:41 PM", so identical timers can be told apart. */
@@ -27,6 +27,8 @@ export function timerTimes(a: Alarm): string {
  * "Rang · Yesterday 7:30 AM". Always the item's own time, not a later snoozed ring.
  */
 export function finishedStatus(a: Alarm, now = Date.now()): string {
+  // Due while ePet wasn't running: it didn't ring, and that isn't missing it.
+  if (a.offAt && a.rangAt === null) return `Didn't ring · ${formatWhen(a.offAt, now)} · ePet wasn't running`;
   const at = isTimer(a) ? a.rangAt : alarmTime(a, now);
   const word = a.missedAt ? "Missed" : isTimer(a) ? "Done" : "Rang";
   const parts = [word];
@@ -98,4 +100,17 @@ export function repeatFor(choice: RepeatChoice, days: DayMask): { repeat: Repeat
   if (choice === "weekends") return { repeat: "days", days: WEEKENDS };
   if (choice === "days") return { repeat: "days", days };
   return { repeat: choice, days: 0 };
+}
+
+/**
+ * The red warning under "When your pet is hidden, it comes out for…" when alarms, timers or
+ * to-do reminders are unticked: they can't reach you while the pet is hidden.
+ */
+export function hiddenWarning(h: HiddenAlerts): string | null {
+  const off = [h.alarms ? null : "alarms", h.timers ? null : "timers", h.todos ? null : "to-do reminders"].filter(
+    (x): x is string => x !== null,
+  );
+  if (!off.length) return null;
+  const list = off.length === 1 ? off[0] : `${off.slice(0, -1).join(", ")} and ${off[off.length - 1]}`;
+  return `While your pet is hidden, ${list} will not alert you.`;
 }

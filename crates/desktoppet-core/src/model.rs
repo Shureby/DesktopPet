@@ -102,6 +102,9 @@ pub struct Alarm {
     pub skipped_fire: Option<Millis>,
     /// The days a `Repeat::Days` alarm rings on (0 otherwise).
     pub repeat_days: DayMask,
+    /// It came due while ePet wasn't running and didn't ring (one-offs and timers; the time it
+    /// was due). Not missed: there was no one to ring for.
+    pub off_at: Option<Millis>,
 }
 
 impl Alarm {
@@ -204,6 +207,9 @@ pub struct Reminder {
     pub kind: ReminderKind,
     pub id: i64,
     pub title: String,
+    /// The pet is hidden and comes out just for this (set by the app's scheduler).
+    #[serde(default)]
+    pub peek: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -211,4 +217,57 @@ pub struct Reminder {
 pub enum ReminderKind {
     Todo,
     Alarm,
+}
+
+/// What the hidden pet rang that nobody answered.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum UnseenKind {
+    Alarm,
+    Timer,
+    Todo,
+}
+
+impl UnseenKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            UnseenKind::Alarm => "alarm",
+            UnseenKind::Timer => "timer",
+            UnseenKind::Todo => "todo",
+        }
+    }
+
+    pub fn parse(s: &str) -> UnseenKind {
+        match s {
+            "alarm" => UnseenKind::Alarm,
+            "timer" => UnseenKind::Timer,
+            _ => UnseenKind::Todo,
+        }
+    }
+}
+
+/// "While I was hidden you missed…": one line of it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Unseen {
+    pub id: i64,
+    pub kind: UnseenKind,
+    /// The alarm, timer or to-do.
+    pub ref_id: i64,
+    pub title: String,
+    /// When it was due (an alarm's own time, a timer's end, a to-do's reminder time).
+    pub at: Millis,
+    pub snoozes: u32,
+}
+
+/// What the pet records (see `Store::record_unseen`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NewUnseen {
+    pub kind: UnseenKind,
+    pub ref_id: i64,
+    pub title: String,
+    pub at: Millis,
+    #[serde(default)]
+    pub snoozes: u32,
 }

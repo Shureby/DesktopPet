@@ -1,4 +1,5 @@
-import type { Alarm, AlertSettings } from "../../platform/types";
+import type { Alarm, AlertSettings, Unseen } from "../../platform/types";
+import { formatWhen } from "../../panel/dom";
 import { isTimer, timerName, timerStartedAt } from "./timers";
 
 /**
@@ -107,7 +108,8 @@ export function alarmTime(a: Alarm, now = Date.now()): number | null {
     return d.getTime();
   }
   const rung = a.rangAt !== null && (a.snoozes > 0 || a.nextFire === null || a.missedAt !== null);
-  return rung ? a.rangAt : (a.nextFire ?? a.rangAt);
+  // Due while ePet wasn't running: it never rang, offAt is its time.
+  return rung ? a.rangAt : (a.nextFire ?? a.rangAt ?? a.offAt ?? null);
 }
 
 /** "Alarm 9:40 PM" for unnamed alarms, otherwise the user's own label ("Login CMC"). */
@@ -141,4 +143,19 @@ export function alarmBadgeLine(a: Alarm & { nextFire: number }): string {
   const at = clock(a.nextFire);
   if (a.snoozes > 0) return `${name} · 💤×${a.snoozes} · next ${at}`;
   return name.endsWith(at) ? name : `${name} · ${at}`;
+}
+
+const UNSEEN_ICON: Record<Unseen["kind"], string> = { alarm: "⏰", timer: "⏱", todo: "📝" };
+
+/**
+ * "While I was hidden you missed:" and one line per item, oldest first, each with its own
+ * date ("Fri, Sep 26 8:55 PM"): the list may wait days for the pet to be shown.
+ */
+export function unseenLines(list: Unseen[], now = Date.now(), max = 5): string[] {
+  const sorted = [...list].sort((a, b) => a.at - b.at || a.id - b.id);
+  const lines = sorted
+    .slice(0, max)
+    .map((u) => `• ${UNSEEN_ICON[u.kind]} ${u.title} · ${formatWhen(u.at, now)}${u.snoozes ? ` (snoozed ${u.snoozes}×)` : ""}`);
+  if (sorted.length > max) lines.push(`…and ${sorted.length - max} more`);
+  return ["While I was hidden you missed:", ...lines];
 }

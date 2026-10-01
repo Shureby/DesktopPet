@@ -10,6 +10,7 @@ import {
   type BackendEvents,
   type DayStat,
   type PomodoroStatus,
+  type Unseen,
   type Score,
   type Settings,
   type Todo,
@@ -31,6 +32,21 @@ interface MockState {
   nextId: number;
   /** The work period the tomato clock was last started in (or found running in). */
   autoPeriod?: number;
+  /** "While I was hidden you missed…" (the unseen table in the Rust store). */
+  unseen?: Unseen[];
+  /** To-dos whose reminder was given (the Rust store's notified_at). */
+  notified?: number[];
+}
+
+/** Like the app's AppState: the user hid the pet (it may still come out for a reminder). */
+let petHidden = false;
+/** Like the Rust store's take_due (LATE_TOLERANCE_MS). */
+const LATE_TOLERANCE = 60_000;
+
+/** Whether the hidden pet comes out for this (Settings → Alerts). */
+function comesOut(s: MockState, kind: "todo" | "alarm", title: string): boolean {
+  const h = s.settings.hiddenAlerts;
+  return kind === "todo" ? h.todos : title.startsWith("Timer: ") ? h.timers : h.alarms;
 }
 
 const KEY = "desktoppet-mock";
@@ -121,27 +137,48 @@ export function startMockScheduler(): () => void {
     const now = Date.now();
     const events: [keyof BackendEvents, unknown][] = [];
     mutate((s) => {
+      // The same rules as take_due in the Rust store: what came due while ePet wasn't running
+      // doesn't ring late, except an alarm still within its snooze time.
+      const ring = (kind: "todo" | "alarm", id: number, title: string) => {
+        const peek = petHidden && comesOut(s, kind, title);
+        events.push(["reminder", { kind, id, title, peek }]);
+      };
+      s.notified ??= [];
       for (const t of s.todos) {
-        if (!t.done && t.dueAt !== null && t.dueAt <= now) {
-          events.push(["reminder", { kind: "todo", id: t.id, title: t.title }]);
-          t.dueAt = null;
+        if (!t.done && t.dueAt !== null && t.dueAt <= now && !s.notified.includes(t.id)) {
+          if (now - t.dueAt <= LATE_TOLERANCE) ring("todo", t.id, t.title);
+          s.notified.push(t.id);
         }
       }
+      const alert = s.settings.alerts.alarm;
+      const snoozeMs = alert.snoozeMinutes * 60_000;
       for (const a of s.alarms) {
         if (a.enabled && a.nextFire !== null && a.nextFire <= now) {
-          events.push(["reminder", { kind: "alarm", id: a.id, title: a.label }]);
-          // Same rules as the Rust store: a snoozed ring keeps the cycle's first ring time,
-          // and a new cycle forgets the previous one's missed state.
+          const fireAt = a.nextFire;
+          const cycleStart = a.snoozes > 0 ? (a.rangAt ?? fireAt) : fireAt;
+          const snoozesItself = !a.label.startsWith("Timer: ") && alert.autoSnoozeMax > 0 && snoozeMs > 0;
+          const onTime = now - fireAt <= LATE_TOLERANCE;
+          const next = a.repeat !== "none" && a.timeHm ? nextOccurrence(a.timeHm, daysOf(a), now) : null;
           a.skippedFire = null;
-          if (a.snoozes === 0) {
-            a.rangAt = a.nextFire;
-            a.missedAt = null;
-            a.missedSeenAt = null;
-          } else a.rangAt ??= a.nextFire;
-          if (a.repeat !== "none" && a.timeHm) a.nextFire = nextOccurrence(a.timeHm, daysOf(a), now);
-          else {
+          if (onTime || (snoozesItself && now - cycleStart <= snoozeMs * alert.autoSnoozeMax)) {
+            ring("alarm", a.id, a.label);
+            if (a.snoozes === 0) {
+              a.missedAt = null;
+              a.missedSeenAt = null;
+            }
+            if (!onTime) a.snoozes = Math.max(a.snoozes, Math.min(alert.autoSnoozeMax, Math.floor((now - cycleStart) / snoozeMs)));
+            a.rangAt = cycleStart;
+            a.offAt = null;
+            a.nextFire = next;
+            a.enabled = next !== null;
+          } else if (next !== null) {
+            a.nextFire = next;
+            a.snoozes = 0;
+          } else {
+            // Finished without ringing: "ePet wasn't running".
             a.nextFire = null;
             a.enabled = false;
+            a.offAt = cycleStart;
           }
         }
       }
@@ -156,6 +193,7 @@ export function startMockScheduler(): () => void {
       if (next) {
         setPomodoro(s, next, now);
         events.push(["pomodoro", next]);
+        if (petHidden && s.settings.hiddenAlerts.focus) events.push(["pet-peek", "focus"]);
       }
     });
     for (const [e, p] of events) fire(e, p as never);
@@ -195,6 +233,8 @@ export const mockBackend: Backend = {
       const t = s.todos.find((x) => x.id === id);
       if (!t) return;
       if (patch.done !== undefined && patch.done !== t.done) t.doneAt = patch.done ? Date.now() : null;
+      // A new reminder time is reminded again.
+      if (patch.dueAt !== undefined) s.notified = (s.notified ?? []).filter((n) => n !== id);
       Object.assign(t, patch);
     });
     fire("todos-changed", null);
@@ -293,6 +333,29 @@ export const mockBackend: Backend = {
     });
     fire("alarms-changed", null);
   },
+  async recordUnseen(item) {
+    mutate((s) => {
+      s.unseen ??= [];
+      if (!s.unseen.some((u) => u.kind === item.kind && u.refId === item.refId && u.at === item.at)) {
+        s.unseen.push({ ...item, id: s.nextId++ });
+      }
+    });
+  },
+  async listUnseen() {
+    return [...(load().unseen ?? [])].sort((a, b) => a.at - b.at || a.id - b.id);
+  },
+  async clearUnseen() {
+    mutate((s) => {
+      const now = Date.now();
+      for (const u of s.unseen ?? []) {
+        const a = u.kind === "alarm" ? s.alarms.find((x) => x.id === u.refId) : undefined;
+        if (a?.missedAt) a.missedSeenAt ??= now;
+      }
+      s.unseen = [];
+    });
+    fire("alarms-changed", null);
+  },
+  async endPeek() {},
   async markAlarmMissed(id) {
     mutate((s) => {
       const a = s.alarms.find((x) => x.id === id);
@@ -439,6 +502,7 @@ export const mockBackend: Backend = {
     window.close();
   },
   async setPetVisible(visible) {
+    petHidden = !visible;
     fire("pet-visibility", visible);
   },
   async setAutostart() {},
