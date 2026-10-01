@@ -88,7 +88,7 @@ Code: `src/pet/menu.ts`. Tests: `pet/menu.test.ts`.
 Code: `src/features/alarm/ringing.ts`, the scheduler in `src-tauri/src/scheduler.rs`.
 
 - **An alarm rings for "Ring for" (60 s by default), then snoozes itself** for 5 min, up
-  to 3 times (both in Settings → Alerts). After that it is marked **missed**:
+  to 3 times (both in Settings → Alarms & timers). After that it is marked **missed**:
   - an orange "⏰ Missed 9:40 PM" badge that stays until clicked;
   - the pet mentions it once, the next time you hover or click it.
 - **Done on any ring ends the whole snooze cycle.**
@@ -144,8 +144,8 @@ Code: `peek` / `end_peek` in `src-tauri/src/app_windows.rs`, the scheduler
 - **There are no system notifications.** The pet announces everything itself. Before
   0.22.0 alarms also sent "ePet / Alarm / Alarm": it said nothing, did nothing when
   clicked, and repeated the bubble.
-- **Hidden, the pet comes out** for what Settings → Alerts → "When your pet is hidden, it
-  comes out for" ticks:
+- **Hidden, the pet comes out** for what Settings → Pet → "When hidden, it comes out for"
+  ticks:
   - Alarms, Timers and To-do reminders are on by default.
   - Focus sessions (a focus or break ending) is off by default: it happens a dozen times a
     day.
@@ -294,6 +294,20 @@ panel.
   - **While an alarm or timer rings,** the pet asks once the ring is over (like a to-do
     that comes due meanwhile).
 
+## The Focus and Settings tabs (since 0.22.1)
+
+- **Both are laid out to show as much as possible in the panel's default size.** Settings
+  are grouped in cards, and a hint is one short line under what it explains.
+- **Focus fits without scrolling:** the session (phase, countdown, Start or Skip/Stop) in
+  one card at the top; the last 7 days with totals ("12 sessions · 5 h 0 min"); the four
+  lengths in one row; the two options; work hours (days and times on one line).
+- **Settings is grouped by what it's about:**
+  - Pet: size, speed, Quiet hours, and "When hidden, it comes out for" (with its warning);
+  - Alarms & timers: ring (tone, preview, volume), Ring for / If nobody answers side by
+    side, coming to the middle, the 🔔 look-ahead;
+  - To-do reminders: ring, coming to the middle;
+  - General: start with the computer, other sounds.
+
 ## Showing when things happened (since 0.13.0)
 
 - **Anything finished says when,** so identical items can be told apart ("1 min timer"
@@ -310,8 +324,9 @@ panel.
 - **The badges show what happens within the next while** (since 0.17.0): running timers,
   the focus session, snoozed alarms and, with 🔔, alarms that ring within the next 60 min.
   - Before, an alarm had no badge until it snoozed, while timers always had one.
-  - Settings → Alerts → "Show upcoming alarms by the pet" turns 🔔 off. While on, "Within
-    N minutes" sets the look-ahead, 1–120. The field is hidden while it's off.
+  - Settings → Alarms & timers → "Show alarms due within N min by the pet" turns 🔔 off and
+    sets the look-ahead, 1–120 (the number is greyed out while it's off; since 0.22.1, one
+    line).
   - 🔔 shows the nearest alarm's clock time (not a countdown: it may be an hour away) and
     "+n" for the others, like ⏱.
   - **Snoozed and upcoming alarms share that one badge** (since 0.19.0), in ring order,

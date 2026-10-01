@@ -529,8 +529,8 @@ async function renderFocus(): Promise<Node> {
   const status = await backend.pomodoroStatus();
   const stats = await backend.pomodoroStats(7);
   const c = settings.pomodoro;
-  const clock = h("div", { class: "clock" });
-  const label = h("div", { class: "phase" });
+  const clock = h("div", { class: "now-clock" });
+  const label = h("div", { class: "now-phase" });
   const names = { idle: "Ready when you are", focus: "Focus", short_break: "Short break", long_break: "Long break" };
   const tickClock = () => {
     label.textContent = `${names[status.phase]}${status.phase !== "idle" ? ` · round ${status.round + (status.phase === "focus" ? 1 : 0)}/${c.roundsBeforeLong}` : ""}`;
@@ -540,30 +540,48 @@ async function renderFocus(): Promise<Node> {
   const id = setInterval(tickClock, 500);
   cleanup.push(() => clearInterval(id));
 
-  const num = (key: keyof typeof c, min: number, max: number) =>
-    h("input", {
-      type: "number",
-      min,
-      max,
-      value: c[key] as number,
-      onchange: (e: Event) => void save({ pomodoro: { ...settings.pomodoro, [key]: Number((e.target as HTMLInputElement).value) } }),
-    });
+  const num = (key: keyof typeof c, text: string, min: number, max: number) =>
+    h(
+      "label",
+      {},
+      text,
+      h("input", {
+        type: "number",
+        min,
+        max,
+        value: c[key] as number,
+        onchange: (e: Event) => void save({ pomodoro: { ...settings.pomodoro, [key]: Number((e.target as HTMLInputElement).value) } }),
+      }),
+    );
+  const check = (key: "autoContinue" | "holdGames", text: string) =>
+    h(
+      "label",
+      { class: "check" },
+      h("input", { type: "checkbox", checked: c[key], onchange: () => void save({ pomodoro: { ...settings.pomodoro, [key]: !c[key] } }) }),
+      text,
+    );
   const max = Math.max(1, ...stats.map((s) => s.completed));
+  const sessions = stats.reduce((n, s) => n + s.completed, 0);
+  const minutes = stats.reduce((n, s) => n + s.focusMinutes, 0);
 
+  // Compact, so the settings fit in the panel's default size without scrolling.
   return h(
     "section",
-    { class: "focus" },
-    h("div", { class: "tomato-big" }, status.phase.includes("break") ? "☕" : "🍅"),
-    label,
-    clock,
+    { class: "focus-page" },
     h(
       "div",
-      { class: "row center" },
-      ...(status.phase === "idle"
-        ? [h("button", { class: "primary", onclick: () => void backend.pomodoroStart() }, "Start focus")]
-        : [h("button", { onclick: () => void backend.pomodoroSkip() }, "Skip"), h("button", { onclick: () => void backend.pomodoroStop() }, "Stop")]),
+      { class: "box now" },
+      h("div", { class: "now-icon" }, status.phase.includes("break") ? "☕" : "🍅"),
+      h("div", {}, label, clock),
+      h(
+        "div",
+        { class: "now-buttons" },
+        ...(status.phase === "idle"
+          ? [h("button", { class: "primary", onclick: () => void backend.pomodoroStart() }, "Start focus")]
+          : [h("button", { onclick: () => void backend.pomodoroSkip() }, "Skip"), h("button", { onclick: () => void backend.pomodoroStop() }, "Stop")]),
+      ),
     ),
-    h("h3", {}, "Last 7 days"),
+    h("h3", { class: "split" }, "Last 7 days", h("small", {}, `${sessions} session${sessions === 1 ? "" : "s"} · ${formatHoursMinutes(minutes)}`)),
     h(
       "div",
       { class: "bars" },
@@ -579,26 +597,22 @@ async function renderFocus(): Promise<Node> {
     h("h3", {}, "Timing (minutes)"),
     h(
       "div",
-      { class: "grid2" },
-      h("label", {}, "Focus", num("focusMin", 1, 180)),
-      h("label", {}, "Short break", num("shortBreakMin", 1, 60)),
-      h("label", {}, "Long break", num("longBreakMin", 1, 90)),
-      h("label", {}, "Long break every", num("roundsBeforeLong", 1, 12)),
-      h(
-        "label",
-        { class: "check" },
-        h("input", { type: "checkbox", checked: c.autoContinue, onchange: () => void save({ pomodoro: { ...settings.pomodoro, autoContinue: !c.autoContinue } }) }),
-        "Start the next round automatically",
-      ),
-      h(
-        "label",
-        { class: "check" },
-        h("input", { type: "checkbox", checked: c.holdGames, onchange: () => void save({ pomodoro: { ...settings.pomodoro, holdGames: !c.holdGames } }) }),
-        "Ask before games during a focus session",
-      ),
+      { class: "timing" },
+      num("focusMin", "Focus", 1, 180),
+      num("shortBreakMin", "Short break", 1, 60),
+      num("longBreakMin", "Long break", 1, 90),
+      num("roundsBeforeLong", "Long every", 1, 12),
     ),
+    check("autoContinue", "Start the next round automatically"),
+    check("holdGames", "Ask before games during a focus session"),
     workHoursSection(),
   );
+}
+
+/** "5 h 0 min", "45 min". */
+function formatHoursMinutes(minutes: number): string {
+  const m = Math.round(minutes);
+  return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`;
 }
 
 /** Focus → Work hours: work days and times; hidden while off (docs/INTERACTIONS.md). */
@@ -612,30 +626,32 @@ function workHoursSection(): Node {
     { class: "work-hours" },
     h("h3", {}, "Work hours"),
     h(
-      "label",
-      { class: "check" },
-      h("input", { type: "checkbox", checked: w.enabled, onchange: () => void update({ enabled: !w.enabled }) }),
-      "Focus on work days: start by itself, and stop after work",
-    ),
-    w.enabled
-      ? h(
-          "div",
-          { class: "work-hours-body" },
-          dayPicker(w.days, (days) => later({ days })),
-          h(
+      "div",
+      { class: "box" },
+      h(
+        "label",
+        { class: "check" },
+        h("input", { type: "checkbox", checked: w.enabled, onchange: () => void update({ enabled: !w.enabled }) }),
+        "Focus on work days: start by itself, stop after work",
+      ),
+      w.enabled
+        ? h(
             "div",
-            { class: "row" },
-            timeField(w.start, (start) => later({ start }), "Work starts"),
-            "to",
-            timeField(w.end, (end) => later({ end }), "Work ends"),
-          ),
-          h(
-            "p",
-            { class: "hint" },
-            "Starts by itself when work starts (once a day: if you stop it, it stays stopped). No new focus begins after work ends. Started by hand outside work, it runs until the next end of work.",
-          ),
-        )
-      : null,
+            { class: "row spread" },
+            dayPicker(w.days, (days) => later({ days })),
+            h(
+              "span",
+              { class: "row" },
+              timeField(w.start, (start) => later({ start }), "Work starts"),
+              "–",
+              timeField(w.end, (end) => later({ end }), "Work ends"),
+            ),
+          )
+        : null,
+      w.enabled
+        ? h("p", { class: "hint" }, "Starts once a day when work starts (stopped by hand, it stays stopped). No new focus after work ends.")
+        : null,
+    ),
   );
 }
 
@@ -727,16 +743,16 @@ async function renderGames(): Promise<Node> {
 // --- Settings ---------------------------------------------------------------
 
 async function renderSettings(): Promise<Node> {
-  const slider = (key: "size" | "speed", min: number, max: number) => {
+  const slider = (key: "size" | "speed") => {
     const out = h("output", {}, `${settings[key].toFixed(2)}×`);
     return h(
       "label",
-      {},
-      key === "size" ? "Pet size" : "Pet speed",
+      { class: "row" },
+      h("span", { class: "label" }, key === "size" ? "Size" : "Speed"),
       h("input", {
         type: "range",
-        min,
-        max,
+        min: 0.5,
+        max: 2,
         step: 0.05,
         value: settings[key],
         oninput: (e: Event) => (out.textContent = `${Number((e.target as HTMLInputElement).value).toFixed(2)}×`),
@@ -746,43 +762,65 @@ async function renderSettings(): Promise<Node> {
     );
   };
   const q = settings.quietHours;
+  // Grouped by what they're about: the pet, alarms & timers, to-dos, then the rest.
   return h(
     "section",
     { class: "settings" },
-    slider("size", 0.5, 2),
-    slider("speed", 0.5, 2),
-    h("h3", {}, "Alerts"),
-    alertRow("alarm", "Alarms & timers"),
-    alertRow("todo", "To-do reminders"),
-    hiddenAlertsRow(),
-    h(
-      "label",
-      { class: "check" },
-      h("input", { type: "checkbox", checked: settings.sound, onchange: () => void save({ sound: !settings.sound }) }),
-      "Other sounds (petting, focus sessions)",
-    ),
-    h(
-      "label",
-      { class: "check" },
-      h("input", {
-        type: "checkbox",
-        checked: settings.autostart,
-        onchange: async () => {
-          await backend.setAutostart(!settings.autostart);
-          await save({ autostart: !settings.autostart });
-        },
-      }),
-      "Start with my computer",
-    ),
-    h("h3", {}, "Quiet hours"),
-    h("p", { class: "hint" }, "The pet stays calm (no running around). Reminders still come through."),
+    h("h3", {}, "Pet"),
     h(
       "div",
-      { class: "row" },
-      h("input", { type: "checkbox", checked: q.enabled, onchange: () => void save({ quietHours: { ...q, enabled: !q.enabled } }) }),
-      timeField(q.start, debounced((start: string) => void save({ quietHours: { ...settings.quietHours, start } })), "Quiet from"),
-      "to",
-      timeField(q.end, debounced((end: string) => void save({ quietHours: { ...settings.quietHours, end } })), "Quiet until"),
+      { class: "box" },
+      slider("size"),
+      slider("speed"),
+      h("hr"),
+      h(
+        "div",
+        { class: "row spread" },
+        h(
+          "label",
+          { class: "check" },
+          h("input", { type: "checkbox", checked: q.enabled, onchange: () => void save({ quietHours: { ...q, enabled: !q.enabled } }) }),
+          "Quiet hours",
+        ),
+        h(
+          "span",
+          { class: "row" },
+          timeField(q.start, debounced((start: string) => void save({ quietHours: { ...settings.quietHours, start } })), "Quiet from"),
+          "–",
+          timeField(q.end, debounced((end: string) => void save({ quietHours: { ...settings.quietHours, end } })), "Quiet until"),
+        ),
+      ),
+      h("p", { class: "hint" }, "The pet stays calm: no running around. Reminders still come through."),
+      h("hr"),
+      ...hiddenAlertsRows(),
+    ),
+    h("h3", {}, "Alarms & timers"),
+    alertBox("alarm"),
+    h("h3", {}, "To-do reminders"),
+    alertBox("todo"),
+    h("h3", {}, "General"),
+    h(
+      "div",
+      { class: "box" },
+      h(
+        "label",
+        { class: "check" },
+        h("input", {
+          type: "checkbox",
+          checked: settings.autostart,
+          onchange: async () => {
+            await backend.setAutostart(!settings.autostart);
+            await save({ autostart: !settings.autostart });
+          },
+        }),
+        "Start with my computer",
+      ),
+      h(
+        "label",
+        { class: "check" },
+        h("input", { type: "checkbox", checked: settings.sound, onchange: () => void save({ sound: !settings.sound }) }),
+        "Other sounds (petting, focus sessions)",
+      ),
     ),
     h(
       "footer",
@@ -794,10 +832,10 @@ async function renderSettings(): Promise<Node> {
 }
 
 /**
- * "When your pet is hidden, it comes out for…" (docs/INTERACTIONS.md). There are no system
+ * Pet → "When hidden, it comes out for" (docs/INTERACTIONS.md). There are no system
  * notifications, so anything unticked can't reach you while the pet is hidden: say so in red.
  */
-function hiddenAlertsRow(): Node {
+function hiddenAlertsRows(): Node[] {
   const ha = settings.hiddenAlerts;
   const box = (key: keyof HiddenAlerts, text: string) =>
     h(
@@ -807,21 +845,23 @@ function hiddenAlertsRow(): Node {
       text,
     );
   const warning = hiddenWarning(ha);
-  return h(
-    "fieldset",
-    { class: "alert hidden-alerts" },
-    h("legend", {}, "When your pet is hidden, it comes out for"),
-    box("alarms", "Alarms"),
-    box("timers", "Timers"),
-    box("todos", "To-do reminders"),
-    box("focus", "Focus sessions (when a focus or break ends)"),
+  return [
+    h("div", { class: "subhead" }, "When hidden, it comes out for"),
+    h(
+      "div",
+      { class: "pair hidden-alerts" },
+      box("alarms", "Alarms"),
+      box("timers", "Timers"),
+      box("todos", "To-do reminders"),
+      box("focus", "Focus sessions"),
+    ),
     warning ? h("p", { class: "warning" }, h("strong", {}, `❗ ${warning}`), " Show your pet, or tick them above, to get them again.") : null,
     h("p", { class: "hint" }, "It comes out, rings, and goes back once you answer. Anything nobody answered waits until you show it."),
-  );
+  ].filter((n) => n !== null) as Node[];
 }
 
-/** One alert kind: pet comes to the centre, ring on/off, ringtone, preview, volume. */
-function alertRow(kind: "alarm" | "todo", title: string): Node {
+/** One alert kind: ring (tone, preview, volume), and for alarms how long and what if nobody answers. */
+function alertBox(kind: "alarm" | "todo"): Node {
   const a = settings.alerts[kind];
   const update = (patch: Partial<AlertSettings>) => save({ alerts: { ...settings.alerts, [kind]: { ...a, ...patch } } });
   const tone = h(
@@ -839,65 +879,52 @@ function alertRow(kind: "alarm" | "todo", title: string): Node {
     onchange: (e: Event) => void update({ volume: Number((e.target as HTMLInputElement).value) }),
   });
   return h(
-    "fieldset",
-    { class: "alert" },
-    h("legend", {}, title),
+    "div",
+    { class: "box alert" },
+    h(
+      "div",
+      { class: "row" },
+      h("label", { class: "check" }, h("input", { type: "checkbox", checked: a.ring, onchange: () => void update({ ring: !a.ring }) }), "Ring"),
+      tone,
+      h("button", { title: "Preview", onclick: () => playRingtone(tone.value as RingtoneId, Number(volume.value)) }, "▶"),
+      h("span", { class: "hint" }, "🔈"),
+      volume,
+    ),
+    kind === "alarm" ? unansweredRow(a, update) : null,
     h(
       "label",
       { class: "check" },
       h("input", { type: "checkbox", checked: a.petRuns, onchange: () => void update({ petRuns: !a.petRuns }) }),
       "Pet comes to the middle of the screen",
     ),
-    h("label", { class: "check" }, h("input", { type: "checkbox", checked: a.ring, onchange: () => void update({ ring: !a.ring }) }), "Ring"),
-    h(
-      "div",
-      { class: "row" },
-      tone,
-      h(
-        "button",
-        { title: "Preview", onclick: () => playRingtone(tone.value as RingtoneId, Number(volume.value)) },
-        "▶",
-      ),
-      h("span", { class: "hint" }, "🔈"),
-      volume,
-    ),
-    kind === "alarm" ? unansweredRow(a, update) : null,
     kind === "alarm" ? upcomingRow() : null,
+    kind === "alarm" ? h("p", { class: "hint" }, "Timers never snooze: a missed one leaves a quiet ⏱ note by the pet for an hour.") : null,
   );
 }
 
-/** Alarm-only: a 🔔 badge by the pet for alarms coming up soon; the look-ahead only when it's on. */
+/** Alarm-only: a 🔔 badge by the pet for alarms coming up soon. */
 function upcomingRow(): Node {
   const u = settings.upcomingAlarms;
   return h(
-    "div",
-    { class: "upcoming" },
-    h(
-      "label",
-      { class: "check" },
-      h("input", { type: "checkbox", checked: u.show, onchange: () => void save({ upcomingAlarms: { ...u, show: !u.show } }) }),
-      "Show upcoming alarms by the pet",
-    ),
-    u.show
-      ? h(
-          "label",
-          { class: "row" },
-          "Within",
-          h("input", {
-            type: "number",
-            min: 1,
-            max: 120,
-            value: u.minutes,
-            onchange: (e: Event) => {
-              const input = e.target as HTMLInputElement;
-              const minutes = clampUpcomingMinutes(input.value);
-              input.value = String(minutes);
-              void save({ upcomingAlarms: { ...u, minutes } });
-            },
-          }),
-          "minutes (1–120)",
-        )
-      : null,
+    "label",
+    { class: "check upcoming" },
+    h("input", { type: "checkbox", checked: u.show, onchange: () => void save({ upcomingAlarms: { ...u, show: !u.show } }) }),
+    "Show alarms due within",
+    h("input", {
+      type: "number",
+      min: 1,
+      max: 120,
+      value: u.minutes,
+      disabled: !u.show,
+      title: "1–120 minutes",
+      onchange: (e: Event) => {
+        const input = e.target as HTMLInputElement;
+        const minutes = clampUpcomingMinutes(input.value);
+        input.value = String(minutes);
+        void save({ upcomingAlarms: { ...u, minutes } });
+      },
+    }),
+    "min by the pet",
   );
 }
 
@@ -910,18 +937,18 @@ const RING_LENGTHS = [
 
 /** Snooze length × automatic snoozes; 0 snoozes = just stop and mark it missed. */
 const UNANSWERED = [
-  [5, 3, "Snooze 5 min, up to 3 times"],
-  [10, 3, "Snooze 10 min, up to 3 times"],
-  [5, 5, "Snooze 5 min, up to 5 times"],
+  [5, 3, "Snooze 5 min × 3"],
+  [10, 3, "Snooze 10 min × 3"],
+  [5, 5, "Snooze 5 min × 5"],
   [5, 0, "Stop and mark as missed"],
 ] as const;
 
-/** Alarm-only: how long to ring and what happens when nobody answers. */
+/** Alarm-only: how long to ring and what happens when nobody answers, side by side. */
 function unansweredRow(a: AlertSettings, update: (p: Partial<AlertSettings>) => void): Node {
   const current = UNANSWERED.findIndex(([m, n]) => (n === 0 ? a.autoSnoozeMax === 0 : m === a.snoozeMinutes && n === a.autoSnoozeMax));
   return h(
     "div",
-    { class: "unanswered" },
+    { class: "pair labelled" },
     h(
       "label",
       {},
@@ -947,7 +974,6 @@ function unansweredRow(a: AlertSettings, update: (p: Partial<AlertSettings>) => 
         ...UNANSWERED.map(([, , text], i) => h("option", { value: i, selected: i === current }, text)),
       ),
     ),
-    h("p", { class: "hint" }, "Timers never snooze: if you miss one, a quiet ⏱ note waits by your pet for an hour."),
   );
 }
 

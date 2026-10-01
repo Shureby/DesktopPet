@@ -261,7 +261,7 @@
           "id": "timer.ring",
           "rev": "0.5.0",
           "do": "等计时器到点",
-          "expect": "按 Settings → Alerts 响铃/跑到屏幕中间；气泡有 Snooze N min 和 Done"
+          "expect": "按 Settings → Alarms & timers 的设置响铃/跑到屏幕中间；气泡有 Snooze N min 和 Done"
         },
         {
           "id": "timer.snooze",
@@ -313,9 +313,9 @@
         },
         {
           "id": "alarm.upcoming-badge",
-          "rev": "0.19.0",
-          "do": "设两个 1 小时内响的闹钟和一个 1.5 小时后响的闹钟；悬停并点击 🔔 角标；再到 Settings → Alerts 关掉/打开 “Show upcoming alarms by the pet”，把 Within 改成 30、0、500；再让其中一个闹钟响起后贪睡",
-          "expect": "宠物旁出现 “🔔 最近那个闹钟的时间 +1”，悬停小框逐行列出这两个闹钟（自定义名字的写成 “Login CMC · 10:05 PM”），1.5 小时后的不在内；点击打开 Alarms 页；贪睡中的闹钟和快到点的闹钟在同一个角标里，按响铃时间排序：最近的是贪睡时角标写 “💤 时间 +n”，小框里贪睡的那行写 “Alarm 11:25 AM · 💤×1 · next 11:33 AM”；关掉 Show upcoming alarms 后贪睡的仍然显示；关掉后 🔔 消失且 Within 一行隐藏，打开后重新出现；Within 只接受 1–120（0 变 1，500 变 120），改小后超出范围的闹钟从 🔔 里消失"
+          "rev": "0.22.1",
+          "do": "设两个 1 小时内响的闹钟和一个 1.5 小时后响的闹钟；悬停并点击 🔔 角标；再到 Settings → Alarms & timers 关掉/打开 “Show alarms due within … min by the pet”，把分钟数改成 30、0、500；再让其中一个闹钟响起后贪睡",
+          "expect": "宠物旁出现 “🔔 最近那个闹钟的时间 +1”，悬停小框逐行列出这两个闹钟（自定义名字的写成 “Login CMC · 10:05 PM”），1.5 小时后的不在内；点击打开 Alarms 页；贪睡中的闹钟和快到点的闹钟在同一个角标里，按响铃时间排序：最近的是贪睡时角标写 “💤 时间 +n”，小框里贪睡的那行写 “Alarm 11:25 AM · 💤×1 · next 11:33 AM”；关掉 Show upcoming alarms 后贪睡的仍然显示；关掉后 🔔 消失且分钟数变灰，打开后恢复；分钟数只接受 1–120（0 变 1，500 变 120），改小后超出范围的闹钟从 🔔 里消失"
         },
         {
           "id": "alarm.skip-once",
@@ -512,7 +512,7 @@
         {
           "id": "hidden.settings-warning",
           "rev": "0.22.0",
-          "do": "Settings → Alerts 找到 “When your pet is hidden, it comes out for”，逐个取消 Alarms、Timers、To-do reminders，再勾回来；取消 Timers 后隐藏宠物，让一个计时器到点",
+          "do": "Settings → Pet 找到 “When hidden, it comes out for”，逐个取消 Alarms、Timers、To-do reminders，再勾回来；取消 Timers 后隐藏宠物，让一个计时器到点",
           "expect": "默认 Alarms、Timers、To-do reminders 勾选，Focus sessions 不勾；取消任一前三项时出现红色 ❗ “While your pet is hidden, … will not alert you.”，写出具体是哪几项，全部勾回后消失；取消 Timers 时计时器到点宠物不出来，也没有声音，显示宠物时出现在 “While I was hidden you missed” 清单里"
         },
         {
@@ -684,6 +684,12 @@
       "title": "设置",
       "items": [
         {
+          "id": "settings.layout",
+          "rev": "0.22.1",
+          "do": "打开面板，用默认窗口大小看 Focus 页（打开 Work hours）和 Settings 页；改几个设置（大小、Quiet hours 时间、铃声、Ring for、If nobody answers、隐藏时出来的勾选、开机启动）后切页再回来",
+          "expect": "Focus 页不用滚动就能看到全部内容：顶部一张卡片（阶段、倒计时、按钮）、7 天柱状图和总数、四个时长一行、两个勾选、Work hours 卡片（星期和时间一行、一行小字说明）；Settings 分为 Pet / Alarms & timers / To-do reminders / General 四张卡片，Quiet hours 和 “When hidden, it comes out for” 在 Pet 卡片里，Ring for 和 If nobody answers 并排；改过的设置切页回来都还在"
+        },
+        {
           "id": "settings.size-speed",
           "rev": "0.1.0",
           "do": "拖动 Pet size / Pet speed 滑块",
@@ -709,7 +715,7 @@
         },
         {
           "id": "settings.quiet-hours",
-          "rev": "0.1.0",
+          "rev": "0.22.1",
           "do": "Quiet hours 设成包含当前时间",
           "expect": "宠物安静，但闹钟照常响"
         },

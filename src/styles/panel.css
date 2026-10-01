@@ -174,61 +174,6 @@ details summary {
   margin-top: 10px;
 }
 
-.focus {
-  text-align: center;
-}
-.tomato-big {
-  font-size: 44px;
-  margin-top: 6px;
-}
-.phase {
-  color: var(--muted);
-}
-.clock {
-  font-size: 56px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  margin: 4px 0 12px;
-}
-.bars {
-  display: flex;
-  gap: 8px;
-  height: 90px;
-  align-items: flex-end;
-  justify-content: center;
-}
-.bar {
-  width: 30px;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
-  font-size: 11px;
-  color: var(--muted);
-}
-.bar .fill {
-  width: 100%;
-  min-height: 2px;
-  background: var(--accent);
-  border-radius: 4px 4px 0 0;
-}
-.grid2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 14px;
-  text-align: left;
-}
-.grid2 label,
-.settings label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-.grid2 .check {
-  grid-column: 1 / -1;
-}
 label.check {
   justify-content: flex-start !important;
 }
@@ -302,42 +247,10 @@ label.check {
   font-size: 12px;
   white-space: nowrap;
 }
-.settings {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.settings input[type="range"] {
-  flex: 1;
-}
-.settings output {
-  width: 48px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
 footer {
   margin-top: 20px;
   color: var(--muted);
   font-size: 12px;
-}
-
-fieldset.alert {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 8px 12px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-fieldset.alert legend {
-  font-weight: 700;
-  padding: 0 4px;
-}
-fieldset.alert select {
-  flex: 1;
-}
-fieldset.alert input[type="range"] {
-  width: 90px;
 }
 
 .mood-card {
@@ -398,17 +311,6 @@ details.finished summary > :first-child {
   margin-left: auto;
 }
 
-fieldset.alert .unanswered {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-fieldset.alert .unanswered label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
 
 /* ----- Alarms tab: phone-clock style ----- */
 .clocks .clock-row {
@@ -546,19 +448,6 @@ input.custom-timer {
   flex: 1;
 }
 
-fieldset.alert .upcoming {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 8px;
-}
-fieldset.alert .upcoming input[type="number"] {
-  width: 4em;
-}
-fieldset.alert .upcoming .row {
-  justify-content: flex-start;
-  gap: 6px;
-}
 
 /* ----- "Skip once" on a repeating alarm ----- */
 .chip.skip button.link {
@@ -665,29 +554,202 @@ fieldset.alert .upcoming .row {
 .days-row {
   margin-top: 6px;
 }
-.work-hours-body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.work-hours-body .row {
-  justify-content: flex-start;
-  gap: 8px;
-}
 button:disabled {
   opacity: 0.5;
   cursor: default;
 }
-.work-hours {
-  text-align: left;
-}
 
 /* ----- When the pet is hidden (Settings → Alerts) ----- */
-fieldset.hidden-alerts .warning {
-  margin: 6px 0 0;
-  color: #c0392b;
-}
 .list .when.overdue {
   color: #c0392b;
   font-weight: 700;
+}
+
+/* ----- Boxes: the Focus and Settings tabs group their settings in cards ----- */
+.box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.box hr {
+  width: 100%;
+  margin: 2px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+.box .hint {
+  margin: -2px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.box .subhead {
+  font-size: 13px;
+}
+.row.spread {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+label.check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+h3.split {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+h3.split small {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  font-size: 11px;
+}
+/* Two side by side: the hidden-pet ticks, Ring for / If nobody answers. */
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 10px;
+}
+.pair.labelled label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.pair select {
+  width: 100%;
+}
+.warning {
+  margin: 0;
+  color: #c0392b;
+  font-size: 12px;
+}
+
+/* ----- Focus tab: compact, so it fits the default panel without scrolling ----- */
+.focus-page > h3 {
+  margin: 22px 0 10px;
+}
+.box.now {
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+}
+.now-icon {
+  font-size: 30px;
+}
+.now-phase {
+  color: var(--muted);
+  font-size: 12px;
+}
+.now-clock {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.now-buttons {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+.focus-page .bars {
+  display: flex;
+  gap: 10px;
+  height: 78px;
+  align-items: flex-end;
+}
+.focus-page .bar {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.focus-page .bar .fill {
+  width: 100%;
+  min-height: 2px;
+  background: var(--accent);
+  border-radius: 3px 3px 0 0;
+}
+.timing {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.timing label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.timing input[type="number"] {
+  width: 100%;
+  box-sizing: border-box;
+}
+.focus-page > label.check {
+  margin: 8px 0;
+}
+
+/* ----- Settings tab ----- */
+.settings > h3:first-child {
+  margin-top: 4px;
+}
+.settings .row .label {
+  width: 52px;
+}
+.settings input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent);
+}
+.settings output {
+  width: 44px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.box.alert select {
+  flex: 1;
+  min-width: 0;
+}
+.box.alert input[type="range"] {
+  width: 80px;
+  flex: none;
+}
+.upcoming input[type="number"] {
+  width: 52px;
+}
+.pair.labelled select {
+  font-size: 13px;
+  color: var(--fg);
+}
+/* In a box, days and times share a line. */
+.box .day-picker {
+  gap: 4px;
+}
+.box .day-picker button {
+  width: 24px;
+  height: 24px;
+  font-size: 11px;
+}
+.box .time-field {
+  padding: 2px 4px;
+  font-size: 13px;
+}
+.box .time-field .part {
+  min-width: 1.4em;
+  padding: 2px;
 }

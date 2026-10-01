@@ -770,7 +770,7 @@ dependencies = [
 
 [[package]]
 name = "desktoppet"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "chrono",
  "core-foundation",
@@ -790,7 +790,7 @@ dependencies = [
 
 [[package]]
 name = "desktoppet-core"
-version = "0.22.0"
+version = "0.22.1"
 dependencies = [
  "chrono",
  "chrono-tz",

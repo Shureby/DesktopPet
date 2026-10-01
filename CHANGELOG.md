@@ -16,6 +16,16 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.22.1] - 2026-10-01
+
+### Changed
+- **The Focus tab fits the panel without scrolling.** The session is one card (phase,
+  countdown and buttons), the chart is shorter with totals beside it, the four lengths
+  share a row, and work hours are one card with a short hint.
+- **The Settings tab is grouped by what it's about:** Pet (size, speed, quiet hours, what
+  the hidden pet comes out for), Alarms & timers, To-do reminders, General.
+  - Related controls share lines; snooze choices read "Snooze 5 min × 3".
+
 ## [0.22.0] - 2026-10-01
 
 ### Added
