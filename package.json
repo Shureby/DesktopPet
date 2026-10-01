@@ -1,7 +1,7 @@
 {
   "name": "desktoppet",
   "private": true,
-  "version": "0.22.3",
+  "version": "0.23.0",
   "type": "module",
   "scripts": {
     "product": "node scripts/apply-product-config.mjs",

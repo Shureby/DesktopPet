@@ -8,8 +8,10 @@ import {
   type Alarm,
   type Backend,
   type BackendEvents,
+  type DayMask,
   type DayStat,
   type PomodoroStatus,
+  type Repeat,
   type Unseen,
   type Score,
   type Settings,
@@ -47,6 +49,16 @@ const LATE_TOLERANCE = 60_000;
 function comesOut(s: MockState, kind: "todo" | "alarm", title: string): boolean {
   const h = s.settings.hiddenAlerts;
   return kind === "todo" ? h.todos : title.startsWith("Timer: ") ? h.timers : h.alarms;
+}
+
+/** Like the store's alarm_times: the first ring, a repeating alarm's time of day and its days. */
+function alarmTimes(at: number, repeat: Repeat, days: DayMask): Pick<Alarm, "nextFire" | "timeHm" | "repeatDays"> {
+  const repeatDays = repeat === "days" ? days & EVERY_DAY : 0;
+  if (repeat === "days" && !repeatDays) throw new Error("pick at least one day");
+  const d = new Date(at);
+  const timeHm = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  const nextFire = repeat === "none" ? at : (nextOccurrence(timeHm, repeatMask(repeat, repeatDays), at - 1) ?? at);
+  return { nextFire, repeatDays, timeHm: repeat === "none" ? null : timeHm };
 }
 
 const KEY = "desktoppet-mock";
@@ -257,18 +269,12 @@ export const mockBackend: Backend = {
     return load().alarms;
   },
   async addAlarm(label, at, repeat, days = 0) {
-    const repeatDays = repeat === "days" ? days & EVERY_DAY : 0;
-    if (repeat === "days" && !repeatDays) throw new Error("pick at least one day");
+    const t = alarmTimes(at, repeat, days);
     const alarm = mutate((s) => {
-      const d = new Date(at);
-      const timeHm = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-      const first = repeat === "none" ? at : (nextOccurrence(timeHm, repeatMask(repeat, repeatDays), at - 1) ?? at);
       const a: Alarm = {
         id: s.nextId++,
         label,
-        nextFire: first,
-        repeatDays,
-        timeHm: repeat === "none" ? null : timeHm,
+        ...t,
         repeat,
         enabled: true,
         snoozes: 0,
@@ -281,6 +287,18 @@ export const mockBackend: Backend = {
       s.alarms.push(a);
       return a;
     });
+    fire("alarms-changed", null);
+    return alarm;
+  },
+  async updateAlarm(id, label, at, repeat, days = 0) {
+    const t = alarmTimes(at, repeat, days);
+    const alarm = mutate((s) => {
+      const a = s.alarms.find((x) => x.id === id);
+      if (!a) return null;
+      Object.assign(a, { label: label.trim(), ...t, repeat, enabled: true, snoozes: 0, rangAt: null, skippedFire: null, offAt: null });
+      return { ...a };
+    });
+    if (!alarm) throw new Error("that alarm no longer exists");
     fire("alarms-changed", null);
     return alarm;
   },

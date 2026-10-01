@@ -363,13 +363,30 @@ details.finished summary > :first-child {
 .finished-row .big {
   font-size: 16px;
 }
-/* The delete button only shows on hover, like a swipe action on a phone. */
+/* Edit and delete only show on hover, like a swipe action on a phone. */
+.clock-row .edit,
 .clock-row .delete {
   opacity: 0;
   transition: opacity 0.15s;
 }
+.clock-row:hover .edit,
 .clock-row:hover .delete,
+.clock-row .edit:focus-visible,
 .clock-row .delete:focus-visible {
+  opacity: 1;
+}
+/* "Edit alarm · Gym" with Cancel on the right. */
+.edit-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+/* The alarm being edited in the form above. */
+.clock-row.editing {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.clock-row.editing .edit {
   opacity: 1;
 }
 
@@ -450,7 +467,8 @@ input.custom-timer {
 
 
 /* ----- "Skip once" on a repeating alarm ----- */
-.chip.skip button.link {
+.chip.skip button.link,
+.edit-head button.link {
   padding: 0;
   border: 0;
   background: none;

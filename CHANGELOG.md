@@ -16,6 +16,13 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-10-01
+
+### Added
+- Alarms can be edited: ✎ (left of ✕, on hover) fills the alarm form with its time, repeat,
+  days and label. "Edit alarm · …" has Cancel on its right; Save changes the alarm in
+  place and switches it on, clearing its snooze or skipped ring.
+
 ## [0.22.3] - 2026-10-01
 
 ### Fixed

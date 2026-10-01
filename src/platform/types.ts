@@ -272,6 +272,8 @@ export interface Backend {
   listAlarms(): Promise<Alarm[]>;
   /** `days` is for repeat "days". */
   addAlarm(label: string, at: number, repeat: Repeat, days?: DayMask): Promise<Alarm>;
+  /** Editing (✎): set again with a new label, time and repeat; it switches on. */
+  updateAlarm(id: number, label: string, at: number, repeat: Repeat, days?: DayMask): Promise<Alarm>;
   setAlarmEnabled(id: number, enabled: boolean): Promise<void>;
   /** Repeating alarms: skip the next ring (or the rest of today's snoozes). */
   skipAlarmOnce(id: number): Promise<void>;

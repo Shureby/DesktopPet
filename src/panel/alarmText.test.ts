@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { clock } from "../features/alarm/ringing";
 import { timerLabel } from "../features/alarm/timers";
 import type { Alarm } from "../platform/types";
-import { finishedStatus, hiddenWarning, skipWhen, sortAlarms, timerTimes } from "./alarmText";
+import { draftFor, finishedStatus, hiddenWarning, skipWhen, sortAlarms, timerTimes, WEEKENDS } from "./alarmText";
+import { WEEKDAYS } from "../platform/types";
 
 const now = new Date(2026, 8, 28, 22, 30).getTime();
 const at = (h: number, m: number) => new Date(2026, 8, 28, h, m).getTime();
@@ -94,5 +95,22 @@ describe("the Alarms list order", () => {
       alarm({ id: 5, label: "off early", repeat: "daily", timeHm: "06:00", nextFire: null, enabled: false }),
     ];
     expect(sortAlarms(list, now).map((a) => a.label)).toEqual(["test 1", "test 2", "Login CMC", "off early", "off late"]);
+  });
+});
+
+describe("editing an alarm (✎)", () => {
+  it("fills the form from the alarm", () => {
+    const daily = alarm({ id: 3, label: "Daily Meds", repeat: "daily", timeHm: "22:00", nextFire: at(22, 0) });
+    expect(draftFor(daily, now)).toEqual({ time: "22:00", choice: "daily", days: WEEKDAYS, label: "Daily Meds", editing: 3 });
+    const tueThuSat = 0b101_0100;
+    const custom = alarm({ id: 4, repeat: "days", repeatDays: tueThuSat, timeHm: "15:50", nextFire: at(15, 50) });
+    expect(draftFor(custom, now)).toMatchObject({ time: "15:50", choice: "days", days: tueThuSat, label: "" });
+    const weekends = alarm({ repeat: "days", repeatDays: WEEKENDS, timeHm: "09:00" });
+    expect(draftFor(weekends, now)).toMatchObject({ choice: "weekends", days: WEEKENDS });
+  });
+
+  it("uses a snoozed one-off's own time, not its next snoozed ring", () => {
+    const snoozed = alarm({ repeat: "none", rangAt: at(21, 0), nextFire: at(21, 10), snoozes: 2 });
+    expect(draftFor(snoozed, now)).toMatchObject({ time: "21:00", choice: "none" });
   });
 });

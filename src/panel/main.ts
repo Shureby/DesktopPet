@@ -5,7 +5,7 @@ import { ABILITIES } from "../characters/abilities";
 import { loadBundled, loadUser, type CharacterRegistry, type LoadedCharacter } from "../characters/registry";
 import { SpriteAtlas } from "../engine/sprites";
 import { formatRemaining, gameHeld } from "../features/pomodoro/logic";
-import { clock, DEFAULT_ALARM_LABEL } from "../features/alarm/ringing";
+import { alarmName, clock, DEFAULT_ALARM_LABEL } from "../features/alarm/ringing";
 import {
   durationInput,
   forgetCustomTimer,
@@ -26,7 +26,6 @@ import {
   WEEKDAYS,
   type Alarm,
   type AlertSettings,
-  type DayMask,
   type HiddenAlerts,
   type PanelTab,
   type Settings,
@@ -48,6 +47,8 @@ import {
   sortAlarms,
   timerTimes,
   type RepeatChoice,
+  draftFor,
+  type AlarmDraft,
 } from "./alarmText";
 import { dayPicker } from "./dayPicker";
 import { formatHm, timeField } from "./timeField";
@@ -68,8 +69,8 @@ let registry: CharacterRegistry;
 const view = document.getElementById("view")!;
 const nav = document.getElementById("tabs")!;
 let cleanup: (() => void)[] = [];
-/** The new alarm being set up, kept across re-renders of the Alarms tab. */
-let alarmDraft: { time: string; choice: RepeatChoice; days: DayMask; label: string } | null = null;
+/** The alarm being set up or edited (✎), kept across re-renders of the Alarms tab. */
+let alarmDraft: AlarmDraft | null = null;
 
 /** Runs `f` once things have been quiet for `ms` (a dragged time field changes many times). */
 function debounced<T>(f: (v: T) => void, ms = 300): (v: T) => void {
@@ -173,8 +174,20 @@ async function renderTodos(): Promise<Node> {
 
 async function renderAlarms(): Promise<Node> {
   const alarms = await backend.listAlarms();
-  alarmDraft ??= { time: nowHm(), choice: "none", days: WEEKDAYS, label: "" };
+  // The alarm being edited was deleted (here or by the pet): back to a new one.
+  if (alarmDraft?.editing != null && !alarms.some((a) => a.id === alarmDraft?.editing)) alarmDraft = null;
+  alarmDraft ??= { time: nowHm(), choice: "none", days: WEEKDAYS, label: "", editing: null };
   const draft = alarmDraft;
+  const editingAlarm = alarms.find((a) => a.id === draft.editing) ?? null;
+  // ✎ fills the form; Save sets the alarm again, Cancel goes back to a new alarm.
+  const startEdit = (a: Alarm) => {
+    alarmDraft = draftFor(a);
+    void render();
+  };
+  const stopEdit = () => {
+    alarmDraft = null;
+    void render();
+  };
   const label = h("input", {
     type: "text",
     placeholder: "Label",
@@ -189,7 +202,7 @@ async function renderAlarms(): Promise<Node> {
   queueMicrotask(() => {
     if (!document.activeElement || document.activeElement === document.body) time.focus();
   });
-  const addButton = h("button", { class: "primary", onclick: () => void add() }, "Add");
+  const addButton = h("button", { class: "primary", onclick: () => void add() }, editingAlarm ? "Save" : "Add");
   // Only Weekdays, Weekends and Custom days show the days. Picking days by hand names them:
   // Mon–Fri is Weekdays, Sat + Sun is Weekends, anything else Custom days.
   const days = dayPicker(draft.days, (m) => {
@@ -235,7 +248,14 @@ async function renderAlarms(): Promise<Node> {
     // No time in the label: it is shown from the alarm's own time, in the system's format.
     // A repeating alarm's first ring is its first day at or after this (the store works it out).
     const r = repeatFor(draft.choice, draft.days);
-    await backend.addAlarm(label.value.trim() || DEFAULT_ALARM_LABEL, d.getTime(), r.repeat, r.days);
+    const name = label.value.trim() || DEFAULT_ALARM_LABEL;
+    if (editingAlarm) {
+      // Set again: it switches on, and its old snooze or skipped ring is forgotten.
+      await backend.updateAlarm(editingAlarm.id, name, d.getTime(), r.repeat, r.days);
+      stopEdit();
+      return;
+    }
+    await backend.addAlarm(name, d.getTime(), r.repeat, r.days);
     draft.label = "";
     label.value = "";
   };
@@ -343,7 +363,7 @@ async function renderAlarms(): Promise<Node> {
   const alarmRow = (a: Alarm) =>
     h(
       "li",
-      { class: `clock-row ${a.enabled ? "" : "off"}` },
+      { class: `clock-row ${a.enabled ? "" : "off"} ${a.id === draft.editing ? "editing" : ""}` },
       h("span", { class: "big" }, bigTime(a)),
       h(
         "div",
@@ -366,6 +386,7 @@ async function renderAlarms(): Promise<Node> {
             )
           : null,
       ),
+      h("button", { class: "icon edit", title: "Edit", onclick: () => startEdit(a) }, "✎"),
       h("button", { class: "icon delete", title: "Delete", onclick: () => void backend.deleteAlarm(a.id) }, "✕"),
       toggle(a.enabled, a.label, (input) => {
         // Switching off a repeating alarm asks, like a phone: skip just the next ring, or all?
@@ -402,7 +423,14 @@ async function renderAlarms(): Promise<Node> {
       ...settings.recentTimers.filter((m) => !PRESET_MINUTES.includes(m)).map(customTimer),
     ),
     h("div", { class: "row custom-row" }, customInput, h("button", { onclick: startCustom }, "Start"), customHint),
-    h("h3", {}, "New alarm"),
+    editingAlarm
+      ? h(
+          "div",
+          { class: "edit-head" },
+          h("h3", {}, `Edit alarm · ${alarmName(editingAlarm)}`),
+          h("button", { class: "link", onclick: stopEdit }, "Cancel"),
+        )
+      : h("h3", {}, "New alarm"),
     h("div", { class: "row" }, time, repeat, label, addButton),
     daysRow,
     timers.length ? h("h3", {}, "Timers") : null,

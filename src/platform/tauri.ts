@@ -29,6 +29,8 @@ export const tauriBackend: Backend = {
   setAlarmEnabled: (id, enabled) => invoke("set_alarm_enabled", { id, enabled }),
   skipAlarmOnce: (id) => invoke("skip_alarm_once", { id }),
   unskipAlarm: (id) => invoke("unskip_alarm", { id }),
+  updateAlarm: (id, label, at, repeat, days) =>
+    invoke("update_alarm", { id, label, at, repeat, days: days ?? null }),
   deleteAlarm: (id) => invoke("delete_alarm", { id }),
   clearFinishedAlarms: () => invoke("clear_finished_alarms"),
   snoozeAlarm: (id, minutes) => invoke("snooze_alarm", { id, minutes }),

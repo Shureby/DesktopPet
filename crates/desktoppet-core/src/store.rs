@@ -243,17 +243,14 @@ impl Store {
             .optional()?)
     }
 
-    /// `at` is the first ring; repeating alarms remember its local time of day and ring first
-    /// on the first of their days at or after `at`. `days` is only for `Repeat::Days`.
-    pub fn add_alarm<Tz: TimeZone>(
-        &self,
+    /// When an alarm set for `at` first rings, the local time of day a repeating one keeps, and
+    /// its days (only for `Repeat::Days`).
+    fn alarm_times<Tz: TimeZone>(
         tz: &Tz,
-        label: &str,
         at: Millis,
         repeat: Repeat,
         days: DayMask,
-        now: Millis,
-    ) -> Result<Alarm> {
+    ) -> Result<(Option<String>, Millis, DayMask)> {
         let repeat_days = if repeat == Repeat::Days { days & EVERY_DAY } else { 0 };
         if repeat == Repeat::Days && repeat_days == 0 {
             return Err(StoreError::Invalid("pick at least one day".into()));
@@ -269,6 +266,45 @@ impl Store {
                 (Some(format!("{:02}:{:02}", local.hour(), local.minute())), first)
             }
         };
+        Ok((time_hm, first, repeat_days))
+    }
+
+    /// Editing an alarm: a new label, time and repeat, as if it were set again. It switches on,
+    /// and a snooze cycle, skipped ring or "didn't ring" from its old time is forgotten.
+    pub fn update_alarm<Tz: TimeZone>(
+        &self,
+        tz: &Tz,
+        id: i64,
+        label: &str,
+        at: Millis,
+        repeat: Repeat,
+        days: DayMask,
+    ) -> Result<Alarm> {
+        let (time_hm, first, repeat_days) = Self::alarm_times(tz, at, repeat, days)?;
+        let changed = self.conn.execute(
+            "UPDATE alarms SET label = ?2, next_fire = ?3, time_hm = ?4, repeat = ?5, enabled = 1,
+               repeat_days = ?6, snoozes = 0, rang_at = NULL, skipped_fire = NULL, off_at = NULL
+             WHERE id = ?1",
+            params![id, label.trim(), first, time_hm, repeat.as_str(), repeat_days],
+        )?;
+        if changed == 0 {
+            return Err(StoreError::Invalid("that alarm no longer exists".into()));
+        }
+        self.alarm(id)?.ok_or_else(|| StoreError::Invalid("that alarm no longer exists".into()))
+    }
+
+    /// `at` is the first ring; repeating alarms remember its local time of day and ring first
+    /// on the first of their days at or after `at`. `days` is only for `Repeat::Days`.
+    pub fn add_alarm<Tz: TimeZone>(
+        &self,
+        tz: &Tz,
+        label: &str,
+        at: Millis,
+        repeat: Repeat,
+        days: DayMask,
+        now: Millis,
+    ) -> Result<Alarm> {
+        let (time_hm, first, repeat_days) = Self::alarm_times(tz, at, repeat, days)?;
         self.conn.execute(
             "INSERT INTO alarms (label, next_fire, time_hm, repeat, enabled, created_at, repeat_days)
              VALUES (?1, ?2, ?3, ?4, 1, ?5, ?6)",
@@ -1086,6 +1122,34 @@ mod tests {
         assert_eq!(s.list_alarms().unwrap()[0].next_fire, Some(mon + 2 * DAY));
         // No days: refused.
         assert!(s.add_alarm(&London, "None", at(7, 0), Repeat::Days, 0, at(6, 0)).is_err());
+    }
+
+    #[test]
+    fn editing_an_alarm_sets_it_again_and_switches_it_on() {
+        let s = Store::open_in_memory().unwrap();
+        let mon_wed_fri = 0b010_1010;
+        let tue_thu = 0b001_0100;
+        // Wednesday's 7:00 Mon/Wed/Fri alarm (Jan 7 2026 is a Wednesday), snoozed, then off.
+        let a = s.add_alarm(&London, "Gym", at(7, 0), Repeat::Days, mon_wed_fri, at(6, 0)).unwrap();
+        s.take_due(&London, at(7, 0)).unwrap();
+        s.snooze_alarm(a.id, 5, at(7, 1)).unwrap();
+        s.set_alarm_enabled(&London, a.id, false, at(7, 2)).unwrap();
+        // Edited on Wednesday evening to Tue/Thu 6:30: on, first ring Thursday, no snooze left.
+        let thu = at(6, 30) + DAY;
+        let e = s.update_alarm(&London, a.id, " Swim ", thu, Repeat::Days, tue_thu).unwrap();
+        assert_eq!(
+            (e.label.as_str(), e.enabled, e.next_fire, e.time_hm.as_deref(), e.repeat_days),
+            ("Swim", true, Some(thu), Some("06:30"), tue_thu)
+        );
+        assert_eq!((e.snoozes, e.rang_at, e.skipped_fire), (0, None, None));
+        assert_eq!(s.list_alarms().unwrap().len(), 1);
+        // Made a one-off: no time of day or days kept.
+        let once = s.update_alarm(&London, a.id, "Swim", at(8, 0), Repeat::None, tue_thu).unwrap();
+        assert_eq!((once.next_fire, once.time_hm, once.repeat_days), (Some(at(8, 0)), None, 0));
+        // No days, or an alarm that's gone: refused.
+        assert!(s.update_alarm(&London, a.id, "Swim", at(8, 0), Repeat::Days, 0).is_err());
+        s.delete_alarm(a.id).unwrap();
+        assert!(s.update_alarm(&London, a.id, "Swim", at(8, 0), Repeat::Daily, 0).is_err());
     }
 
     #[test]

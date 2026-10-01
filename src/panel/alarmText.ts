@@ -1,4 +1,4 @@
-import { alarmTime, clock } from "../features/alarm/ringing";
+import { alarmTime, clock, DEFAULT_ALARM_LABEL } from "../features/alarm/ringing";
 import { isTimer, timerStartedAt } from "../features/alarm/timers";
 import { EVERY_DAY, repeatMask, WEEKDAYS, type Alarm, type DayMask, type HiddenAlerts, type Repeat } from "../platform/types";
 import { formatWhen } from "./dom";
@@ -100,6 +100,24 @@ export function repeatFor(choice: RepeatChoice, days: DayMask): { repeat: Repeat
   if (choice === "weekends") return { repeat: "days", days: WEEKENDS };
   if (choice === "days") return { repeat: "days", days };
   return { repeat: choice, days: 0 };
+}
+
+/** The New alarm form's fields; `editing` is the alarm being changed with ✎ (null: a new one). */
+export interface AlarmDraft {
+  time: string;
+  choice: RepeatChoice;
+  days: DayMask;
+  label: string;
+  editing: number | null;
+}
+
+/** The form filled in from an alarm, for editing it (✎). An unnamed alarm leaves Label empty. */
+export function draftFor(a: Alarm, now = Date.now()): AlarmDraft {
+  const t = new Date(alarmTime(a, now) ?? now);
+  const time = `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
+  const choice: RepeatChoice = a.repeat === "days" ? choiceForDays(a.repeatDays) : a.repeat;
+  const days = a.repeat === "days" ? a.repeatDays : WEEKDAYS;
+  return { time, choice, days, label: a.label === DEFAULT_ALARM_LABEL ? "" : a.label, editing: a.id };
 }
 
 /**

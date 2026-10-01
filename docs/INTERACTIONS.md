@@ -252,6 +252,28 @@ Code: `renderAlarms` in `src/panel/main.ts`, `src/panel/timeField.ts`, `src/pane
     new cycles all go through `next_occurrence`.
   - Rows and the Skip-once dialog name the days: "Mon, Wed, Fri", "Weekends"…
 
+## Editing an alarm (since 0.23.0)
+
+Code: `renderAlarms` and `draftFor` in `src/panel/main.ts` / `src/panel/alarmText.ts`,
+`Store::update_alarm` in `crates/desktoppet-core/src/store.rs`.
+
+- **✎ sits left of ✕ on each alarm,** and like ✕ shows only while the mouse is over the row.
+  Clicking the row itself doesn't edit: both actions are buttons. Timers and finished
+  alarms have no ✎.
+- **✎ fills the New alarm form** with the alarm's time, repeat, days and label (empty for
+  an unnamed alarm). The same thing happens for custom timers: ✎ fills the input above.
+  - The heading becomes "Edit alarm · Gym" with **Cancel** on its right, and Add becomes
+    **Save**.
+  - The row being edited has an orange border.
+  - Cancel, or the alarm being deleted while it's being edited, brings back a new alarm.
+- **Save sets the alarm again** from the form (the same rules as adding one: a time that
+  has passed today means tomorrow, a repeating alarm's first ring is its first day at or
+  after that). It stays the same alarm in the list, not a new one.
+  - **It switches on.** You edit an alarm to have it ring, so an alarm that was off is on
+    after Save. We don't ask first.
+  - A snooze cycle, a skipped ring ("⏭ Skips …") and "Didn't ring" belong to the old time,
+    so they're cleared.
+
 ## Focus work hours (since 0.20.0)
 
 Code: `run_cutoff`, `current_work_period` in `crates/desktoppet-core/src/pomodoro.rs` (mirrored

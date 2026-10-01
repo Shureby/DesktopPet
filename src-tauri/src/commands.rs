@@ -89,6 +89,22 @@ pub fn add_alarm(
     Ok(alarm)
 }
 
+/// Editing an alarm from the panel (✎): set again with a new label, time and repeat.
+#[tauri::command]
+pub fn update_alarm(
+    app: AppHandle,
+    state: State<AppState>,
+    id: i64,
+    label: String,
+    at: i64,
+    repeat: Repeat,
+    days: Option<u8>,
+) -> CmdResult<Alarm> {
+    let alarm = state.store().update_alarm(&Local, id, &label, at, repeat, days.unwrap_or(0)).map_err(err)?;
+    let _ = app.emit("alarms-changed", ());
+    Ok(alarm)
+}
+
 #[tauri::command]
 pub fn set_alarm_enabled(app: AppHandle, state: State<AppState>, id: i64, enabled: bool) -> CmdResult<()> {
     state.store().set_alarm_enabled(&Local, id, enabled, now_ms()).map_err(err)?;
