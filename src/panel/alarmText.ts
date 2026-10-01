@@ -114,3 +114,22 @@ export function hiddenWarning(h: HiddenAlerts): string | null {
   const list = off.length === 1 ? off[0] : `${off.slice(0, -1).join(", ")} and ${off[off.length - 1]}`;
   return `While your pet is hidden, ${list} will not alert you.`;
 }
+
+/**
+ * The Alarms list, like the pet's 🔔 badge: alarms that are on by their next ring (a snoozed
+ * one by its snoozed ring), soonest first; those switched off after them, by time of day.
+ */
+export function sortAlarms(list: Alarm[], now = Date.now()): Alarm[] {
+  const timeOfDay = (a: Alarm) => {
+    const t = alarmTime(a, now);
+    if (t === null) return Infinity;
+    const d = new Date(t);
+    return d.getHours() * 60 + d.getMinutes();
+  };
+  const on = (a: Alarm) => a.enabled && a.nextFire !== null;
+  return [...list].sort((a, b) => {
+    if (on(a) !== on(b)) return on(a) ? -1 : 1;
+    const byTime = on(a) ? a.nextFire! - b.nextFire! : timeOfDay(a) - timeOfDay(b);
+    return byTime || a.id - b.id;
+  });
+}

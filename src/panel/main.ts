@@ -45,6 +45,7 @@ import {
   repeatText,
   showsDays,
   skipWhen,
+  sortAlarms,
   timerTimes,
   type RepeatChoice,
 } from "./alarmText";
@@ -305,7 +306,8 @@ async function renderAlarms(): Promise<Node> {
   // A one-shot alarm is finished once its time has passed (repeating ones never finish).
   const isFinished = (a: Alarm) => a.repeat === "none" && (a.nextFire === null || a.nextFire <= now);
   const timers = alarms.filter((a) => isTimer(a) && !isFinished(a));
-  const clocks = alarms.filter((a) => !isTimer(a) && !isFinished(a));
+  // Soonest ring first (like the pet's 🔔 badge), the ones switched off last.
+  const clocks = sortAlarms(alarms.filter((a) => !isTimer(a) && !isFinished(a)));
   // Most recently finished first.
   const finished = alarms
     .filter(isFinished)

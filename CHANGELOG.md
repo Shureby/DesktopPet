@@ -16,6 +16,13 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.22.3] - 2026-10-01
+
+### Fixed
+- **The Alarms list puts the soonest ring first** (a snoozed alarm by its snoozed ring),
+  like the pet's badge, with alarms switched off at the end. It was in the order they
+  were set.
+
 ## [0.22.2] - 2026-10-01
 
 ### Fixed

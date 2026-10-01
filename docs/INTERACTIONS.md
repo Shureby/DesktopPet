@@ -378,6 +378,9 @@ panel.
     keeps pointing at the pet.
   - What counts as "on screen" is the work area the pet is in (`visibleRange`). The pet
     window itself is centred on the pet and can hang off the edge.
+- **The Alarms list puts the soonest ring first** (since 0.22.3), like the pet's 🔔 badge:
+  a snoozed alarm by its snoozed ring; alarms switched off come last, by time of day.
+  Before, it was the order they were set in.
 - **Finished and done lists put the most recent first.**
 - **Dates read "Today", "Yesterday", "Tomorrow", otherwise a short date**
   (`formatWhen` in `src/panel/dom.ts`). Times follow the system's 12/24-hour setting,

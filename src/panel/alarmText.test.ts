@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { clock } from "../features/alarm/ringing";
 import { timerLabel } from "../features/alarm/timers";
 import type { Alarm } from "../platform/types";
-import { finishedStatus, hiddenWarning, skipWhen, timerTimes } from "./alarmText";
+import { finishedStatus, hiddenWarning, skipWhen, sortAlarms, timerTimes } from "./alarmText";
 
 const now = new Date(2026, 8, 28, 22, 30).getTime();
 const at = (h: number, m: number) => new Date(2026, 8, 28, h, m).getTime();
@@ -81,5 +81,18 @@ describe("hidden pet: warnings and what didn't ring", () => {
   it("says an alarm didn't ring while ePet wasn't running (not missed)", () => {
     const off = alarm({ nextFire: null, enabled: false, offAt: at(9, 0) });
     expect(finishedStatus(off, now)).toBe(`Didn't ring · Today ${clock(at(9, 0))} · ePet wasn't running`);
+  });
+});
+
+describe("the Alarms list order", () => {
+  it("puts the soonest ring first (a snoozed alarm by its snoozed ring), switched-off ones last by time of day", () => {
+    const list = [
+      alarm({ id: 1, label: "Login CMC", repeat: "weekdays", timeHm: "08:40", nextFire: at(8, 40) + 86_400_000, enabled: true }),
+      alarm({ id: 2, label: "test 2", nextFire: at(23, 58), enabled: true }),
+      alarm({ id: 3, label: "test 1", nextFire: at(23, 0), rangAt: at(22, 50), snoozes: 2, enabled: true }),
+      alarm({ id: 4, label: "off late", nextFire: at(21, 0), enabled: false }),
+      alarm({ id: 5, label: "off early", repeat: "daily", timeHm: "06:00", nextFire: null, enabled: false }),
+    ];
+    expect(sortAlarms(list, now).map((a) => a.label)).toEqual(["test 1", "test 2", "Login CMC", "off early", "off late"]);
   });
 });
