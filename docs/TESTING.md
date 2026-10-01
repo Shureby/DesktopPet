@@ -33,6 +33,7 @@
 - [ ] 2.15 鼠标停在宠物身上完全不动 8 秒以上 → **宠物说一句（如 “I'll be around.”）后继续自己的活动；鼠标不移开再移回，它不会再停下**
 - [ ] 2.16 让宠物饿（饱食度低于 30%）或心情差（grumpy），再把鼠标停上去；10 秒内再停一次 → **第一次：慢慢走开约一个身位，停在附近，回头说原因（饿：“My tummy's flat…”；被冷落：“Oh, now you remember me?”）。第二次：不再躲，直接回应。2 分钟内不会再躲**
 - [ ] 2.17 闹钟响铃时、专注时段中、拖动时，把鼠标停在宠物身上 → **不触发停下/回应/抚摸，响铃气泡的按钮照常可点**
+- [ ] 2.18 有计时器和闹钟角标时，把宠物拖到屏幕最右边，再慢慢往左拖一点；让它说话（点它）并把鼠标停在它身上；把鼠标停在角标上看信息框；最后拖到屏幕最左边重复一遍 → **最右边时角标移到宠物左侧，完整可见；往左拖一点角标不会马上跳回右侧（要空出约 40px 才回去），宠物在边上走动时角标不闪；鼠标停在角标或信息框上时角标不移动；爱心条在另一侧，放不下时显示在宠物头顶（有气泡时在气泡上方）；说话气泡和信息框都完整显示在屏幕内，气泡尖角仍指向宠物；最左边时角标仍在右侧，爱心条移到头顶**
 
 ## 3. 右键菜单
 
@@ -65,9 +66,6 @@
 - [ ] 5.10 计时器和专注时段运行时，鼠标移到宠物旁的 ⏱ 和 🍅 角标上，分别点击 → **悬停时有下划线；点 ⏱ 打开 Alarms 页，点 🍅（或休息时的 ☕）打开 Focus 页；倒计时照常跳动，点击每次都有效**
 - [ ] 5.11 设几个计时器（包括两个相同时长的），打开面板 Alarms 页；再把鼠标停在宠物旁的 ⏱ 角标上 → **面板里每个计时器写着 “Started 4:29 PM · rings at 4:41 PM”（升级前设的也有）；悬停角标时上方出现小框，每个计时器一行，如 “12 min · 8:10 → 8:22 PM”；贪睡过的计时器多一段 💤，如 “1 min · 💤×1 · 9:38 → 9:45 PM”；最后一行 “Open the Alarms tab”**
 - [ ] 5.12 有专注时段、贪睡中的闹钟、错过的闹钟、没人理的计时器时，分别把鼠标停在 🍅、🔔/💤、⏰、⏱ Done 角标上 → **每个都出现小框，格式一致：先写内容和时间（如 “Focus · 8:00 → 8:25 PM”、“Alarm 9:25 PM · 💤×1 · next 9:33 PM”），最后一行是蓝色下划线链接（“Open the … tab”、“Mark as seen”、“Dismiss”）；鼠标从角标移到小框上（包括斜着移过去）小框不消失，点小框或链接的效果和点角标一样；离开后小框约 0.4 秒内消失；停在角标或小框上时不出现宠物的爱心/饱食度条**
-- [ ] 5.13 有计时器和闹钟角标时，把宠物拖到屏幕最右边，再慢慢往左拖一点；让它说话（点它）并把鼠标停在它身上；把鼠标停在角标上看信息框；最后拖到屏幕最左边重复一遍 → **最右边时角标移到宠物左侧，完整可见；往左拖一点角标不会马上跳回右侧（要空出约 40px 才回去），宠物在边上走动时角标不闪；鼠标停在角标或信息框上时角标不移动；爱心条在另一侧，放不下时显示在宠物头顶（有气泡时在气泡上方）；说话气泡和信息框都完整显示在屏幕内，气泡尖角仍指向宠物；最左边时角标仍在右侧，爱心条移到头顶**
-- [ ] 5.14 设两个 1 小时内响的闹钟和一个 1.5 小时后响的闹钟；悬停并点击 🔔 角标；再到 Settings → Alarms & timers 关掉/打开 “Show alarms due within … min by the pet”，把分钟数改成 30、0、500；再让其中一个闹钟响起后贪睡 → **宠物旁出现 “🔔 最近那个闹钟的时间 +1”，悬停小框逐行列出这两个闹钟（自定义名字的写成 “Login CMC · 10:05 PM”），1.5 小时后的不在内；点击打开 Alarms 页；贪睡中的闹钟和快到点的闹钟在同一个角标里，按响铃时间排序：最近的是贪睡时角标写 “💤 时间 +n”，小框里贪睡的那行写 “Alarm 11:25 AM · 💤×1 · next 11:33 AM”；关掉 Show upcoming alarms 后贪睡的仍然显示；关掉后 🔔 消失且分钟数变灰，打开后恢复；分钟数只接受 1–120（0 变 1，500 变 120），改小后超出范围的闹钟从 🔔 里消失**
-- [ ] 5.15 设一个每天响的闹钟和一个工作日闹钟（周五晚上测最好），在 Alarms 页点它们的开关；分别试 Skip once、Undo、Turn off repeating alarm、Cancel/Esc；再点一个一次性闹钟的开关 → **重复闹钟弹框：闹钟名、重复方式，按钮 “Skip once · Sep 30 7:00 PM (Today)”（明天写 (Tomorrow)，更远写星期几，如周五跳工作日闹钟写 (Monday)），“Turn off repeating alarm”，“Cancel”；Cancel/Esc/点框外不改变任何东西，开关仍开着；Skip once 后开关仍开着，行里出现 “⏭ Skips … · Undo”，下次响铃变成再下一次，那一次不响，也不出现在 🔔 角标里；Undo 恢复；已跳过时再点开关只有 Turn off 和 Cancel；一次性闹钟直接关，不弹框**
 
 ## 6. 自定义计时器
 
@@ -92,80 +90,85 @@
 - [ ] 7.5 新建 Every day 和 Weekdays 闹钟 → **下一次时间说明正确（周五设 Weekdays 显示下周一）**
 - [ ] 7.6 New alarm 依次选 Once、Every day、Weekdays、Weekends、Custom days；在 Weekdays 下点掉周一、再点回来、再加周六；手动点成只有周六周日；Custom days 下全部取消；分别添加一个 Once、一个 Weekends 和一个一三五的闹钟，并在周五响过之后看一三五那个的下一次 → **Once 和 Every day 不显示星期选择器；Weekdays 显示并选中周一到五，Weekends 选中周六周日；在 Weekdays 下点掉周一，下拉框自动变 Custom days，点回来又变回 Weekdays，加上周六变 Custom days；手动点成周六周日时变 Weekends；从 Once 选 Custom days 时默认选中今天星期几；一天都没选时 Add 是灰的；Once 添加后是单次闹钟（写 Once · 今天/明天）；Weekends 那行写 “Weekends”；一三五那行写 “Mon, Wed, Fri”，周五响后下一次是周一**
 - [ ] 7.7 关掉开关，再打开 → **关闭时变灰（不划线）；打开后恢复，时间不变**
-- [ ] 7.8 鼠标悬停一行，点 ✕ → **出现 ✕，点后删除**
-- [ ] 7.9 等闹钟到点 → **宠物响铃/跑到中间（按设置），气泡有 Snooze 5 min / Done**
-- [ ] 7.10 新建一个不填标签的一次性闹钟，到点后不理会，等它响完；再等下一次（贪睡后）响铃 → **自动贪睡：宠物旁 “💤 …”，面板显示 (1/3)，右键菜单 “Cancel snooze: Alarm 9:40 PM (next ring 9:46 PM)”；贪睡后的响铃气泡仍写 “Alarm 9:40 PM”，并有小字 “Snoozed 1× · first rang 9:40 PM”；第 3 次贪睡的响铃还写 “last try before it's marked missed”；所有时间都是同一种格式（跟随系统 12/24 小时制）**
-- [ ] 7.11 第 3 次贪睡后仍不理会 → **不再有系统通知；橙色 “⏰ Missed 9:40 PM” 角标（闹钟本来的时间，不是最后放弃的时间），完整显示不被截断，点击才消失**
-- [ ] 7.12 之后第一次把鼠标移到宠物上，并马上点一下宠物 → **宠物说 “You missed Alarm 9:40 PM (I tried 3 more times)…”，只说一次；点击不会把这句换成闲聊或抚摸台词（爱心照常增加）**
-- [ ] 7.13 任意一次贪睡响铃时点 Done → **整个贪睡周期结束，不再响**
-- [ ] 7.14 让 Every day 闹钟被错过 → **明天照常响**
-- [ ] 7.15 点掉 ⏰ Missed 角标后，看 Finished 区，再点 Clear → **错过的闹钟仍显示 “Missed · Today 9:40 PM · snoozed 3×”，左边大字 9:40 PM（不会变成 Rang 9:58）；按过 Done 的闹钟显示 “Rang · … · snoozed N×”；计时器显示 “Done · …”；最新的在最上面；Clear 后清空**
-- [ ] 7.16 跨天后（或改系统日期）打开面板 → **前一天已结束的项目被自动清理**
-- [ ] 7.17 隐藏宠物（托盘 Hide pet），设一个 2 分钟后的闹钟；到点后点 Done；再设一个，到点后点 Snooze；再设一个，到点时在托盘点 Show pet → **到点时宠物从最近的屏幕边缘出来，走到屏幕中央响铃，托盘仍写 Show pet；不再弹出系统通知；Done 或 Snooze 后宠物走回边缘隐藏；Snooze 后下次响铃时又出来；响铃时点 Show pet，宠物留在外面不再隐藏**
-- [ ] 7.18 隐藏宠物，设一个 1 分钟计时器和一个 2 分钟后提醒的待办，都不理；然后打开 Focus sessions 勾选，开始一个 1 分钟的专注（Focus 设为 1 分钟） → **计时器和待办到点时宠物都会出来响铃，没人理后走回边缘隐藏；勾了 Focus sessions 时，专注结束宠物出来说一句话，几秒后回去；没勾时不出来**
-- [ ] 7.19 接上一项（或隐藏时让一个闹钟贪睡 3 次后被标记为错过），然后点 Show pet；先不点 Done，摸摸宠物、悬停；退出 ePet 再打开；最后点 Done → **宠物出来后气泡写 “While I was hidden you missed:”，每条带日期（Today/Yesterday/具体日期）和类型图标，按时间先后，超过 5 条显示 “…and N more”；摸宠物或闲聊不会把它替换掉；重启后仍然出现；点 Done 后清单和 ⏰ Missed 角标消失（Finished 里仍写 Missed）；待办仍在列表里显示红色 Overdue**
-- [ ] 7.20 Settings → Pet 找到 “When hidden, it comes out for”，逐个取消 Alarms、Timers、To-do reminders，再勾回来；取消 Timers 后隐藏宠物，让一个计时器到点 → **默认 Alarms、Timers、To-do reminders 勾选，Focus sessions 不勾；取消任一前三项时出现红色 ❗ “While your pet is hidden, … will not alert you.”，写出具体是哪几项，全部勾回后消失；取消 Timers 时计时器到点宠物不出来，也没有声音，显示宠物时出现在 “While I was hidden you missed” 清单里**
-- [ ] 7.21 设一个 3 分钟后的一次性闹钟、一个 3 分钟后的计时器、一个 3 分钟后提醒的待办，然后退出 ePet，等 10 分钟后再打开；另设一个 2 分钟后的闹钟（贪睡 5 分钟 × 3 次），退出后等约 12 分钟再打开 → **第一组都不响：闹钟和计时器在 Finished 里写 “Didn't ring · … · ePet wasn't running”，没有 Missed 角标，也不在 “While I was hidden” 清单里；待办显示红色 “Overdue · …”；第二个闹钟打开后立刻补响，气泡写 “Snoozed 2× · first rang …”，不理的话再贪睡一次后被标记为错过；如果超过 15 分钟才打开则不响**
+- [ ] 7.8 设一个每天响的闹钟和一个工作日闹钟（周五晚上测最好），在 Alarms 页点它们的开关；分别试 Skip once、Undo、Turn off repeating alarm、Cancel/Esc；再点一个一次性闹钟的开关 → **重复闹钟弹框：闹钟名、重复方式，按钮 “Skip once · Sep 30 7:00 PM (Today)”（明天写 (Tomorrow)，更远写星期几，如周五跳工作日闹钟写 (Monday)），“Turn off repeating alarm”，“Cancel”；Cancel/Esc/点框外不改变任何东西，开关仍开着；Skip once 后开关仍开着，行里出现 “⏭ Skips … · Undo”，下次响铃变成再下一次，那一次不响，也不出现在 🔔 角标里；Undo 恢复；已跳过时再点开关只有 Turn off 和 Cancel；一次性闹钟直接关，不弹框**
+- [ ] 7.9 鼠标悬停一行，点 ✕ → **出现 ✕，点后删除**
+- [ ] 7.10 等闹钟到点 → **宠物响铃/跑到中间（按设置），气泡有 Snooze 5 min / Done**
+- [ ] 7.11 新建一个不填标签的一次性闹钟，到点后不理会，等它响完；再等下一次（贪睡后）响铃 → **自动贪睡：宠物旁 “💤 …”，面板显示 (1/3)，右键菜单 “Cancel snooze: Alarm 9:40 PM (next ring 9:46 PM)”；贪睡后的响铃气泡仍写 “Alarm 9:40 PM”，并有小字 “Snoozed 1× · first rang 9:40 PM”；第 3 次贪睡的响铃还写 “last try before it's marked missed”；所有时间都是同一种格式（跟随系统 12/24 小时制）**
+- [ ] 7.12 第 3 次贪睡后仍不理会 → **不再有系统通知；橙色 “⏰ Missed 9:40 PM” 角标（闹钟本来的时间，不是最后放弃的时间），完整显示不被截断，点击才消失**
+- [ ] 7.13 之后第一次把鼠标移到宠物上，并马上点一下宠物 → **宠物说 “You missed Alarm 9:40 PM (I tried 3 more times)…”，只说一次；点击不会把这句换成闲聊或抚摸台词（爱心照常增加）**
+- [ ] 7.14 设两个 1 小时内响的闹钟和一个 1.5 小时后响的闹钟；悬停并点击 🔔 角标；再到 Settings → Alarms & timers 关掉/打开 “Show alarms due within … min by the pet”，把分钟数改成 30、0、500；再让其中一个闹钟响起后贪睡 → **宠物旁出现 “🔔 最近那个闹钟的时间 +1”，悬停小框逐行列出这两个闹钟（自定义名字的写成 “Login CMC · 10:05 PM”），1.5 小时后的不在内；点击打开 Alarms 页；贪睡中的闹钟和快到点的闹钟在同一个角标里，按响铃时间排序：最近的是贪睡时角标写 “💤 时间 +n”，小框里贪睡的那行写 “Alarm 11:25 AM · 💤×1 · next 11:33 AM”；关掉 Show upcoming alarms 后贪睡的仍然显示；关掉后 🔔 消失且分钟数变灰，打开后恢复；分钟数只接受 1–120（0 变 1，500 变 120），改小后超出范围的闹钟从 🔔 里消失**
+- [ ] 7.15 任意一次贪睡响铃时点 Done → **整个贪睡周期结束，不再响**
+- [ ] 7.16 让 Every day 闹钟被错过 → **明天照常响**
+- [ ] 7.17 点掉 ⏰ Missed 角标后，看 Finished 区，再点 Clear → **错过的闹钟仍显示 “Missed · Today 9:40 PM · snoozed 3×”，左边大字 9:40 PM（不会变成 Rang 9:58）；按过 Done 的闹钟显示 “Rang · … · snoozed N×”；计时器显示 “Done · …”；最新的在最上面；Clear 后清空**
+- [ ] 7.18 跨天后（或改系统日期）打开面板 → **前一天已结束的项目被自动清理**
+- [ ] 7.19 设一个 3 分钟后的一次性闹钟、一个 3 分钟后的计时器、一个 3 分钟后提醒的待办，然后退出 ePet，等 10 分钟后再打开；另设一个 2 分钟后的闹钟（贪睡 5 分钟 × 3 次），退出后等约 12 分钟再打开 → **第一组都不响：闹钟和计时器在 Finished 里写 “Didn't ring · … · ePet wasn't running”，没有 Missed 角标，也不在 “While I was hidden” 清单里；待办显示红色 “Overdue · …”；第二个闹钟打开后立刻补响，气泡写 “Snoozed 2× · first rang …”，不理的话再贪睡一次后被标记为错过；如果超过 15 分钟才打开则不响**
 
-## 8. 面板 Quick timer
+## 8. 宠物隐藏时的提醒
 
-- [ ] 8.1 面板 → Alarms → Quick timer → **1m 5m 10m 15m 30m 45m 1h + 虚线的自定义按钮（如 1h30m、25m）**
-- [ ] 8.2 鼠标移到虚线按钮，点 ✎，改值回车 → **出现 ✎ ✕；输入框填入该值，提示 “25m → …”；回车后原位替换**
-- [ ] 8.3 点虚线按钮的 ✕ → **按钮消失，宠物右键菜单里也同步消失**
-- [ ] 8.4 看 Quick timer 按钮和 Custom 输入框之间，再在 Custom 输入框输入 2h 回车 → **按钮行和输入框之间有空隙；启动计时器，Timers 区出现大字倒计时 + Cancel**
+- [ ] 8.1 隐藏宠物（托盘 Hide pet），设一个 2 分钟后的闹钟；到点后点 Done；再设一个，到点后点 Snooze；再设一个，到点时在托盘点 Show pet → **到点时宠物从最近的屏幕边缘出来，走到屏幕中央响铃，托盘仍写 Show pet；不再弹出系统通知；Done 或 Snooze 后宠物走回边缘隐藏；Snooze 后下次响铃时又出来；响铃时点 Show pet，宠物留在外面不再隐藏**
+- [ ] 8.2 隐藏宠物，设一个 1 分钟计时器和一个 2 分钟后提醒的待办，都不理；然后打开 Focus sessions 勾选，开始一个 1 分钟的专注（Focus 设为 1 分钟） → **计时器和待办到点时宠物都会出来响铃，没人理后走回边缘隐藏；勾了 Focus sessions 时，专注结束宠物出来说一句话，几秒后回去；没勾时不出来**
+- [ ] 8.3 接上一项（或隐藏时让一个闹钟贪睡 3 次后被标记为错过），然后点 Show pet；先不点 Done，摸摸宠物、悬停；退出 ePet 再打开；最后点 Done → **宠物出来后气泡写 “While I was hidden you missed:”，每条带日期（Today/Yesterday/具体日期）和类型图标，按时间先后，超过 5 条显示 “…and N more”；摸宠物或闲聊不会把它替换掉；重启后仍然出现；点 Done 后清单和 ⏰ Missed 角标消失（Finished 里仍写 Missed）；待办仍在列表里显示红色 Overdue**
+- [ ] 8.4 Settings → Pet 找到 “When hidden, it comes out for”，逐个取消 Alarms、Timers、To-do reminders，再勾回来；取消 Timers 后隐藏宠物，让一个计时器到点 → **默认 Alarms、Timers、To-do reminders 勾选，Focus sessions 不勾；取消任一前三项时出现红色 ❗ “While your pet is hidden, … will not alert you.”，写出具体是哪几项，全部勾回后消失；取消 Timers 时计时器到点宠物不出来，也没有声音，显示宠物时出现在 “While I was hidden you missed” 清单里**
 
-## 9. 待办
+## 9. 面板 Quick timer
 
-- [ ] 9.1 输入 call mom at 3pm → **标题 “call mom”，今天 15:00 提醒**
-- [ ] 9.2 输入 standup tomorrow 9:30、stretch in 20m、pay rent fri 10am、just a note → **时间解析正确；最后一个没有提醒时间**
-- [ ] 9.3 面板添加待办，再勾选完成 → **添加时宠物确认一句；完成时宠物夸奖，爱心增加**
-- [ ] 9.4 等待办提醒到点 → **按 Alerts → To-do reminders 设置提示，只响一次**
-- [ ] 9.5 Done 区点 Clear → **已完成的待办被清空**
-- [ ] 9.6 勾选完成几个待办，打开 Done 区 → **每个显示 “Done · Today 3:15 PM”，最近完成的在最上面；待办的提醒时间显示为 “Today 3:00 PM”（没有前导 0）**
+- [ ] 9.1 面板 → Alarms → Quick timer → **1m 5m 10m 15m 30m 45m 1h + 虚线的自定义按钮（如 1h30m、25m）**
+- [ ] 9.2 鼠标移到虚线按钮，点 ✎，改值回车 → **出现 ✎ ✕；输入框填入该值，提示 “25m → …”；回车后原位替换**
+- [ ] 9.3 点虚线按钮的 ✕ → **按钮消失，宠物右键菜单里也同步消失**
+- [ ] 9.4 看 Quick timer 按钮和 Custom 输入框之间，再在 Custom 输入框输入 2h 回车 → **按钮行和输入框之间有空隙；启动计时器，Timers 区出现大字倒计时 + Cancel**
 
-## 10. 专注时段
+## 10. 待办
 
-- [ ] 10.1 右键 → Start focus session 🍅 → **角标显示专注倒计时（在计时器角标上方）**
-- [ ] 10.2 专注中让一个计时器响 → **宠物不离开原位**
-- [ ] 10.3 让专注时段结束 → **提示休息；每 N 轮进入长休息（按 Focus 页设置）**
-- [ ] 10.4 右键 → Stop focus session → **菜单显示 “Stop focus session (ends 4:10 PM)”；点后停止**
-- [ ] 10.5 Focus 页看 Last 7 days → **有统计记录**
-- [ ] 10.6 Focus 页打开 Work hours，保持周一到周五，把开始时间设成 1–2 分钟后、结束时间设成再过 30 分钟；等它自动开始；然后手动 Stop；再把结束时间改到 1 分钟后，手动 Start 看它到点后的表现；最后晚上（下班后）手动 Start → **打开后出现星期几和上下班时间，关闭后隐藏；到开始时间番茄钟自己开始（宠物旁出现 🍅）；手动停掉后当天不会再自动开始；过了结束时间，正在专注的番茄结束后不进入休息直接停，正在休息的休息完不再开始新番茄；下班后手动开始会一直循环（直到下一个工作日的结束时间）；关闭 Work hours 时和以前一样一直跑、不会自动开始**
+- [ ] 10.1 输入 call mom at 3pm → **标题 “call mom”，今天 15:00 提醒**
+- [ ] 10.2 输入 standup tomorrow 9:30、stretch in 20m、pay rent fri 10am、just a note → **时间解析正确；最后一个没有提醒时间**
+- [ ] 10.3 面板添加待办，再勾选完成 → **添加时宠物确认一句；完成时宠物夸奖，爱心增加**
+- [ ] 10.4 等待办提醒到点 → **按 Alerts → To-do reminders 设置提示，只响一次**
+- [ ] 10.5 Done 区点 Clear → **已完成的待办被清空**
+- [ ] 10.6 勾选完成几个待办，打开 Done 区 → **每个显示 “Done · Today 3:15 PM”，最近完成的在最上面；待办的提醒时间显示为 “Today 3:00 PM”（没有前导 0）**
 
-## 11. 心情与照顾
+## 11. 专注时段
 
-- [ ] 11.1 新角色放着几分钟 → **心情为 content（约 60%），不会自己变 grumpy**
-- [ ] 11.2 抚摸/喂食，短时间内多次抚摸 → **飘出 “+3 ♥”；抚摸太多时说 “That's plenty for now”**
-- [ ] 11.3 拖起来带着走；再用力甩出去砸地 → **带着走算玩耍，爱心增加；砸地轻微扣分**
-- [ ] 11.4 一直喂到饱 → **饱食度满，再喂有反应**
-- [ ] 11.5 面板 → Characters → **每个角色一张心情卡片**
-- [ ] 11.6 关掉应用一段时间再打开 → **心情不会因为关着的时间而下降**
+- [ ] 11.1 右键 → Start focus session 🍅 → **角标显示专注倒计时（在计时器角标上方）**
+- [ ] 11.2 专注中让一个计时器响 → **宠物不离开原位**
+- [ ] 11.3 让专注时段结束 → **提示休息；每 N 轮进入长休息（按 Focus 页设置）**
+- [ ] 11.4 右键 → Stop focus session → **菜单显示 “Stop focus session (ends 4:10 PM)”；点后停止**
+- [ ] 11.5 Focus 页看 Last 7 days → **有统计记录**
+- [ ] 11.6 Focus 页打开 Work hours，保持周一到周五，把开始时间设成 1–2 分钟后、结束时间设成再过 30 分钟；等它自动开始；然后手动 Stop；再把结束时间改到 1 分钟后，手动 Start 看它到点后的表现；最后晚上（下班后）手动 Start → **打开后出现星期几和上下班时间，关闭后隐藏；到开始时间番茄钟自己开始（宠物旁出现 🍅）；手动停掉后当天不会再自动开始；过了结束时间，正在专注的番茄结束后不进入休息直接停，正在休息的休息完不再开始新番茄；下班后手动开始会一直循环（直到下一个工作日的结束时间）；关闭 Work hours 时和以前一样一直跑、不会自动开始**
 
-## 12. 设置
+## 12. 心情与照顾
 
-- [ ] 12.1 打开面板，用默认窗口大小看 Focus 页（打开 Work hours）和 Settings 页；改几个设置（大小、Quiet hours 时间、铃声、Ring for、If nobody answers、隐藏时出来的勾选、开机启动）后切页再回来；把 “Show alarms due within” 改成 120，If nobody answers 选每一项，New alarm 的重复方式选 Custom days → **Focus 页不用滚动就能看到全部内容：顶部一张卡片（阶段、倒计时、按钮）、7 天柱状图和总数、四个时长一行、两个勾选、Work hours 卡片（星期和时间一行、一行小字说明）；Settings 分为 Pet / Alarms & timers / To-do reminders / General 四张卡片，Quiet hours 和 “When hidden, it comes out for” 在 Pet 卡片里，Ring for 和 If nobody answers 并排；改过的设置切页回来都还在；所有输入框和下拉框的文字都完整显示（120 不会变成 12，“Mark as missed”、“Custom days”、“Label” 不被截断）**
-- [ ] 12.2 拖动 Pet size / Pet speed 滑块 → **实时生效**
-- [ ] 12.3 Alerts 里分别切换跑到中间、Ring、铃声、音量 → **▶ 试听有声音；实际提醒按设置执行**
-- [ ] 12.4 逐个试听 6 种铃声 → **classic / chime / digital / gentle rise / marimba / rooster crow 都能播**
-- [ ] 12.5 改 Ring for 和 If nobody answers → **按设置执行（响铃时长、贪睡次数或直接标记 missed）**
-- [ ] 12.6 Quiet hours 设成包含当前时间 → **宠物安静，但闹钟照常响**
-- [ ] 12.7 关掉 Other sounds → **抚摸、专注提示不再有声音**
+- [ ] 12.1 新角色放着几分钟 → **心情为 content（约 60%），不会自己变 grumpy**
+- [ ] 12.2 抚摸/喂食，短时间内多次抚摸 → **飘出 “+3 ♥”；抚摸太多时说 “That's plenty for now”**
+- [ ] 12.3 拖起来带着走；再用力甩出去砸地 → **带着走算玩耍，爱心增加；砸地轻微扣分**
+- [ ] 12.4 一直喂到饱 → **饱食度满，再喂有反应**
+- [ ] 12.5 面板 → Characters → **每个角色一张心情卡片**
+- [ ] 12.6 关掉应用一段时间再打开 → **心情不会因为关着的时间而下降**
 
-## 13. 角色
+## 13. 设置
 
-- [ ] 13.1 右键 → Switch character → Rooster，再切回 Cat → **换成公鸡，菜单打勾正确；切回后 Cat 的心情值还在**
-- [ ] 13.2 Characters 页点 “your characters folder” → **打开用户角色文件夹**
+- [ ] 13.1 打开面板，用默认窗口大小看 Focus 页（打开 Work hours）和 Settings 页；改几个设置（大小、Quiet hours 时间、铃声、Ring for、If nobody answers、隐藏时出来的勾选、开机启动）后切页再回来；把 “Show alarms due within” 改成 120，If nobody answers 选每一项，New alarm 的重复方式选 Custom days → **Focus 页不用滚动就能看到全部内容：顶部一张卡片（阶段、倒计时、按钮）、7 天柱状图和总数、四个时长一行、两个勾选、Work hours 卡片（星期和时间一行、一行小字说明）；Settings 分为 Pet / Alarms & timers / To-do reminders / General 四张卡片，Quiet hours 和 “When hidden, it comes out for” 在 Pet 卡片里，Ring for 和 If nobody answers 并排；改过的设置切页回来都还在；所有输入框和下拉框的文字都完整显示（120 不会变成 12，“Mark as missed”、“Custom days”、“Label” 不被截断）**
+- [ ] 13.2 拖动 Pet size / Pet speed 滑块 → **实时生效**
+- [ ] 13.3 Alerts 里分别切换跑到中间、Ring、铃声、音量 → **▶ 试听有声音；实际提醒按设置执行**
+- [ ] 13.4 逐个试听 6 种铃声 → **classic / chime / digital / gentle rise / marimba / rooster crow 都能播**
+- [ ] 13.5 改 Ring for 和 If nobody answers → **按设置执行（响铃时长、贪睡次数或直接标记 missed）**
+- [ ] 13.6 Quiet hours 设成包含当前时间 → **宠物安静，但闹钟照常响**
+- [ ] 13.7 关掉 Other sounds → **抚摸、专注提示不再有声音**
 
-## 14. 小游戏 Safe Landing
+## 14. 角色
 
-- [ ] 14.1 右键 → Play Safe Landing → **游戏窗口打开，宠物主窗口仍正常**
-- [ ] 14.2 开始专注后：右键宠物和托盘里看 Play Safe Landing；点它，分别选 Cancel 和 Play anyway；隐藏宠物后看托盘；让一个计时器响铃时从托盘点游戏；在面板 Games 页点 Play；到休息时间再点；最后在 Focus 页关掉 “Ask before games during a focus session” → **专注中菜单写 “Play Safe Landing (focusing)”；宠物气泡先问 “We're focusing until … Play anyway?”，回答前不打开任何界面，Cancel 不开游戏，Play anyway 才打开；宠物隐藏时托盘里没有 Play Safe Landing（专注结束或显示宠物后重新出现）；响铃时点游戏，响铃结束后宠物再问；面板 Games 页点 Play 先弹框询问；休息时和关掉选项后不再询问，菜单也没有 (focusing)**
-- [ ] 14.3 ← → / A D 移动；Space 或 Enter 开始 → **操作正常**
-- [ ] 14.4 分别用 Cat 和 Rooster 玩 → **Cat 抓 ☂ 减速；Rooster 按住 Space 滑翔，提示文字对应**
-- [ ] 14.5 结束后按 R 重来，再关闭窗口 → **可以重来；关闭后回到桌面，宠物爱心增加**
+- [ ] 14.1 右键 → Switch character → Rooster，再切回 Cat → **换成公鸡，菜单打勾正确；切回后 Cat 的心情值还在**
+- [ ] 14.2 Characters 页点 “your characters folder” → **打开用户角色文件夹**
 
-## 15. 稳定性
+## 15. 小游戏 Safe Landing
 
-- [ ] 15.1 连续打开/关闭面板和游戏窗口 10 次 → **不卡死、没有黑窗、任务栏不消失**
-- [ ] 15.2 电脑睡眠后唤醒 → **宠物正常；错过的闹钟按贪睡/Missed 规则处理**
-- [ ] 15.3 运行 1 小时以上，看任务管理器/活动监视器 → **CPU、内存占用稳定，不持续上涨**
+- [ ] 15.1 右键 → Play Safe Landing → **游戏窗口打开，宠物主窗口仍正常**
+- [ ] 15.2 开始专注后：右键宠物和托盘里看 Play Safe Landing；点它，分别选 Cancel 和 Play anyway；隐藏宠物后看托盘；让一个计时器响铃时从托盘点游戏；在面板 Games 页点 Play；到休息时间再点；最后在 Focus 页关掉 “Ask before games during a focus session” → **专注中菜单写 “Play Safe Landing (focusing)”；宠物气泡先问 “We're focusing until … Play anyway?”，回答前不打开任何界面，Cancel 不开游戏，Play anyway 才打开；宠物隐藏时托盘里没有 Play Safe Landing（专注结束或显示宠物后重新出现）；响铃时点游戏，响铃结束后宠物再问；面板 Games 页点 Play 先弹框询问；休息时和关掉选项后不再询问，菜单也没有 (focusing)**
+- [ ] 15.3 ← → / A D 移动；Space 或 Enter 开始 → **操作正常**
+- [ ] 15.4 分别用 Cat 和 Rooster 玩 → **Cat 抓 ☂ 减速；Rooster 按住 Space 滑翔，提示文字对应**
+- [ ] 15.5 结束后按 R 重来，再关闭窗口 → **可以重来；关闭后回到桌面，宠物爱心增加**
+
+## 16. 稳定性
+
+- [ ] 16.1 连续打开/关闭面板和游戏窗口 10 次 → **不卡死、没有黑窗、任务栏不消失**
+- [ ] 16.2 电脑睡眠后唤醒 → **宠物正常；错过的闹钟按贪睡/Missed 规则处理**
+- [ ] 16.3 运行 1 小时以上，看任务管理器/活动监视器 → **CPU、内存占用稳定，不持续上涨**
