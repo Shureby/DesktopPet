@@ -5,6 +5,11 @@
 - **Characters**: dog, sheep, goat, tiger, gorilla, each with one new ability (`chaseCursor`, `graze`, `highJump`, `sprint`, `chestBeat`) and its own fighting style.
 - **Mini-games**: Jump Up (endless climber) and Stickman Fight (1v1 using each character's `moveset`; the stickman AI is a state machine).
 - **Steam**: real App ID, achievements, Workshop upload and download of data-only characters.
+- **Steam on macOS (before launch):** CI builds only a Windows Steam depot today. Add a
+  macOS Steam depot job: universal build with `--features steam`, `libsteam_api.dylib`
+  in `Contents/Frameworks` (via `bundle.macOS.frameworks` in a Steam-specific Tauri
+  config), signed and notarised. Launch on Steam with Windows and macOS ticked; Linux and
+  SteamOS unticked.
 - **Direct build**: auto-updater feed, code signing, license keys.
 
 ## Rename to ChimePet (do in the last build before launch)
@@ -42,6 +47,27 @@ program, so both would be installed and both would start with the computer.
 
 **Outside the code:** a page at ezyappco.com/ChimePet (redirect /ePet there), and the
 store listings under the new name.
+
+## Linux (later, if users ask)
+
+> **Status: idea for later.** Recorded 2026-10-01. Not planned for launch: Steam ships
+> Windows and macOS only, and Linux/SteamOS stay unticked.
+
+- **Why not now:**
+  - On **Wayland** (the default on most distros) an app can't move its own window, and
+    the pet walks by moving its window. It only works under X11/XWayland
+    (`GDK_BACKEND=x11`).
+  - Transparent, always-on-top windows and the tray behave differently across desktops.
+    GNOME has no tray without an extension.
+  - Steam's Linux runtime doesn't include WebKitGTK, so we'd have to ship it ourselves.
+- **Proton isn't the answer:** the Windows build depends on WebView2, which is generally
+  unreliable under Proton. Transparency and the tray are likely to break too. Don't claim
+  Proton or Steam Deck support.
+- **Steam Deck:** Game Mode shows one full-screen app and has no desktop, so a desktop
+  pet has no place there. Desktop Mode is plain Linux (see above).
+- **If we do it:** a native Linux build that forces X11, a tray fallback (open the panel
+  from the pet's menu), WebKitGTK bundled for the Steam runtime, and a "Linux (X11)"
+  note on the store page.
 
 ## Personality
 
