@@ -83,13 +83,12 @@ pub fn next_todo<Tz: TimeZone>(tz: &Tz, anchor: Millis, repeat: TodoRepeat, afte
         TodoRepeat::Quarterly => 92 * 24 + 1,
         TodoRepeat::Yearly => 366 * 24 + 1,
     } * 3_600_000;
-    let mut n = ((after - anchor).max(0) / longest_step) as u32;
-    for _ in 0..10_000 {
+    let first = ((after - anchor).max(0) / longest_step) as u32;
+    for n in (first..).take(10_000) {
         let t = todo_occurrence(tz, anchor, repeat, n)?;
         if t > after {
             return Some(t);
         }
-        n += 1;
     }
     None
 }
