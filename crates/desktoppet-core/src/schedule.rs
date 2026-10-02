@@ -93,6 +93,29 @@ pub fn next_todo<Tz: TimeZone>(tz: &Tz, anchor: Millis, repeat: TodoRepeat, afte
     None
 }
 
+/// The anniversary on `month`/`day` on or after `date`: this year's, or next year's once it
+/// has passed. Feb 29 is Feb 28 in other years.
+pub fn anniversary_on_or_after(month: u32, day: u32, date: NaiveDate) -> Option<NaiveDate> {
+    (date.year()..=date.year() + 1).find_map(|y| {
+        let d = NaiveDate::from_ymd_opt(y, month, day).or_else(|| NaiveDate::from_ymd_opt(y, month, day - 1))?;
+        (d >= date).then_some(d)
+    })
+}
+
+/// The day of a reminder `lead` ("1d", "2d", "3d", "1w", "2w", "1m") before `on`.
+pub fn prep_day(on: NaiveDate, lead: &str) -> Option<NaiveDate> {
+    let days = match lead {
+        "1d" => 1,
+        "2d" => 2,
+        "3d" => 3,
+        "1w" => 7,
+        "2w" => 14,
+        "1m" => return on.checked_sub_months(Months::new(1)),
+        _ => return None,
+    };
+    on.checked_sub_days(chrono::Days::new(days))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -166,5 +189,20 @@ mod tests {
         assert_eq!(next_todo(&London, d, TodoRepeat::Daily, d), Some(ms(&London, 2026, 3, 29, 9, 0)));
         // Not repeating: only its own time.
         assert_eq!(next_todo(&London, d, TodoRepeat::None, d), None);
+    }
+
+    #[test]
+    fn anniversaries_fall_on_their_day_each_year() {
+        let d = |y, m, dd| NaiveDate::from_ymd_opt(y, m, dd).unwrap();
+        assert_eq!(anniversary_on_or_after(10, 25, d(2026, 10, 2)), Some(d(2026, 10, 25)));
+        assert_eq!(anniversary_on_or_after(10, 25, d(2026, 10, 25)), Some(d(2026, 10, 25)));
+        assert_eq!(anniversary_on_or_after(3, 3, d(2026, 10, 2)), Some(d(2027, 3, 3)));
+        // Feb 29: Feb 28 in other years, Feb 29 in leap years.
+        assert_eq!(anniversary_on_or_after(2, 29, d(2026, 10, 2)), Some(d(2027, 2, 28)));
+        assert_eq!(anniversary_on_or_after(2, 29, d(2027, 10, 2)), Some(d(2028, 2, 29)));
+        assert_eq!(prep_day(d(2026, 10, 25), "1d"), Some(d(2026, 10, 24)));
+        assert_eq!(prep_day(d(2026, 10, 25), "2w"), Some(d(2026, 10, 11)));
+        assert_eq!(prep_day(d(2026, 3, 31), "1m"), Some(d(2026, 2, 28)));
+        assert_eq!(prep_day(d(2026, 3, 31), "soon"), None);
     }
 }

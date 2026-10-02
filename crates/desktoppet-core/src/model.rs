@@ -337,3 +337,64 @@ pub struct NewUnseen {
     #[serde(default)]
     pub snoozes: u32,
 }
+
+/// A day to remember every year (docs/INTERACTIONS.md, "Anniversaries"). `kind` is the
+/// template it was made from ("birthday", "remembrance"…, see
+/// src/features/anniversary/templates.ts); the app only needs it for the pet's words.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Anniversary {
+    pub id: i64,
+    pub kind: String,
+    pub icon: String,
+    pub name: String,
+    pub month: u32,
+    pub day: u32,
+    /// The year it began (for "36th"), if given.
+    pub since: Option<i32>,
+    /// Reminders before the day, each made into a to-do on its day.
+    pub preps: Vec<AnniversaryPrep>,
+    /// Fireworks (or, for a remembrance, a candle and flowers) on the day.
+    pub effect: bool,
+    pub created_at: Millis,
+}
+
+/// "1 day before: Order a cake". `lead` is "1d", "2d", "3d", "1w", "2w" or "1m".
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AnniversaryPrep {
+    pub lead: String,
+    pub label: String,
+}
+
+/// An anniversary from the panel's form (new or edited).
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NewAnniversary {
+    pub kind: String,
+    pub icon: String,
+    pub name: String,
+    pub month: u32,
+    pub day: u32,
+    pub since: Option<i32>,
+    #[serde(default)]
+    pub preps: Vec<AnniversaryPrep>,
+    #[serde(default)]
+    pub effect: bool,
+}
+
+/// Today is an anniversary: the pet celebrates it (and the app may play the effect).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Celebration {
+    pub anniversary: Anniversary,
+    /// How many years since `since` (none without one, or in its first year).
+    pub years: Option<i32>,
+    /// Play the fireworks / candle on screen (the setting and the anniversary's own switch).
+    pub effect: bool,
+    /// How long it lasts, in seconds (settings, 10–60).
+    pub seconds: u32,
+    /// The pet is hidden and comes out just for this (set by the app).
+    #[serde(default)]
+    pub peek: bool,
+}

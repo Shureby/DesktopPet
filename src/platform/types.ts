@@ -61,6 +61,8 @@ export interface Settings {
   upcomingAlarms: { show: boolean; minutes: number };
   /** "HH:MM": when to-dos without a time remind you on their day. */
   todoDayTime: string;
+  /** Anniversaries on screen (fireworks, or a remembrance's candle) and for how long (10–60 s). */
+  celebrate: { enabled: boolean; seconds: number };
   pomodoro: PomodoroConfig;
   autostart: boolean;
 }
@@ -76,9 +78,10 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   recentTimers: [],
   quietHours: { enabled: false, start: "22:00", end: "08:00" },
-  hiddenAlerts: { alarms: true, timers: true, todos: true, focus: false },
+  hiddenAlerts: { alarms: true, timers: true, todos: true, focus: false, anniversaries: true },
   upcomingAlarms: { show: true, minutes: 60 },
   todoDayTime: "09:00",
+  celebrate: { enabled: true, seconds: 15 },
   pomodoro: {
     focusMin: 25,
     shortBreakMin: 5,
@@ -110,6 +113,11 @@ export function mergeSettings(stored: Partial<Settings> | null | undefined): Set
     upcomingAlarms: (() => {
       const u = { ...d.upcomingAlarms, ...s.upcomingAlarms };
       return { show: u.show !== false, minutes: clampUpcomingMinutes(u.minutes) };
+    })(),
+    celebrate: (() => {
+      const c = { ...d.celebrate, ...s.celebrate };
+      const seconds = Math.round(Number(c.seconds));
+      return { enabled: c.enabled !== false, seconds: Number.isFinite(seconds) ? Math.min(60, Math.max(10, seconds)) : 15 };
     })(),
     todoDayTime: typeof s.todoDayTime === "string" && /^\d{2}:\d{2}$/.test(s.todoDayTime) ? s.todoDayTime : d.todoDayTime,
     pomodoro: { ...d.pomodoro, ...s.pomodoro, workHours: { ...d.pomodoro.workHours, ...s.pomodoro?.workHours } },
@@ -230,6 +238,42 @@ export interface ReminderEvent {
   allDay?: boolean;
 }
 
+/** A day to remember every year (docs/INTERACTIONS.md, "Anniversaries"). */
+export interface Anniversary {
+  id: number;
+  /** The template it was made from (src/features/anniversary/templates.ts). */
+  kind: string;
+  icon: string;
+  name: string;
+  month: number;
+  day: number;
+  /** The year it began, for "36th". */
+  since: number | null;
+  preps: AnniversaryPrep[];
+  /** Fireworks (a remembrance: a candle and flowers) on the day. */
+  effect: boolean;
+  createdAt: number;
+}
+
+/** "1 day before: Order a cake"; `lead` is "1d", "2d", "3d", "1w", "2w" or "1m". */
+export interface AnniversaryPrep {
+  lead: string;
+  label: string;
+}
+
+export type NewAnniversary = Omit<Anniversary, "id" | "createdAt">;
+
+/** Today is an anniversary: the pet celebrates (and the app may play the effect). */
+export interface Celebration {
+  anniversary: Anniversary;
+  years: number | null;
+  /** Play the fireworks / candle on screen. */
+  effect: boolean;
+  seconds: number;
+  /** The pet is hidden and came out just for this. */
+  peek?: boolean;
+}
+
 /** "While I was hidden you missed…": something the hidden pet rang that nobody answered. */
 export interface Unseen {
   id: number;
@@ -249,6 +293,8 @@ export interface HiddenAlerts {
   todos: boolean;
   /** When a focus session or break ends. */
   focus: boolean;
+  /** An anniversary's celebration (the hidden pet otherwise waits until it's shown). */
+  anniversaries: boolean;
 }
 
 export type PanelTab = "todos" | "alarms" | "focus" | "characters" | "games" | "settings";
@@ -259,6 +305,9 @@ export interface BackendEvents {
   settings: Settings;
   "todos-changed": null;
   "alarms-changed": null;
+  "anniversaries-changed": null;
+  /** Today is an anniversary (once a day, the first time you're at the computer). */
+  celebrate: Celebration;
   game: { state: "started" | "ended"; game: string };
   "panel-tab": PanelTab;
   "pet-command": "show" | "hide" | "greet";
@@ -295,6 +344,12 @@ export interface Backend {
   deleteTodo(id: number): Promise<void>;
   /** Removes all ticked-off to-dos; returns how many. */
   clearDoneTodos(): Promise<number>;
+
+  listAnniversaries(): Promise<Anniversary[]>;
+  addAnniversary(a: NewAnniversary): Promise<Anniversary>;
+  updateAnniversary(id: number, a: NewAnniversary): Promise<Anniversary>;
+  /** The to-dos its reminders already made stay. */
+  deleteAnniversary(id: number): Promise<void>;
 
   listAlarms(): Promise<Alarm[]>;
   /** `days` is for repeat "days". */

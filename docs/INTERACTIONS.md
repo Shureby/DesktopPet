@@ -338,6 +338,57 @@ Code: `renderTodos` in `src/panel/main.ts`, `src/panel/dateField.ts`, `src/featu
   - If that day has already come, it isn't reminded a second time.
   - If the to-do was deleted meanwhile, the entry just becomes an ordinary open to-do.
 
+## Anniversaries (since 0.26.0)
+
+Code: `renderAnniversaries` in `src/panel/main.ts`, `src/features/anniversary/templates.ts`,
+`src/celebrate/` (the effects), `onCelebrate` in `src/pet/PetHost.ts`;
+`tick_anniversaries`/`celebrations_due` in `crates/desktoppet-core/src/store.rs` (v12),
+`celebrate` in `src-tauri/src/scheduler.rs`, `open_celebration` in `app_windows.rs`.
+
+- **Where:** To-dos has two sub-pages, [To-dos] (where it opens) and
+  [🎂 Anniversaries · n]. The count is how many fall within a week.
+- **The form:**
+  - **Type** (template): Birthday, Wedding anniversary, Dating anniversary, Pet's
+    birthday, Work anniversary, Home anniversary, Remembrance, Custom. It fills in the
+    icon, the reminders and the day's effect. Anything changed by hand stays when the type
+    changes.
+  - **Icon:** the button opens a grid of 20 emoji.
+  - **Name.**
+  - **Date:** day and month only, in the date field (drag, scroll, type). Feb 29 can be
+    picked; in other years it's Feb 28.
+  - **Since:** the year it began, optional, for "36th" / "7 years".
+  - **Remind before:** up to 3 rows of lead (1 day, 2 days, 3 days, 1 week, 2 weeks,
+    1 month) and label.
+  - **The day's effect:** "Fireworks on the day 🎆" (on for happy days), or for a
+    remembrance "Candle and flowers on the day 🕯️" (off by default, since some find it
+    unlucky, but the day is still remembered).
+- **The list:** soonest first: "Sat, 25 Oct · in 3 days · 36th" (orange within a week,
+  "Today 🎉" on the day), and the reminders. ✎ (on hover) edits it like alarms and to-dos.
+  ✕ deletes it, but the to-dos it already made stay.
+- **Reminders become to-dos on their day:** a day's to-do "🎂 Mum - Order a cake", reminded
+  at the to-dos-without-a-time time. Each is made once a year.
+  - If ePet wasn't running that day, it's made at the next start up to the anniversary
+    (it shows as overdue).
+  - Reminder days already past when the anniversary was added or changed aren't made.
+- **On the day:** the first time you're at the computer (the cursor moves), once a day.
+  - The pet says the day's words for as long as the celebration lasts:
+    - "🎉 Happy 36th birthday, Mum!"
+    - "🥂 Happy 10th wedding anniversary!"
+    - "🕯️ Remembering 外婆 today." / "7 years"
+    - …
+  - If its effect is on (and the setting), the app plays it in a transparent,
+    click-through window over the pet's monitor:
+    - **Fireworks**, with the anniversary's icon and its template's icons falling
+      (🎂🎈🎁, 💍❤️🥂…);
+    - **for a remembrance:** the screen dims, a white candle flickers between two white
+      chrysanthemums beside the pet.
+  - **Settings → To-do reminders → "Celebrate anniversaries on screen for [15] s"**
+    (10–60 s). Off: no effect, the pet just says it.
+  - **Hidden pet:** it comes out for it if "When hidden, it comes out for → Anniversaries"
+    is ticked (the default). Otherwise the celebration waits until the pet is shown that
+    day.
+  - An alarm ringing at the time goes first.
+
 ## Focus work hours (since 0.20.0)
 
 Code: `run_cutoff`, `current_work_period` in `crates/desktoppet-core/src/pomodoro.rs` (mirrored

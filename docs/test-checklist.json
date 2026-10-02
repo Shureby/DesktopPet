@@ -674,6 +674,54 @@
       ]
     },
     {
+      "id": "anniversary",
+      "title": "纪念日",
+      "items": [
+        {
+          "id": "anniv.subpages",
+          "rev": "0.26.0",
+          "do": "打开 To-dos 页，点 🎂 Anniversaries，再切回 To-dos；切到别的页再回来",
+          "expect": "顶部有 [To-dos] [🎂 Anniversaries] 两个子页按钮，打开 To-dos 默认在 To-dos 子页；7 天内有纪念日时按钮上有数字"
+        },
+        {
+          "id": "anniv.form",
+          "rev": "0.26.0",
+          "do": "在 Anniversaries 子页依次选 Type：Birthday、Remembrance、Wedding anniversary；点图标按钮选一个别的图标；手动改一条提前提醒后再换 Type",
+          "expect": "Birthday 自动填 🎂、1 week: Buy a gift、1 day: Order a cake，勾选 “Fireworks on the day 🎆”；Remembrance 变 🕯️、1 day: Buy flowers，勾选框文字变成 “Candle and flowers on the day 🕯️” 且默认不勾；图标网格 20 个可选，选中的有橙框；手动改过的图标、提醒、勾选在换 Type 时保留"
+        },
+        {
+          "id": "anniv.add-list",
+          "rev": "0.26.0",
+          "do": "添加三个：今天的生日（Since 1990）、明天的结婚纪念日（Since 2016）、40 天后的忌日（Since 2019）；日期框试拖动和滚轮，选 2 月 29 日；最多加 3 条提前提醒",
+          "expect": "日期只有日和月，可拖、滚、打字，能选 Feb 29；列表按日期排序：“… · Today 🎉 · 36th”、“… · Tomorrow · 10th”（7 天内橙色）、“… · in 40 days · 7 years”，下面列出提前提醒；+ Add another 到 3 条后消失"
+        },
+        {
+          "id": "anniv.prep-todo",
+          "rev": "0.26.0",
+          "do": "建一个明天的纪念日，提前提醒 1 day / Buy flowers 和 1 week / Book a restaurant；切到 To-dos 子页；关掉 ePet，第二天再开（或改系统日期）测一个昨天该生成的提醒",
+          "expect": "To-dos 的 Today 里出现 “💍 名字 - Buy flowers”（只有日期、没有时间，按待办提醒时间提醒），只出现一次；1 week 那条因为添加时已过期，不会生成；错过那天开机后补生成，显示 Overdue；删掉纪念日后已生成的待办保留"
+        },
+        {
+          "id": "anniv.fireworks",
+          "rev": "0.26.0",
+          "do": "建一个今天的生日（Since 1990），等几秒后动一下鼠标；看完再打开面板改设置时长为 10 秒，第二个今天的纪念日再测",
+          "expect": "鼠标一动，宠物所在屏幕放烟花，同时飘落 🎂🎈🎁，宠物说 “🎉 Happy 36th birthday, 名字!”；烟花期间可以正常点击后面的窗口；时长到了烟花和这句话一起消失；同一个纪念日当天不会再放第二次"
+        },
+        {
+          "id": "anniv.candle",
+          "rev": "0.26.0",
+          "do": "建一个今天的 Remembrance，先不勾 “Candle and flowers on the day”；再建一个勾上的",
+          "expect": "不勾的：没有屏幕效果，宠物安静地说 “🕯️ Remembering 名字 today.”（有 Since 时下面写 “N years”），宠物不做开心的动作；勾上的：屏幕变暗，宠物旁边一支白蜡烛在闪动，两边各一朵白菊花，时间到自动消失"
+        },
+        {
+          "id": "anniv.settings",
+          "rev": "0.26.0",
+          "do": "Settings → To-do reminders 关掉 “Celebrate anniversaries on screen”，再测一个今天的生日；Pet 卡片取消 “Anniversaries” 后隐藏宠物，再测一个；最后勾回 Anniversaries 并隐藏宠物测一次",
+          "expect": "关掉后没有烟花，宠物只说一句；时长只能 10–60 秒；不勾 Anniversaries 时隐藏的宠物不出来，等你点 Show pet 后当天再庆祝；勾上时宠物从屏幕边出来庆祝，结束后回去隐藏"
+        }
+      ]
+    },
+    {
       "id": "focus",
       "title": "专注时段",
       "items": [

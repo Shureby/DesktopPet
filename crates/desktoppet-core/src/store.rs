@@ -2,13 +2,13 @@
 
 use std::path::Path;
 
-use chrono::{DateTime, Duration, NaiveTime, TimeZone, Timelike, Utc};
+use chrono::{DateTime, Datelike, Duration, NaiveTime, TimeZone, Timelike, Utc};
 use rusqlite::{params, Connection, OptionalExtension};
 use serde_json::Value;
 
 use crate::model::*;
 use crate::pomodoro;
-use crate::schedule::{local_date, local_ms, next_occurrence, next_todo, parse_hm};
+use crate::schedule::{anniversary_on_or_after, local_date, local_ms, next_occurrence, next_todo, parse_hm, prep_day};
 
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
@@ -96,7 +96,32 @@ const MIGRATIONS: &[&str] = &[
     // v11: a ticked-off time of a repeating to-do remembers which one it was, so unticking
     // it in Done undoes the tick.
     "ALTER TABLE todos ADD COLUMN repeat_of INTEGER;",
+    // v12: anniversaries, the to-dos made from their reminders (once per year each), and the
+    // day each was last celebrated.
+    "CREATE TABLE anniversaries (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       kind TEXT NOT NULL,
+       icon TEXT NOT NULL,
+       name TEXT NOT NULL,
+       month INTEGER NOT NULL,
+       day INTEGER NOT NULL,
+       since INTEGER,
+       preps TEXT NOT NULL DEFAULT '[]',
+       effect INTEGER NOT NULL DEFAULT 1,
+       created_at INTEGER NOT NULL,
+       changed_at INTEGER NOT NULL,
+       celebrated_on TEXT);
+     CREATE TABLE anniversary_preps_made (
+       anniversary_id INTEGER NOT NULL,
+       prep TEXT NOT NULL,
+       occurrence TEXT NOT NULL,
+       PRIMARY KEY (anniversary_id, prep, occurrence));",
 ];
+
+const ANNIVERSARY_COLUMNS: &str = "id, kind, icon, name, month, day, since, preps, effect, created_at";
+
+/// How long the celebration lasts if the settings don't say (`celebrate.seconds`, 10–60).
+const DEFAULT_CELEBRATE_SECONDS: u32 = 15;
 
 const TODO_COLUMNS: &str = "id, title, due_at, done, created_at, done_at, all_day, repeat";
 
@@ -335,6 +360,180 @@ impl Store {
 
     pub fn delete_todo(&self, id: i64) -> Result<()> {
         self.conn.execute("DELETE FROM todos WHERE id = ?1", [id])?;
+        Ok(())
+    }
+
+    // --- Anniversaries -------------------------------------------------------
+
+    fn anniversary_row(r: &rusqlite::Row) -> rusqlite::Result<Anniversary> {
+        let preps: String = r.get(7)?;
+        Ok(Anniversary {
+            id: r.get(0)?,
+            kind: r.get(1)?,
+            icon: r.get(2)?,
+            name: r.get(3)?,
+            month: r.get(4)?,
+            day: r.get(5)?,
+            since: r.get(6)?,
+            preps: serde_json::from_str(&preps).unwrap_or_default(),
+            effect: r.get(8)?,
+            created_at: r.get(9)?,
+        })
+    }
+
+    pub fn list_anniversaries(&self) -> Result<Vec<Anniversary>> {
+        let mut stmt = self.conn.prepare(&format!("SELECT {ANNIVERSARY_COLUMNS} FROM anniversaries ORDER BY id"))?;
+        let rows = stmt.query_map([], Self::anniversary_row)?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
+    fn anniversary(&self, id: i64) -> Result<Option<Anniversary>> {
+        Ok(self
+            .conn
+            .query_row(
+                &format!("SELECT {ANNIVERSARY_COLUMNS} FROM anniversaries WHERE id = ?1"),
+                [id],
+                Self::anniversary_row,
+            )
+            .optional()?)
+    }
+
+    /// The name and a real day of the year (Feb 29 is allowed) are needed; at most 3 reminders.
+    fn check_anniversary(a: &NewAnniversary) -> Result<(String, Vec<AnniversaryPrep>)> {
+        let name = a.name.trim();
+        if name.is_empty() {
+            return Err(StoreError::Invalid("name is empty".into()));
+        }
+        // 2000 is a leap year, so Feb 29 is a day of the year.
+        if chrono::NaiveDate::from_ymd_opt(2000, a.month, a.day).is_none() {
+            return Err(StoreError::Invalid("no such day".into()));
+        }
+        let preps: Vec<AnniversaryPrep> = a
+            .preps
+            .iter()
+            .filter(|p| !p.label.trim().is_empty())
+            .take(3)
+            .map(|p| AnniversaryPrep { lead: p.lead.clone(), label: p.label.trim().to_string() })
+            .collect();
+        Ok((name.to_string(), preps))
+    }
+
+    pub fn add_anniversary(&self, a: &NewAnniversary, now: Millis) -> Result<Anniversary> {
+        let (name, preps) = Self::check_anniversary(a)?;
+        self.conn.execute(
+            "INSERT INTO anniversaries (kind, icon, name, month, day, since, preps, effect, created_at, changed_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?9)",
+            params![a.kind, a.icon, name, a.month, a.day, a.since, serde_json::to_string(&preps)?, a.effect, now],
+        )?;
+        let id = self.conn.last_insert_rowid();
+        self.anniversary(id)?.ok_or_else(|| StoreError::Invalid("not saved".into()))
+    }
+
+    /// Editing: reminders whose day has already passed when it's changed aren't made late.
+    pub fn update_anniversary(&self, id: i64, a: &NewAnniversary, now: Millis) -> Result<Anniversary> {
+        let (name, preps) = Self::check_anniversary(a)?;
+        let changed = self.conn.execute(
+            "UPDATE anniversaries SET kind = ?2, icon = ?3, name = ?4, month = ?5, day = ?6, since = ?7, preps = ?8,
+               effect = ?9, changed_at = ?10 WHERE id = ?1",
+            params![id, a.kind, a.icon, name, a.month, a.day, a.since, serde_json::to_string(&preps)?, a.effect, now],
+        )?;
+        if changed == 0 {
+            return Err(StoreError::Invalid("that anniversary no longer exists".into()));
+        }
+        self.anniversary(id)?.ok_or_else(|| StoreError::Invalid("not saved".into()))
+    }
+
+    /// The to-dos it already made stay (you may be halfway through them).
+    pub fn delete_anniversary(&self, id: i64) -> Result<()> {
+        self.conn.execute("DELETE FROM anniversaries WHERE id = ?1", [id])?;
+        self.conn.execute("DELETE FROM anniversary_preps_made WHERE anniversary_id = ?1", [id])?;
+        Ok(())
+    }
+
+    /// Makes the to-do for each anniversary reminder whose day has come ("🎂 Mum - Order a
+    /// cake", a day's to-do on the reminder's day), once per year. A day missed while ePet
+    /// wasn't running is made late (it shows as overdue) up to the anniversary itself; one
+    /// already past when the anniversary was added or changed isn't. Returns whether any was made.
+    pub fn tick_anniversaries<Tz: TimeZone>(&self, tz: &Tz, now: Millis) -> Result<bool> {
+        let Some(today) = local_date(tz, now) else {
+            return Ok(false);
+        };
+        let mut made = false;
+        let changed: Vec<(i64, Millis)> = {
+            let mut stmt = self.conn.prepare("SELECT id, changed_at FROM anniversaries")?;
+            let rows = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?;
+            rows.collect::<rusqlite::Result<_>>()?
+        };
+        for (id, changed_at) in changed {
+            let Some(a) = self.anniversary(id)? else { continue };
+            let Some(on) = anniversary_on_or_after(a.month, a.day, today) else { continue };
+            let since_day = local_date(tz, changed_at).unwrap_or(today);
+            for p in &a.preps {
+                let Some(day) = prep_day(on, &p.lead) else { continue };
+                if day > today || day < since_day {
+                    continue;
+                }
+                let key = format!("{}|{}", p.lead, p.label);
+                let occurrence = on.format("%Y-%m-%d").to_string();
+                let fresh = self.conn.execute(
+                    "INSERT OR IGNORE INTO anniversary_preps_made (anniversary_id, prep, occurrence) VALUES (?1, ?2, ?3)",
+                    params![id, key, occurrence],
+                )?;
+                if fresh == 0 {
+                    continue;
+                }
+                let due = local_ms(tz, day, NaiveTime::MIN);
+                let todo = NewTodo {
+                    title: format!("{} {} - {}", a.icon, a.name, p.label),
+                    due_at: due,
+                    all_day: true,
+                    repeat: TodoRepeat::None,
+                };
+                self.add_todo(&todo, now)?;
+                made = true;
+            }
+        }
+        Ok(made)
+    }
+
+    /// Anniversaries that are today and not yet celebrated today.
+    pub fn celebrations_due<Tz: TimeZone>(&self, tz: &Tz, now: Millis) -> Result<Vec<Celebration>> {
+        let Some(today) = local_date(tz, now) else {
+            return Ok(vec![]);
+        };
+        let today_text = today.format("%Y-%m-%d").to_string();
+        let settings = self.settings()?;
+        let celebrate = settings.get("celebrate");
+        let enabled = celebrate.and_then(|c| c.get("enabled")).and_then(Value::as_bool).unwrap_or(true);
+        let seconds = celebrate
+            .and_then(|c| c.get("seconds"))
+            .and_then(Value::as_u64)
+            .map_or(DEFAULT_CELEBRATE_SECONDS, |s| s.clamp(10, 60) as u32);
+        let mut out = vec![];
+        for a in self.list_anniversaries()? {
+            if anniversary_on_or_after(a.month, a.day, today) != Some(today) {
+                continue;
+            }
+            let done: Option<String> =
+                self.conn.query_row("SELECT celebrated_on FROM anniversaries WHERE id = ?1", [a.id], |r| r.get(0))?;
+            if done.as_deref() == Some(today_text.as_str()) {
+                continue;
+            }
+            let years = a.since.map(|y| today.year() - y).filter(|&n| n > 0);
+            let effect = enabled && a.effect;
+            out.push(Celebration { anniversary: a, years, effect, seconds, peek: false });
+        }
+        Ok(out)
+    }
+
+    /// The pet celebrated it today: not again until next year.
+    pub fn mark_celebrated<Tz: TimeZone>(&self, tz: &Tz, id: i64, now: Millis) -> Result<()> {
+        if let Some(today) = local_date(tz, now) {
+            self.conn.execute(
+                "UPDATE anniversaries SET celebrated_on = ?2 WHERE id = ?1",
+                params![id, today.format("%Y-%m-%d").to_string()],
+            )?;
+        }
         Ok(())
     }
 
@@ -1527,6 +1726,85 @@ mod tests {
         s.update_todo(&London, t.id, &TodoPatch { due_at: Some(None), ..Default::default() }, 0).unwrap();
         let x = s.list_todos().unwrap().into_iter().find(|x| x.id == t.id).unwrap();
         assert_eq!((x.due_at, x.all_day, x.repeat), (None, false, TodoRepeat::None));
+    }
+
+    fn birthday(day: u32) -> NewAnniversary {
+        NewAnniversary {
+            kind: "birthday".into(),
+            icon: "🎂".into(),
+            name: " Mum ".into(),
+            month: 1,
+            day,
+            since: Some(1990),
+            preps: vec![
+                AnniversaryPrep { lead: "1d".into(), label: "Order a cake".into() },
+                AnniversaryPrep { lead: "1w".into(), label: "Buy a gift".into() },
+                AnniversaryPrep { lead: "2d".into(), label: "  ".into() },
+            ],
+            effect: true,
+        }
+    }
+
+    #[test]
+    fn anniversary_reminders_become_day_to_dos_once() {
+        let s = Store::open_in_memory().unwrap();
+        // Added on Wednesday Jan 7 for Saturday Jan 10: "1 week before" (Jan 3) has passed.
+        let a = s.add_anniversary(&birthday(10), at(9, 0)).unwrap();
+        assert_eq!((a.name.as_str(), a.preps.len()), ("Mum", 2));
+        assert!(!s.tick_anniversaries(&London, at(9, 0)).unwrap());
+        // Friday the 9th: the cake, on its day, without a time. Only once.
+        assert!(s.tick_anniversaries(&London, at(8, 0) + 2 * DAY).unwrap());
+        assert!(!s.tick_anniversaries(&London, at(18, 0) + 2 * DAY).unwrap());
+        let todos = s.list_todos().unwrap();
+        assert_eq!(todos.len(), 1);
+        assert_eq!(
+            (todos[0].title.as_str(), todos[0].due_at, todos[0].all_day),
+            ("🎂 Mum - Order a cake", Some(at(0, 0) + 2 * DAY), true)
+        );
+        // Deleting the anniversary keeps its to-do.
+        s.delete_anniversary(a.id).unwrap();
+        assert_eq!(s.list_todos().unwrap().len(), 1);
+        assert!(s.list_anniversaries().unwrap().is_empty());
+    }
+
+    #[test]
+    fn an_anniversary_reminder_missed_while_off_is_made_late() {
+        let s = Store::open_in_memory().unwrap();
+        s.add_anniversary(&birthday(10), at(9, 0)).unwrap();
+        // Off on the 9th, on again on the 10th: the cake to-do is made, due (overdue) on the 9th.
+        assert!(s.tick_anniversaries(&London, at(9, 0) + 3 * DAY).unwrap());
+        assert_eq!(s.list_todos().unwrap()[0].due_at, Some(at(0, 0) + 2 * DAY));
+    }
+
+    #[test]
+    fn an_anniversary_is_celebrated_once_on_its_day() {
+        let s = Store::open_in_memory().unwrap();
+        let a = s.add_anniversary(&birthday(10), at(9, 0)).unwrap();
+        assert!(s.celebrations_due(&London, at(9, 0)).unwrap().is_empty());
+        let sat = at(10, 0) + 3 * DAY;
+        let due = s.celebrations_due(&London, sat).unwrap();
+        assert_eq!(due.len(), 1);
+        assert_eq!((due[0].anniversary.id, due[0].years, due[0].effect, due[0].seconds), (a.id, Some(36), true, 15));
+        s.mark_celebrated(&London, a.id, sat).unwrap();
+        assert!(s.celebrations_due(&London, sat + 60 * MIN).unwrap().is_empty());
+        // Next year again; the settings turn the effect off and set its length (10–60 s).
+        s.set_settings(&serde_json::json!({ "celebrate": { "enabled": false, "seconds": 90 } })).unwrap();
+        let next = London.with_ymd_and_hms(2027, 1, 10, 9, 0, 0).unwrap().timestamp_millis();
+        let due = s.celebrations_due(&London, next).unwrap();
+        assert_eq!((due[0].years, due[0].effect, due[0].seconds), (Some(37), false, 60));
+    }
+
+    #[test]
+    fn anniversaries_need_a_name_and_a_real_day() {
+        let s = Store::open_in_memory().unwrap();
+        assert!(s.add_anniversary(&NewAnniversary { name: " ".into(), ..birthday(10) }, 0).is_err());
+        assert!(s.add_anniversary(&NewAnniversary { month: 2, day: 30, ..birthday(10) }, 0).is_err());
+        let leap = s.add_anniversary(&NewAnniversary { month: 2, day: 29, ..birthday(10) }, 0).unwrap();
+        let edited = s
+            .update_anniversary(leap.id, &NewAnniversary { name: "Dad".into(), effect: false, ..birthday(3) }, 5)
+            .unwrap();
+        assert_eq!((edited.name.as_str(), edited.month, edited.day, edited.effect), ("Dad", 1, 3, false));
+        assert!(s.update_anniversary(999, &birthday(3), 5).is_err());
     }
 
     #[test]

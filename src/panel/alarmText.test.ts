@@ -68,13 +68,13 @@ describe("skipWhen", () => {
 });
 
 describe("hidden pet: warnings and what didn't ring", () => {
-  const all = { alarms: true, timers: true, todos: true, focus: false };
+  const all = { alarms: true, timers: true, todos: true, focus: false, anniversaries: true };
   it("warns about what can't reach you while the pet is hidden", () => {
     expect(hiddenWarning(all)).toBeNull();
     expect(hiddenWarning({ ...all, focus: true })).toBeNull();
     expect(hiddenWarning({ ...all, todos: false })).toBe("While your pet is hidden, to-do reminders will not alert you.");
     expect(hiddenWarning({ ...all, alarms: false, timers: false })).toBe("While your pet is hidden, alarms and timers will not alert you.");
-    expect(hiddenWarning({ alarms: false, timers: false, todos: false, focus: true })).toBe(
+    expect(hiddenWarning({ alarms: false, timers: false, todos: false, focus: true, anniversaries: true })).toBe(
       "While your pet is hidden, alarms, timers and to-do reminders will not alert you.",
     );
   });

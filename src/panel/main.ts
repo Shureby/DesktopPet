@@ -20,6 +20,18 @@ import {
 } from "../features/alarm/timers";
 import { parseQuickAdd } from "../features/todo/quickAdd";
 import { TODO_REPEATS } from "../features/todo/repeat";
+import {
+  daysUntil,
+  ICONS,
+  KINDS,
+  LEADS,
+  leadLabel,
+  nextAnniversary,
+  TEMPLATES,
+  untilText,
+  yearsText,
+  type AnniversaryKind,
+} from "../features/anniversary/templates";
 import { GAMES } from "../features/games/catalog";
 import {
   backend,
@@ -27,6 +39,9 @@ import {
   WEEKDAYS,
   type Alarm,
   type AlertSettings,
+  type Anniversary,
+  type AnniversaryPrep,
+  type NewAnniversary,
   type HiddenAlerts,
   type PanelTab,
   type Settings,
@@ -95,7 +110,11 @@ function nowHm(): string {
 function select(tab: PanelTab) {
   // Opening the Alarms tab starts a new alarm at the current time; re-renders keep the draft.
   if (tab === "alarms") alarmDraft = null;
-  if (tab === "todos") todoDraft = null;
+  if (tab === "todos") {
+    todoDraft = null;
+    annDraft = null;
+    todoSub = "todos";
+  }
   current = tab;
   for (const b of nav.querySelectorAll("button")) b.classList.toggle("active", b.dataset.tab === tab);
   cleanup.forEach((f) => f());
@@ -141,7 +160,31 @@ function nextHourHm(): string {
   return formatHm((new Date().getHours() + 1) % 24, 0);
 }
 
+/** The To-dos tab's sub-page: the to-dos (where it opens) or 🎂 Anniversaries. */
+let todoSub: "todos" | "anniversaries" = "todos";
+
+/** [To-dos] [🎂 Anniversaries · 1]: the count is how many come within a week. */
+function todoSubtabs(anniversaries: Anniversary[]): Node {
+  const soon = anniversaries.filter((a) => daysUntil(nextAnniversary(a.month, a.day)) <= 7).length;
+  const tab = (id: typeof todoSub, label: string, count = 0) =>
+    h(
+      "button",
+      {
+        class: todoSub === id ? "on" : "",
+        onclick: () => {
+          todoSub = id;
+          void render();
+        },
+      },
+      label,
+      count ? h("span", { class: "n" }, String(count)) : null,
+    );
+  return h("div", { class: "subtabs" }, tab("todos", "To-dos"), tab("anniversaries", "🎂 Anniversaries", soon));
+}
+
 async function renderTodos(): Promise<Node> {
+  const anniversaries = await backend.listAnniversaries();
+  if (todoSub === "anniversaries") return renderAnniversaries(anniversaries);
   const todos = await backend.listTodos();
   // The to-do being edited was deleted or ticked off elsewhere: back to a new one.
   if (todoDraft?.editing != null && !todos.some((t) => t.id === todoDraft?.editing && !t.done)) todoDraft = null;
@@ -297,6 +340,7 @@ async function renderTodos(): Promise<Node> {
   return h(
     "section",
     { class: "todos" },
+    todoSubtabs(anniversaries),
     editingTodo
       ? h(
           "div",
@@ -313,6 +357,260 @@ async function renderTodos(): Promise<Node> {
     upcoming.length ? upcomingSection(upcoming, row) : null,
     done.length ? finishedSection(`Done (${done.length})`, done.map(row), () => backend.clearDoneTodos()) : null,
     h("p", { class: "hint" }, "Done to-dos are cleared automatically each day. Ticking a repeating one moves it to its next day; untick it in Done to undo."),
+  );
+}
+
+// --- Anniversaries (the To-dos tab's second sub-page) ----------------------------
+
+/** The anniversary being added or edited (✎); the touched flags keep what was changed by hand. */
+interface AnniversaryDraft {
+  kind: AnniversaryKind;
+  icon: string;
+  name: string;
+  date: string;
+  since: string;
+  preps: AnniversaryPrep[];
+  effect: boolean;
+  iconTouched: boolean;
+  prepsTouched: boolean;
+  effectTouched: boolean;
+  editing: number | null;
+}
+let annDraft: AnniversaryDraft | null = null;
+
+function newAnniversaryDraft(kind: AnniversaryKind = "birthday"): AnniversaryDraft {
+  const t = TEMPLATES[kind];
+  return {
+    kind,
+    icon: t.icon,
+    name: "",
+    date: ymdOf(Date.now()).replace(/^\d{4}/, "2000"),
+    since: "",
+    preps: t.preps.map((p) => ({ ...p })),
+    effect: t.effect,
+    iconTouched: false,
+    prepsTouched: false,
+    effectTouched: false,
+    editing: null,
+  };
+}
+
+function renderAnniversaries(list: Anniversary[]): Node {
+  if (annDraft?.editing != null && !list.some((a) => a.id === annDraft?.editing)) annDraft = null;
+  annDraft ??= newAnniversaryDraft();
+  const draft = annDraft;
+  const editingAnn = list.find((a) => a.id === draft.editing) ?? null;
+  const redraw = () => void render();
+  const stopEdit = () => {
+    annDraft = null;
+    redraw();
+  };
+
+  // Type: fills in what wasn't changed by hand.
+  const type = h(
+    "select",
+    {
+      class: "ann-type",
+      onchange: (e: Event) => {
+        const kind = (e.target as HTMLSelectElement).value as AnniversaryKind;
+        const t = TEMPLATES[kind];
+        draft.kind = kind;
+        if (!draft.iconTouched) draft.icon = t.icon;
+        if (!draft.prepsTouched) draft.preps = t.preps.map((p) => ({ ...p }));
+        if (!draft.effectTouched) draft.effect = t.effect;
+        redraw();
+      },
+    },
+    ...KINDS.map((k) => h("option", { value: k, selected: k === draft.kind }, `${TEMPLATES[k].icon} ${TEMPLATES[k].label}`)),
+  );
+  const grid = h(
+    "div",
+    { class: "icon-grid", hidden: true },
+    ...ICONS.map((icon) =>
+      h(
+        "button",
+        {
+          class: icon === draft.icon ? "on" : "",
+          title: icon,
+          onclick: () => {
+            draft.icon = icon;
+            draft.iconTouched = true;
+            redraw();
+          },
+        },
+        icon,
+      ),
+    ),
+  );
+  const iconButton = h("button", { class: "icon-pick", title: "Choose an icon", onclick: () => (grid.hidden = !grid.hidden) }, draft.icon);
+  const name = h("input", {
+    type: "text",
+    class: "ann-name",
+    placeholder: TEMPLATES[draft.kind].placeholder,
+    value: draft.name,
+    oninput: (e: Event) => (draft.name = (e.target as HTMLInputElement).value),
+  });
+  const date = dateField(draft.date, (v) => (draft.date = v), "Day", { year: false });
+  const since = h("input", {
+    type: "number",
+    class: "since",
+    min: 1900,
+    max: new Date().getFullYear(),
+    placeholder: "year",
+    value: draft.since,
+    title: "The year it began (optional), for “36th”",
+    oninput: (e: Event) => (draft.since = (e.target as HTMLInputElement).value),
+  });
+  const prepRows = draft.preps.map((p, i) =>
+    h(
+      "div",
+      { class: "row prep" },
+      h(
+        "select",
+        {
+          class: "lead",
+          onchange: (e: Event) => ((p.lead = (e.target as HTMLSelectElement).value), (draft.prepsTouched = true)),
+        },
+        ...LEADS.map(([k, label]) => h("option", { value: k, selected: k === p.lead }, label)),
+      ),
+      h("input", {
+        type: "text",
+        placeholder: "e.g. Order a cake",
+        value: p.label,
+        oninput: (e: Event) => ((p.label = (e.target as HTMLInputElement).value), (draft.prepsTouched = true)),
+      }),
+      h(
+        "button",
+        {
+          class: "mini",
+          title: "Remove",
+          onclick: () => {
+            draft.preps.splice(i, 1);
+            draft.prepsTouched = true;
+            redraw();
+          },
+        },
+        "✕",
+      ),
+    ),
+  );
+  const remembrance = draft.kind === "remembrance";
+  const effect = h(
+    "label",
+    { class: "check" },
+    h("input", {
+      type: "checkbox",
+      checked: draft.effect,
+      onchange: () => ((draft.effect = !draft.effect), (draft.effectTouched = true)),
+    }),
+    remembrance ? "Candle and flowers on the day 🕯️" : "Fireworks on the day 🎆",
+    settings.celebrate.enabled ? null : h("small", { class: "hint" }, " · off in Settings"),
+  );
+  const save = async () => {
+    const [, mm, dd] = draft.date.split("-").map(Number);
+    const year = Number(draft.since);
+    const a: NewAnniversary = {
+      kind: draft.kind,
+      icon: draft.icon,
+      name: draft.name.trim(),
+      month: mm,
+      day: dd,
+      since: Number.isInteger(year) && year >= 1900 && year <= new Date().getFullYear() ? year : null,
+      preps: draft.preps.filter((p) => p.label.trim()),
+      effect: draft.effect,
+    };
+    if (!a.name) {
+      name.focus();
+      return;
+    }
+    if (editingAnn) await backend.updateAnniversary(editingAnn.id, a);
+    else await backend.addAnniversary(a);
+    annDraft = null;
+    redraw();
+  };
+  const startEdit = (a: Anniversary) => {
+    annDraft = {
+      kind: (a.kind in TEMPLATES ? a.kind : "custom") as AnniversaryKind,
+      icon: a.icon,
+      name: a.name,
+      date: `2000-${String(a.month).padStart(2, "0")}-${String(a.day).padStart(2, "0")}`,
+      since: a.since === null ? "" : String(a.since),
+      preps: a.preps.map((p) => ({ ...p })),
+      effect: a.effect,
+      iconTouched: true,
+      prepsTouched: true,
+      effectTouched: true,
+      editing: a.id,
+    };
+    redraw();
+  };
+
+  const upcoming = list
+    .map((a) => ({ a, on: nextAnniversary(a.month, a.day) }))
+    .sort((x, y) => x.on.getTime() - y.on.getTime() || x.a.id - y.a.id);
+  const row = ({ a, on }: { a: Anniversary; on: Date }) => {
+    const days = daysUntil(on);
+    const years = a.since !== null && on.getFullYear() - a.since > 0 ? on.getFullYear() - a.since : null;
+    const when = `${on.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} · ${untilText(days)}`;
+    return h(
+      "li",
+      { class: `ann ${a.id === draft.editing ? "editing" : ""}` },
+      h("span", { class: "ann-icon" }, a.icon),
+      h(
+        "span",
+        { class: "main" },
+        h("span", { class: "title" }, a.name),
+        h("span", { class: "sub" }, h("span", { class: days <= 7 ? "soon" : "" }, when), years ? ` · ${yearsText(a.kind, years)}` : ""),
+        a.preps.length
+          ? h("span", { class: "preps" }, a.preps.map((p) => `${leadLabel(p.lead)} before: ${p.label}`).join(" · "))
+          : null,
+      ),
+      h("button", { class: "icon edit", title: "Edit", onclick: () => startEdit(a) }, "✎"),
+      h("button", { class: "icon delete", title: "Delete (its to-dos stay)", onclick: () => void backend.deleteAnniversary(a.id) }, "✕"),
+    );
+  };
+
+  return h(
+    "section",
+    { class: "todos anniversaries" },
+    todoSubtabs(list),
+    editingAnn
+      ? h(
+          "div",
+          { class: "edit-head" },
+          h("h3", {}, `Edit anniversary · ${editingAnn.name}`),
+          h("button", { class: "link", onclick: stopEdit }, "Cancel"),
+        )
+      : h("h3", {}, "New anniversary"),
+    h(
+      "div",
+      { class: "ann-form" },
+      h("div", { class: "row" }, h("span", { class: "lbl" }, "Type"), type),
+      h("div", { class: "row" }, iconButton, name),
+      grid,
+      h("div", { class: "row" }, h("span", { class: "lbl" }, "Date"), date, h("span", { class: "lbl short" }, "Since"), since),
+      h("div", { class: "lbl" }, "Remind before"),
+      ...prepRows,
+      draft.preps.length < 3
+        ? h(
+            "button",
+            {
+              class: "link add-more",
+              onclick: () => {
+                draft.preps.push({ lead: "1d", label: "" });
+                draft.prepsTouched = true;
+                redraw();
+              },
+            },
+            "+ Add another",
+          )
+        : null,
+      effect,
+      h("div", { class: "row end" }, h("button", { class: "primary", onclick: () => void save() }, editingAnn ? "Save" : "Add")),
+    ),
+    h("h3", {}, "Anniversaries"),
+    upcoming.length ? h("ul", { class: "list" }, ...upcoming.map(row)) : h("p", { class: "empty" }, "No anniversaries yet."),
+    h("p", { class: "hint" }, "Each reminder becomes a to-do on its day. On the day itself your pet celebrates."),
   );
 }
 
@@ -1063,6 +1361,7 @@ function hiddenAlertsRows(): Node[] {
       box("timers", "Timers"),
       box("todos", "To-do reminders"),
       box("focus", "Focus sessions"),
+      box("anniversaries", "Anniversaries"),
     ),
     warning ? h("p", { class: "warning" }, h("strong", {}, `❗ ${warning}`), " Show your pet, or tick them above, to get them again.") : null,
     h("p", { class: "hint" }, "It comes out, rings, and goes back once you answer. Anything nobody answered waits until you show it."),
@@ -1115,7 +1414,39 @@ function alertBox(kind: "alarm" | "todo"): Node {
           timeField(settings.todoDayTime, debounced((todoDayTime: string) => void save({ todoDayTime })), "Day reminder time"),
         )
       : null,
+    kind === "todo" ? celebrateRow() : null,
     kind === "alarm" ? h("p", { class: "hint" }, "Timers never snooze: a missed one leaves a quiet ⏱ note by the pet for an hour.") : null,
+  );
+}
+
+/** Anniversaries on screen: on or off, and for how long (10–60 s). */
+function celebrateRow(): Node {
+  const c = settings.celebrate;
+  return h(
+    "div",
+    {},
+    h(
+      "label",
+      { class: "check celebrate" },
+      h("input", { type: "checkbox", checked: c.enabled, onchange: () => void save({ celebrate: { ...c, enabled: !c.enabled } }) }),
+      "Celebrate anniversaries on screen for",
+      h("input", {
+        type: "number",
+        min: 10,
+        max: 60,
+        value: c.seconds,
+        disabled: !c.enabled,
+        title: "10–60 seconds",
+        onchange: (e: Event) => {
+          const input = e.target as HTMLInputElement;
+          const seconds = Math.min(60, Math.max(10, Math.round(Number(input.value)) || 15));
+          input.value = String(seconds);
+          void save({ celebrate: { ...c, seconds } });
+        },
+      }),
+      "s",
+    ),
+    h("p", { class: "hint" }, "Fireworks, or a candle and flowers for a remembrance. Each anniversary can turn its own off; when this is off, your pet just says it."),
   );
 }
 
@@ -1210,6 +1541,7 @@ async function main() {
   for (const t of TABS) nav.append(h("button", { "data-tab": t.id, onclick: () => select(t.id) }, t.label));
 
   await backend.on("todos-changed", () => current === "todos" && void render());
+  await backend.on("anniversaries-changed", () => current === "todos" && void render());
   await backend.on("alarms-changed", () => current === "alarms" && void render());
   await backend.on("pomodoro", () => current === "focus" && void render());
   await backend.on("settings", (s) => {

@@ -1,12 +1,16 @@
 import { nextPhase, startFocus, tick } from "../features/pomodoro/logic";
 import { currentWorkPeriod, runCutoff } from "../features/pomodoro/workHours";
 import { endOfDay, nextAfterTick, todoRemindsAt } from "../features/todo/repeat";
+import { nextAnniversary, prepDay } from "../features/anniversary/templates";
 import {
   DEFAULT_SETTINGS,
   EVERY_DAY,
   mergeSettings,
   repeatMask,
   type Alarm,
+  type Anniversary,
+  type Celebration,
+  type NewAnniversary,
   type Backend,
   type BackendEvents,
   type DayMask,
@@ -30,6 +34,10 @@ type MockTodo = Todo & { anchorAt?: number | null; remindAt?: number | null; rep
 interface MockState {
   settings: Settings;
   todos: MockTodo[];
+  /** Anniversaries, with what the store keeps beside them. */
+  anniversaries?: (Anniversary & { changedAt: number; celebratedOn?: string })[];
+  /** Reminders already made into to-dos: "id|lead|label|YYYY-MM-DD". */
+  prepsMade?: string[];
   alarms: Alarm[];
   pomodoro: PomodoroStatus;
   sessions: { at: number; minutes: number; completed: boolean }[];
@@ -149,6 +157,17 @@ function setPomodoro(s: MockState, next: PomodoroStatus, now: number) {
   s.pomodoro = next;
 }
 
+/** Like check_anniversary in store.rs. */
+function checkAnniversary(a: NewAnniversary): NewAnniversary {
+  const name = a.name.trim();
+  if (!name) throw new Error("name is empty");
+  if (new Date(2000, a.month - 1, a.day).getDate() !== a.day) throw new Error("no such day");
+  const preps = a.preps.filter((p) => p.label.trim()).slice(0, 3).map((p) => ({ lead: p.lead, label: p.label.trim() }));
+  return { ...a, name, preps };
+}
+
+const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 /** Runs due reminders and pomodoro transitions once a second (call from one page only). */
 export function startMockScheduler(): () => void {
   const id = setInterval(() => {
@@ -203,6 +222,51 @@ export function startMockScheduler(): () => void {
           }
         }
       }
+      // Anniversaries (see tick_anniversaries and celebrations_due in store.rs): reminders
+      // become day to-dos on their day; on the day itself the pet celebrates once. The
+      // browser has no cursor to watch, so "you're at the computer" is just now.
+      const today = new Date(now);
+      today.setHours(0, 0, 0, 0);
+      let madeTodo = false;
+      for (const a of s.anniversaries ?? []) {
+        const on = nextAnniversary(a.month, a.day, now);
+        const since = new Date(a.changedAt);
+        since.setHours(0, 0, 0, 0);
+        for (const p of a.preps) {
+          const day = prepDay(on, p.lead);
+          if (!day || day > today || day < since) continue;
+          const key = `${a.id}|${p.lead}|${p.label}|${ymd(on)}`;
+          if ((s.prepsMade ??= []).includes(key)) continue;
+          s.prepsMade.push(key);
+          s.todos.push({
+            id: s.nextId++,
+            title: `${a.icon} ${a.name} - ${p.label}`,
+            dueAt: day.getTime(),
+            allDay: true,
+            repeat: "none",
+            done: false,
+            createdAt: now,
+            doneAt: null,
+            anchorAt: day.getTime(),
+          });
+          madeTodo = true;
+        }
+        const hiddenWaits = petHidden && !s.settings.hiddenAlerts.anniversaries;
+        if (on.getTime() === today.getTime() && a.celebratedOn !== ymd(today) && !hiddenWaits) {
+          a.celebratedOn = ymd(today);
+          const { changedAt: _c, celebratedOn: _d, ...anniversary } = a;
+          const years = a.since !== null && on.getFullYear() - a.since > 0 ? on.getFullYear() - a.since : null;
+          const c: Celebration = {
+            anniversary,
+            years,
+            effect: s.settings.celebrate.enabled && a.effect,
+            seconds: s.settings.celebrate.seconds,
+            peek: petHidden,
+          };
+          events.push(["celebrate", c]);
+        }
+      }
+      if (madeTodo) events.push(["todos-changed", null]);
       // Work hours: start it once per work period (see tick_pomodoro in store.rs).
       const period = currentWorkPeriod(s.settings.pomodoro.workHours, now);
       let next: PomodoroStatus | null = null;
@@ -317,6 +381,35 @@ export const mockBackend: Backend = {
       }
     });
     fire("todos-changed", null);
+  },
+  async listAnniversaries() {
+    return (load().anniversaries ?? []).map(({ changedAt: _c, celebratedOn: _d, ...a }) => a);
+  },
+  async addAnniversary(a) {
+    const checked = checkAnniversary(a);
+    const made = mutate((s) => {
+      const now = Date.now();
+      const row = { ...checked, id: s.nextId++, createdAt: now, changedAt: now };
+      (s.anniversaries ??= []).push(row);
+      return row;
+    });
+    fire("anniversaries-changed", null);
+    return made;
+  },
+  async updateAnniversary(id, a) {
+    const checked = checkAnniversary(a);
+    const row = mutate((s) => {
+      const x = (s.anniversaries ?? []).find((r) => r.id === id);
+      if (x) Object.assign(x, checked, { changedAt: Date.now() });
+      return x;
+    });
+    if (!row) throw new Error("that anniversary no longer exists");
+    fire("anniversaries-changed", null);
+    return row;
+  },
+  async deleteAnniversary(id) {
+    mutate((s) => (s.anniversaries = (s.anniversaries ?? []).filter((r) => r.id !== id)));
+    fire("anniversaries-changed", null);
   },
   async clearDoneTodos() {
     const n = mutate((s) => {

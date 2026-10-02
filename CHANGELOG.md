@@ -16,6 +16,17 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-10-02
+
+### Added
+- Anniversaries (To-dos → 🎂 Anniversaries): templates (birthday, wedding, dating, pet's
+  birthday, work, home, remembrance, custom), a choice of icons, day and month with an
+  optional "since" year, and up to 3 reminders before the day that become to-dos on their
+  day.
+- On the day the pet celebrates the first time you're at the computer: fireworks with the
+  day's icons falling, or for a remembrance a white candle and chrysanthemums (off by
+  default). Settings: on or off, 10–60 s; the hidden pet comes out for it (Anniversaries).
+
 ## [0.25.0] - 2026-10-02
 
 ### Added

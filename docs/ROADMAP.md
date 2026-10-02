@@ -12,7 +12,7 @@
   SteamOS unticked.
 - **Direct build**: auto-updater feed, code signing, license keys.
 
-## Anniversaries (0.26.0, agreed 2026-10-02)
+## Anniversaries (shipped in 0.26.0)
 
 Comes after 0.24.0 (repeating to-dos and editing to-dos) and 0.25.0 (Today / Upcoming sections).
 
@@ -34,6 +34,11 @@ Comes after 0.24.0 (repeating to-dos and editing to-dos) and 0.25.0 (Today / Upc
   and the pet says "🎉 Today is 老婆生日!" (with the count). Once a day.
   - Settings switch "Celebrate anniversaries with fireworks", on by default.
   - The hidden-pet checkboxes get "Anniversaries", ticked by default.
+
+## Holidays on moving dates (later)
+
+Mother's Day, Father's Day and the like ("the second Sunday of May") as anniversary
+templates, alongside lunar dates below.
 
 ## Lunar-calendar birthdays (future upgrade, a selling point)
 

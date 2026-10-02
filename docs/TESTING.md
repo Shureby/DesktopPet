@@ -2,14 +2,14 @@
 
 <!-- Generated from test-checklist.json by `npm run test-checklist`. Edit the JSON, not this file. -->
 
-当前版本 `0.25.0`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
+当前版本 `0.26.0`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
 在线勾选页面（保存结果，自动标出需要重测的项目）：https://claude.ai/artifact/XQVzPKq4w2MThVnTLYCGy1
 
 ## 1. 安装与启动
 
 - [ ] 1.1 安装包安装 → **开始菜单/启动台里有应用，图标和名字正常**
 - [ ] 1.2 首次启动 → **宠物从屏幕上方掉下来，落在任务栏/Dock 上方**
-- [ ] 1.3 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.25.0 · …`，与安装包版本一致**
+- [ ] 1.3 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.26.0 · …`，与安装包版本一致**
 - [ ] 1.4 已经运行时再启动一次 → **不会出现第二只宠物（只打开面板）**
 - [ ] 1.5 覆盖安装新版本 → **之前的待办、闹钟、设置、心情值都还在**
 - [ ] 1.6 Settings → 勾选 Start with my computer，重启电脑；再取消并重启 → **勾选时自动启动，取消后不启动**
@@ -122,13 +122,13 @@
 
 - [ ] 10.1 输入 call mom at 3pm → **标题 “call mom”，今天 15:00 提醒**
 - [ ] 10.2 输入 standup tomorrow 9:30、stretch in 20m、pay rent fri 10am、just a note，看输入框下面那一行和提示 → **时间解析正确；最后一个没有提醒时间（没有日期、没有时间）**
-- [ ] 10.3 **【新】** 建几个待办：一个昨天的、一个今天带时间的、一个今天不带时间的、一个没有日期的、两个以后的；打开 Upcoming，关掉面板再打开；第二天（或改系统日期）再看 → **上面是 “TODAY (n)”：昨天的红色 Overdue 在最前，然后今天带时间的、今天不带时间的、没有日期的；下面是收起的 “▸ Upcoming (2) · next …”（写出最近那条的日期），点开能看到，重新打开面板仍保持打开；到了那天，那条自动出现在 Today；Today 没有东西时写 “Nothing for today. Your pet approves.”**
+- [ ] 10.3 建几个待办：一个昨天的、一个今天带时间的、一个今天不带时间的、一个没有日期的、两个以后的；打开 Upcoming，关掉面板再打开；第二天（或改系统日期）再看 → **上面是 “TODAY (n)”：昨天的红色 Overdue 在最前，然后今天带时间的、今天不带时间的、没有日期的；下面是收起的 “▸ Upcoming (2) · next …”（写出最近那条的日期），点开能看到，重新打开面板仍保持打开；到了那天，那条自动出现在 Today；Today 没有东西时写 “Nothing for today. Your pet approves.”**
 - [ ] 10.4 输入 buy milk today、dentist fri（都不写时间），看输入框下面那一行，再点 Add → **输入时下面一行自动出现 📅 日期框（灰色星期几 + 日 月 年，顺序跟随系统，澳洲为 7 Oct 2026）和虚线 “+ Time”；提示写 “📅 Today — “buy milk” · reminds at 9:00 AM that day”；列表里只显示日期（Today / Fri, 9 Oct），没有时间**
 - [ ] 10.5 点 “+ Date”，在日期框的日、月、年上分别：按住上下拖、滚轮、按 ↑/↓、直接打数字（如月份打 12）；把日改成 31 再把月份换成 11 月；点日期框里的 ✕ → **和时间框一样可以拖、滚、按键、打字，星期几跟着变；31 日换到 11 月变成 30 日；日从 31 往上滚回到 1 而不改月份；✕ 后回到 “+ Date”，重复下拉框变灰不能选**
 - [ ] 10.6 有日期时点 “+ Time”，再点时间框里的 ✕；再输入 call mom tomorrow 3pm → **“+ Time” 变成时间框（下一个整点），✕ 后变回 “+ Time”；打出时间时自动出现时间框；提示里 ⏰ 带时间，📅 不带时间**
 - [ ] 10.7 依次输入 bins every tue、recycling every other thu、water plants daily、pay bills monthly 1st、review budget quarterly、car rego yearly on the 20th、bins every tue 7pm → **重复下拉框自动选中 Weekly / Fortnightly / Daily / Monthly / Quarterly / Yearly；日期是下一个对应的日子（every tue 当天是周二时就是今天；monthly 1st 是下一个 1 号）；最后一个带 7:00 PM；标题里去掉了这些词；手动改过下面一行后，继续打字不会再覆盖它**
 - [ ] 10.8 建一个 Weekly 的 bins（今天），勾选完成；再建一个日期在三周前的 Weekly 待办，勾选；再建一个 Monthly 31 号的待办，勾选几次 → **勾选后 Done 区多一条 “bins · Done · Today …”，bins 本身留在列表里，日期变成下周同一天，前面显示 🔁 Weekly；拖了三周的那个直接跳到今天之后最近的一次，不会冒出好几条；31 号的在 30 天的月份变成 30 号，下个月又回到 31 号**
-- [ ] 10.9 **【新】** 在 Upcoming 里提前勾掉一个 Fortnightly 待办（比如 Tue 6 Oct 的），再到 Done 区把它那条的勾去掉；再对一个今天的 Daily 待办做同样的事；最后勾掉一个重复待办后把它删掉，再去 Done 区取消勾选 → **勾掉后日期跳到两周后（20 Oct），Done 多一条；取消勾选后 Done 那条消失，待办回到 6 Oct，没有多出一条；今天的那条回到 Today，不会再为今天提醒一次；待办删掉后再取消勾选，那条记录变成普通的一次性待办**
+- [ ] 10.9 在 Upcoming 里提前勾掉一个 Fortnightly 待办（比如 Tue 6 Oct 的），再到 Done 区把它那条的勾去掉；再对一个今天的 Daily 待办做同样的事；最后勾掉一个重复待办后把它删掉，再去 Done 区取消勾选 → **勾掉后日期跳到两周后（20 Oct），Done 多一条；取消勾选后 Done 那条消失，待办回到 6 Oct，没有多出一条；今天的那条回到 Today，不会再为今天提醒一次；待办删掉后再取消勾选，那条记录变成普通的一次性待办**
 - [ ] 10.10 鼠标悬停一条待办，点 ✎；改标题、日期、加时间、改重复方式，点 Save；再点一次 ✎ 后点标题右边的 Cancel；再点 ✎ 后把这条勾掉或删掉 → **✎ 只在悬停时出现（已完成的没有 ✎）；表单标题变成 “Edit to-do · 名字”，内容都已填好，Add 变成 Save，这一行橙色边框；Save 后只改这一条，不会多出一条；Cancel 不改任何东西；编辑中的那条被勾掉或删掉时表单回到新建状态**
 - [ ] 10.11 Settings → To-do reminders 把 “To-dos without a time remind you at” 设成 1–2 分钟后；建两个今天的、不带时间的待办；到点后点 Later；另一次：把时间设在早上，晚点再打开 ePet → **到点宠物出来，一个气泡同时列出两条：“📅 Today: • … • …”，按钮 Open To-dos 和 Later；Later 后 10 分钟再提醒一次，日期不变（不会变成带时间的待办）；时间过了才打开 ePet，当天打开时仍提醒一次；只有一条时和普通待办提醒一样，有 ✓ Done**
 - [ ] 10.12 建一个今天的不带时间的待办、一个今天早些时候带时间的待办，不勾；第二天（或改系统日期）再看 → **当天：不带时间的显示橙色 “Today”（不算 Overdue），带时间的过了时间就显示红色 “Overdue · Today …”；第二天不带时间的才变成红色 “Overdue · Yesterday”；第二天打开 ePet 不会为昨天的补提醒**
@@ -137,49 +137,59 @@
 - [ ] 10.15 Done 区点 Clear → **已完成的待办被清空**
 - [ ] 10.16 勾选完成几个待办，打开 Done 区 → **每个显示 “Done · Today 3:15 PM”，最近完成的在最上面；待办的提醒时间显示为 “Today 3:00 PM”（没有前导 0）**
 
-## 11. 专注时段
+## 11. 纪念日
 
-- [ ] 11.1 右键 → Start focus session 🍅 → **角标显示专注倒计时（在计时器角标上方）**
-- [ ] 11.2 专注中让一个计时器响 → **宠物不离开原位**
-- [ ] 11.3 让专注时段结束 → **提示休息；每 N 轮进入长休息（按 Focus 页设置）**
-- [ ] 11.4 右键 → Stop focus session → **菜单显示 “Stop focus session (ends 4:10 PM)”；点后停止**
-- [ ] 11.5 Focus 页看 Last 7 days → **有统计记录**
-- [ ] 11.6 Focus 页打开 Work hours，保持周一到周五，把开始时间设成 1–2 分钟后、结束时间设成再过 30 分钟；等它自动开始；然后手动 Stop；再把结束时间改到 1 分钟后，手动 Start 看它到点后的表现；最后晚上（下班后）手动 Start → **打开后出现星期几和上下班时间，关闭后隐藏；到开始时间番茄钟自己开始（宠物旁出现 🍅）；手动停掉后当天不会再自动开始；过了结束时间，正在专注的番茄结束后不进入休息直接停，正在休息的休息完不再开始新番茄；下班后手动开始会一直循环（直到下一个工作日的结束时间）；关闭 Work hours 时和以前一样一直跑、不会自动开始**
+- [ ] 11.1 **【新】** 打开 To-dos 页，点 🎂 Anniversaries，再切回 To-dos；切到别的页再回来 → **顶部有 [To-dos] [🎂 Anniversaries] 两个子页按钮，打开 To-dos 默认在 To-dos 子页；7 天内有纪念日时按钮上有数字**
+- [ ] 11.2 **【新】** 在 Anniversaries 子页依次选 Type：Birthday、Remembrance、Wedding anniversary；点图标按钮选一个别的图标；手动改一条提前提醒后再换 Type → **Birthday 自动填 🎂、1 week: Buy a gift、1 day: Order a cake，勾选 “Fireworks on the day 🎆”；Remembrance 变 🕯️、1 day: Buy flowers，勾选框文字变成 “Candle and flowers on the day 🕯️” 且默认不勾；图标网格 20 个可选，选中的有橙框；手动改过的图标、提醒、勾选在换 Type 时保留**
+- [ ] 11.3 **【新】** 添加三个：今天的生日（Since 1990）、明天的结婚纪念日（Since 2016）、40 天后的忌日（Since 2019）；日期框试拖动和滚轮，选 2 月 29 日；最多加 3 条提前提醒 → **日期只有日和月，可拖、滚、打字，能选 Feb 29；列表按日期排序：“… · Today 🎉 · 36th”、“… · Tomorrow · 10th”（7 天内橙色）、“… · in 40 days · 7 years”，下面列出提前提醒；+ Add another 到 3 条后消失**
+- [ ] 11.4 **【新】** 建一个明天的纪念日，提前提醒 1 day / Buy flowers 和 1 week / Book a restaurant；切到 To-dos 子页；关掉 ePet，第二天再开（或改系统日期）测一个昨天该生成的提醒 → **To-dos 的 Today 里出现 “💍 名字 - Buy flowers”（只有日期、没有时间，按待办提醒时间提醒），只出现一次；1 week 那条因为添加时已过期，不会生成；错过那天开机后补生成，显示 Overdue；删掉纪念日后已生成的待办保留**
+- [ ] 11.5 **【新】** 建一个今天的生日（Since 1990），等几秒后动一下鼠标；看完再打开面板改设置时长为 10 秒，第二个今天的纪念日再测 → **鼠标一动，宠物所在屏幕放烟花，同时飘落 🎂🎈🎁，宠物说 “🎉 Happy 36th birthday, 名字!”；烟花期间可以正常点击后面的窗口；时长到了烟花和这句话一起消失；同一个纪念日当天不会再放第二次**
+- [ ] 11.6 **【新】** 建一个今天的 Remembrance，先不勾 “Candle and flowers on the day”；再建一个勾上的 → **不勾的：没有屏幕效果，宠物安静地说 “🕯️ Remembering 名字 today.”（有 Since 时下面写 “N years”），宠物不做开心的动作；勾上的：屏幕变暗，宠物旁边一支白蜡烛在闪动，两边各一朵白菊花，时间到自动消失**
+- [ ] 11.7 **【新】** Settings → To-do reminders 关掉 “Celebrate anniversaries on screen”，再测一个今天的生日；Pet 卡片取消 “Anniversaries” 后隐藏宠物，再测一个；最后勾回 Anniversaries 并隐藏宠物测一次 → **关掉后没有烟花，宠物只说一句；时长只能 10–60 秒；不勾 Anniversaries 时隐藏的宠物不出来，等你点 Show pet 后当天再庆祝；勾上时宠物从屏幕边出来庆祝，结束后回去隐藏**
 
-## 12. 心情与照顾
+## 12. 专注时段
 
-- [ ] 12.1 新角色放着几分钟 → **心情为 content（约 60%），不会自己变 grumpy**
-- [ ] 12.2 抚摸/喂食，短时间内多次抚摸 → **飘出 “+3 ♥”；抚摸太多时说 “That's plenty for now”**
-- [ ] 12.3 拖起来带着走；再用力甩出去砸地 → **带着走算玩耍，爱心增加；砸地轻微扣分**
-- [ ] 12.4 一直喂到饱 → **饱食度满，再喂有反应**
-- [ ] 12.5 面板 → Characters → **每个角色一张心情卡片**
-- [ ] 12.6 关掉应用一段时间再打开 → **心情不会因为关着的时间而下降**
+- [ ] 12.1 右键 → Start focus session 🍅 → **角标显示专注倒计时（在计时器角标上方）**
+- [ ] 12.2 专注中让一个计时器响 → **宠物不离开原位**
+- [ ] 12.3 让专注时段结束 → **提示休息；每 N 轮进入长休息（按 Focus 页设置）**
+- [ ] 12.4 右键 → Stop focus session → **菜单显示 “Stop focus session (ends 4:10 PM)”；点后停止**
+- [ ] 12.5 Focus 页看 Last 7 days → **有统计记录**
+- [ ] 12.6 Focus 页打开 Work hours，保持周一到周五，把开始时间设成 1–2 分钟后、结束时间设成再过 30 分钟；等它自动开始；然后手动 Stop；再把结束时间改到 1 分钟后，手动 Start 看它到点后的表现；最后晚上（下班后）手动 Start → **打开后出现星期几和上下班时间，关闭后隐藏；到开始时间番茄钟自己开始（宠物旁出现 🍅）；手动停掉后当天不会再自动开始；过了结束时间，正在专注的番茄结束后不进入休息直接停，正在休息的休息完不再开始新番茄；下班后手动开始会一直循环（直到下一个工作日的结束时间）；关闭 Work hours 时和以前一样一直跑、不会自动开始**
 
-## 13. 设置
+## 13. 心情与照顾
 
-- [ ] 13.1 打开面板，用默认窗口大小看 Focus 页（打开 Work hours）和 Settings 页；改几个设置（大小、Quiet hours 时间、铃声、Ring for、If nobody answers、隐藏时出来的勾选、开机启动）后切页再回来；把 “Show alarms due within” 改成 120，If nobody answers 选每一项，New alarm 的重复方式选 Custom days → **Focus 页不用滚动就能看到全部内容：顶部一张卡片（阶段、倒计时、按钮）、7 天柱状图和总数、四个时长一行、两个勾选、Work hours 卡片（星期和时间一行、一行小字说明）；Settings 分为 Pet / Alarms & timers / To-do reminders / General 四张卡片，Quiet hours 和 “When hidden, it comes out for” 在 Pet 卡片里，Ring for 和 If nobody answers 并排；改过的设置切页回来都还在；所有输入框和下拉框的文字都完整显示（120 不会变成 12，“Mark as missed”、“Custom days”、“Label” 不被截断）**
-- [ ] 13.2 拖动 Pet size / Pet speed 滑块 → **实时生效**
-- [ ] 13.3 Alerts 里分别切换跑到中间、Ring、铃声、音量 → **▶ 试听有声音；实际提醒按设置执行**
-- [ ] 13.4 逐个试听 6 种铃声 → **classic / chime / digital / gentle rise / marimba / rooster crow 都能播**
-- [ ] 13.5 改 Ring for 和 If nobody answers → **按设置执行（响铃时长、贪睡次数或直接标记 missed）**
-- [ ] 13.6 Quiet hours 设成包含当前时间 → **宠物安静，但闹钟照常响**
-- [ ] 13.7 关掉 Other sounds → **抚摸、专注提示不再有声音**
+- [ ] 13.1 新角色放着几分钟 → **心情为 content（约 60%），不会自己变 grumpy**
+- [ ] 13.2 抚摸/喂食，短时间内多次抚摸 → **飘出 “+3 ♥”；抚摸太多时说 “That's plenty for now”**
+- [ ] 13.3 拖起来带着走；再用力甩出去砸地 → **带着走算玩耍，爱心增加；砸地轻微扣分**
+- [ ] 13.4 一直喂到饱 → **饱食度满，再喂有反应**
+- [ ] 13.5 面板 → Characters → **每个角色一张心情卡片**
+- [ ] 13.6 关掉应用一段时间再打开 → **心情不会因为关着的时间而下降**
 
-## 14. 角色
+## 14. 设置
 
-- [ ] 14.1 右键 → Switch character → Rooster，再切回 Cat → **换成公鸡，菜单打勾正确；切回后 Cat 的心情值还在**
-- [ ] 14.2 Characters 页点 “your characters folder” → **打开用户角色文件夹**
+- [ ] 14.1 打开面板，用默认窗口大小看 Focus 页（打开 Work hours）和 Settings 页；改几个设置（大小、Quiet hours 时间、铃声、Ring for、If nobody answers、隐藏时出来的勾选、开机启动）后切页再回来；把 “Show alarms due within” 改成 120，If nobody answers 选每一项，New alarm 的重复方式选 Custom days → **Focus 页不用滚动就能看到全部内容：顶部一张卡片（阶段、倒计时、按钮）、7 天柱状图和总数、四个时长一行、两个勾选、Work hours 卡片（星期和时间一行、一行小字说明）；Settings 分为 Pet / Alarms & timers / To-do reminders / General 四张卡片，Quiet hours 和 “When hidden, it comes out for” 在 Pet 卡片里，Ring for 和 If nobody answers 并排；改过的设置切页回来都还在；所有输入框和下拉框的文字都完整显示（120 不会变成 12，“Mark as missed”、“Custom days”、“Label” 不被截断）**
+- [ ] 14.2 拖动 Pet size / Pet speed 滑块 → **实时生效**
+- [ ] 14.3 Alerts 里分别切换跑到中间、Ring、铃声、音量 → **▶ 试听有声音；实际提醒按设置执行**
+- [ ] 14.4 逐个试听 6 种铃声 → **classic / chime / digital / gentle rise / marimba / rooster crow 都能播**
+- [ ] 14.5 改 Ring for 和 If nobody answers → **按设置执行（响铃时长、贪睡次数或直接标记 missed）**
+- [ ] 14.6 Quiet hours 设成包含当前时间 → **宠物安静，但闹钟照常响**
+- [ ] 14.7 关掉 Other sounds → **抚摸、专注提示不再有声音**
 
-## 15. 小游戏 Safe Landing
+## 15. 角色
 
-- [ ] 15.1 右键 → Play Safe Landing → **游戏窗口打开，宠物主窗口仍正常**
-- [ ] 15.2 开始专注后：右键宠物和托盘里看 Play Safe Landing；点它，分别选 Cancel 和 Play anyway；隐藏宠物后看托盘；让一个计时器响铃时从托盘点游戏；在面板 Games 页点 Play；到休息时间再点；最后在 Focus 页关掉 “Ask before games during a focus session” → **专注中菜单写 “Play Safe Landing (focusing)”；宠物气泡先问 “We're focusing until … Play anyway?”，回答前不打开任何界面，Cancel 不开游戏，Play anyway 才打开；宠物隐藏时托盘里没有 Play Safe Landing（专注结束或显示宠物后重新出现）；响铃时点游戏，响铃结束后宠物再问；面板 Games 页点 Play 先弹框询问；休息时和关掉选项后不再询问，菜单也没有 (focusing)**
-- [ ] 15.3 ← → / A D 移动；Space 或 Enter 开始 → **操作正常**
-- [ ] 15.4 分别用 Cat 和 Rooster 玩 → **Cat 抓 ☂ 减速；Rooster 按住 Space 滑翔，提示文字对应**
-- [ ] 15.5 结束后按 R 重来，再关闭窗口 → **可以重来；关闭后回到桌面，宠物爱心增加**
+- [ ] 15.1 右键 → Switch character → Rooster，再切回 Cat → **换成公鸡，菜单打勾正确；切回后 Cat 的心情值还在**
+- [ ] 15.2 Characters 页点 “your characters folder” → **打开用户角色文件夹**
 
-## 16. 稳定性
+## 16. 小游戏 Safe Landing
 
-- [ ] 16.1 连续打开/关闭面板和游戏窗口 10 次 → **不卡死、没有黑窗、任务栏不消失**
-- [ ] 16.2 电脑睡眠后唤醒 → **宠物正常；错过的闹钟按贪睡/Missed 规则处理**
-- [ ] 16.3 运行 1 小时以上，看任务管理器/活动监视器 → **CPU、内存占用稳定，不持续上涨**
+- [ ] 16.1 右键 → Play Safe Landing → **游戏窗口打开，宠物主窗口仍正常**
+- [ ] 16.2 开始专注后：右键宠物和托盘里看 Play Safe Landing；点它，分别选 Cancel 和 Play anyway；隐藏宠物后看托盘；让一个计时器响铃时从托盘点游戏；在面板 Games 页点 Play；到休息时间再点；最后在 Focus 页关掉 “Ask before games during a focus session” → **专注中菜单写 “Play Safe Landing (focusing)”；宠物气泡先问 “We're focusing until … Play anyway?”，回答前不打开任何界面，Cancel 不开游戏，Play anyway 才打开；宠物隐藏时托盘里没有 Play Safe Landing（专注结束或显示宠物后重新出现）；响铃时点游戏，响铃结束后宠物再问；面板 Games 页点 Play 先弹框询问；休息时和关掉选项后不再询问，菜单也没有 (focusing)**
+- [ ] 16.3 ← → / A D 移动；Space 或 Enter 开始 → **操作正常**
+- [ ] 16.4 分别用 Cat 和 Rooster 玩 → **Cat 抓 ☂ 减速；Rooster 按住 Space 滑翔，提示文字对应**
+- [ ] 16.5 结束后按 R 重来，再关闭窗口 → **可以重来；关闭后回到桌面，宠物爱心增加**
+
+## 17. 稳定性
+
+- [ ] 17.1 连续打开/关闭面板和游戏窗口 10 次 → **不卡死、没有黑窗、任务栏不消失**
+- [ ] 17.2 电脑睡眠后唤醒 → **宠物正常；错过的闹钟按贪睡/Missed 规则处理**
+- [ ] 17.3 运行 1 小时以上，看任务管理器/活动监视器 → **CPU、内存占用稳定，不持续上涨**

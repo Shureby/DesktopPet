@@ -4,7 +4,8 @@ use std::sync::atomic::Ordering;
 
 use chrono::Local;
 use desktoppet_core::{
-    pomodoro, Alarm, DayStat, NewTodo, NewUnseen, PomodoroStatus, Repeat, Score, Todo, TodoPatch, Unseen,
+    pomodoro, Alarm, Anniversary, DayStat, NewAnniversary, NewTodo, NewUnseen, PomodoroStatus, Repeat, Score, Todo,
+    TodoPatch, Unseen,
 };
 use serde::Serialize;
 use serde_json::Value;
@@ -67,6 +68,39 @@ pub fn clear_done_todos(app: AppHandle, state: State<AppState>) -> CmdResult<usi
 pub fn delete_todo(app: AppHandle, state: State<AppState>, id: i64) -> CmdResult<()> {
     state.store().delete_todo(id).map_err(err)?;
     let _ = app.emit("todos-changed", ());
+    Ok(())
+}
+
+// --- Anniversaries ----------------------------------------------------------------
+
+#[tauri::command]
+pub fn list_anniversaries(state: State<AppState>) -> CmdResult<Vec<Anniversary>> {
+    state.store().list_anniversaries().map_err(err)
+}
+
+#[tauri::command]
+pub fn add_anniversary(app: AppHandle, state: State<AppState>, anniversary: NewAnniversary) -> CmdResult<Anniversary> {
+    let a = state.store().add_anniversary(&anniversary, now_ms()).map_err(err)?;
+    let _ = app.emit("anniversaries-changed", ());
+    Ok(a)
+}
+
+#[tauri::command]
+pub fn update_anniversary(
+    app: AppHandle,
+    state: State<AppState>,
+    id: i64,
+    anniversary: NewAnniversary,
+) -> CmdResult<Anniversary> {
+    let a = state.store().update_anniversary(id, &anniversary, now_ms()).map_err(err)?;
+    let _ = app.emit("anniversaries-changed", ());
+    Ok(a)
+}
+
+#[tauri::command]
+pub fn delete_anniversary(app: AppHandle, state: State<AppState>, id: i64) -> CmdResult<()> {
+    state.store().delete_anniversary(id).map_err(err)?;
+    let _ = app.emit("anniversaries-changed", ());
     Ok(())
 }
 

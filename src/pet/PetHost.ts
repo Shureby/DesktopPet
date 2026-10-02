@@ -1,5 +1,7 @@
 import { HoverTracker } from "../brain/hover";
 import { todoRemindsAt } from "../features/todo/repeat";
+import { celebrationEffect, celebrationLines } from "../features/anniversary/templates";
+import { playEffect } from "../celebrate/effects";
 import { applyMoodEvent, isHungry, moodTier, parseMood, type MoodEvent } from "../brain/mood";
 import { RulesBrain } from "../brain/RulesBrain";
 import { Pet } from "../characters/Pet";
@@ -36,7 +38,7 @@ import {
   TIMER_PREFIX,
 } from "../features/alarm/timers";
 import { formatRemaining, gameHeld } from "../features/pomodoro/logic";
-import type { Alarm, Backend, PetActivity, PomodoroStatus, ReminderEvent, Settings, Unseen } from "../platform";
+import type { Alarm, Backend, Celebration, PetActivity, PomodoroStatus, ReminderEvent, Settings, Unseen } from "../platform";
 import type { CareAction } from "../characters/schema";
 import { buildTrayItems, nativeMenu, showPetMenu, type MenuContext } from "./menu";
 import { inQuietHours } from "./quietHours";
@@ -105,6 +107,8 @@ export class PetHost {
   private queued: ReminderEvent[] = [];
   /** To-dos without a time arriving together, told in one bubble (remindDayTodo). */
   private dayTodos: ReminderEvent[] = [];
+  /** Anniversaries that came while an alarm rang: celebrated after it. */
+  private celebrations: Celebration[] = [];
   /** A game asked for during a focus session while something was ringing (see playGame). */
   private pendingGame: string | null = null;
   /**
@@ -182,6 +186,7 @@ export class PetHost {
     this.canvas.addEventListener("contextmenu", (e) => this.onContextMenu(e));
 
     await this.backend.on("reminder", (r) => this.onReminder(r));
+    await this.backend.on("celebrate", (c) => this.onCelebrate(c));
     await this.backend.on("pomodoro", (p) => {
       // Finishing a focus session makes the pet proud of you.
       if (this.pomodoro.phase === "focus" && (p.phase === "short_break" || p.phase === "long_break")) {
@@ -1290,8 +1295,40 @@ export class PetHost {
     if (alert.ring) playRingtone(alert.ringtone, alert.volume);
   }
 
+  /**
+   * An anniversary (docs/INTERACTIONS.md, "Anniversaries"): the pet says the day's words for as
+   * long as the celebration lasts. The app plays the fireworks or candle in its own window;
+   * in the browser mock they're drawn over this page. A ringing alarm goes first.
+   */
+  private onCelebrate(c: Celebration): void {
+    if (c.peek) this.enterPeek();
+    if (this.activeRing) {
+      this.celebrations.push(c);
+      return;
+    }
+    const [line, sub] = celebrationLines(c.anniversary, c.years);
+    const remembrance = c.anniversary.kind === "remembrance";
+    if (!remembrance) this.pet.react({ type: "praise" });
+    this.say(sub ? [line, sub] : line, c.seconds * 1000, [], undefined, true);
+    if (c.effect && !this.windowed) {
+      const canvas = document.createElement("canvas");
+      Object.assign(canvas.style, { position: "fixed", inset: "0", width: "100vw", height: "100vh", pointerEvents: "none", zIndex: "50" });
+      document.body.append(canvas);
+      const { mode, icons } = celebrationEffect(c.anniversary);
+      const b = this.pet.body;
+      void playEffect(canvas, { mode, icons, ms: c.seconds * 1000, petX: b.x / this.dpr, petY: b.y / this.dpr }).then(() =>
+        canvas.remove(),
+      );
+    }
+  }
+
   private nextQueued(): void {
     if (this.activeRing) return;
+    const party = this.celebrations.shift();
+    if (party) {
+      this.onCelebrate(party);
+      return;
+    }
     const r = this.queued.shift();
     if (r) this.onReminder(r);
     else if (this.unseenPending && this.petVisible) void this.tellUnseen();

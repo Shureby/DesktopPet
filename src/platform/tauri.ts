@@ -23,6 +23,10 @@ export const tauriBackend: Backend = {
   updateTodo: (id, patch) => invoke("update_todo", { id, patch }),
   deleteTodo: (id) => invoke("delete_todo", { id }),
   clearDoneTodos: () => invoke("clear_done_todos"),
+  listAnniversaries: () => invoke("list_anniversaries"),
+  addAnniversary: (anniversary) => invoke("add_anniversary", { anniversary }),
+  updateAnniversary: (id, anniversary) => invoke("update_anniversary", { id, anniversary }),
+  deleteAnniversary: (id) => invoke("delete_anniversary", { id }),
 
   listAlarms: () => invoke("list_alarms"),
   addAlarm: (label, at, repeat, days) => invoke("add_alarm", { label, at, repeat, days: days ?? null }),

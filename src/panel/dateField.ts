@@ -93,8 +93,17 @@ export function typeDateDigit(
 
 export type DateFieldElement = HTMLElement & { value: string };
 
-/** The field itself. `onChange` runs after each change, `value` is "YYYY-MM-DD". */
-export function dateField(initial: string, onChange?: (value: string) => void, label = "Date"): DateFieldElement {
+/**
+ * The field itself. `onChange` runs after each change, `value` is "YYYY-MM-DD". With
+ * `year: false` it's a day of the year (anniversaries): no year or weekday, and the year in
+ * `value` is 2000, a leap year, so Feb 29 can be picked.
+ */
+export function dateField(
+  initial: string,
+  onChange?: (value: string) => void,
+  label = "Date",
+  opts: { year?: boolean } = {},
+): DateFieldElement {
   const { y, m, d } = parseYmd(initial);
   let value = formatYmd(y, m, d);
   const root = document.createElement("span") as unknown as DateFieldElement;
@@ -104,7 +113,9 @@ export function dateField(initial: string, onChange?: (value: string) => void, l
   const weekday = document.createElement("span");
   weekday.className = "weekday";
   root.append(weekday);
-  const parts = dateOrder();
+  const withYear = opts.year !== false;
+  if (!withYear) weekday.hidden = true;
+  const parts = dateOrder().filter((p) => withYear || p !== "year");
   const els = new Map<DatePart, HTMLElement>();
 
   const paint = () => {

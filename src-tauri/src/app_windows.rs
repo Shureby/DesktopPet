@@ -10,6 +10,7 @@ use crate::state::AppState;
 pub const PET: &str = "pet";
 pub const PANEL: &str = "panel";
 pub const GAME: &str = "game";
+pub const CELEBRATE: &str = "celebrate";
 
 #[derive(Clone, Serialize)]
 pub struct GameEvent<'a> {
@@ -76,6 +77,59 @@ pub fn open_game<R: Runtime>(app: &AppHandle<R>, game: &str) -> tauri::Result<()
     let window = builder.build()?;
     window.set_focus()?;
     app.emit("game", GameEvent { state: "started", game })?;
+    Ok(())
+}
+
+/// An anniversary's fireworks (or candle and flowers): a transparent, click-through window
+/// over the whole monitor the pet is on, closed after the celebration's length.
+/// celebrate.html reads what to play from its URL hash (hex-encoded JSON, so no escaping).
+pub fn open_celebration<R: Runtime>(app: &AppHandle<R>, c: &desktoppet_core::Celebration) -> tauri::Result<()> {
+    if let Some(w) = app.get_webview_window(CELEBRATE) {
+        w.destroy()?;
+    }
+    let pet = app.get_webview_window(PET);
+    let monitor = match &pet {
+        Some(p) => p.current_monitor()?,
+        None => None,
+    }
+    .or(app.primary_monitor()?);
+    let Some(m) = monitor else {
+        return Ok(());
+    };
+    let s = m.scale_factor();
+    let (mx, my) = (m.position().x as f64, m.position().y as f64);
+    // Where the pet stands on that monitor (logical px), for the candle and flowers.
+    let (pet_x, pet_y) = match &pet {
+        Some(p) => {
+            let pos = p.outer_position()?;
+            let size = p.outer_size()?;
+            ((pos.x as f64 + size.width as f64 / 2.0 - mx) / s, (pos.y as f64 + size.height as f64 - my) / s)
+        }
+        None => (m.size().width as f64 / s / 2.0, m.size().height as f64 / s - 40.0),
+    };
+    let payload = serde_json::json!({ "celebration": c, "petX": pet_x, "petY": pet_y });
+    let hex: String = payload.to_string().bytes().map(|b| format!("{b:02x}")).collect();
+    let window = WebviewWindowBuilder::new(app, CELEBRATE, WebviewUrl::App(format!("celebrate.html#{hex}").into()))
+        .title(product_name(app))
+        .transparent(true)
+        .decorations(false)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .resizable(false)
+        .shadow(false)
+        .focused(false)
+        .position(mx / s, my / s)
+        .inner_size(m.size().width as f64 / s, m.size().height as f64 / s)
+        .build()?;
+    window.set_ignore_cursor_events(true)?;
+    let handle = app.clone();
+    let seconds = c.seconds as u64 + 1;
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_secs(seconds));
+        if let Some(w) = handle.get_webview_window(CELEBRATE) {
+            let _ = w.destroy();
+        }
+    });
     Ok(())
 }
 

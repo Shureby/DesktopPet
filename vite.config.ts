@@ -13,6 +13,7 @@ export default defineConfig({
         pet: resolve(import.meta.dirname, "pet.html"),
         panel: resolve(import.meta.dirname, "panel.html"),
         game: resolve(import.meta.dirname, "game.html"),
+        celebrate: resolve(import.meta.dirname, "celebrate.html"),
       },
     },
   },
