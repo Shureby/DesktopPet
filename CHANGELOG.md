@@ -16,6 +16,16 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-10-02
+
+### Added
+- ▶ Preview for anniversaries (in the form and on each row): plays the day's celebration now
+  (words, effect, length) without marking it or making to-dos.
+
+### Fixed
+- The celebration's window no longer covers the pet and its bubble. The candle and flowers
+  stand clear of the bubble, and the pet sits by them.
+
 ## [0.26.0] - 2026-10-02
 
 ### Added

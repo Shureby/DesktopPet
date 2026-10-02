@@ -350,6 +350,8 @@ export interface Backend {
   updateAnniversary(id: number, a: NewAnniversary): Promise<Anniversary>;
   /** The to-dos its reminders already made stay. */
   deleteAnniversary(id: number): Promise<void>;
+  /** "▶ Preview": its day's celebration now (words and effect), marking nothing. */
+  previewCelebration(a: NewAnniversary): Promise<void>;
 
   listAlarms(): Promise<Alarm[]>;
   /** `days` is for repeat "days". */

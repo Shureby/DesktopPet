@@ -506,10 +506,11 @@ function renderAnniversaries(list: Anniversary[]): Node {
     remembrance ? "Candle and flowers on the day 🕯️" : "Fireworks on the day 🎆",
     settings.celebrate.enabled ? null : h("small", { class: "hint" }, " · off in Settings"),
   );
-  const save = async () => {
+  /** What the form holds, as it would be saved. */
+  const formAnniversary = (): NewAnniversary => {
     const [, mm, dd] = draft.date.split("-").map(Number);
     const year = Number(draft.since);
-    const a: NewAnniversary = {
+    return {
       kind: draft.kind,
       icon: draft.icon,
       name: draft.name.trim(),
@@ -519,6 +520,15 @@ function renderAnniversaries(list: Anniversary[]): Node {
       preps: draft.preps.filter((p) => p.label.trim()),
       effect: draft.effect,
     };
+  };
+  // "▶ Preview" plays the day's celebration as the form stands (unsaved is fine; no name yet
+  // borrows the template's name for it).
+  const preview = () => {
+    const a = formAnniversary();
+    void backend.previewCelebration({ ...a, name: a.name || TEMPLATES[draft.kind].label });
+  };
+  const save = async () => {
+    const a = formAnniversary();
     if (!a.name) {
       name.focus();
       return;
@@ -565,6 +575,11 @@ function renderAnniversaries(list: Anniversary[]): Node {
           ? h("span", { class: "preps" }, a.preps.map((p) => `${leadLabel(p.lead)} before: ${p.label}`).join(" · "))
           : null,
       ),
+      h(
+        "button",
+        { class: "icon edit", title: "Preview its day's celebration", onclick: () => void backend.previewCelebration(a) },
+        "▶",
+      ),
       h("button", { class: "icon edit", title: "Edit", onclick: () => startEdit(a) }, "✎"),
       h("button", { class: "icon delete", title: "Delete (its to-dos stay)", onclick: () => void backend.deleteAnniversary(a.id) }, "✕"),
     );
@@ -606,7 +621,12 @@ function renderAnniversaries(list: Anniversary[]): Node {
           )
         : null,
       effect,
-      h("div", { class: "row end" }, h("button", { class: "primary", onclick: () => void save() }, editingAnn ? "Save" : "Add")),
+      h(
+        "div",
+        { class: "row end" },
+        h("button", { class: "preview", title: "Play its day's celebration now", onclick: preview }, "▶ Preview"),
+        h("button", { class: "primary", onclick: () => void save() }, editingAnn ? "Save" : "Add"),
+      ),
     ),
     h("h3", {}, "Anniversaries"),
     upcoming.length ? h("ul", { class: "list" }, ...upcoming.map(row)) : h("p", { class: "empty" }, "No anniversaries yet."),

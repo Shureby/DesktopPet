@@ -407,6 +407,18 @@ export const mockBackend: Backend = {
     fire("anniversaries-changed", null);
     return row;
   },
+  async previewCelebration(a) {
+    const s = load();
+    const on = nextAnniversary(a.month, a.day);
+    const years = a.since !== null && on.getFullYear() - a.since > 0 ? on.getFullYear() - a.since : null;
+    fire("celebrate", {
+      anniversary: { ...a, name: a.name.trim(), id: 0, createdAt: Date.now() },
+      years,
+      effect: s.settings.celebrate.enabled && a.effect,
+      seconds: s.settings.celebrate.seconds,
+      peek: petHidden,
+    });
+  },
   async deleteAnniversary(id) {
     mutate((s) => (s.anniversaries = (s.anniversaries ?? []).filter((r) => r.id !== id)));
     fire("anniversaries-changed", null);

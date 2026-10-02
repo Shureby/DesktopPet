@@ -162,7 +162,8 @@ function fireworksScene(ctx: CanvasRenderingContext2D, w: number, h: number, o: 
 
 function candleScene(ctx: CanvasRenderingContext2D, w: number, h: number, o: EffectOptions) {
   const baseY = Math.min(h - 8, o.petY);
-  const cx = Math.max(90, Math.min(w - 90, o.petX - 80));
+  // Beside the pet, clear of its bubble (about 220 px wide, centred on it).
+  const cx = o.petX - 170 > 70 ? o.petX - 170 : Math.min(w - 70, o.petX + 170);
   return (t: number) => {
     // The screen dims, with warm light around the candle.
     const glow = ctx.createRadialGradient(cx, baseY - 60, 10, cx, baseY - 60, Math.max(w, h) * 0.6);

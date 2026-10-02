@@ -2,14 +2,14 @@
 
 <!-- Generated from test-checklist.json by `npm run test-checklist`. Edit the JSON, not this file. -->
 
-当前版本 `0.26.0`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
+当前版本 `0.27.0`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
 在线勾选页面（保存结果，自动标出需要重测的项目）：https://claude.ai/artifact/XQVzPKq4w2MThVnTLYCGy1
 
 ## 1. 安装与启动
 
 - [ ] 1.1 安装包安装 → **开始菜单/启动台里有应用，图标和名字正常**
 - [ ] 1.2 首次启动 → **宠物从屏幕上方掉下来，落在任务栏/Dock 上方**
-- [ ] 1.3 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.26.0 · …`，与安装包版本一致**
+- [ ] 1.3 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.27.0 · …`，与安装包版本一致**
 - [ ] 1.4 已经运行时再启动一次 → **不会出现第二只宠物（只打开面板）**
 - [ ] 1.5 覆盖安装新版本 → **之前的待办、闹钟、设置、心情值都还在**
 - [ ] 1.6 Settings → 勾选 Start with my computer，重启电脑；再取消并重启 → **勾选时自动启动，取消后不启动**
@@ -139,13 +139,14 @@
 
 ## 11. 纪念日
 
-- [ ] 11.1 **【新】** 打开 To-dos 页，点 🎂 Anniversaries，再切回 To-dos；切到别的页再回来 → **顶部有 [To-dos] [🎂 Anniversaries] 两个子页按钮，打开 To-dos 默认在 To-dos 子页；7 天内有纪念日时按钮上有数字**
-- [ ] 11.2 **【新】** 在 Anniversaries 子页依次选 Type：Birthday、Remembrance、Wedding anniversary；点图标按钮选一个别的图标；手动改一条提前提醒后再换 Type → **Birthday 自动填 🎂、1 week: Buy a gift、1 day: Order a cake，勾选 “Fireworks on the day 🎆”；Remembrance 变 🕯️、1 day: Buy flowers，勾选框文字变成 “Candle and flowers on the day 🕯️” 且默认不勾；图标网格 20 个可选，选中的有橙框；手动改过的图标、提醒、勾选在换 Type 时保留**
-- [ ] 11.3 **【新】** 添加三个：今天的生日（Since 1990）、明天的结婚纪念日（Since 2016）、40 天后的忌日（Since 2019）；日期框试拖动和滚轮，选 2 月 29 日；最多加 3 条提前提醒 → **日期只有日和月，可拖、滚、打字，能选 Feb 29；列表按日期排序：“… · Today 🎉 · 36th”、“… · Tomorrow · 10th”（7 天内橙色）、“… · in 40 days · 7 years”，下面列出提前提醒；+ Add another 到 3 条后消失**
-- [ ] 11.4 **【新】** 建一个明天的纪念日，提前提醒 1 day / Buy flowers 和 1 week / Book a restaurant；切到 To-dos 子页；关掉 ePet，第二天再开（或改系统日期）测一个昨天该生成的提醒 → **To-dos 的 Today 里出现 “💍 名字 - Buy flowers”（只有日期、没有时间，按待办提醒时间提醒），只出现一次；1 week 那条因为添加时已过期，不会生成；错过那天开机后补生成，显示 Overdue；删掉纪念日后已生成的待办保留**
-- [ ] 11.5 **【新】** 建一个今天的生日（Since 1990），等几秒后动一下鼠标；看完再打开面板改设置时长为 10 秒，第二个今天的纪念日再测 → **鼠标一动，宠物所在屏幕放烟花，同时飘落 🎂🎈🎁，宠物说 “🎉 Happy 36th birthday, 名字!”；烟花期间可以正常点击后面的窗口；时长到了烟花和这句话一起消失；同一个纪念日当天不会再放第二次**
-- [ ] 11.6 **【新】** 建一个今天的 Remembrance，先不勾 “Candle and flowers on the day”；再建一个勾上的 → **不勾的：没有屏幕效果，宠物安静地说 “🕯️ Remembering 名字 today.”（有 Since 时下面写 “N years”），宠物不做开心的动作；勾上的：屏幕变暗，宠物旁边一支白蜡烛在闪动，两边各一朵白菊花，时间到自动消失**
-- [ ] 11.7 **【新】** Settings → To-do reminders 关掉 “Celebrate anniversaries on screen”，再测一个今天的生日；Pet 卡片取消 “Anniversaries” 后隐藏宠物，再测一个；最后勾回 Anniversaries 并隐藏宠物测一次 → **关掉后没有烟花，宠物只说一句；时长只能 10–60 秒；不勾 Anniversaries 时隐藏的宠物不出来，等你点 Show pet 后当天再庆祝；勾上时宠物从屏幕边出来庆祝，结束后回去隐藏**
+- [ ] 11.1 打开 To-dos 页，点 🎂 Anniversaries，再切回 To-dos；切到别的页再回来 → **顶部有 [To-dos] [🎂 Anniversaries] 两个子页按钮，打开 To-dos 默认在 To-dos 子页；7 天内有纪念日时按钮上有数字**
+- [ ] 11.2 在 Anniversaries 子页依次选 Type：Birthday、Remembrance、Wedding anniversary；点图标按钮选一个别的图标；手动改一条提前提醒后再换 Type → **Birthday 自动填 🎂、1 week: Buy a gift、1 day: Order a cake，勾选 “Fireworks on the day 🎆”；Remembrance 变 🕯️、1 day: Buy flowers，勾选框文字变成 “Candle and flowers on the day 🕯️” 且默认不勾；图标网格 20 个可选，选中的有橙框；手动改过的图标、提醒、勾选在换 Type 时保留**
+- [ ] 11.3 添加三个：今天的生日（Since 1990）、明天的结婚纪念日（Since 2016）、40 天后的忌日（Since 2019）；日期框试拖动和滚轮，选 2 月 29 日；最多加 3 条提前提醒 → **日期只有日和月，可拖、滚、打字，能选 Feb 29；列表按日期排序：“… · Today 🎉 · 36th”、“… · Tomorrow · 10th”（7 天内橙色）、“… · in 40 days · 7 years”，下面列出提前提醒；+ Add another 到 3 条后消失**
+- [ ] 11.4 **【新】** 不保存，直接在表单里点 ▶ Preview；保存后在列表那一行点 ▶；隐藏宠物后再点一次 ▶；关掉 Settings 里的 “Celebrate anniversaries on screen” 再预览；预览一个今天的纪念日后动鼠标 → **预览和当天的庆祝一模一样（说的话、第几年、效果、时长），没填名字时用模板名；预览不会保存纪念日、不会生成待办；隐藏时宠物出来，播完回去；总开关关掉时只说一句话；预览过的今天的纪念日，动鼠标后仍会真正庆祝一次**
+- [ ] 11.5 建一个明天的纪念日，提前提醒 1 day / Buy flowers 和 1 week / Book a restaurant；切到 To-dos 子页；关掉 ePet，第二天再开（或改系统日期）测一个昨天该生成的提醒 → **To-dos 的 Today 里出现 “💍 名字 - Buy flowers”（只有日期、没有时间，按待办提醒时间提醒），只出现一次；1 week 那条因为添加时已过期，不会生成；错过那天开机后补生成，显示 Overdue；删掉纪念日后已生成的待办保留**
+- [ ] 11.6 **【新】** 建一个生日（Since 1990），点表单里的 “▶ Preview”（或列表那一行悬停时的 ▶）；看完到 Settings 把时长改成 10 秒再预览；最后建一个今天的生日，动一下鼠标看真实的庆祝 → **预览立刻在宠物所在屏幕放烟花，同时飘落 🎂🎈🎁，宠物说 “🎉 Happy 36th birthday, 名字!”；烟花在其他程序上面、宠物和气泡在烟花上面；烟花期间可以正常点击后面的窗口；时长到了烟花和这句话一起消失；真实那天：鼠标一动就庆祝，当天不会第二次**
+- [ ] 11.7 **【新】** Type 选 Remembrance、Since 2019，先不勾 “Candle and flowers on the day” 点 ▶ Preview；再勾上预览一次 → **不勾：没有屏幕效果，宠物安静地说 “🕯️ Remembering 名字 today.”，下面写 “7 years”，宠物不做开心的动作；勾上：屏幕变暗，宠物旁边（不被气泡挡住）一支白蜡烛在闪动、两边各一朵白菊花，宠物坐着不动，时间到自动消失**
+- [ ] 11.8 Settings → To-do reminders 关掉 “Celebrate anniversaries on screen”，再测一个今天的生日；Pet 卡片取消 “Anniversaries” 后隐藏宠物，再测一个；最后勾回 Anniversaries 并隐藏宠物测一次 → **关掉后没有烟花，宠物只说一句；时长只能 10–60 秒；不勾 Anniversaries 时隐藏的宠物不出来，等你点 Show pet 后当天再庆祝；勾上时宠物从屏幕边出来庆祝，结束后回去隐藏**
 
 ## 12. 专注时段
 

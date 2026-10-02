@@ -388,6 +388,17 @@ Code: `renderAnniversaries` in `src/panel/main.ts`, `src/features/anniversary/te
     is ticked (the default). Otherwise the celebration waits until the pet is shown that
     day.
   - An alarm ringing at the time goes first.
+  - The effect window is above other apps but below the pet, so the pet and its words stay
+    clear. In a remembrance the pet sits by the candle instead of cheering.
+- **▶ Preview (since 0.27.0):** plays the day's celebration now, so it can be seen without
+  waiting for the day.
+  - The form's "▶ Preview" (next to Add) uses the form as it stands, saved or not; with no
+    name yet, it borrows the template's.
+  - Each row's ▶ (on hover, before ✎) previews a saved anniversary.
+  - It's exactly what the day does: the words, the years, the effect or none (the
+    anniversary's switch and the setting), and the length.
+  - It marks nothing: the real day still celebrates, and no reminder to-dos are made.
+  - A hidden pet comes out for it.
 
 ## Focus work hours (since 0.20.0)
 

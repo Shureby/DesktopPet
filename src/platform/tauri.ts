@@ -27,6 +27,7 @@ export const tauriBackend: Backend = {
   addAnniversary: (anniversary) => invoke("add_anniversary", { anniversary }),
   updateAnniversary: (id, anniversary) => invoke("update_anniversary", { id, anniversary }),
   deleteAnniversary: (id) => invoke("delete_anniversary", { id }),
+  previewCelebration: (anniversary) => invoke("preview_celebration", { anniversary }),
 
   listAlarms: () => invoke("list_alarms"),
   addAlarm: (label, at, repeat, days) => invoke("add_alarm", { label, at, repeat, days: days ?? null }),

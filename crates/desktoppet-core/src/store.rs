@@ -502,13 +502,7 @@ impl Store {
             return Ok(vec![]);
         };
         let today_text = today.format("%Y-%m-%d").to_string();
-        let settings = self.settings()?;
-        let celebrate = settings.get("celebrate");
-        let enabled = celebrate.and_then(|c| c.get("enabled")).and_then(Value::as_bool).unwrap_or(true);
-        let seconds = celebrate
-            .and_then(|c| c.get("seconds"))
-            .and_then(Value::as_u64)
-            .map_or(DEFAULT_CELEBRATE_SECONDS, |s| s.clamp(10, 60) as u32);
+        let (enabled, seconds) = self.celebrate_settings()?;
         let mut out = vec![];
         for a in self.list_anniversaries()? {
             if anniversary_on_or_after(a.month, a.day, today) != Some(today) {
@@ -524,6 +518,40 @@ impl Store {
             out.push(Celebration { anniversary: a, years, effect, seconds, peek: false });
         }
         Ok(out)
+    }
+
+    /// Settings → "Celebrate anniversaries on screen for N s": on or off, and the length (10–60).
+    fn celebrate_settings(&self) -> Result<(bool, u32)> {
+        let settings = self.settings()?;
+        let celebrate = settings.get("celebrate");
+        let enabled = celebrate.and_then(|c| c.get("enabled")).and_then(Value::as_bool).unwrap_or(true);
+        let seconds = celebrate
+            .and_then(|c| c.get("seconds"))
+            .and_then(Value::as_u64)
+            .map_or(DEFAULT_CELEBRATE_SECONDS, |s| s.clamp(10, 60) as u32);
+        Ok((enabled, seconds))
+    }
+
+    /// "▶ Preview": the celebration its next day would get (words, years, effect, length),
+    /// for an anniversary being set up or a saved one. Nothing is marked or made.
+    pub fn preview_celebration<Tz: TimeZone>(&self, tz: &Tz, a: &NewAnniversary, now: Millis) -> Result<Celebration> {
+        let today = local_date(tz, now).ok_or_else(|| StoreError::Invalid("bad time".into()))?;
+        let on = anniversary_on_or_after(a.month, a.day, today).unwrap_or(today);
+        let (enabled, seconds) = self.celebrate_settings()?;
+        let anniversary = Anniversary {
+            id: 0,
+            kind: a.kind.clone(),
+            icon: a.icon.clone(),
+            name: a.name.trim().to_string(),
+            month: a.month,
+            day: a.day,
+            since: a.since,
+            preps: a.preps.clone(),
+            effect: a.effect,
+            created_at: now,
+        };
+        let years = a.since.map(|y| on.year() - y).filter(|&n| n > 0);
+        Ok(Celebration { anniversary, years, effect: enabled && a.effect, seconds, peek: false })
     }
 
     /// The pet celebrated it today: not again until next year.
@@ -1792,6 +1820,21 @@ mod tests {
         let next = London.with_ymd_and_hms(2027, 1, 10, 9, 0, 0).unwrap().timestamp_millis();
         let due = s.celebrations_due(&London, next).unwrap();
         assert_eq!((due[0].years, due[0].effect, due[0].seconds), (Some(37), false, 60));
+    }
+
+    #[test]
+    fn a_preview_celebrates_without_marking_anything() {
+        let s = Store::open_in_memory().unwrap();
+        // Previewed on Jan 7 2026 for Jan 10: as on that day (36th), effect from the form.
+        let p = s.preview_celebration(&London, &birthday(10), at(9, 0)).unwrap();
+        assert_eq!((p.anniversary.name.as_str(), p.years, p.effect, p.seconds), ("Mum", Some(36), true, 15));
+        let off = s.preview_celebration(&London, &NewAnniversary { effect: false, ..birthday(10) }, at(9, 0)).unwrap();
+        assert!(!off.effect);
+        // A saved one previewed on its day is still celebrated for real.
+        let a = s.add_anniversary(&birthday(7), at(8, 0)).unwrap();
+        s.preview_celebration(&London, &birthday(7), at(9, 0)).unwrap();
+        assert_eq!(s.celebrations_due(&London, at(9, 30)).unwrap()[0].anniversary.id, a.id);
+        assert!(s.list_todos().unwrap().is_empty());
     }
 
     #[test]

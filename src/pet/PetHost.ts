@@ -1308,12 +1308,15 @@ export class PetHost {
     }
     const [line, sub] = celebrationLines(c.anniversary, c.years);
     const remembrance = c.anniversary.kind === "remembrance";
-    if (!remembrance) this.pet.react({ type: "praise" });
+    // A remembrance is quiet: the pet sits by the candle instead of cheering.
+    if (remembrance) this.pet.fsm.set("sit", true);
+    else this.pet.react({ type: "praise" });
     this.say(sub ? [line, sub] : line, c.seconds * 1000, [], undefined, true);
     if (c.effect && !this.windowed) {
       const canvas = document.createElement("canvas");
-      Object.assign(canvas.style, { position: "fixed", inset: "0", width: "100vw", height: "100vh", pointerEvents: "none", zIndex: "50" });
-      document.body.append(canvas);
+      // Under the pet and its bubble, like the app's window under the pet's.
+      Object.assign(canvas.style, { position: "fixed", inset: "0", width: "100vw", height: "100vh", pointerEvents: "none", zIndex: "0" });
+      document.body.prepend(canvas);
       const { mode, icons } = celebrationEffect(c.anniversary);
       const b = this.pet.body;
       void playEffect(canvas, { mode, icons, ms: c.seconds * 1000, petX: b.x / this.dpr, petY: b.y / this.dpr }).then(() =>

@@ -122,6 +122,12 @@ pub fn open_celebration<R: Runtime>(app: &AppHandle<R>, c: &desktoppet_core::Cel
         .inner_size(m.size().width as f64 / s, m.size().height as f64 / s)
         .build()?;
     window.set_ignore_cursor_events(true)?;
+    // The pet and its words stay above the effect (both windows are always on top; turning
+    // it off and on again brings the pet to the front of that layer).
+    if let Some(p) = &pet {
+        p.set_always_on_top(false)?;
+        p.set_always_on_top(true)?;
+    }
     let handle = app.clone();
     let seconds = c.seconds as u64 + 1;
     std::thread::spawn(move || {

@@ -4,8 +4,8 @@ use std::sync::atomic::Ordering;
 
 use chrono::Local;
 use desktoppet_core::{
-    pomodoro, Alarm, Anniversary, DayStat, NewAnniversary, NewTodo, NewUnseen, PomodoroStatus, Repeat, Score, Todo,
-    TodoPatch, Unseen,
+    pomodoro, Alarm, Anniversary, Celebration, DayStat, NewAnniversary, NewTodo, NewUnseen, PomodoroStatus, Repeat,
+    Score, Todo, TodoPatch, Unseen,
 };
 use serde::Serialize;
 use serde_json::Value;
@@ -95,6 +95,19 @@ pub fn update_anniversary(
     let a = state.store().update_anniversary(id, &anniversary, now_ms()).map_err(err)?;
     let _ = app.emit("anniversaries-changed", ());
     Ok(a)
+}
+
+/// "▶ Preview": the day's celebration now (the pet's words and the effect), marking nothing.
+/// A hidden pet comes out for it.
+#[tauri::command]
+pub fn preview_celebration(app: AppHandle, state: State<AppState>, anniversary: NewAnniversary) -> CmdResult<()> {
+    let c = state.store().preview_celebration(&Local, &anniversary, now_ms()).map_err(err)?;
+    let peeks = app_windows::peek(&app);
+    if c.effect {
+        app_windows::open_celebration(&app, &c).map_err(err)?;
+    }
+    app.emit("celebrate", Celebration { peek: peeks, ..c }).map_err(err)?;
+    Ok(())
 }
 
 #[tauri::command]
