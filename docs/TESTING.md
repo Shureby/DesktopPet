@@ -2,14 +2,14 @@
 
 <!-- Generated from test-checklist.json by `npm run test-checklist`. Edit the JSON, not this file. -->
 
-当前版本 `0.24.0`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
+当前版本 `0.25.0`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
 在线勾选页面（保存结果，自动标出需要重测的项目）：https://claude.ai/artifact/XQVzPKq4w2MThVnTLYCGy1
 
 ## 1. 安装与启动
 
 - [ ] 1.1 安装包安装 → **开始菜单/启动台里有应用，图标和名字正常**
 - [ ] 1.2 首次启动 → **宠物从屏幕上方掉下来，落在任务栏/Dock 上方**
-- [ ] 1.3 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.24.0 · …`，与安装包版本一致**
+- [ ] 1.3 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.25.0 · …`，与安装包版本一致**
 - [ ] 1.4 已经运行时再启动一次 → **不会出现第二只宠物（只打开面板）**
 - [ ] 1.5 覆盖安装新版本 → **之前的待办、闹钟、设置、心情值都还在**
 - [ ] 1.6 Settings → 勾选 Start with my computer，重启电脑；再取消并重启 → **勾选时自动启动，取消后不启动**
@@ -121,19 +121,21 @@
 ## 10. 待办
 
 - [ ] 10.1 输入 call mom at 3pm → **标题 “call mom”，今天 15:00 提醒**
-- [ ] 10.2 **【新】** 输入 standup tomorrow 9:30、stretch in 20m、pay rent fri 10am、just a note，看输入框下面那一行和提示 → **时间解析正确；最后一个没有提醒时间（没有日期、没有时间）**
-- [ ] 10.3 **【新】** 输入 buy milk today、dentist fri（都不写时间），看输入框下面那一行，再点 Add → **输入时下面一行自动出现 📅 日期框（灰色星期几 + 日 月 年，顺序跟随系统，澳洲为 7 Oct 2026）和虚线 “+ Time”；提示写 “📅 Today — “buy milk” · reminds at 9:00 AM that day”；列表里只显示日期（Today / Fri, 9 Oct），没有时间**
-- [ ] 10.4 **【新】** 点 “+ Date”，在日期框的日、月、年上分别：按住上下拖、滚轮、按 ↑/↓、直接打数字（如月份打 12）；把日改成 31 再把月份换成 11 月；点日期框里的 ✕ → **和时间框一样可以拖、滚、按键、打字，星期几跟着变；31 日换到 11 月变成 30 日；日从 31 往上滚回到 1 而不改月份；✕ 后回到 “+ Date”，重复下拉框变灰不能选**
-- [ ] 10.5 **【新】** 有日期时点 “+ Time”，再点时间框里的 ✕；再输入 call mom tomorrow 3pm → **“+ Time” 变成时间框（下一个整点），✕ 后变回 “+ Time”；打出时间时自动出现时间框；提示里 ⏰ 带时间，📅 不带时间**
-- [ ] 10.6 **【新】** 依次输入 bins every tue、recycling every other thu、water plants daily、pay bills monthly 1st、review budget quarterly、car rego yearly on the 20th、bins every tue 7pm → **重复下拉框自动选中 Weekly / Fortnightly / Daily / Monthly / Quarterly / Yearly；日期是下一个对应的日子（every tue 当天是周二时就是今天；monthly 1st 是下一个 1 号）；最后一个带 7:00 PM；标题里去掉了这些词；手动改过下面一行后，继续打字不会再覆盖它**
-- [ ] 10.7 **【新】** 建一个 Weekly 的 bins（今天），勾选完成；再建一个日期在三周前的 Weekly 待办，勾选；再建一个 Monthly 31 号的待办，勾选几次 → **勾选后 Done 区多一条 “bins · Done · Today …”，bins 本身留在列表里，日期变成下周同一天，前面显示 🔁 Weekly；拖了三周的那个直接跳到今天之后最近的一次，不会冒出好几条；31 号的在 30 天的月份变成 30 号，下个月又回到 31 号**
-- [ ] 10.8 **【新】** 鼠标悬停一条待办，点 ✎；改标题、日期、加时间、改重复方式，点 Save；再点一次 ✎ 后点标题右边的 Cancel；再点 ✎ 后把这条勾掉或删掉 → **✎ 只在悬停时出现（已完成的没有 ✎）；表单标题变成 “Edit to-do · 名字”，内容都已填好，Add 变成 Save，这一行橙色边框；Save 后只改这一条，不会多出一条；Cancel 不改任何东西；编辑中的那条被勾掉或删掉时表单回到新建状态**
-- [ ] 10.9 **【新】** Settings → To-do reminders 把 “To-dos without a time remind you at” 设成 1–2 分钟后；建两个今天的、不带时间的待办；到点后点 Later；另一次：把时间设在早上，晚点再打开 ePet → **到点宠物出来，一个气泡同时列出两条：“📅 Today: • … • …”，按钮 Open To-dos 和 Later；Later 后 10 分钟再提醒一次，日期不变（不会变成带时间的待办）；时间过了才打开 ePet，当天打开时仍提醒一次；只有一条时和普通待办提醒一样，有 ✓ Done**
-- [ ] 10.10 **【新】** 建一个今天的不带时间的待办、一个今天早些时候带时间的待办，不勾；第二天（或改系统日期）再看 → **当天：不带时间的显示橙色 “Today”（不算 Overdue），带时间的过了时间就显示红色 “Overdue · Today …”；第二天不带时间的才变成红色 “Overdue · Yesterday”；第二天打开 ePet 不会为昨天的补提醒**
-- [ ] 10.11 面板添加待办，再勾选完成 → **添加时宠物确认一句；完成时宠物夸奖，爱心增加**
-- [ ] 10.12 等待办提醒到点 → **按 Alerts → To-do reminders 设置提示，只响一次**
-- [ ] 10.13 Done 区点 Clear → **已完成的待办被清空**
-- [ ] 10.14 勾选完成几个待办，打开 Done 区 → **每个显示 “Done · Today 3:15 PM”，最近完成的在最上面；待办的提醒时间显示为 “Today 3:00 PM”（没有前导 0）**
+- [ ] 10.2 输入 standup tomorrow 9:30、stretch in 20m、pay rent fri 10am、just a note，看输入框下面那一行和提示 → **时间解析正确；最后一个没有提醒时间（没有日期、没有时间）**
+- [ ] 10.3 **【新】** 建几个待办：一个昨天的、一个今天带时间的、一个今天不带时间的、一个没有日期的、两个以后的；打开 Upcoming，关掉面板再打开；第二天（或改系统日期）再看 → **上面是 “TODAY (n)”：昨天的红色 Overdue 在最前，然后今天带时间的、今天不带时间的、没有日期的；下面是收起的 “▸ Upcoming (2) · next …”（写出最近那条的日期），点开能看到，重新打开面板仍保持打开；到了那天，那条自动出现在 Today；Today 没有东西时写 “Nothing for today. Your pet approves.”**
+- [ ] 10.4 输入 buy milk today、dentist fri（都不写时间），看输入框下面那一行，再点 Add → **输入时下面一行自动出现 📅 日期框（灰色星期几 + 日 月 年，顺序跟随系统，澳洲为 7 Oct 2026）和虚线 “+ Time”；提示写 “📅 Today — “buy milk” · reminds at 9:00 AM that day”；列表里只显示日期（Today / Fri, 9 Oct），没有时间**
+- [ ] 10.5 点 “+ Date”，在日期框的日、月、年上分别：按住上下拖、滚轮、按 ↑/↓、直接打数字（如月份打 12）；把日改成 31 再把月份换成 11 月；点日期框里的 ✕ → **和时间框一样可以拖、滚、按键、打字，星期几跟着变；31 日换到 11 月变成 30 日；日从 31 往上滚回到 1 而不改月份；✕ 后回到 “+ Date”，重复下拉框变灰不能选**
+- [ ] 10.6 有日期时点 “+ Time”，再点时间框里的 ✕；再输入 call mom tomorrow 3pm → **“+ Time” 变成时间框（下一个整点），✕ 后变回 “+ Time”；打出时间时自动出现时间框；提示里 ⏰ 带时间，📅 不带时间**
+- [ ] 10.7 依次输入 bins every tue、recycling every other thu、water plants daily、pay bills monthly 1st、review budget quarterly、car rego yearly on the 20th、bins every tue 7pm → **重复下拉框自动选中 Weekly / Fortnightly / Daily / Monthly / Quarterly / Yearly；日期是下一个对应的日子（every tue 当天是周二时就是今天；monthly 1st 是下一个 1 号）；最后一个带 7:00 PM；标题里去掉了这些词；手动改过下面一行后，继续打字不会再覆盖它**
+- [ ] 10.8 建一个 Weekly 的 bins（今天），勾选完成；再建一个日期在三周前的 Weekly 待办，勾选；再建一个 Monthly 31 号的待办，勾选几次 → **勾选后 Done 区多一条 “bins · Done · Today …”，bins 本身留在列表里，日期变成下周同一天，前面显示 🔁 Weekly；拖了三周的那个直接跳到今天之后最近的一次，不会冒出好几条；31 号的在 30 天的月份变成 30 号，下个月又回到 31 号**
+- [ ] 10.9 **【新】** 在 Upcoming 里提前勾掉一个 Fortnightly 待办（比如 Tue 6 Oct 的），再到 Done 区把它那条的勾去掉；再对一个今天的 Daily 待办做同样的事；最后勾掉一个重复待办后把它删掉，再去 Done 区取消勾选 → **勾掉后日期跳到两周后（20 Oct），Done 多一条；取消勾选后 Done 那条消失，待办回到 6 Oct，没有多出一条；今天的那条回到 Today，不会再为今天提醒一次；待办删掉后再取消勾选，那条记录变成普通的一次性待办**
+- [ ] 10.10 鼠标悬停一条待办，点 ✎；改标题、日期、加时间、改重复方式，点 Save；再点一次 ✎ 后点标题右边的 Cancel；再点 ✎ 后把这条勾掉或删掉 → **✎ 只在悬停时出现（已完成的没有 ✎）；表单标题变成 “Edit to-do · 名字”，内容都已填好，Add 变成 Save，这一行橙色边框；Save 后只改这一条，不会多出一条；Cancel 不改任何东西；编辑中的那条被勾掉或删掉时表单回到新建状态**
+- [ ] 10.11 Settings → To-do reminders 把 “To-dos without a time remind you at” 设成 1–2 分钟后；建两个今天的、不带时间的待办；到点后点 Later；另一次：把时间设在早上，晚点再打开 ePet → **到点宠物出来，一个气泡同时列出两条：“📅 Today: • … • …”，按钮 Open To-dos 和 Later；Later 后 10 分钟再提醒一次，日期不变（不会变成带时间的待办）；时间过了才打开 ePet，当天打开时仍提醒一次；只有一条时和普通待办提醒一样，有 ✓ Done**
+- [ ] 10.12 建一个今天的不带时间的待办、一个今天早些时候带时间的待办，不勾；第二天（或改系统日期）再看 → **当天：不带时间的显示橙色 “Today”（不算 Overdue），带时间的过了时间就显示红色 “Overdue · Today …”；第二天不带时间的才变成红色 “Overdue · Yesterday”；第二天打开 ePet 不会为昨天的补提醒**
+- [ ] 10.13 面板添加待办，再勾选完成 → **添加时宠物确认一句；完成时宠物夸奖，爱心增加**
+- [ ] 10.14 等待办提醒到点 → **按 Alerts → To-do reminders 设置提示，只响一次**
+- [ ] 10.15 Done 区点 Clear → **已完成的待办被清空**
+- [ ] 10.16 勾选完成几个待办，打开 Done 区 → **每个显示 “Done · Today 3:15 PM”，最近完成的在最上面；待办的提醒时间显示为 “Today 3:00 PM”（没有前导 0）**
 
 ## 11. 专注时段
 

@@ -837,3 +837,11 @@ select.repeat {
   align-items: center;
   gap: 8px;
 }
+/* "Upcoming (2) · next Tue, 6 Oct": title on the left (Done's first child is its Clear button). */
+details.upcoming summary {
+  justify-content: flex-start;
+  gap: 4px;
+}
+details.upcoming summary > :first-child {
+  margin-left: 0;
+}

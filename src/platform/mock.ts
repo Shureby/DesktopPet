@@ -25,7 +25,7 @@ import {
  * page runs the scheduler. Fake "windows" are any `.fake-window` elements.
  */
 /** The mock's to-dos also keep what the store keeps in columns of its own. */
-type MockTodo = Todo & { anchorAt?: number | null; remindAt?: number | null };
+type MockTodo = Todo & { anchorAt?: number | null; remindAt?: number | null; repeatOf?: number | null };
 
 interface MockState {
   settings: Settings;
@@ -291,12 +291,25 @@ export const mockBackend: Backend = {
         // Ticking off a repeating to-do (see tick_repeating in store.rs).
         const next = nextAfterTick(t, t.anchorAt ?? t.dueAt ?? now, now);
         if (next !== null) {
-          s.todos.push({ ...t, id: s.nextId++, done: true, doneAt: now, createdAt: now, repeat: "none" });
+          s.todos.push({ ...t, id: s.nextId++, done: true, doneAt: now, createdAt: now, repeat: "none", repeatOf: t.id });
           t.dueAt = next;
           t.remindAt = null;
           rearm();
           return;
         }
+      }
+      if (patch.done === false && t.done && t.repeatOf != null) {
+        // Unticking a logged time undoes the tick (see untick_logged in store.rs).
+        const parent = s.todos.find((x) => x.id === t.repeatOf && !x.done && x.repeat !== "none");
+        if (parent && t.dueAt !== null) {
+          parent.dueAt = t.dueAt;
+          parent.remindAt = null;
+          s.notified = (s.notified ?? []).filter((n) => n !== parent.id);
+          if (t.dueAt <= now) s.notified.push(parent.id);
+          s.todos = s.todos.filter((x) => x.id !== t.id);
+          return;
+        }
+        t.repeatOf = null;
       }
       if (patch.done !== undefined && patch.done !== t.done) {
         t.done = patch.done;

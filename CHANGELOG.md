@@ -16,6 +16,15 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-10-02
+
+### Added
+- To-dos are in sections: **Today** (overdue, today's, and those without a day) and
+  **Upcoming** (from tomorrow, folded by default, with the next date in its title), then
+  Done.
+- Unticking a repeating to-do's entry in Done undoes the tick: the to-do goes back to that
+  day.
+
 ## [0.24.0] - 2026-10-02
 
 ### Added

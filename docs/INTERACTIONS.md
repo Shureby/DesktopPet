@@ -325,7 +325,18 @@ Code: `renderTodos` in `src/panel/main.ts`, `src/panel/dateField.ts`, `src/featu
     "Edit to-do · …" with Cancel on its right, Add becomes Save, and the row is outlined.
   - When editing, the text box is just the title and isn't parsed.
   - Only what changed is saved. A new day restarts a repeating to-do's count from it.
-- Lists are sorted by when they remind you; those without a day go last.
+- **Sections (since 0.25.0):**
+  - **Today (n):** overdue first (red), then today's with a time, today's without one, and
+    those with no day (no day means any time, so they count as today's).
+  - **Upcoming (n) · next Tue, 6 Oct:** from tomorrow on, soonest first. It's folded by
+    default, and the panel remembers whether you opened it (per computer). A to-do moves to
+    Today on its day by itself.
+  - **Done (n):** as before. "Nothing for today. Your pet approves." when Today is empty.
+- **Unticking undoes a tick (since 0.25.0):** a ticked-off time of a repeating to-do
+  remembers which to-do it was (`repeat_of`, v11 migration). Unticking it in Done removes
+  the entry and puts the to-do back on that day.
+  - If that day has already come, it isn't reminded a second time.
+  - If the to-do was deleted meanwhile, the entry just becomes an ordinary open to-do.
 
 ## Focus work hours (since 0.20.0)
 

@@ -12,9 +12,9 @@
   SteamOS unticked.
 - **Direct build**: auto-updater feed, code signing, license keys.
 
-## Anniversaries (0.25.0, agreed 2026-10-02)
+## Anniversaries (0.26.0, agreed 2026-10-02)
 
-Comes after 0.24.0 (repeating to-dos and editing to-dos).
+Comes after 0.24.0 (repeating to-dos and editing to-dos) and 0.25.0 (Today / Upcoming sections).
 
 - **A 🎂 Anniversaries sub-page in To-dos.** To-dos opens on the To-dos sub-page (the
   tickable list). The sub-tab shows a count when an anniversary is within 7 days

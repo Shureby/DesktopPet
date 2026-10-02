@@ -19,7 +19,7 @@ import {
   timerName,
 } from "../features/alarm/timers";
 import { parseQuickAdd } from "../features/todo/quickAdd";
-import { TODO_REPEATS, todoRemindsAt } from "../features/todo/repeat";
+import { TODO_REPEATS } from "../features/todo/repeat";
 import { GAMES } from "../features/games/catalog";
 import {
   backend,
@@ -56,9 +56,9 @@ import {
 } from "./alarmText";
 import { dayPicker } from "./dayPicker";
 import { formatHm, parseHm, timeField } from "./timeField";
-import { formatWhen, h } from "./dom";
+import { formatDay, formatWhen, h } from "./dom";
 import { dateField, ymdOf, ymdToMs } from "./dateField";
-import { repeatBadge, todoHint, todoWhen } from "./todoText";
+import { repeatBadge, splitTodos, todoHint, todoWhen } from "./todoText";
 
 const TABS: { id: PanelTab; label: string }[] = [
   { id: "todos", label: "To-dos" },
@@ -263,10 +263,7 @@ async function renderTodos(): Promise<Node> {
   paintWhen();
   showHint();
 
-  const remindsAt = (t: Todo) => todoRemindsAt(t, settings.todoDayTime) ?? Infinity;
-  const open = todos.filter((t) => !t.done).sort((a, b) => remindsAt(a) - remindsAt(b) || a.id - b.id);
-  // Most recently ticked off first.
-  const done = todos.filter((t) => t.done).sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0) || b.id - a.id);
+  const { today, upcoming, done } = splitTodos(todos, settings.todoDayTime);
   const row = (t: Todo) => {
     const when = t.done ? null : todoWhen(t);
     const badge = t.done ? "" : repeatBadge(t.repeat);
@@ -311,9 +308,11 @@ async function renderTodos(): Promise<Node> {
     h("div", { class: "row" }, input, h("button", { class: "primary", onclick: add }, editingTodo ? "Save" : "Add")),
     whenRow,
     hint,
-    open.length ? h("ul", { class: "list" }, ...open.map(row)) : h("p", { class: "empty" }, "Nothing to do. Your pet approves."),
+    h("h3", {}, `Today (${today.length})`),
+    today.length ? h("ul", { class: "list" }, ...today.map(row)) : h("p", { class: "empty" }, "Nothing for today. Your pet approves."),
+    upcoming.length ? upcomingSection(upcoming, row) : null,
     done.length ? finishedSection(`Done (${done.length})`, done.map(row), () => backend.clearDoneTodos()) : null,
-    h("p", { class: "hint" }, "Done to-dos are cleared automatically each day. Ticking a repeating one moves it to its next day."),
+    h("p", { class: "hint" }, "Done to-dos are cleared automatically each day. Ticking a repeating one moves it to its next day; untick it in Done to undo."),
   );
 }
 
@@ -678,6 +677,37 @@ function toggle(on: boolean, name: string, onChange: (input: HTMLInputElement) =
 }
 
 /** Collapsible list of finished items with a "Clear" button. */
+const UPCOMING_OPEN_KEY = "todos.upcomingOpen";
+
+/**
+ * To-dos from tomorrow on, folded away by default ("Upcoming (2) · next Tue, 6 Oct"); open or
+ * closed is remembered on this computer.
+ */
+function upcomingSection(list: Todo[], row: (t: Todo) => Node): Node {
+  let open = false;
+  try {
+    open = localStorage.getItem(UPCOMING_OPEN_KEY) === "1";
+  } catch {
+    // No storage: folded.
+  }
+  const first = list[0].dueAt;
+  const next = first === null ? "" : ` · next ${list[0].allDay ? formatDay(first) : formatWhen(first)}`;
+  const section = h(
+    "details",
+    { class: "finished upcoming", open },
+    h("summary", {}, h("span", {}, `Upcoming (${list.length})${next}`)),
+    h("ul", { class: "list" }, ...list.map(row)),
+  );
+  section.addEventListener("toggle", () => {
+    try {
+      localStorage.setItem(UPCOMING_OPEN_KEY, section.open ? "1" : "0");
+    } catch {
+      // Not remembered; fine.
+    }
+  });
+  return section;
+}
+
 function finishedSection(title: string, rows: Node[], clear: () => Promise<number>): Node {
   return h(
     "details",

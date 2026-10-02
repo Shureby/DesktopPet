@@ -93,6 +93,9 @@ const MIGRATIONS: &[&str] = &[
      ALTER TABLE todos ADD COLUMN repeat TEXT NOT NULL DEFAULT 'none';
      ALTER TABLE todos ADD COLUMN anchor_at INTEGER;
      ALTER TABLE todos ADD COLUMN remind_at INTEGER;",
+    // v11: a ticked-off time of a repeating to-do remembers which one it was, so unticking
+    // it in Done undoes the tick.
+    "ALTER TABLE todos ADD COLUMN repeat_of INTEGER;",
 ];
 
 const TODO_COLUMNS: &str = "id, title, due_at, done, created_at, done_at, all_day, repeat";
@@ -251,6 +254,9 @@ impl Store {
             if done && self.tick_repeating(tz, id, now)? {
                 return Ok(());
             }
+            if !done && self.untick_logged(id, now)? {
+                return Ok(());
+            }
             let done_at = done.then_some(now);
             self.conn.execute("UPDATE todos SET done = ?2, done_at = ?3 WHERE id = ?1", params![id, done, done_at])?;
         }
@@ -282,14 +288,41 @@ impl Store {
             return Ok(false);
         };
         self.conn.execute(
-            "INSERT INTO todos (title, due_at, created_at, done, done_at, notified_at, all_day, repeat)
-             VALUES (?1, ?2, ?3, 1, ?3, ?3, ?4, 'none')",
-            params![t.title, due, now, t.all_day],
+            "INSERT INTO todos (title, due_at, created_at, done, done_at, notified_at, all_day, repeat, repeat_of)
+             VALUES (?1, ?2, ?3, 1, ?3, ?3, ?4, 'none', ?5)",
+            params![t.title, due, now, t.all_day, id],
         )?;
         self.conn.execute(
             "UPDATE todos SET due_at = ?2, notified_at = NULL, remind_at = NULL WHERE id = ?1",
             params![id, next],
         )?;
+        Ok(true)
+    }
+
+    /// Unticking a logged time of a repeating to-do in Done undoes that tick: the entry goes
+    /// and the to-do is back on that day (not reminded again for a day already reached).
+    /// False if it isn't such an entry, or its to-do is gone (then it's just an open to-do).
+    fn untick_logged(&self, id: i64, now: Millis) -> Result<bool> {
+        let logged: Option<(Option<i64>, Option<Millis>)> = self
+            .conn
+            .query_row("SELECT repeat_of, due_at FROM todos WHERE id = ?1 AND done = 1", [id], |r| {
+                Ok((r.get(0)?, r.get(1)?))
+            })
+            .optional()?;
+        let Some((Some(parent), Some(due))) = logged else {
+            return Ok(false);
+        };
+        let back = self.conn.execute(
+            "UPDATE todos SET due_at = ?2, remind_at = NULL,
+               notified_at = CASE WHEN ?2 <= ?3 THEN ?3 ELSE NULL END
+             WHERE id = ?1 AND done = 0 AND repeat != 'none'",
+            params![parent, due, now],
+        )?;
+        if back == 0 {
+            self.conn.execute("UPDATE todos SET repeat_of = NULL WHERE id = ?1", [id])?;
+            return Ok(false);
+        }
+        self.conn.execute("DELETE FROM todos WHERE id = ?1", [id])?;
         Ok(true)
     }
 
@@ -1426,10 +1459,45 @@ mod tests {
         s.update_todo(&London, rent.id, &done, at(9, 5)).unwrap();
         let next = London.with_ymd_and_hms(2026, 2, 7, 9, 0, 0).unwrap().timestamp_millis();
         assert_eq!(s.list_todos().unwrap().into_iter().find(|t| t.id == rent.id).unwrap().due_at, Some(next));
-        // Unticking the logged one makes it an ordinary open to-do; a plain one just ticks.
+        // Unticking the first logged time undoes that tick: bins is back on its first day.
         s.update_todo(&London, logged.id, &TodoPatch { done: Some(false), ..Default::default() }, at(20, 0)).unwrap();
-        let l = s.list_todos().unwrap().into_iter().find(|t| t.id == logged.id).unwrap();
-        assert_eq!((l.done, l.repeat), (false, TodoRepeat::None));
+        let all = s.list_todos().unwrap();
+        assert!(all.iter().all(|t| t.id != logged.id));
+        assert_eq!(all.iter().find(|t| t.id == bins.id).unwrap().due_at, Some(wed));
+    }
+
+    #[test]
+    fn unticking_a_logged_time_undoes_the_tick() {
+        let s = Store::open_in_memory().unwrap();
+        // Fortnightly bins on Tuesday Jan 13 (a day's to-do), ticked early on Wednesday the 7th.
+        let tue = at(0, 0) + 6 * DAY;
+        let bins = s.add_todo(&day_todo("bins", tue, TodoRepeat::Fortnightly), at(9, 0)).unwrap();
+        let tick = TodoPatch { done: Some(true), ..Default::default() };
+        let untick = TodoPatch { done: Some(false), ..Default::default() };
+        s.update_todo(&London, bins.id, &tick, at(10, 0)).unwrap();
+        let logged = s.list_todos().unwrap().into_iter().find(|t| t.id != bins.id).unwrap();
+        // Unticked in Done: the entry goes and bins is back on the 13th, reminded as usual.
+        s.update_todo(&London, logged.id, &untick, at(10, 5)).unwrap();
+        let all = s.list_todos().unwrap();
+        assert_eq!(all.len(), 1);
+        assert_eq!((all[0].id, all[0].due_at, all[0].done), (bins.id, Some(tue), false));
+        assert_eq!(s.take_due(&London, tue + 9 * 60 * MIN).unwrap().len(), 1);
+        // Back on a day already reached: no second reminder for it.
+        let wed = at(0, 0);
+        let daily = s.add_todo(&day_todo("meds", wed, TodoRepeat::Daily), wed).unwrap();
+        assert_eq!(s.take_due(&London, at(9, 0)).unwrap().len(), 1);
+        s.update_todo(&London, daily.id, &tick, at(9, 30)).unwrap();
+        let logged = s.list_todos().unwrap().into_iter().find(|t| t.done).unwrap();
+        s.update_todo(&London, logged.id, &untick, at(9, 40)).unwrap();
+        assert!(s.take_due(&London, at(9, 45)).unwrap().is_empty());
+        assert_eq!(s.list_todos().unwrap().into_iter().find(|t| t.id == daily.id).unwrap().due_at, Some(wed));
+        // Its to-do deleted: the entry just becomes an open to-do.
+        s.update_todo(&London, daily.id, &tick, at(9, 50)).unwrap();
+        let logged = s.list_todos().unwrap().into_iter().find(|t| t.done).unwrap();
+        s.delete_todo(daily.id).unwrap();
+        s.update_todo(&London, logged.id, &untick, at(10, 0)).unwrap();
+        let left = s.list_todos().unwrap().into_iter().find(|t| t.id == logged.id).unwrap();
+        assert_eq!((left.done, left.repeat), (false, TodoRepeat::None));
     }
 
     #[test]
