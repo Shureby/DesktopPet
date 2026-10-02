@@ -8,7 +8,7 @@ use serde_json::Value;
 
 use crate::model::*;
 use crate::pomodoro;
-use crate::schedule::{next_occurrence, parse_hm};
+use crate::schedule::{local_date, local_ms, next_occurrence, next_todo, parse_hm};
 
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
@@ -87,7 +87,18 @@ const MIGRATIONS: &[&str] = &[
        at INTEGER NOT NULL,
        snoozes INTEGER NOT NULL DEFAULT 0,
        recorded_at INTEGER NOT NULL);",
+    // v10: to-dos on a day without a time, repeating to-dos (counted from anchor_at, their
+    // first date), and "Later" on a day's to-do (remind_at; its day stays).
+    "ALTER TABLE todos ADD COLUMN all_day INTEGER NOT NULL DEFAULT 0;
+     ALTER TABLE todos ADD COLUMN repeat TEXT NOT NULL DEFAULT 'none';
+     ALTER TABLE todos ADD COLUMN anchor_at INTEGER;
+     ALTER TABLE todos ADD COLUMN remind_at INTEGER;",
 ];
+
+const TODO_COLUMNS: &str = "id, title, due_at, done, created_at, done_at, all_day, repeat";
+
+/// When to-dos without a time remind you, if the settings don't say (`todoDayTime`).
+const DEFAULT_TODO_DAY_TIME: &str = "09:00";
 
 /// The work period the tomato clock was last started in (or found running in).
 const AUTO_PERIOD_KEY: &str = "pomodoro_auto_period";
@@ -166,42 +177,127 @@ impl Store {
             done: r.get(3)?,
             created_at: r.get(4)?,
             done_at: r.get(5)?,
+            all_day: r.get(6)?,
+            repeat: TodoRepeat::parse(&r.get::<_, String>(7)?),
         })
     }
 
     pub fn list_todos(&self) -> Result<Vec<Todo>> {
-        let mut stmt =
-            self.conn.prepare("SELECT id, title, due_at, done, created_at, done_at FROM todos ORDER BY id")?;
+        let mut stmt = self.conn.prepare(&format!("SELECT {TODO_COLUMNS} FROM todos ORDER BY id"))?;
         let rows = stmt.query_map([], Self::todo_row)?;
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
 
-    pub fn add_todo(&self, title: &str, due_at: Option<Millis>, now: Millis) -> Result<Todo> {
-        let title = title.trim();
+    fn todo(&self, id: i64) -> Result<Option<Todo>> {
+        Ok(self
+            .conn
+            .query_row(&format!("SELECT {TODO_COLUMNS} FROM todos WHERE id = ?1"), [id], Self::todo_row)
+            .optional()?)
+    }
+
+    /// A to-do needs a day to be on that day or to repeat: without one it's neither.
+    pub fn add_todo(&self, t: &NewTodo, now: Millis) -> Result<Todo> {
+        let title = t.title.trim();
         if title.is_empty() {
             return Err(StoreError::Invalid("title is empty".into()));
         }
+        let all_day = t.all_day && t.due_at.is_some();
+        let repeat = if t.due_at.is_some() { t.repeat } else { TodoRepeat::None };
         self.conn.execute(
-            "INSERT INTO todos (title, due_at, created_at) VALUES (?1, ?2, ?3)",
-            params![title, due_at, now],
+            "INSERT INTO todos (title, due_at, created_at, all_day, repeat, anchor_at) VALUES (?1, ?2, ?3, ?4, ?5, ?2)",
+            params![title, t.due_at, now, all_day, repeat.as_str()],
         )?;
         let id = self.conn.last_insert_rowid();
-        Ok(Todo { id, title: title.to_string(), due_at, done: false, created_at: now, done_at: None })
+        Ok(Todo {
+            id,
+            title: title.to_string(),
+            due_at: t.due_at,
+            done: false,
+            created_at: now,
+            done_at: None,
+            all_day,
+            repeat,
+        })
     }
 
-    pub fn update_todo(&self, id: i64, patch: &TodoPatch, now: Millis) -> Result<()> {
+    /// Ticking off a repeating to-do keeps it open on its next day (see `tick_repeating`).
+    pub fn update_todo<Tz: TimeZone>(&self, tz: &Tz, id: i64, patch: &TodoPatch, now: Millis) -> Result<()> {
         if let Some(title) = &patch.title {
             self.conn.execute("UPDATE todos SET title = ?2 WHERE id = ?1", params![id, title.trim()])?;
         }
         if let Some(due) = patch.due_at {
-            // A new due time re-arms the reminder.
-            self.conn.execute("UPDATE todos SET due_at = ?2, notified_at = NULL WHERE id = ?1", params![id, due])?;
+            // A new date re-arms the reminder, and a repeating one counts from it.
+            self.conn.execute(
+                "UPDATE todos SET due_at = ?2, anchor_at = ?2, notified_at = NULL, remind_at = NULL WHERE id = ?1",
+                params![id, due],
+            )?;
+        }
+        if let Some(all_day) = patch.all_day {
+            self.conn
+                .execute("UPDATE todos SET all_day = ?2 AND due_at IS NOT NULL WHERE id = ?1", params![id, all_day])?;
+        }
+        if let Some(repeat) = patch.repeat {
+            self.conn.execute(
+                "UPDATE todos SET repeat = CASE WHEN due_at IS NULL THEN 'none' ELSE ?2 END, anchor_at = due_at WHERE id = ?1",
+                params![id, repeat.as_str()],
+            )?;
+        }
+        // No date left: nothing to repeat or be on.
+        self.conn.execute("UPDATE todos SET all_day = 0, repeat = 'none' WHERE id = ?1 AND due_at IS NULL", [id])?;
+        if let Some(at) = patch.remind_at {
+            self.conn.execute("UPDATE todos SET remind_at = ?2, notified_at = NULL WHERE id = ?1", params![id, at])?;
         }
         if let Some(done) = patch.done {
+            if done && self.tick_repeating(tz, id, now)? {
+                return Ok(());
+            }
             let done_at = done.then_some(now);
             self.conn.execute("UPDATE todos SET done = ?2, done_at = ?3 WHERE id = ?1", params![id, done, done_at])?;
         }
         Ok(())
+    }
+
+    /// Ticking off a repeating to-do: this time goes to Done as its own entry, and the to-do
+    /// moves on to its next day after both this one and today (several missed times don't
+    /// pile up). False if it isn't an open repeating to-do.
+    fn tick_repeating<Tz: TimeZone>(&self, tz: &Tz, id: i64, now: Millis) -> Result<bool> {
+        let Some(t) = self.todo(id)? else {
+            return Ok(false);
+        };
+        let (Some(due), false, true) = (t.due_at, t.done, t.repeat != TodoRepeat::None) else {
+            return Ok(false);
+        };
+        let anchor: Millis =
+            self.conn.query_row("SELECT COALESCE(anchor_at, due_at) FROM todos WHERE id = ?1", [id], |r| r.get(0))?;
+        // A day's to-do is next on a later day than today; one with a time, after now.
+        let today_end = if t.all_day {
+            local_date(tz, now)
+                .and_then(|d| d.succ_opt())
+                .and_then(|d| local_ms(tz, d, NaiveTime::MIN))
+                .map_or(now, |m| m - 1)
+        } else {
+            now
+        };
+        let Some(next) = next_todo(tz, anchor, t.repeat, due.max(today_end)) else {
+            return Ok(false);
+        };
+        self.conn.execute(
+            "INSERT INTO todos (title, due_at, created_at, done, done_at, notified_at, all_day, repeat)
+             VALUES (?1, ?2, ?3, 1, ?3, ?3, ?4, 'none')",
+            params![t.title, due, now, t.all_day],
+        )?;
+        self.conn.execute(
+            "UPDATE todos SET due_at = ?2, notified_at = NULL, remind_at = NULL WHERE id = ?1",
+            params![id, next],
+        )?;
+        Ok(true)
+    }
+
+    /// The "to-dos without a time" reminder time from the settings.
+    fn todo_day_time(&self) -> Result<NaiveTime> {
+        let settings = self.settings()?;
+        let hm = settings.get("todoDayTime").and_then(Value::as_str).unwrap_or(DEFAULT_TODO_DAY_TIME);
+        Ok(parse_hm(hm).or_else(|| parse_hm(DEFAULT_TODO_DAY_TIME)).unwrap_or_default())
     }
 
     pub fn delete_todo(&self, id: i64) -> Result<()> {
@@ -487,22 +583,41 @@ impl Store {
     /// snoozes that time would have used already counted.
     pub fn take_due<Tz: TimeZone>(&self, tz: &Tz, now: Millis) -> Result<Vec<Reminder>> {
         let mut out = vec![];
-        let mut todos: Vec<(i64, String, Millis)> = vec![];
+        let day_time = self.todo_day_time()?;
+        let mut todos: Vec<(i64, String, Millis, bool, Option<Millis>)> = vec![];
         {
             let mut stmt = self.conn.prepare(
-                "SELECT id, title, due_at FROM todos WHERE done = 0 AND due_at IS NOT NULL AND due_at <= ?1 AND notified_at IS NULL",
+                "SELECT id, title, due_at, all_day, remind_at FROM todos
+                 WHERE done = 0 AND due_at IS NOT NULL AND due_at <= ?1 AND notified_at IS NULL",
             )?;
-            let rows = stmt.query_map([now], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?;
+            let rows = stmt.query_map([now], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)))?;
             for row in rows {
                 todos.push(row?);
             }
         }
-        for (id, title, due) in todos {
-            // Late (ePet wasn't running): no ring; the to-do shows as overdue.
-            if now - due <= LATE_TOLERANCE_MS {
-                out.push(Reminder { kind: ReminderKind::Todo, id, title, peek: false });
+        for (id, title, due, all_day, remind_at) in todos {
+            let ring = if all_day {
+                // A day's to-do reminds at the day's reminder time (or its "Later"), and any time
+                // later that day if ePet wasn't running then. From the next day it's just overdue.
+                let day = local_date(tz, due);
+                let at = remind_at.or_else(|| day.and_then(|d| local_ms(tz, d, day_time))).unwrap_or(due);
+                if at > now {
+                    continue;
+                }
+                let day_end = day.and_then(|d| d.succ_opt()).and_then(|d| local_ms(tz, d, NaiveTime::MIN));
+                day_end.is_some_and(|end| now < end)
+            } else {
+                let at = remind_at.unwrap_or(due);
+                if at > now {
+                    continue;
+                }
+                // Late (ePet wasn't running): no ring; the to-do shows as overdue.
+                now - at <= LATE_TOLERANCE_MS
+            };
+            if ring {
+                out.push(Reminder { kind: ReminderKind::Todo, id, title, peek: false, all_day });
             }
-            self.conn.execute("UPDATE todos SET notified_at = ?2 WHERE id = ?1", params![id, now])?;
+            self.conn.execute("UPDATE todos SET notified_at = ?2, remind_at = NULL WHERE id = ?1", params![id, now])?;
         }
 
         let (snooze_ms, auto_snoozes) = self.snooze_rules()?;
@@ -527,7 +642,13 @@ impl Store {
                 } else {
                     (((now - cycle_start) / snooze_ms) as u32).min(auto_snoozes).max(a.snoozes)
                 };
-                out.push(Reminder { kind: ReminderKind::Alarm, id: a.id, title: a.label.clone(), peek: false });
+                out.push(Reminder {
+                    kind: ReminderKind::Alarm,
+                    id: a.id,
+                    title: a.label.clone(),
+                    peek: false,
+                    all_day: false,
+                });
                 // Rung alarms and timers stay (disabled) so the user can still snooze them, and
                 // finished ones stay in the history until the daily clean-up.
                 // `rang_at` is when this ringing cycle began, so "Alarm 9:40 PM" stays 9:40
@@ -739,6 +860,10 @@ mod tests {
     use chrono_tz::Europe::London;
 
     const MIN: Millis = 60_000;
+    fn todo(title: &str, due_at: Option<Millis>) -> NewTodo {
+        NewTodo { title: title.into(), due_at, ..Default::default() }
+    }
+
     fn at(h: u32, m: u32) -> Millis {
         London.with_ymd_and_hms(2026, 1, 7, h, m, 0).unwrap().timestamp_millis()
     }
@@ -746,17 +871,28 @@ mod tests {
     #[test]
     fn todo_reminders_fire_once_and_rearm_on_new_due_time() {
         let s = Store::open_in_memory().unwrap();
-        let t = s.add_todo("  call mom ", Some(at(15, 0)), at(9, 0)).unwrap();
+        let t = s.add_todo(&todo("  call mom ", Some(at(15, 0))), at(9, 0)).unwrap();
         assert_eq!(t.title, "call mom");
         assert!(s.take_due(&London, at(14, 59)).unwrap().is_empty());
         let due = s.take_due(&London, at(15, 0)).unwrap();
-        assert_eq!(due, vec![Reminder { kind: ReminderKind::Todo, id: t.id, title: "call mom".into(), peek: false }]);
+        assert_eq!(
+            due,
+            vec![Reminder {
+                kind: ReminderKind::Todo,
+                id: t.id,
+                title: "call mom".into(),
+                peek: false,
+                all_day: false
+            }]
+        );
         assert!(s.take_due(&London, at(15, 1)).unwrap().is_empty());
 
-        s.update_todo(t.id, &TodoPatch { due_at: Some(Some(at(15, 10))), ..Default::default() }, at(15, 5)).unwrap();
+        s.update_todo(&London, t.id, &TodoPatch { due_at: Some(Some(at(15, 10))), ..Default::default() }, at(15, 5))
+            .unwrap();
         assert_eq!(s.take_due(&London, at(15, 10)).unwrap().len(), 1);
 
         s.update_todo(
+            &London,
             t.id,
             &TodoPatch { due_at: Some(Some(at(16, 0))), done: Some(true), ..Default::default() },
             at(15, 30),
@@ -1204,15 +1340,125 @@ mod tests {
     fn timers_and_to_dos_have_no_grace_but_a_late_scheduler_tick_is_fine() {
         let s = Store::open_in_memory().unwrap();
         s.add_alarm(&London, "Timer: 1 min", at(9, 1), Repeat::None, 0, at(9, 0)).unwrap();
-        let todo = s.add_todo("Call mom", Some(at(9, 1)), at(9, 0)).unwrap();
+        let call = s.add_todo(&todo("Call mom", Some(at(9, 1))), at(9, 0)).unwrap();
         // 50 s late: still on time.
         assert_eq!(s.take_due(&London, at(9, 1) + 50_000).unwrap().len(), 2);
         s.add_alarm(&London, "Timer: 1 min", at(10, 1), Repeat::None, 0, at(10, 0)).unwrap();
-        s.update_todo(todo.id, &TodoPatch { due_at: Some(Some(at(10, 1))), ..Default::default() }, at(10, 0)).unwrap();
+        s.update_todo(&London, call.id, &TodoPatch { due_at: Some(Some(at(10, 1))), ..Default::default() }, at(10, 0))
+            .unwrap();
         // 2 min late: neither rings; the to-do keeps its time (it shows as overdue).
         assert!(s.take_due(&London, at(10, 3)).unwrap().is_empty());
         let t = s.list_todos().unwrap()[0].clone();
         assert_eq!((t.done, t.due_at), (false, Some(at(10, 1))));
+    }
+
+    fn day_todo(title: &str, day: Millis, repeat: TodoRepeat) -> NewTodo {
+        NewTodo { title: title.into(), due_at: Some(day), all_day: true, repeat }
+    }
+
+    #[test]
+    fn a_days_to_do_reminds_at_the_day_time_and_any_time_later_that_day() {
+        let s = Store::open_in_memory().unwrap();
+        let midnight = at(0, 0);
+        let bins = s.add_todo(&day_todo("bins", midnight, TodoRepeat::None), at(8, 0) - DAY).unwrap();
+        let bills = s.add_todo(&day_todo("bills", midnight, TodoRepeat::None), at(8, 0) - DAY).unwrap();
+        // Not before 9:00 (the default), then both at once, marked as a day's to-dos.
+        assert!(s.take_due(&London, at(8, 59)).unwrap().is_empty());
+        let due = s.take_due(&London, at(9, 0)).unwrap();
+        assert_eq!(due.iter().map(|r| (r.id, r.all_day)).collect::<Vec<_>>(), vec![(bins.id, true), (bills.id, true)]);
+        // "Later" keeps the day and reminds again then.
+        s.update_todo(&London, bins.id, &TodoPatch { remind_at: Some(at(9, 10)), ..Default::default() }, at(9, 0))
+            .unwrap();
+        assert!(s.take_due(&London, at(9, 9)).unwrap().is_empty());
+        assert_eq!(s.take_due(&London, at(9, 10)).unwrap().len(), 1);
+        assert_eq!(s.list_todos().unwrap()[0].due_at, Some(midnight));
+        // ePet started at 4 pm: still reminds that day; started the next day: overdue, no ring.
+        s.add_todo(&day_todo("late start", midnight, TodoRepeat::None), 0).unwrap();
+        assert_eq!(s.take_due(&London, at(16, 0)).unwrap().len(), 1);
+        s.add_todo(&day_todo("next day", midnight, TodoRepeat::None), 0).unwrap();
+        assert!(s.take_due(&London, at(0, 30) + DAY).unwrap().is_empty());
+        // The time comes from the settings.
+        s.set_settings(&serde_json::json!({ "todoDayTime": "07:15" })).unwrap();
+        s.add_todo(&day_todo("early", midnight + DAY, TodoRepeat::None), 0).unwrap();
+        assert_eq!(s.take_due(&London, at(7, 15) + DAY).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn ticking_a_repeating_to_do_logs_it_and_moves_it_on() {
+        let s = Store::open_in_memory().unwrap();
+        // Weekly bins on Wednesday Jan 7 2026 (a day's to-do), ticked that evening.
+        let wed = at(0, 0);
+        let bins = s.add_todo(&day_todo("bins", wed, TodoRepeat::Weekly), wed).unwrap();
+        let done = TodoPatch { done: Some(true), ..Default::default() };
+        s.update_todo(&London, bins.id, &done, at(19, 0)).unwrap();
+        let all = s.list_todos().unwrap();
+        assert_eq!(all.len(), 2);
+        let open = all.iter().find(|t| t.id == bins.id).unwrap();
+        assert_eq!((open.done, open.due_at, open.repeat), (false, Some(wed + 7 * DAY), TodoRepeat::Weekly));
+        let logged = all.iter().find(|t| t.id != bins.id).unwrap();
+        assert_eq!(
+            (logged.done, logged.due_at, logged.done_at, logged.repeat),
+            (true, Some(wed), Some(at(19, 0)), TodoRepeat::None)
+        );
+        // Three weeks behind, ticked on a Thursday: next is the coming Wednesday, not a missed one.
+        s.update_todo(&London, bins.id, &done, at(10, 0) + 29 * DAY).unwrap();
+        let open = s.list_todos().unwrap().into_iter().find(|t| t.id == bins.id).unwrap();
+        assert_eq!(open.due_at, Some(wed + 35 * DAY));
+        // Ticked early (Monday before its Wednesday): the Wednesday after.
+        s.update_todo(&London, bins.id, &done, at(10, 0) + 33 * DAY).unwrap();
+        let open = s.list_todos().unwrap().into_iter().find(|t| t.id == bins.id).unwrap();
+        assert_eq!(open.due_at, Some(wed + 42 * DAY));
+        // A daily day's to-do ticked today is next tomorrow; a monthly one with a time, next month.
+        let daily = s.add_todo(&day_todo("meds", wed, TodoRepeat::Daily), wed).unwrap();
+        s.update_todo(&London, daily.id, &done, at(8, 0)).unwrap();
+        assert_eq!(s.list_todos().unwrap().into_iter().find(|t| t.id == daily.id).unwrap().due_at, Some(wed + DAY));
+        let rent = s
+            .add_todo(
+                &NewTodo {
+                    title: "rent".into(),
+                    due_at: Some(at(9, 0)),
+                    repeat: TodoRepeat::Monthly,
+                    ..Default::default()
+                },
+                wed,
+            )
+            .unwrap();
+        s.update_todo(&London, rent.id, &done, at(9, 5)).unwrap();
+        let next = London.with_ymd_and_hms(2026, 2, 7, 9, 0, 0).unwrap().timestamp_millis();
+        assert_eq!(s.list_todos().unwrap().into_iter().find(|t| t.id == rent.id).unwrap().due_at, Some(next));
+        // Unticking the logged one makes it an ordinary open to-do; a plain one just ticks.
+        s.update_todo(&London, logged.id, &TodoPatch { done: Some(false), ..Default::default() }, at(20, 0)).unwrap();
+        let l = s.list_todos().unwrap().into_iter().find(|t| t.id == logged.id).unwrap();
+        assert_eq!((l.done, l.repeat), (false, TodoRepeat::None));
+    }
+
+    #[test]
+    fn a_to_do_without_a_day_doesnt_repeat_and_a_new_day_restarts_the_count() {
+        let s = Store::open_in_memory().unwrap();
+        let t = s
+            .add_todo(
+                &NewTodo { title: "x".into(), repeat: TodoRepeat::Weekly, all_day: true, ..Default::default() },
+                0,
+            )
+            .unwrap();
+        assert_eq!((t.repeat, t.all_day), (TodoRepeat::None, false));
+        // Edited to a monthly day's to-do on the 31st, then its day cleared.
+        let jan31 = London.with_ymd_and_hms(2026, 1, 31, 0, 0, 0).unwrap().timestamp_millis();
+        let patch = TodoPatch {
+            due_at: Some(Some(jan31)),
+            all_day: Some(true),
+            repeat: Some(TodoRepeat::Monthly),
+            ..Default::default()
+        };
+        s.update_todo(&London, t.id, &patch, 0).unwrap();
+        let x = &s.list_todos().unwrap()[0];
+        assert_eq!((x.due_at, x.all_day, x.repeat), (Some(jan31), true, TodoRepeat::Monthly));
+        s.update_todo(&London, t.id, &TodoPatch { done: Some(true), ..Default::default() }, jan31 + DAY).unwrap();
+        let feb28 = London.with_ymd_and_hms(2026, 2, 28, 0, 0, 0).unwrap().timestamp_millis();
+        assert_eq!(s.list_todos().unwrap().into_iter().find(|x| x.id == t.id).unwrap().due_at, Some(feb28));
+        s.update_todo(&London, t.id, &TodoPatch { due_at: Some(None), ..Default::default() }, 0).unwrap();
+        let x = s.list_todos().unwrap().into_iter().find(|x| x.id == t.id).unwrap();
+        assert_eq!((x.due_at, x.all_day, x.repeat), (None, false, TodoRepeat::None));
     }
 
     #[test]
@@ -1299,12 +1545,12 @@ mod tests {
     #[test]
     fn daily_cleanup_removes_yesterdays_done_todos_once_a_day() {
         let s = Store::open_in_memory().unwrap();
-        let old = s.add_todo("yesterday", None, 0).unwrap();
-        let new = s.add_todo("today", None, 0).unwrap();
-        s.add_todo("open", None, 0).unwrap();
+        let old = s.add_todo(&todo("yesterday", None), 0).unwrap();
+        let new = s.add_todo(&todo("today", None), 0).unwrap();
+        s.add_todo(&todo("open", None), 0).unwrap();
         let done = TodoPatch { done: Some(true), ..Default::default() };
-        s.update_todo(old.id, &done, at(9, 0) - 24 * 60 * MIN).unwrap();
-        s.update_todo(new.id, &done, at(9, 0)).unwrap();
+        s.update_todo(&London, old.id, &done, at(9, 0) - 24 * 60 * MIN).unwrap();
+        s.update_todo(&London, new.id, &done, at(9, 0)).unwrap();
         let midnight = at(0, 0);
         assert!(s.daily_cleanup("2026-01-07", midnight, at(10, 0)).unwrap());
         assert!(!s.daily_cleanup("2026-01-07", midnight, at(11, 0)).unwrap());
@@ -1332,7 +1578,7 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("pet.db");
         let _ = std::fs::remove_file(&path);
-        Store::open(&path).unwrap().add_todo("persist me", None, 0).unwrap();
+        Store::open(&path).unwrap().add_todo(&todo("persist me", None), 0).unwrap();
         assert_eq!(Store::open(&path).unwrap().list_todos().unwrap()[0].title, "persist me");
         let _ = std::fs::remove_dir_all(&dir);
     }

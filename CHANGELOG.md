@@ -16,6 +16,24 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-10-02
+
+### Added
+- Repeating to-dos: Daily, Weekly, Fortnightly, Monthly, Quarterly, Yearly, counted from
+  their first day. Ticking one off logs this time in Done and moves it on to its next day
+  (past today, so missed times don't pile up).
+- To-dos on a day without a time: they remind at a set time (Settings → To-do reminders,
+  9:00 AM by default) and are overdue only from the next day. Several at once come in one
+  "📅 Today:" bubble; Later keeps the day.
+- The to-do form has a row for the day (a new date field you can drag, scroll or type, in
+  the system's order), the time ("+ Time") and the repeat. Typing "bins every tue",
+  "pay bills monthly 1st" or "call mom tomorrow 3pm" fills it in.
+- To-dos can be edited (✎ on hover, like alarms).
+
+### Changed
+- "buy milk today" / "dentist fri" (a day without a time) is now a to-do on that day instead
+  of one at 9:00 AM.
+
 ## [0.23.0] - 2026-10-01
 
 ### Added

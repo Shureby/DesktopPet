@@ -19,6 +19,7 @@ import {
   timerName,
 } from "../features/alarm/timers";
 import { parseQuickAdd } from "../features/todo/quickAdd";
+import { TODO_REPEATS, todoRemindsAt } from "../features/todo/repeat";
 import { GAMES } from "../features/games/catalog";
 import {
   backend,
@@ -29,6 +30,9 @@ import {
   type HiddenAlerts,
   type PanelTab,
   type Settings,
+  type Todo,
+  type TodoPatch,
+  type TodoRepeat,
   type WorkHours,
 } from "../platform";
 import { playRingtone, RINGTONE_IDS, RINGTONES, type RingtoneId } from "../pet/sound";
@@ -51,8 +55,10 @@ import {
   type AlarmDraft,
 } from "./alarmText";
 import { dayPicker } from "./dayPicker";
-import { formatHm, timeField } from "./timeField";
+import { formatHm, parseHm, timeField } from "./timeField";
 import { formatWhen, h } from "./dom";
+import { dateField, ymdOf, ymdToMs } from "./dateField";
+import { repeatBadge, todoHint, todoWhen } from "./todoText";
 
 const TABS: { id: PanelTab; label: string }[] = [
   { id: "todos", label: "To-dos" },
@@ -89,6 +95,7 @@ function nowHm(): string {
 function select(tab: PanelTab) {
   // Opening the Alarms tab starts a new alarm at the current time; re-renders keep the draft.
   if (tab === "alarms") alarmDraft = null;
+  if (tab === "todos") todoDraft = null;
   current = tab;
   for (const b of nav.querySelectorAll("button")) b.classList.toggle("active", b.dataset.tab === tab);
   cleanup.forEach((f) => f());
@@ -112,34 +119,160 @@ async function render() {
 
 // --- To-dos -----------------------------------------------------------------
 
+/**
+ * The to-do being added or edited (✎), kept across re-renders of the To-dos tab. `date` is
+ * "YYYY-MM-DD" (null: no day), `time` "HH:MM" (null: any time that day). `touched`: the
+ * date/time/repeat row was changed by hand, so typing no longer refills it.
+ */
+interface TodoDraft {
+  text: string;
+  date: string | null;
+  time: string | null;
+  repeat: TodoRepeat;
+  touched: boolean;
+  editing: number | null;
+}
+let todoDraft: TodoDraft | null = null;
+
+const newTodoDraft = (): TodoDraft => ({ text: "", date: null, time: null, repeat: "none", touched: false, editing: null });
+
+/** The next whole hour, for "+ Time". */
+function nextHourHm(): string {
+  return formatHm((new Date().getHours() + 1) % 24, 0);
+}
+
 async function renderTodos(): Promise<Node> {
   const todos = await backend.listTodos();
-  const input = h("input", { type: "text", placeholder: "e.g. call mom at 3pm · stretch in 20m · standup tomorrow 9:30", autofocus: true });
-  const hint = h("div", { class: "hint" });
-  const updateHint = () => {
-    const q = parseQuickAdd(input.value);
-    hint.textContent = input.value.trim() ? (q.dueAt ? `⏰ ${formatWhen(q.dueAt)} — “${q.title}”` : `No reminder — “${q.title}”`) : "";
+  // The to-do being edited was deleted or ticked off elsewhere: back to a new one.
+  if (todoDraft?.editing != null && !todos.some((t) => t.id === todoDraft?.editing && !t.done)) todoDraft = null;
+  todoDraft ??= newTodoDraft();
+  const draft = todoDraft;
+  const editingTodo = todos.find((t) => t.id === draft.editing) ?? null;
+  const startEdit = (t: Todo) => {
+    todoDraft = {
+      text: t.title,
+      date: t.dueAt === null ? null : ymdOf(t.dueAt),
+      time: t.dueAt === null || t.allDay ? null : formatHm(new Date(t.dueAt).getHours(), new Date(t.dueAt).getMinutes()),
+      repeat: t.repeat,
+      touched: true,
+      editing: t.id,
+    };
+    void render();
   };
-  input.addEventListener("input", updateHint);
-  const add = async () => {
-    if (!input.value.trim()) return;
-    const q = parseQuickAdd(input.value);
-    await backend.addTodo(q.title, q.dueAt);
-    // The pet confirms what it heard.
-    void backend.emit("pet-event", { type: "todoAdded", title: q.title, dueAt: q.dueAt });
-    input.value = "";
-    updateHint();
+  const stopEdit = () => {
+    todoDraft = null;
+    void render();
   };
-  input.addEventListener("keydown", (e) => e.key === "Enter" && void add());
-  queueMicrotask(() => input.focus());
 
-  const open = todos.filter((t) => !t.done).sort((a, b) => (a.dueAt ?? Infinity) - (b.dueAt ?? Infinity));
+  // What the form will save: typed text is parsed for a new to-do; an edited one keeps its words.
+  const parsed = () => parseQuickAdd(draft.text);
+  const title = () => (editingTodo ? draft.text.trim() : parsed().title);
+  const dueAt = () => {
+    if (draft.date === null) return null;
+    const day = ymdToMs(draft.date);
+    if (draft.time === null) return day;
+    const { h: hh, m } = parseHm(draft.time);
+    return day + (hh * 60 + m) * 60_000;
+  };
+  const allDay = () => draft.date !== null && draft.time === null;
+  const repeat = () => (draft.date === null ? "none" : draft.repeat);
+
+  const input = h("input", {
+    type: "text",
+    placeholder: editingTodo ? "To-do" : "e.g. bins every tue · call mom at 3pm · pay bills monthly 1st",
+    value: draft.text,
+  });
+  const hint = h("div", { class: "hint" });
+  const whenRow = h("div", { class: "row when-row" });
+  const showHint = () => {
+    hint.textContent = todoHint(title(), dueAt(), allDay(), repeat(), settings.todoDayTime);
+  };
+  const changed = () => {
+    draft.touched = true;
+    paintWhen();
+    showHint();
+  };
+  const mini = (label: string, onclick: () => void) => h("button", { class: "mini", title: label, onclick }, "✕");
+  /** 📅 date (or "+ Date"), time (or "+ Time"), repeat. */
+  const paintWhen = () => {
+    const parts: Node[] = [];
+    if (draft.date === null) {
+      parts.push(h("button", { class: "add-when", onclick: () => ((draft.date = ymdOf(Date.now())), changed()) }, "+ Date"));
+    } else {
+      const df = dateField(draft.date, (v) => ((draft.date = v), (draft.touched = true), showHint()), "Day");
+      df.append(mini("No date", () => ((draft.date = null), (draft.time = null), changed())));
+      parts.push(df);
+      if (draft.time === null) {
+        parts.push(h("button", { class: "add-when", onclick: () => ((draft.time = nextHourHm()), changed()) }, "+ Time"));
+      } else {
+        const tf = timeField(draft.time, (v) => ((draft.time = v), (draft.touched = true), showHint()), "Time");
+        tf.append(mini("No time (any time that day)", () => ((draft.time = null), changed())));
+        parts.push(tf);
+      }
+    }
+    parts.push(
+      h(
+        "select",
+        {
+          class: "repeat",
+          title: draft.date === null ? "Pick a day to repeat from" : "Repeat",
+          disabled: draft.date === null,
+          onchange: (e: Event) => ((draft.repeat = (e.target as HTMLSelectElement).value as TodoRepeat), changed()),
+        },
+        ...TODO_REPEATS.map(([v, text]) => h("option", { value: v, selected: repeat() === v }, text)),
+      ),
+    );
+    whenRow.replaceChildren(...parts);
+  };
+  // Typing fills the row (a day, a time, "every tue"…) until it's changed by hand.
+  input.addEventListener("input", () => {
+    draft.text = input.value;
+    if (!editingTodo && !draft.text.trim()) Object.assign(draft, { date: null, time: null, repeat: "none", touched: false });
+    else if (!editingTodo && !draft.touched) {
+      const q = parsed();
+      draft.date = q.dueAt === null ? null : ymdOf(q.dueAt);
+      draft.time = q.dueAt === null || q.allDay ? null : formatHm(new Date(q.dueAt).getHours(), new Date(q.dueAt).getMinutes());
+      draft.repeat = q.repeat;
+    }
+    paintWhen();
+    showHint();
+  });
+  const add = async () => {
+    const name = title();
+    if (!name) return;
+    const due = dueAt();
+    if (editingTodo) {
+      // Only what changed: a new day restarts a repeating to-do's count from it.
+      const patch: TodoPatch = { title: name, allDay: allDay() };
+      if (due !== editingTodo.dueAt) patch.dueAt = due;
+      if (repeat() !== editingTodo.repeat) patch.repeat = repeat();
+      await backend.updateTodo(editingTodo.id, patch);
+      stopEdit();
+      return;
+    }
+    await backend.addTodo({ title: name, dueAt: due, allDay: allDay(), repeat: repeat() });
+    // The pet confirms what it heard.
+    void backend.emit("pet-event", { type: "todoAdded", title: name, dueAt: due, allDay: allDay() });
+    todoDraft = newTodoDraft();
+    void render();
+  };
+  input.addEventListener("keydown", (e) => (e as KeyboardEvent).key === "Enter" && void add());
+  queueMicrotask(() => {
+    if (!document.activeElement || document.activeElement === document.body) input.focus();
+  });
+  paintWhen();
+  showHint();
+
+  const remindsAt = (t: Todo) => todoRemindsAt(t, settings.todoDayTime) ?? Infinity;
+  const open = todos.filter((t) => !t.done).sort((a, b) => remindsAt(a) - remindsAt(b) || a.id - b.id);
   // Most recently ticked off first.
   const done = todos.filter((t) => t.done).sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0) || b.id - a.id);
-  const row = (t: (typeof todos)[number]) =>
-    h(
+  const row = (t: Todo) => {
+    const when = t.done ? null : todoWhen(t);
+    const badge = t.done ? "" : repeatBadge(t.repeat);
+    return h(
       "li",
-      { class: t.done ? "done" : "" },
+      { class: `${t.done ? "done" : ""} ${t.id === draft.editing ? "editing" : ""}` },
       h("input", {
         type: "checkbox",
         checked: t.done,
@@ -149,24 +282,38 @@ async function renderTodos(): Promise<Node> {
         },
       }),
       h("span", { class: "title" }, t.title),
-      // Its reminder time has passed (answered or not, or while ePet wasn't running).
-      t.dueAt && !t.done
-        ? t.dueAt < Date.now()
-          ? h("span", { class: "when overdue" }, `Overdue · ${formatWhen(t.dueAt)}`)
-          : h("span", { class: "when" }, formatWhen(t.dueAt))
+      // Its reminder time (or day) has passed, answered or not, or while ePet wasn't running.
+      when || badge
+        ? h(
+            "span",
+            { class: `when ${when?.overdue ? "overdue" : ""}` },
+            badge ? h("span", { class: "rep" }, badge) : null,
+            when?.text ?? "",
+          )
         : null,
       t.done && t.doneAt ? h("span", { class: "when" }, `Done · ${formatWhen(t.doneAt)}`) : null,
-      h("button", { class: "icon", title: "Delete", onclick: () => void backend.deleteTodo(t.id) }, "✕"),
+      t.done ? null : h("button", { class: "icon edit", title: "Edit", onclick: () => startEdit(t) }, "✎"),
+      h("button", { class: "icon delete", title: "Delete", onclick: () => void backend.deleteTodo(t.id) }, "✕"),
     );
+  };
 
   return h(
     "section",
-    {},
-    h("div", { class: "row" }, input, h("button", { class: "primary", onclick: add }, "Add")),
+    { class: "todos" },
+    editingTodo
+      ? h(
+          "div",
+          { class: "edit-head" },
+          h("h3", {}, `Edit to-do · ${editingTodo.title}`),
+          h("button", { class: "link", onclick: stopEdit }, "Cancel"),
+        )
+      : null,
+    h("div", { class: "row" }, input, h("button", { class: "primary", onclick: add }, editingTodo ? "Save" : "Add")),
+    whenRow,
     hint,
     open.length ? h("ul", { class: "list" }, ...open.map(row)) : h("p", { class: "empty" }, "Nothing to do. Your pet approves."),
     done.length ? finishedSection(`Done (${done.length})`, done.map(row), () => backend.clearDoneTodos()) : null,
-    h("p", { class: "hint" }, "Done to-dos are cleared automatically each day."),
+    h("p", { class: "hint" }, "Done to-dos are cleared automatically each day. Ticking a repeating one moves it to its next day."),
   );
 }
 
@@ -930,6 +1077,14 @@ function alertBox(kind: "alarm" | "todo"): Node {
       "Pet comes to the middle of the screen",
     ),
     kind === "alarm" ? upcomingRow() : null,
+    kind === "todo"
+      ? h(
+          "div",
+          { class: "row day-time" },
+          "To-dos without a time remind you at",
+          timeField(settings.todoDayTime, debounced((todoDayTime: string) => void save({ todoDayTime })), "Day reminder time"),
+        )
+      : null,
     kind === "alarm" ? h("p", { class: "hint" }, "Timers never snooze: a missed one leaves a quiet ⏱ note by the pet for an hour.") : null,
   );
 }

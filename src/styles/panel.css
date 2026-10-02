@@ -778,3 +778,62 @@ h3.split small {
 select.repeat {
   min-width: 142px;
 }
+
+/* ----- To-dos: day, time and repeat (src/panel/main.ts renderTodos) ----- */
+.when-row {
+  margin-top: 6px;
+  flex-wrap: nowrap;
+}
+.when-row select.repeat {
+  min-width: 0;
+  width: 122px;
+}
+/* "+ Date" / "+ Time": not set; click to add. */
+.add-when {
+  border: 1px dashed var(--muted);
+  background: none;
+  color: var(--muted);
+}
+/* ✕ inside a date or time field: take it off. */
+.time-field .mini {
+  border: 0;
+  background: none;
+  padding: 0 0 0 4px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.date-field .weekday {
+  color: var(--muted);
+  font-size: 13px;
+  margin-right: 3px;
+}
+.date-field .part.month {
+  min-width: 2.2em;
+}
+.date-field .part.year {
+  min-width: 2.6em;
+}
+.list .when .rep {
+  margin-right: 4px;
+}
+.list .when .rep::after {
+  content: " ·";
+}
+/* ✎ shows on hover, like on alarms; the to-do being edited is outlined. */
+.list li .edit {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.list li:hover .edit,
+.list li .edit:focus-visible,
+.list li.editing .edit {
+  opacity: 1;
+}
+.list li.editing {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.day-time {
+  align-items: center;
+  gap: 8px;
+}

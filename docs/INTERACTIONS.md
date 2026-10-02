@@ -274,6 +274,59 @@ Code: `renderAlarms` and `draftFor` in `src/panel/main.ts` / `src/panel/alarmTex
   - A snooze cycle, a skipped ring ("⏭ Skips …") and "Didn't ring" belong to the old time,
     so they're cleared.
 
+## To-dos: days, times and repeats (since 0.24.0)
+
+Code: `renderTodos` in `src/panel/main.ts`, `src/panel/dateField.ts`, `src/features/todo/quickAdd.ts`,
+`src/features/todo/repeat.ts`; `add_todo`/`update_todo`/`tick_repeating`/`take_due` in
+`crates/desktoppet-core/src/store.rs` (v10 migration), `next_todo` in `schedule.rs`.
+
+- **The form:** the quick-add box, and under it a row with 📅 the day, the time and 🔁 repeat.
+  - Typing fills the row ("bins every tue", "call mom tomorrow 3pm", "pay bills monthly
+    1st"), until the row is changed by hand. After that, typing leaves it alone. Words it
+    understood are left out of the title.
+  - No day: a dashed "+ Date" (today when clicked). Repeat is greyed out, because a repeat
+    counts from a day.
+  - A day without a time: a dashed "+ Time" (the next whole hour when clicked). ✕ inside a
+    field takes it off again.
+  - The hint says what will be saved: "📅 Tue, 6 Oct — “bins” · 🔁 every week · reminds at
+    9:00 AM that day", or "⏰ Today 3:00 PM — “call mom”".
+- **The date field works like the time field:** drag a part up or down, scroll, ↑/↓, or type.
+  - The grey weekday follows the date.
+  - Parts are in the system's order (7 Oct 2026 in Australia, Oct 7, 2026 in the US).
+  - Parts wrap without carrying, and a day past the month's end becomes its last day. We
+    don't use the system date picker because it can't be dragged or scrolled.
+- **To-dos are often about a day, not a time** (unlike alarms):
+  - A to-do without a time is on its day (`all_day`, `due_at` = local midnight).
+  - It reminds at **Settings → To-do reminders → "To-dos without a time remind you at"**
+    (9:00 AM by default). If ePet starts later that day, it reminds then.
+  - It is **Overdue only from the next day.** One with a time is overdue once its time has
+    passed.
+  - The next day, ePet doesn't remind you of yesterday's; the row just says
+    "Overdue · Yesterday".
+  - Several come due at the same moment, so the pet tells them in **one bubble**
+    ("📅 Today: • water plants • take out bins") with Open To-dos and Later. A single one
+    gets the usual ✓ Done / Later.
+  - **Later** on a day's to-do reminds again in 10 minutes and keeps its day
+    (`remind_at`). On a to-do with a time it moves the time, as before.
+- **Repeat:** Daily, Weekly, Fortnightly, Monthly, Quarterly, Yearly.
+  - **Counted from the first day** (`anchor_at`), so fortnightly stays on its weeks. Monthly
+    on the 31st is the 30th in a 30-day month and the 31st again after. Feb 29 is Feb 28
+    in other years.
+  - **Ticking one off** puts this time in Done as its own entry ("Done · Today 7:12 PM").
+    The to-do stays open on its **next day after both its own day and today**:
+    - ticked late, missed times don't pile up;
+    - ticked early, it moves to the time after the one you did.
+  - **Not ticked:** it stays where it is and turns Overdue. It doesn't move on by itself,
+    because the thing still needs doing (an alarm is just missed).
+  - ✕ deletes the whole repeating to-do. To skip one time, tick it.
+  - Unticking the logged entry in Done makes it an ordinary open to-do.
+- **Editing (✎):** like alarms (0.23.0).
+  - ✎ shows on hover on open to-dos and fills the form. The heading becomes
+    "Edit to-do · …" with Cancel on its right, Add becomes Save, and the row is outlined.
+  - When editing, the text box is just the title and isn't parsed.
+  - Only what changed is saved. A new day restarts a repeating to-do's count from it.
+- Lists are sorted by when they remind you; those without a day go last.
+
 ## Focus work hours (since 0.20.0)
 
 Code: `run_cutoff`, `current_work_period` in `crates/desktoppet-core/src/pomodoro.rs` (mirrored

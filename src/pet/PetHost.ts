@@ -1,4 +1,5 @@
 import { HoverTracker } from "../brain/hover";
+import { todoRemindsAt } from "../features/todo/repeat";
 import { applyMoodEvent, isHungry, moodTier, parseMood, type MoodEvent } from "../brain/mood";
 import { RulesBrain } from "../brain/RulesBrain";
 import { Pet } from "../characters/Pet";
@@ -65,6 +66,9 @@ interface BubbleAction {
  * In Tauri the canvas is a small transparent window that follows the pet.
  * In the browser mock the canvas fills the page and the pet moves inside it.
  */
+/** How long to wait for more to-dos without a time before telling them (they come due together). */
+const DAY_TODO_GATHER_MS = 400;
+
 export class PetHost {
   pet!: Pet;
   private atlas!: SpriteAtlas;
@@ -99,6 +103,8 @@ export class PetHost {
   private ringEndsAt = 0;
   /** Reminders that came due while something was ringing (to-dos); shown next. */
   private queued: ReminderEvent[] = [];
+  /** To-dos without a time arriving together, told in one bubble (remindDayTodo). */
+  private dayTodos: ReminderEvent[] = [];
   /** A game asked for during a focus session while something was ringing (see playGame). */
   private pendingGame: string | null = null;
   /**
@@ -1030,9 +1036,11 @@ export class PetHost {
   private onActivity(e: PetActivity): void {
     switch (e.type) {
       case "todoAdded": {
-        const when = e.dueAt
-          ? ` · ${new Date(e.dueAt).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}`
-          : "";
+        const when = !e.dueAt
+          ? ""
+          : e.allDay
+            ? ` · ${new Date(e.dueAt).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}`
+            : ` · ${new Date(e.dueAt).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}`;
         this.sayLine("noted", { title: e.title, when }, `Got it: ${e.title}${when}`);
         break;
       }
@@ -1138,6 +1146,7 @@ export class PetHost {
     if (r.peek || this.hidden) this.enterPeek();
     if (r.kind === "todo") {
       if (this.activeRing) this.queued.push(r);
+      else if (r.allDay) this.remindDayTodo(r);
       else this.remindTodo(r);
       return;
     }
@@ -1226,6 +1235,41 @@ export class PetHost {
     });
   }
 
+  /**
+   * A to-do without a time: they all come due at the same moment (the day's reminder time), so
+   * the ones arriving together are told in one bubble ("📅 Today: • bins • pay bills").
+   */
+  private remindDayTodo(r: ReminderEvent): void {
+    this.dayTodos.push(r);
+    if (this.dayTodos.length > 1) return;
+    setTimeout(() => {
+      const list = this.dayTodos;
+      this.dayTodos = [];
+      if (this.activeRing) this.queued.push(...list);
+      else if (list.length === 1) this.remindTodo(list[0]);
+      else this.remindDayTodos(list);
+    }, DAY_TODO_GATHER_MS);
+  }
+
+  private remindDayTodos(list: ReminderEvent[]): void {
+    const alert = this.settings.alerts.todo;
+    const run = alert.petRuns && this.pomodoro.phase !== "focus";
+    this.pet.react({ type: "reminder", kind: "todo", title: list.map((r) => r.title).join(", "), run });
+    const actions: BubbleAction[] = [
+      { label: "Open To-dos", run: () => void this.backend.openPanel("todos") },
+      { label: "Later", run: () => list.forEach((r) => this.later(r)) },
+    ];
+    const lines = ["📅 Today:", ...list.map((r) => `• ${r.title}`)];
+    this.say(lines, 60_000, actions, this.peek ? () => list.forEach((r) => void this.unansweredWhileHidden(r)) : undefined);
+    if (alert.ring) playRingtone(alert.ringtone, alert.volume);
+  }
+
+  /** "Later": a to-do with a time moves 10 minutes on; one on a day keeps its day and reminds again. */
+  private later(r: ReminderEvent): void {
+    const at = Date.now() + 10 * 60_000;
+    void this.backend.updateTodo(r.id, r.allDay ? { remindAt: at } : { dueAt: at });
+  }
+
   private remindTodo(r: ReminderEvent): void {
     const alert = this.settings.alerts.todo;
     const run = alert.petRuns && this.pomodoro.phase !== "focus";
@@ -1239,7 +1283,7 @@ export class PetHost {
           this.onActivity({ type: "todoDone" });
         },
       },
-      { label: "Later", run: () => void this.backend.updateTodo(r.id, { dueAt: Date.now() + 10 * 60_000 }) },
+      { label: "Later", run: () => this.later(r) },
     ];
     // Out of hiding for it, an unanswered reminder is recorded for when you show the pet.
     this.say(text, 60_000, actions, this.peek ? () => void this.unansweredWhileHidden(r) : undefined);
@@ -1315,7 +1359,8 @@ export class PetHost {
   private async unansweredWhileHidden(r: ReminderEvent): Promise<void> {
     if (r.kind === "todo") {
       const todo = (await this.backend.listTodos()).find((t) => t.id === r.id);
-      await this.recordUnseen(r, todo?.dueAt ?? undefined);
+      // A day's to-do is listed at its reminder time, not its midnight.
+      await this.recordUnseen(r, (todo && todoRemindsAt(todo, this.settings.todoDayTime)) ?? undefined);
       return;
     }
     await this.refreshTimers();

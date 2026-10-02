@@ -3,7 +3,9 @@
 use std::sync::atomic::Ordering;
 
 use chrono::Local;
-use desktoppet_core::{pomodoro, Alarm, DayStat, NewUnseen, PomodoroStatus, Repeat, Score, Todo, TodoPatch, Unseen};
+use desktoppet_core::{
+    pomodoro, Alarm, DayStat, NewTodo, NewUnseen, PomodoroStatus, Repeat, Score, Todo, TodoPatch, Unseen,
+};
 use serde::Serialize;
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, State};
@@ -40,15 +42,15 @@ pub fn list_todos(state: State<AppState>) -> CmdResult<Vec<Todo>> {
 }
 
 #[tauri::command]
-pub fn add_todo(app: AppHandle, state: State<AppState>, title: String, due_at: Option<i64>) -> CmdResult<Todo> {
-    let todo = state.store().add_todo(&title, due_at, now_ms()).map_err(err)?;
+pub fn add_todo(app: AppHandle, state: State<AppState>, todo: NewTodo) -> CmdResult<Todo> {
+    let todo = state.store().add_todo(&todo, now_ms()).map_err(err)?;
     let _ = app.emit("todos-changed", ());
     Ok(todo)
 }
 
 #[tauri::command]
 pub fn update_todo(app: AppHandle, state: State<AppState>, id: i64, patch: TodoPatch) -> CmdResult<()> {
-    state.store().update_todo(id, &patch, now_ms()).map_err(err)?;
+    state.store().update_todo(&Local, id, &patch, now_ms()).map_err(err)?;
     let _ = app.emit("todos-changed", ());
     Ok(())
 }

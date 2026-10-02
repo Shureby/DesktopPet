@@ -30,3 +30,12 @@ export function formatWhen(ms: number, now = Date.now()): string {
   if (d.toDateString() === yesterday.toDateString()) return `Yesterday ${time}`;
   return `${d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} ${time}`;
 }
+
+/** "Today", "Tomorrow", "Yesterday" or "Wed, Oct 15": a day without a time. */
+export function formatDay(ms: number, now = Date.now()): string {
+  const d = new Date(ms).toDateString();
+  if (d === new Date(now).toDateString()) return "Today";
+  if (d === new Date(now + 86_400_000).toDateString()) return "Tomorrow";
+  if (d === new Date(now - 86_400_000).toDateString()) return "Yesterday";
+  return new Date(ms).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+}

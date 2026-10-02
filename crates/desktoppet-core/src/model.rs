@@ -13,6 +13,65 @@ pub struct Todo {
     pub created_at: Millis,
     /// When it was ticked off (null while open).
     pub done_at: Option<Millis>,
+    /// Due on a day, not at a time: `due_at` is that day's local midnight, and it reminds at
+    /// the "to-dos without a time" time (settings `todoDayTime`, 9:00 by default).
+    #[serde(default)]
+    pub all_day: bool,
+    #[serde(default)]
+    pub repeat: TodoRepeat,
+}
+
+/// How a to-do comes back after it's ticked off. Counted from its first date, so a monthly
+/// one on the 31st is on the 30th in a 30-day month and back on the 31st after.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TodoRepeat {
+    #[default]
+    None,
+    Daily,
+    Weekly,
+    Fortnightly,
+    Monthly,
+    Quarterly,
+    Yearly,
+}
+
+impl TodoRepeat {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            TodoRepeat::None => "none",
+            TodoRepeat::Daily => "daily",
+            TodoRepeat::Weekly => "weekly",
+            TodoRepeat::Fortnightly => "fortnightly",
+            TodoRepeat::Monthly => "monthly",
+            TodoRepeat::Quarterly => "quarterly",
+            TodoRepeat::Yearly => "yearly",
+        }
+    }
+
+    pub fn parse(s: &str) -> TodoRepeat {
+        match s {
+            "daily" => TodoRepeat::Daily,
+            "weekly" => TodoRepeat::Weekly,
+            "fortnightly" => TodoRepeat::Fortnightly,
+            "monthly" => TodoRepeat::Monthly,
+            "quarterly" => TodoRepeat::Quarterly,
+            "yearly" => TodoRepeat::Yearly,
+            _ => TodoRepeat::None,
+        }
+    }
+}
+
+/// A new to-do (the panel's form). `due_at` is local midnight when `all_day`.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NewTodo {
+    pub title: String,
+    pub due_at: Option<Millis>,
+    #[serde(default)]
+    pub all_day: bool,
+    #[serde(default)]
+    pub repeat: TodoRepeat,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -23,6 +82,10 @@ pub struct TodoPatch {
     #[serde(default, deserialize_with = "double_option")]
     pub due_at: Option<Option<Millis>>,
     pub done: Option<bool>,
+    pub all_day: Option<bool>,
+    pub repeat: Option<TodoRepeat>,
+    /// "Later" on a to-do without a time: remind again then, keeping its day.
+    pub remind_at: Option<Millis>,
 }
 
 fn double_option<'de, D, T>(de: D) -> Result<Option<Option<T>>, D::Error>
@@ -210,6 +273,9 @@ pub struct Reminder {
     /// The pet is hidden and comes out just for this (set by the app's scheduler).
     #[serde(default)]
     pub peek: bool,
+    /// A to-do without a time ("Today: …"); the pet tells several of these in one bubble.
+    #[serde(default)]
+    pub all_day: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

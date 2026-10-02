@@ -1,5 +1,6 @@
 import { nextPhase, startFocus, tick } from "../features/pomodoro/logic";
 import { currentWorkPeriod, runCutoff } from "../features/pomodoro/workHours";
+import { endOfDay, nextAfterTick, todoRemindsAt } from "../features/todo/repeat";
 import {
   DEFAULT_SETTINGS,
   EVERY_DAY,
@@ -23,9 +24,12 @@ import {
  * State lives in localStorage; pages talk over a BroadcastChannel; the pet
  * page runs the scheduler. Fake "windows" are any `.fake-window` elements.
  */
+/** The mock's to-dos also keep what the store keeps in columns of its own. */
+type MockTodo = Todo & { anchorAt?: number | null; remindAt?: number | null };
+
 interface MockState {
   settings: Settings;
-  todos: Todo[];
+  todos: MockTodo[];
   alarms: Alarm[];
   pomodoro: PomodoroStatus;
   sessions: { at: number; minutes: number; completed: boolean }[];
@@ -74,7 +78,9 @@ function load(): MockState {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const s = JSON.parse(raw) as MockState;
-      return { ...s, settings: mergeSettings(s.settings) };
+      // To-dos saved before 0.24.0 have no day/repeat fields (the store's v10 defaults).
+      const todos = (s.todos ?? []).map((t) => ({ ...t, allDay: t.allDay ?? false, repeat: t.repeat ?? "none" }));
+      return { ...s, todos, settings: mergeSettings(s.settings) };
     }
   } catch {
     // Storage unavailable or corrupt: start fresh.
@@ -151,16 +157,19 @@ export function startMockScheduler(): () => void {
     mutate((s) => {
       // The same rules as take_due in the Rust store: what came due while ePet wasn't running
       // doesn't ring late, except an alarm still within its snooze time.
-      const ring = (kind: "todo" | "alarm", id: number, title: string) => {
+      const ring = (kind: "todo" | "alarm", id: number, title: string, allDay = false) => {
         const peek = petHidden && comesOut(s, kind, title);
-        events.push(["reminder", { kind, id, title, peek }]);
+        events.push(["reminder", { kind, id, title, peek, allDay }]);
       };
       s.notified ??= [];
       for (const t of s.todos) {
-        if (!t.done && t.dueAt !== null && t.dueAt <= now && !s.notified.includes(t.id)) {
-          if (now - t.dueAt <= LATE_TOLERANCE) ring("todo", t.id, t.title);
-          s.notified.push(t.id);
-        }
+        if (t.done || t.dueAt === null || s.notified.includes(t.id)) continue;
+        const at = t.remindAt ?? todoRemindsAt(t, s.settings.todoDayTime) ?? t.dueAt;
+        if (at > now) continue;
+        // A day's to-do reminds any time that day; one with a time only on time.
+        if (t.allDay ? now < endOfDay(t.dueAt) : now - at <= LATE_TOLERANCE) ring("todo", t.id, t.title, t.allDay);
+        s.notified.push(t.id);
+        t.remindAt = null;
       }
       const alert = s.settings.alerts.alarm;
       const snoozeMs = alert.snoozeMinutes * 60_000;
@@ -231,9 +240,20 @@ export const mockBackend: Backend = {
   async listTodos() {
     return load().todos;
   },
-  async addTodo(title, dueAt) {
+  async addTodo({ title, dueAt, allDay = false, repeat = "none" }) {
+    if (!title.trim()) throw new Error("title is empty");
     const todo = mutate((s) => {
-      const t: Todo = { id: s.nextId++, title, dueAt, done: false, createdAt: Date.now(), doneAt: null };
+      const t: MockTodo = {
+        id: s.nextId++,
+        title: title.trim(),
+        dueAt,
+        done: false,
+        createdAt: Date.now(),
+        doneAt: null,
+        allDay: allDay && dueAt !== null,
+        repeat: dueAt === null ? "none" : repeat,
+        anchorAt: dueAt,
+      };
       s.todos.push(t);
       return t;
     });
@@ -244,10 +264,44 @@ export const mockBackend: Backend = {
     mutate((s) => {
       const t = s.todos.find((x) => x.id === id);
       if (!t) return;
-      if (patch.done !== undefined && patch.done !== t.done) t.doneAt = patch.done ? Date.now() : null;
-      // A new reminder time is reminded again.
-      if (patch.dueAt !== undefined) s.notified = (s.notified ?? []).filter((n) => n !== id);
-      Object.assign(t, patch);
+      const now = Date.now();
+      const rearm = () => (s.notified = (s.notified ?? []).filter((n) => n !== id));
+      if (patch.title !== undefined) t.title = patch.title.trim();
+      // A new date re-arms the reminder, and a repeating one counts from it.
+      if (patch.dueAt !== undefined) {
+        t.dueAt = patch.dueAt;
+        t.anchorAt = patch.dueAt;
+        t.remindAt = null;
+        rearm();
+      }
+      if (patch.allDay !== undefined) t.allDay = patch.allDay;
+      if (patch.repeat !== undefined) {
+        t.repeat = patch.repeat;
+        t.anchorAt = t.dueAt;
+      }
+      if (t.dueAt === null) {
+        t.allDay = false;
+        t.repeat = "none";
+      }
+      if (patch.remindAt !== undefined) {
+        t.remindAt = patch.remindAt;
+        rearm();
+      }
+      if (patch.done === true && !t.done && t.repeat !== "none") {
+        // Ticking off a repeating to-do (see tick_repeating in store.rs).
+        const next = nextAfterTick(t, t.anchorAt ?? t.dueAt ?? now, now);
+        if (next !== null) {
+          s.todos.push({ ...t, id: s.nextId++, done: true, doneAt: now, createdAt: now, repeat: "none" });
+          t.dueAt = next;
+          t.remindAt = null;
+          rearm();
+          return;
+        }
+      }
+      if (patch.done !== undefined && patch.done !== t.done) {
+        t.done = patch.done;
+        t.doneAt = patch.done ? now : null;
+      }
     });
     fire("todos-changed", null);
   },

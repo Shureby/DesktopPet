@@ -583,9 +583,57 @@
         },
         {
           "id": "todo.parse-more",
-          "rev": "0.1.0",
-          "do": "输入 standup tomorrow 9:30、stretch in 20m、pay rent fri 10am、just a note",
-          "expect": "时间解析正确；最后一个没有提醒时间"
+          "rev": "0.24.0",
+          "do": "输入 standup tomorrow 9:30、stretch in 20m、pay rent fri 10am、just a note，看输入框下面那一行和提示",
+          "expect": "时间解析正确；最后一个没有提醒时间（没有日期、没有时间）"
+        },
+        {
+          "id": "todo.day-only",
+          "rev": "0.24.0",
+          "do": "输入 buy milk today、dentist fri（都不写时间），看输入框下面那一行，再点 Add",
+          "expect": "输入时下面一行自动出现 📅 日期框（灰色星期几 + 日 月 年，顺序跟随系统，澳洲为 7 Oct 2026）和虚线 “+ Time”；提示写 “📅 Today — “buy milk” · reminds at 9:00 AM that day”；列表里只显示日期（Today / Fri, 9 Oct），没有时间"
+        },
+        {
+          "id": "todo.date-field",
+          "rev": "0.24.0",
+          "do": "点 “+ Date”，在日期框的日、月、年上分别：按住上下拖、滚轮、按 ↑/↓、直接打数字（如月份打 12）；把日改成 31 再把月份换成 11 月；点日期框里的 ✕",
+          "expect": "和时间框一样可以拖、滚、按键、打字，星期几跟着变；31 日换到 11 月变成 30 日；日从 31 往上滚回到 1 而不改月份；✕ 后回到 “+ Date”，重复下拉框变灰不能选"
+        },
+        {
+          "id": "todo.time-toggle",
+          "rev": "0.24.0",
+          "do": "有日期时点 “+ Time”，再点时间框里的 ✕；再输入 call mom tomorrow 3pm",
+          "expect": "“+ Time” 变成时间框（下一个整点），✕ 后变回 “+ Time”；打出时间时自动出现时间框；提示里 ⏰ 带时间，📅 不带时间"
+        },
+        {
+          "id": "todo.repeat-parse",
+          "rev": "0.24.0",
+          "do": "依次输入 bins every tue、recycling every other thu、water plants daily、pay bills monthly 1st、review budget quarterly、car rego yearly on the 20th、bins every tue 7pm",
+          "expect": "重复下拉框自动选中 Weekly / Fortnightly / Daily / Monthly / Quarterly / Yearly；日期是下一个对应的日子（every tue 当天是周二时就是今天；monthly 1st 是下一个 1 号）；最后一个带 7:00 PM；标题里去掉了这些词；手动改过下面一行后，继续打字不会再覆盖它"
+        },
+        {
+          "id": "todo.repeat-tick",
+          "rev": "0.24.0",
+          "do": "建一个 Weekly 的 bins（今天），勾选完成；再建一个日期在三周前的 Weekly 待办，勾选；再建一个 Monthly 31 号的待办，勾选几次",
+          "expect": "勾选后 Done 区多一条 “bins · Done · Today …”，bins 本身留在列表里，日期变成下周同一天，前面显示 🔁 Weekly；拖了三周的那个直接跳到今天之后最近的一次，不会冒出好几条；31 号的在 30 天的月份变成 30 号，下个月又回到 31 号"
+        },
+        {
+          "id": "todo.edit",
+          "rev": "0.24.0",
+          "do": "鼠标悬停一条待办，点 ✎；改标题、日期、加时间、改重复方式，点 Save；再点一次 ✎ 后点标题右边的 Cancel；再点 ✎ 后把这条勾掉或删掉",
+          "expect": "✎ 只在悬停时出现（已完成的没有 ✎）；表单标题变成 “Edit to-do · 名字”，内容都已填好，Add 变成 Save，这一行橙色边框；Save 后只改这一条，不会多出一条；Cancel 不改任何东西；编辑中的那条被勾掉或删掉时表单回到新建状态"
+        },
+        {
+          "id": "todo.day-remind",
+          "rev": "0.24.0",
+          "do": "Settings → To-do reminders 把 “To-dos without a time remind you at” 设成 1–2 分钟后；建两个今天的、不带时间的待办；到点后点 Later；另一次：把时间设在早上，晚点再打开 ePet",
+          "expect": "到点宠物出来，一个气泡同时列出两条：“📅 Today: • … • …”，按钮 Open To-dos 和 Later；Later 后 10 分钟再提醒一次，日期不变（不会变成带时间的待办）；时间过了才打开 ePet，当天打开时仍提醒一次；只有一条时和普通待办提醒一样，有 ✓ Done"
+        },
+        {
+          "id": "todo.day-overdue",
+          "rev": "0.24.0",
+          "do": "建一个今天的不带时间的待办、一个今天早些时候带时间的待办，不勾；第二天（或改系统日期）再看",
+          "expect": "当天：不带时间的显示橙色 “Today”（不算 Overdue），带时间的过了时间就显示红色 “Overdue · Today …”；第二天不带时间的才变成红色 “Overdue · Yesterday”；第二天打开 ePet 不会为昨天的补提醒"
         },
         {
           "id": "todo.feedback",

@@ -59,6 +59,8 @@ export interface Settings {
   hiddenAlerts: HiddenAlerts;
   /** A 🔔 badge by the pet for alarms ringing within `minutes` (1–120). */
   upcomingAlarms: { show: boolean; minutes: number };
+  /** "HH:MM": when to-dos without a time remind you on their day. */
+  todoDayTime: string;
   pomodoro: PomodoroConfig;
   autostart: boolean;
 }
@@ -76,6 +78,7 @@ export const DEFAULT_SETTINGS: Settings = {
   quietHours: { enabled: false, start: "22:00", end: "08:00" },
   hiddenAlerts: { alarms: true, timers: true, todos: true, focus: false },
   upcomingAlarms: { show: true, minutes: 60 },
+  todoDayTime: "09:00",
   pomodoro: {
     focusMin: 25,
     shortBreakMin: 5,
@@ -108,6 +111,7 @@ export function mergeSettings(stored: Partial<Settings> | null | undefined): Set
       const u = { ...d.upcomingAlarms, ...s.upcomingAlarms };
       return { show: u.show !== false, minutes: clampUpcomingMinutes(u.minutes) };
     })(),
+    todoDayTime: typeof s.todoDayTime === "string" && /^\d{2}:\d{2}$/.test(s.todoDayTime) ? s.todoDayTime : d.todoDayTime,
     pomodoro: { ...d.pomodoro, ...s.pomodoro, workHours: { ...d.pomodoro.workHours, ...s.pomodoro?.workHours } },
     alerts: {
       alarm: { ...d.alerts.alarm, ...s.alerts?.alarm },
@@ -125,7 +129,27 @@ export interface Todo {
   createdAt: number;
   /** When it was ticked off (null while open). */
   doneAt: number | null;
+  /**
+   * Due on a day, not at a time: `dueAt` is that day's local midnight. It reminds at
+   * `Settings.todoDayTime` and is overdue only from the next day.
+   */
+  allDay: boolean;
+  repeat: TodoRepeat;
 }
+
+/** How a to-do comes back after it's ticked off (counted from its first date). */
+export type TodoRepeat = "none" | "daily" | "weekly" | "fortnightly" | "monthly" | "quarterly" | "yearly";
+
+/** A new to-do from the panel's form. */
+export interface NewTodo {
+  title: string;
+  dueAt: number | null;
+  allDay?: boolean;
+  repeat?: TodoRepeat;
+}
+
+/** Changes to a to-do. `remindAt` is "Later" on a day's to-do: remind again then, same day. */
+export type TodoPatch = Partial<Pick<Todo, "title" | "dueAt" | "done" | "allDay" | "repeat">> & { remindAt?: number };
 
 /** "days": the days in `Alarm.repeatDays` (e.g. Mon, Wed, Fri). */
 export type Repeat = "none" | "daily" | "weekdays" | "days";
@@ -202,6 +226,8 @@ export interface ReminderEvent {
   title: string;
   /** The pet is hidden and was brought out just for this (docs/INTERACTIONS.md). */
   peek?: boolean;
+  /** A to-do without a time ("Today: …"); several are told in one bubble. */
+  allDay?: boolean;
 }
 
 /** "While I was hidden you missed…": something the hidden pet rang that nobody answered. */
@@ -247,7 +273,7 @@ export interface BackendEvents {
 }
 
 export type PetActivity =
-  | { type: "todoAdded"; title: string; dueAt: number | null }
+  | { type: "todoAdded"; title: string; dueAt: number | null; allDay?: boolean }
   | { type: "todoDone" }
   | { type: "game"; won: boolean };
 
@@ -263,8 +289,9 @@ export interface Backend {
   setSettings(patch: Partial<Settings>): Promise<Settings>;
 
   listTodos(): Promise<Todo[]>;
-  addTodo(title: string, dueAt: number | null): Promise<Todo>;
-  updateTodo(id: number, patch: Partial<Pick<Todo, "title" | "dueAt" | "done">>): Promise<void>;
+  addTodo(todo: NewTodo): Promise<Todo>;
+  /** Ticking off a repeating to-do logs this time as done and moves it on to its next day. */
+  updateTodo(id: number, patch: TodoPatch): Promise<void>;
   deleteTodo(id: number): Promise<void>;
   /** Removes all ticked-off to-dos; returns how many. */
   clearDoneTodos(): Promise<number>;

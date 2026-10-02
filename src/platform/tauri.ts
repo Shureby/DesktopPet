@@ -19,7 +19,7 @@ export const tauriBackend: Backend = {
   },
 
   listTodos: () => invoke("list_todos"),
-  addTodo: (title, dueAt) => invoke("add_todo", { title, dueAt }),
+  addTodo: (todo) => invoke("add_todo", { todo }),
   updateTodo: (id, patch) => invoke("update_todo", { id, patch }),
   deleteTodo: (id) => invoke("delete_todo", { id }),
   clearDoneTodos: () => invoke("clear_done_todos"),
