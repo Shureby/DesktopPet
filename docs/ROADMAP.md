@@ -12,6 +12,39 @@
   SteamOS unticked.
 - **Direct build**: auto-updater feed, code signing, license keys.
 
+## Anniversaries (0.25.0, agreed 2026-10-02)
+
+Comes after 0.24.0 (repeating to-dos and editing to-dos).
+
+- **A 🎂 Anniversaries sub-page in To-dos.** To-dos opens on the To-dos sub-page (the
+  tickable list). The sub-tab shows a count when an anniversary is within 7 days
+  ("🎂 Anniversaries · 1").
+- **Adding one:** name, date, an optional "since" year (for "36th" / "10th anniversary"),
+  and up to 3 "remind before" rows. Each row is a lead time (1 day, 1 week…) plus an
+  extra label. For example 老婆生日 with 1 day / 买生日蛋糕 makes the to-do
+  "🎂 老婆生日 - 买生日蛋糕".
+- **Generated to-dos appear on their day,** with a 9:00 AM reminder. They aren't listed
+  months ahead. If the computer was off that day, the to-do is made at the next launch and
+  shows as Overdue. Deleting the anniversary keeps generated to-dos that aren't ticked yet.
+- **Anniversaries aren't ticked.** The sub-page lists them by next date ("Sat, Oct 25 (in 23
+  days) · 36th"), with ✎ and ✕. Each rolls over to next year after its day. Feb 29 falls
+  on Feb 28 in other years.
+- **Celebration on the day:** the first time you're at the computer that day, a
+  full-screen, click-through fireworks overlay plays for about 5 s on the pet's screen,
+  and the pet says "🎉 Today is 老婆生日!" (with the count). Once a day.
+  - Settings switch "Celebrate anniversaries with fireworks", on by default.
+  - The hidden-pet checkboxes get "Anniversaries", ticked by default.
+
+## Lunar-calendar birthdays (future upgrade, a selling point)
+
+> **Status: idea for later.** Recorded 2026-10-02.
+
+Many Chinese users, and their parents especially, keep 农历 birthdays, which fall on a
+different Gregorian date each year. Add a "Lunar" switch to the anniversary date, with the
+lunar month and day (闰月 handled). Its Gregorian date is computed each year, and rows show
+both ("农历八月十五 · Oct 6"). It's a good line for Chinese store pages and marketing, so
+it's worth announcing on its own when it ships.
+
 ## Rename to ChimePet (do in the last build before launch)
 
 > **Status: decided, not done.** Recorded 2026-10-01. "ePet" stays the working name
