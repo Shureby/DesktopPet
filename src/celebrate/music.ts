@@ -480,6 +480,165 @@ const REFLECTION: Piece = {
   ],
 };
 
+// Mendelssohn's Wedding March (A Midsummer Night's Dream, Op. 61), from Dubois's organ
+// transcription: the trumpet fanfare, then the march's first strain. It starts on the
+// fanfare's pickup triplet, so a repeat flows straight back into it.
+const trip = (t: number, p: string | string[], v = 0.7): Ev[] => [0, 1, 2].map((i) => ({ t: t + i / 3, d: 0.3, p, v }));
+
+const mendelssohnBars = (t: number): Ev[] =>
+  seq(t, [
+    ["C6", 2], ["B5", 1.5], ["B5", 0.5],
+    ["A5", 1], ["G5", 1], ["F5", 1], ["D5", 1],
+  ]);
+
+const MENDELSSOHN: Piece = {
+  id: "mendelssohn",
+  level: 2.379,
+  name: "Wedding March (Mendelssohn)",
+  mood: "happy",
+  seconds: 30,
+  beats: 49,
+  reverb: 0.35,
+  tracks: [
+    // Fanfare.
+    {
+      inst: "brass",
+      gain: 0.45,
+      events: [
+        ...trip(0, "C5"), { t: 1, d: 2, p: "C5", v: 0.75 },
+        ...trip(4, "C5"), { t: 5, d: 2, p: "C5", v: 0.75 },
+        ...trip(8, "C5"), { t: 9, d: 1, p: ["C5", "E5"], v: 0.8 },
+        ...trip(10, "E5"), { t: 11, d: 1, p: "E5", v: 0.8 },
+        ...trip(12, "E5"), { t: 13, d: 1, p: ["E5", "G5"], v: 0.85 },
+        ...trip(14, "G5"), { t: 15, d: 1, p: "G5", v: 0.85 },
+      ],
+    },
+    // The left hand joins the fanfare.
+    {
+      inst: "strings",
+      gain: 0.18,
+      events: [
+        ...trip(10, "C4", 0.5), { t: 11, d: 1, p: "C4", v: 0.5 }, ...trip(12, "C4", 0.5),
+        { t: 13, d: 1, p: "C4", v: 0.55 }, ...trip(14, ["C4", "E4"], 0.55), { t: 15, d: 1, p: ["C4", "E4"], v: 0.6 },
+      ],
+    },
+    // The march: melody on strings, brass an octave below.
+    {
+      inst: "strings",
+      gain: 0.5,
+      events: [
+        ...mendelssohnBars(17),
+        ...seq(25, [["C5", 2], ["D5", 1], ["G4", 0.75], ["D5", 0.25], ["E5", 1], [null, 1.5], ["C5", 0.5], ["E5", 0.5], ["G5", 0.5]]),
+        ...mendelssohnBars(33),
+        ...seq(41, [["C5", 2], ["E5", 1], ["D5", 0.75], ["E5", 0.25], ["D5", 2], ["C5", 1]]),
+      ],
+    },
+    {
+      inst: "brass",
+      gain: 0.22,
+      events: [
+        ...seq(17, [["C5", 2], ["B4", 1.5], ["B4", 0.5], ["A4", 1], ["G4", 1], ["F4", 1], ["D4", 1]], 0.6),
+        ...seq(33, [["C5", 2], ["B4", 1.5], ["B4", 0.5], ["A4", 1], ["G4", 1], ["F4", 1], ["D4", 1]], 0.6),
+      ],
+    },
+    // Chords.
+    {
+      inst: "strings",
+      gain: 0.16,
+      events: [17, 33].flatMap((t) =>
+        seq(t, [
+          [["A3", "C4", "E4", "F#4"], 2], [["B3", "D#4", "F#4", "A4"], 2],
+          [["B3", "D#4", "F#4", "A4"], 1], [["B3", "E4", "G4"], 1], [["A3", "D4", "F4"], 2],
+        ], 0.5),
+      ).concat(
+        seq(25, [[["G3", "C4", "E4"], 2], [["G3", "B3", "F4"], 2], [["G3", "C4", "E4"], 1]], 0.5),
+        seq(30, [["C4", 0.5], ["E4", 0.5], ["G4", 0.5], ["C4", 0.5], ["E4", 0.5], ["G4", 0.5]], 0.4),
+        seq(41, [[["G3", "C4", "E4"], 2], [["G3", "G4"], 1], [["G3", "F4"], 1], [["G3", "B3", "F4"], 2], [["C4", "E4", "G4"], 1]], 0.5),
+      ),
+    },
+    // Bass.
+    {
+      inst: "strings",
+      gain: 0.28,
+      events: [
+        ...seq(9, [[["C3"], 8]], 0.4),
+        ...[17, 33].flatMap((t) => seq(t, [["A2", 2], ["B2", 1.5], ["B2", 0.5], ["E3", 2], ["F3", 1], ["F3", 1]], 0.6)),
+        ...seq(25, [["G2", 2], ["G3", 2], ["C3", 1]], 0.6),
+        ...seq(41, [["G2", 2], ["G3", 1], ["G2", 1], ["G2", 2], ["C3", 1]], 0.6),
+      ],
+    },
+    { inst: "bell", gain: 0.12, events: [{ t: 47, d: 2, p: ["C6", "G6"], v: 0.5 }] },
+  ],
+};
+
+// Wagner's Bridal Chorus (Lohengrin, "Here comes the bride"), in its own B-flat.
+const WAGNER: Piece = {
+  id: "wagner",
+  level: 2.127,
+  name: "Bridal Chorus (Wagner)",
+  mood: "happy",
+  seconds: 30,
+  beats: 36,
+  reverb: 0.4,
+  tracks: [
+    {
+      inst: "strings",
+      gain: 0.55,
+      events: seq(0, [
+        ["F4", 1], ["Bb4", 0.75], ["Bb4", 0.25], ["Bb4", 2],
+        ["F4", 1], ["C5", 0.75], ["A4", 0.25], ["Bb4", 2],
+        ["F4", 1], ["Bb4", 0.75], ["Eb5", 0.25], ["Eb5", 1], ["D5", 0.75], ["C5", 0.25],
+        ["Bb4", 0.75], ["A4", 0.25], ["Bb4", 1], ["C5", 2],
+        ["F4", 1], ["Bb4", 0.75], ["Bb4", 0.25], ["Bb4", 2],
+        ["F4", 1], ["C5", 0.75], ["A4", 0.25], ["Bb4", 2],
+        ["F4", 1], ["Bb4", 0.75], ["D5", 0.25], ["F5", 1], ["D5", 0.75], ["Bb4", 0.25],
+        ["G4", 0.75], ["Eb5", 0.25], ["C5", 0.75], ["A4", 0.25], ["Bb4", 2],
+      ]),
+    },
+    // An organ-like doubling an octave up, soft.
+    {
+      inst: "flute",
+      gain: 0.12,
+      events: seq(16, [
+        ["F5", 1], ["Bb5", 0.75], ["Bb5", 0.25], ["Bb5", 2],
+        ["F5", 1], ["C6", 0.75], ["A5", 0.25], ["Bb5", 2],
+        ["F5", 1], ["Bb5", 0.75], ["D6", 0.25], ["F6", 1], ["D6", 0.75], ["Bb5", 0.25],
+        ["G5", 0.75], ["Eb6", 0.25], ["C6", 0.75], ["A5", 0.25], ["Bb5", 2],
+      ], 0.5),
+    },
+    {
+      inst: "strings",
+      gain: 0.16,
+      events: seq(0, [
+        [["D4", "F4"], 2], [["D4", "F4"], 2],
+        [["Eb4", "A4"], 2], [["D4", "F4"], 2],
+        [["D4", "F4"], 2], [["Eb4", "G4"], 2],
+        [["D4", "F4"], 2], [["C4", "F4", "A4"], 2],
+        [["D4", "F4"], 2], [["D4", "F4"], 2],
+        [["Eb4", "A4"], 2], [["D4", "F4"], 2],
+        [["D4", "F4"], 4],
+        [["Eb4", "G4"], 1], [["Eb4", "A4"], 1], [["D4", "F4"], 2],
+        [["D4", "F4", "Bb4"], 4],
+      ], 0.5),
+    },
+    {
+      inst: "strings",
+      gain: 0.3,
+      events: seq(0, [
+        ["Bb2", 2], ["Bb2", 2], ["F2", 2], ["Bb2", 2],
+        ["Bb2", 2], ["Eb3", 2], ["F2", 2], ["F2", 2],
+        ["Bb2", 2], ["Bb2", 2], ["F2", 2], ["Bb2", 2],
+        ["Bb2", 2], ["D3", 2], ["Eb3", 1], ["F2", 1], ["Bb2", 2],
+        ["Bb2", 4],
+      ], 0.6),
+    },
+    { inst: "bell", gain: 0.12, events: [{ t: 30, d: 3, p: ["Bb5", "F6"], v: 0.5 }] },
+  ],
+};
+
+/** On trial: listened to before they're added. */
+export const TRIAL_PIECES: Piece[] = [MENDELSSOHN, WAGNER];
+
 // --- Fuller versions (chosen by listening): the accompaniment taken back up now that the click
 // that made it sound like drumming is fixed, plus a swell and a little colour.
 
