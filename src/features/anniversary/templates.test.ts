@@ -43,7 +43,12 @@ describe("anniversaries", () => {
   });
 
   it("pick the effect: fireworks with the icon falling, or a candle", () => {
-    expect(celebrationEffect({ kind: "birthday", icon: "🎂" })).toEqual({ mode: "fireworks", icons: ["🎂", "🎈", "🎁"] });
+    expect(celebrationEffect({ kind: "birthday", icon: "🎂" })).toEqual({ mode: "fireworks", icons: ["🎂", "🎁"], balloons: 0.3 });
+    // Balloons rise instead of a falling 🎈; a pet's birthday has more pet-shaped ones.
+    expect(celebrationEffect({ kind: "pet", icon: "🎈" })).toEqual({ mode: "fireworks", icons: ["🦴"], balloons: 0.6 });
+    expect(celebrationEffect({ kind: "wedding", icon: "💍" })).toEqual({ mode: "fireworks", icons: ["💍", "❤️", "🥂"], hearts: true });
+    expect(celebrationEffect({ kind: "dating", icon: "💝" }).hearts).toBe(true);
+    expect(celebrationEffect({ kind: "work", icon: "🏆" })).toEqual({ mode: "fireworks", icons: ["🏆", "🎉", "⭐"] });
     expect(celebrationEffect({ kind: "remembrance", icon: "🕯️" })).toEqual({ mode: "candle", icons: [] });
   });
 

@@ -15,5 +15,4 @@ const { celebration, petX, petY } = JSON.parse(new TextDecoder().decode(bytes)) 
   petY: number;
 };
 const canvas = document.getElementById("fx") as HTMLCanvasElement;
-const { mode, icons } = celebrationEffect(celebration.anniversary);
-void playEffect(canvas, { mode, icons, ms: celebration.seconds * 1000, petX, petY });
+void playEffect(canvas, { ...celebrationEffect(celebration.anniversary), ms: celebration.seconds * 1000, petX, petY });

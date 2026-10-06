@@ -1333,9 +1333,9 @@ export class PetHost {
       // Under the pet and its bubble, like the app's window under the pet's.
       Object.assign(canvas.style, { position: "fixed", inset: "0", width: "100vw", height: "100vh", pointerEvents: "none", zIndex: "0" });
       document.body.prepend(canvas);
-      const { mode, icons } = celebrationEffect(c.anniversary);
+
       const b = this.pet.body;
-      void playEffect(canvas, { mode, icons, ms: c.seconds * 1000, petX: b.x / this.dpr, petY: b.y / this.dpr }).then(() =>
+      void playEffect(canvas, { ...celebrationEffect(c.anniversary), ms: c.seconds * 1000, petX: b.x / this.dpr, petY: b.y / this.dpr }).then(() =>
         canvas.remove(),
       );
     }

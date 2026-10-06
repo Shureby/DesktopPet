@@ -16,6 +16,10 @@ export interface AnniversaryTemplate {
   effect: boolean;
   /** What falls with the fireworks, after the anniversary's own icon. */
   falling: string[];
+  /** Some fireworks burst as a pair of hearts side by side (red with pink or gold). */
+  hearts?: boolean;
+  /** Balloons rise from the bottom; this share of them are shaped like pets' heads. */
+  balloons?: number;
   placeholder: string;
   /** The music on the day (src/celebrate/music.ts): the default, or the only one when `musicFixed`. */
   music: string;
@@ -33,7 +37,8 @@ export const TEMPLATES: Record<AnniversaryKind, AnniversaryTemplate> = {
       { lead: "1d", label: "Order a cake" },
     ],
     effect: true,
-    falling: ["🎈", "🎁"],
+    falling: ["🎁"],
+    balloons: 0.3,
     placeholder: "Whose birthday? e.g. Mum",
     music: "birthday",
     musicFixed: true,
@@ -47,6 +52,7 @@ export const TEMPLATES: Record<AnniversaryKind, AnniversaryTemplate> = {
     ],
     effect: true,
     falling: ["❤️", "🥂"],
+    hearts: true,
     placeholder: "e.g. Our wedding",
     music: "canon",
     musicOptions: ["canon", "mendelssohn", "wagner"],
@@ -57,6 +63,7 @@ export const TEMPLATES: Record<AnniversaryKind, AnniversaryTemplate> = {
     preps: [{ lead: "1d", label: "Plan a surprise" }],
     effect: true,
     falling: ["🌹", "❤️"],
+    hearts: true,
     placeholder: "e.g. Us",
     music: "waltz",
   },
@@ -65,7 +72,8 @@ export const TEMPLATES: Record<AnniversaryKind, AnniversaryTemplate> = {
     icon: "🐾",
     preps: [{ lead: "1d", label: "Buy treats" }],
     effect: true,
-    falling: ["🦴", "🎈"],
+    falling: ["🦴"],
+    balloons: 0.6,
     placeholder: "Your pet's name",
     music: "birthday",
     musicFixed: true,
@@ -143,9 +151,17 @@ export function celebrationLines(a: Pick<Anniversary, "kind" | "name" | "icon">,
 }
 
 /** What the day plays: fireworks (with these icons falling) or a candle and flowers. */
-export function celebrationEffect(a: Pick<Anniversary, "kind" | "icon">): { mode: "fireworks" | "candle"; icons: string[] } {
+export function celebrationEffect(a: Pick<Anniversary, "kind" | "icon">): {
+  mode: "fireworks" | "candle";
+  icons: string[];
+  hearts?: boolean;
+  balloons?: number;
+} {
   if (a.kind === "remembrance") return { mode: "candle", icons: [] };
-  return { mode: "fireworks", icons: [a.icon, ...templateOf(a.kind).falling.filter((i) => i !== a.icon)] };
+  const t = templateOf(a.kind);
+  // With drawn balloons rising, a 🎈 icon doesn't fall as well.
+  const icons = [a.icon, ...t.falling.filter((i) => i !== a.icon)].filter((i) => !(t.balloons !== undefined && i === "🎈"));
+  return { mode: "fireworks", icons, hearts: t.hearts, balloons: t.balloons };
 }
 
 /** The pieces it can choose from: its template's list (a wedding), else happy ones, or for a remembrance the mourning ones. */
