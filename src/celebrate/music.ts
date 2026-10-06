@@ -7,6 +7,7 @@
 
 export type Instrument =
   | "musicbox"
+  | "celesta"
   | "piano"
   | "pluck"
   | "bell"
@@ -43,6 +44,8 @@ export interface Piece {
   reverb: number;
   /** Loudness trim so every piece sounds about as loud (average level, measured by rendering it). */
   level: number;
+  /** Grows louder through the piece by this much (0.15: the end is 15% louder than the start). */
+  swell?: number;
   tracks: Track[];
 }
 
@@ -479,6 +482,66 @@ const REFLECTION: Piece = {
 
 export const PIECES: Piece[] = [BIRTHDAY, CANON, ODE, JASMINE, FESTIVE, WALTZ, AISI, CHOPIN, TAPS, REFLECTION];
 
+// --- "Full" versions (for comparison): the accompaniment taken back up now that the click
+// that made it sound like drumming is fixed, plus a swell and a little colour.
+
+/** A copy of `base` with its tracks changed by `edit` (tracks are copied first). */
+function fuller(base: Piece, level: number, edit: (tracks: Track[]) => Track[]): Piece {
+  const tracks = base.tracks.map((t) => ({ ...t, events: [...t.events] }));
+  return { ...base, id: `${base.id}-full`, name: `${base.name} (full)`, level, swell: 0.15, tracks: edit(tracks) };
+}
+
+const top = (chord: string | string[]) => (Array.isArray(chord) ? chord[chord.length - 1] : chord);
+
+export const FULL_PIECES: Piece[] = [
+  fuller(BIRTHDAY, 0.32, (t) => {
+    t[3].gain = 0.3;
+    t[4] = { inst: "celesta", gain: 0.25, events: [{ t: 48, d: 2, p: ["C6", "E6", "G6"], v: 0.6 }] };
+    return t;
+  }),
+  fuller(CANON, 0.649, (t) => {
+    t[1].gain = 0.18;
+    t[3].gain = 0.6;
+    t.push({ inst: "celesta", gain: 0.15, events: seq(16, ["F#4", "E4", "D4", "C#4", "B3", "A3", "B3", "C#4"].map((p): Step => [p, 2]), 0.5) });
+    return t;
+  }),
+  fuller(ODE, 1.487, (t) => {
+    const chords = t[1].events.map((e) => e.p as string[]);
+    t.push({ inst: "piano", gain: 0.2, events: comp(0, 4, chords, 0.2) });
+    t.push({
+      inst: "celesta",
+      gain: 0.14,
+      events: chords.slice(8).map((c, i) => ({ t: 32 + i * 4, d: 2, p: transpose(top(c), 12), v: 0.5 })),
+    });
+    return t;
+  }),
+  fuller(FESTIVE, 0.668, (t) => {
+    t[1].events = [...t[1].events.filter((e) => e.t < 32), ...arpeggio(32, festiveChords, 0.3)];
+    t.push({ inst: "wood", gain: 0.1, events: Array.from({ length: 8 }, (_, i) => [1, 3].map((b) => ({ t: 32 + i * 4 + b, d: 0.2, p: "C6", v: 0.5 }))).flat() });
+    return t;
+  }),
+  fuller(WALTZ, 0.358, (t) => {
+    t[1].gain = 0.2;
+    return t;
+  }),
+  fuller(CHOPIN, 0.333, (t) => {
+    t[1].gain = 0.2;
+    return t;
+  }),
+  fuller(REFLECTION, 0.741, (t) => {
+    t[1].gain = 0.22;
+    t.push({
+      inst: "strings",
+      gain: 0.15,
+      events: pad(32, 4, [
+        ["A2", "E3", "C4"], ["D3", "A3", "F4"], ["G2", "D3", "B3"], ["C3", "G3", "E4"],
+        ["F2", "C3", "A3"], ["E2", "B2", "G#3"], ["A2", "E3", "C4"],
+      ], 0.3),
+    });
+    return t;
+  }),
+];
+
 // --- Synthesis -----------------------------------------------------------
 
 /**
@@ -524,6 +587,10 @@ function voice(ctx: BaseAudioContext, out: AudioNode, inst: Instrument, f: numbe
   switch (inst) {
     case "musicbox":
       partials([[1, 0.5, 0.6], [2, 0.14, 0.3], [3, 0.05, 0.2], [4.2, 0.04, 0.12]], 2.2);
+      break;
+    case "celesta":
+      // Like a music box but with only in-tune overtones, so it never clashes with chords.
+      partials([[1, 0.4, 0.8], [2, 0.12, 0.4], [4, 0.04, 0.2]], 2.6);
       break;
     case "piano": {
       const d = Math.min(2.2, Math.max(0.5, 1.4 * (440 / f) ** 0.35));
@@ -688,7 +755,8 @@ export function playPiece(ctx: BaseAudioContext, piece: Piece, start: number, se
       for (const e of track.events) {
         const t = t0 + e.t * spb;
         if (t >= start + seconds) continue;
-        for (const p of Array.isArray(e.p) ? e.p : [e.p]) voice(ctx, tg, track.inst, freq(p), t, e.d * spb, e.v);
+        const v = e.v * (1 + (piece.swell ?? 0) * (e.t / piece.beats));
+        for (const p of Array.isArray(e.p) ? e.p : [e.p]) voice(ctx, tg, track.inst, freq(p), t, e.d * spb, v);
       }
     }
   }
