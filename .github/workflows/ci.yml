@@ -111,6 +111,7 @@ jobs:
       - name: Unit tests (for the report)
         run: npx vitest run --reporter=default --reporter=json --outputFile.json=e2e-results/unit.json
       - name: End-to-end tests
+        if: success() || failure()
         run: npm run e2e
         env:
           EPET_APP: ${{ github.workspace }}\target\debug\desktoppet.exe
