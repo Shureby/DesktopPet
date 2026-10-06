@@ -16,6 +16,14 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.27.1] - 2026-10-06
+
+### Fixed
+- ▶ Preview froze ePet on Windows: the screen under the pet couldn't be clicked (ePet
+  included) until ePet was ended in Task Manager. The preview opened its window from a
+  synchronous command, which deadlocks on Windows; it's asynchronous now. The celebration
+  window is also only shown once clicks pass through it, so it can never block the screen.
+
 ## [0.27.0] - 2026-10-02
 
 ### Added

@@ -399,6 +399,9 @@ Code: `renderAnniversaries` in `src/panel/main.ts`, `src/features/anniversary/te
     anniversary's switch and the setting), and the length.
   - It marks nothing: the real day still celebrates, and no reminder to-dos are made.
   - A hidden pet comes out for it.
+  - The effect window is shown only after it's made click-through, so it can never block
+    the screen. Commands that open a window are async: opening one from a synchronous
+    command deadlocks on Windows (0.27.0's preview froze ePet that way).
 
 ## Focus work hours (since 0.20.0)
 

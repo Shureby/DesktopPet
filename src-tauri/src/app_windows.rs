@@ -118,10 +118,16 @@ pub fn open_celebration<R: Runtime>(app: &AppHandle<R>, c: &desktoppet_core::Cel
         .resizable(false)
         .shadow(false)
         .focused(false)
+        // Shown only once clicks pass through it: it must never catch the mouse.
+        .visible(false)
         .position(mx / s, my / s)
         .inner_size(m.size().width as f64 / s, m.size().height as f64 / s)
         .build()?;
-    window.set_ignore_cursor_events(true)?;
+    if let Err(e) = window.set_ignore_cursor_events(true) {
+        let _ = window.destroy();
+        return Err(e);
+    }
+    window.show()?;
     // The pet and its words stay above the effect (both windows are always on top; turning
     // it off and on again brings the pet to the front of that layer).
     if let Some(p) = &pet {

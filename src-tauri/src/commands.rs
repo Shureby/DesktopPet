@@ -99,8 +99,15 @@ pub fn update_anniversary(
 
 /// "▶ Preview": the day's celebration now (the pet's words and the effect), marking nothing.
 /// A hidden pet comes out for it.
+///
+/// Async, like `open_panel` and `open_game`: it opens a window, and opening one from a
+/// synchronous command deadlocks on Windows (the whole app froze under a full-screen window).
 #[tauri::command]
-pub fn preview_celebration(app: AppHandle, state: State<AppState>, anniversary: NewAnniversary) -> CmdResult<()> {
+pub async fn preview_celebration(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    anniversary: NewAnniversary,
+) -> CmdResult<()> {
     let c = state.store().preview_celebration(&Local, &anniversary, now_ms()).map_err(err)?;
     let peeks = app_windows::peek(&app);
     if c.effect {
