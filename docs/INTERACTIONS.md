@@ -387,7 +387,14 @@ Code: `renderAnniversaries` in `src/panel/main.ts`, `src/features/anniversary/te
   - If its effect is on (and the setting), the app plays it in a transparent,
     click-through window over the pet's monitor:
     - **Fireworks**, with the anniversary's icon and its template's icons falling
-      (🎂🎈🎁, 💍❤️🥂…);
+      (🎂🎁, 💍❤️🥂…);
+      - **Weddings and dating anniversaries (since 0.30.0):** every third firework bursts
+        as two hearts side by side, red with pink or red with gold (either side).
+      - **Birthdays and pets' birthdays (since 0.30.0):** drawn balloons in festive
+        colours (red, gold, pink, orange, purple, lime) rise from the bottom, swaying on
+        their strings, about one a second. Some are pets' heads (cat, dog or bear, with a
+        face): about 30% on a birthday, 60% on a pet's birthday. A 🎈 icon doesn't fall as
+        well.
     - **for a remembrance:** the screen dims, and a white candle about 12% of the screen's
       height flickers between two small bouquets of three white chrysanthemums, beside
       the pet and clear of its bubble (since 0.28.0; one small flower each side before).

@@ -16,6 +16,15 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-10-06
+
+### Added
+- Wedding and dating anniversaries: every third firework bursts as two hearts side by
+  side, red with pink or red with gold.
+- Birthdays and pets' birthdays: drawn balloons in festive colours rise from the bottom,
+  some shaped like cat, dog or bear heads (more of them on a pet's birthday). They replace
+  the falling 🎈.
+
 ## [0.29.0] - 2026-10-06
 
 ### Added
