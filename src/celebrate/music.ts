@@ -574,7 +574,7 @@ const MENDELSSOHN: Piece = {
 // Wagner's Bridal Chorus (Lohengrin, "Here comes the bride"), in its own B-flat.
 const WAGNER: Piece = {
   id: "wagner",
-  level: 2.127,
+  level: 2.103,
   name: "Bridal Chorus (Wagner)",
   mood: "happy",
   seconds: 30,
@@ -592,7 +592,7 @@ const WAGNER: Piece = {
         ["F4", 1], ["Bb4", 0.75], ["Bb4", 0.25], ["Bb4", 2],
         ["F4", 1], ["C5", 0.75], ["A4", 0.25], ["Bb4", 2],
         ["F4", 1], ["Bb4", 0.75], ["D5", 0.25], ["F5", 1], ["D5", 0.75], ["Bb4", 0.25],
-        ["G4", 0.75], ["Eb5", 0.25], ["C5", 0.75], ["A4", 0.25], ["Bb4", 2],
+        ["G4", 0.75], ["A4", 0.25], ["C5", 1], ["Bb4", 2],
       ]),
     },
     // An organ-like doubling an octave up, soft.
@@ -603,7 +603,7 @@ const WAGNER: Piece = {
         ["F5", 1], ["Bb5", 0.75], ["Bb5", 0.25], ["Bb5", 2],
         ["F5", 1], ["C6", 0.75], ["A5", 0.25], ["Bb5", 2],
         ["F5", 1], ["Bb5", 0.75], ["D6", 0.25], ["F6", 1], ["D6", 0.75], ["Bb5", 0.25],
-        ["G5", 0.75], ["Eb6", 0.25], ["C6", 0.75], ["A5", 0.25], ["Bb5", 2],
+        ["G5", 0.75], ["A5", 0.25], ["C6", 1], ["Bb5", 2],
       ], 0.5),
     },
     {
