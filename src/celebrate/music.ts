@@ -100,6 +100,18 @@ function arpeggio(start: number, bars: string[][], v = 0.3, beatsPerBar = 4): Ev
   return out;
 }
 
+/** One sustained chord per bar (a soft string pad). */
+function pad(start: number, beatsPerBar: number, bars: string[][], v = 0.35): Ev[] {
+  return bars.map((chord, i) => ({ t: start + i * beatsPerBar, d: beatsPerBar, p: chord, v }));
+}
+
+/** Quarter-note broken chords: root, fifth, octave, fifth (calmer than eighth-note arpeggios). */
+function broken(start: number, bars: string[][], v = 0.25): Ev[] {
+  return bars.flatMap(([r, a], i) =>
+    [r, a, transpose(r, 12), a].map((p, k) => ({ t: start + i * 4 + k, d: 1, p, v })),
+  );
+}
+
 // --- The pieces ------------------------------------------------------------
 
 const birthdayTune = (start: number, oct = 0): Ev[] => {
@@ -119,7 +131,7 @@ const birthdayTune = (start: number, oct = 0): Ev[] => {
 
 const BIRTHDAY: Piece = {
   id: "birthday",
-  level: 0.242,
+  level: 0.363,
   name: "Happy Birthday",
   mood: "happy",
   seconds: 30,
@@ -131,7 +143,7 @@ const BIRTHDAY: Piece = {
     { inst: "piano", gain: 0.55, events: birthdayTune(25) },
     {
       inst: "piano",
-      gain: 0.3,
+      gain: 0.2,
       events: comp(26, 3, [
         ["C3", "E4", "G4"], ["G2", "F4", "G4"], ["G2", "F4", "B4"], ["C3", "E4", "G4"],
         ["C3", "E4", "Bb4"], ["F2", "F4", "A4"], ["G2", "F4", "G4"], ["C3", "E4", "G4"],
@@ -146,7 +158,7 @@ const canonBass = (start: number) =>
 
 const CANON: Piece = {
   id: "canon",
-  level: 0.453,
+  level: 0.954,
   name: "Canon in D (Pachelbel)",
   mood: "happy",
   seconds: 30,
@@ -156,7 +168,7 @@ const CANON: Piece = {
     { inst: "strings", gain: 0.35, events: [...canonBass(0), ...canonBass(16)] },
     {
       inst: "pluck",
-      gain: 0.18,
+      gain: 0.1,
       events: arpeggio(0, [
         ["D3", "F#3", "A3"], ["A2", "C#3", "E3"], ["B2", "D3", "F#3"], ["F#2", "A2", "C#3"],
         ["G2", "B2", "D3"], ["D3", "F#3", "A3"], ["G2", "B2", "D3"], ["A2", "C#3", "E3"],
@@ -170,13 +182,12 @@ const CANON: Piece = {
     { inst: "strings", gain: 0.6, events: seq(0, ["F#5", "E5", "D5", "C#5", "B4", "A4", "B4", "C#5"].map((p): Step => [p, 2])) },
     {
       inst: "piano",
-      gain: 0.6,
+      gain: 0.42,
       events: seq(16, [
         "D4", "F#4", "A4", "G4", "F#4", "D4", "F#4", "E4", "D4", "B3", "D4", "A4", "G4", "B4", "A4", "G4",
         "F#4", "D4", "E4", "C#5", "D5", "F#5", "A5", "A4", "B4", "G4", "A4", "F#4", "D4", "D5", "D5", "C#5",
       ].map((p): Step => [p, 0.5])),
     },
-    { inst: "bell", gain: 0.12, events: seq(16, ["F#5", "E5", "D5", "C#5", "B4", "A4", "B4", "C#5"].map((p): Step => [p, 2]), 0.5) },
   ],
 };
 
@@ -189,7 +200,7 @@ const odeA = (end: "D" | "C"): Step[] => [
 
 const ODE: Piece = {
   id: "ode",
-  level: 0.487,
+  level: 1.725,
   name: "Ode to Joy (Beethoven)",
   mood: "happy",
   seconds: 30,
@@ -210,16 +221,15 @@ const ODE: Piece = {
       ]),
     },
     {
-      inst: "piano",
-      gain: 0.3,
-      events: comp(0, 4, [
-        ["C3", "E4", "G4"], ["G2", "D4", "G4"], ["C3", "E4", "G4"], ["G2", "D4", "G4"],
-        ["C3", "E4", "G4"], ["G2", "D4", "G4"], ["C3", "E4", "G4"], ["G2", "C4", "E4"],
-        ["G2", "D4", "G4"], ["C3", "E4", "G4"], ["G2", "D4", "G4"], ["C3", "E4", "G4"],
-        ["C3", "E4", "G4"], ["G2", "D4", "G4"], ["C3", "E4", "G4"], ["C3", "E4", "G4"],
-      ], 0.2),
+      inst: "strings",
+      gain: 0.22,
+      events: pad(0, 4, [
+        ["C3", "G3", "E4"], ["G2", "D3", "B3"], ["C3", "G3", "E4"], ["G2", "D3", "B3"],
+        ["C3", "G3", "E4"], ["G2", "D3", "B3"], ["C3", "G3", "E4"], ["G2", "C3", "E3"],
+        ["G2", "D3", "B3"], ["C3", "G3", "E4"], ["G2", "D3", "B3"], ["C3", "G3", "E4"],
+        ["C3", "G3", "E4"], ["G2", "D3", "B3"], ["C3", "G3", "E4"], ["C3", "G3", "E4"],
+      ]),
     },
-    { inst: "bell", gain: 0.1, events: seq(32, ["C6", "G5", "E5", "G5"].map((p): Step => [p, 4]), 0.4) },
   ],
 };
 
@@ -238,7 +248,7 @@ const jasmine = (): Step[] => {
 
 const JASMINE: Piece = {
   id: "jasmine",
-  level: 0.641,
+  level: 0.621,
   name: "Jasmine Flower 茉莉花",
   mood: "happy",
   seconds: 30,
@@ -276,7 +286,7 @@ const festiveChords = [
 
 const FESTIVE: Piece = {
   id: "festive",
-  level: 0.623,
+  level: 0.701,
   name: "Festive (original, Chinese style)",
   mood: "happy",
   seconds: 30,
@@ -284,15 +294,14 @@ const FESTIVE: Piece = {
   reverb: 0.2,
   tracks: [
     { inst: "flute", gain: 0.65, events: [...seq(0, festiveTune), ...seq(32, festiveTune.map(([p, d]): Step => [typeof p === "string" ? transpose(p, 12) : p, d]))] },
-    { inst: "pluck", gain: 0.22, events: [...arpeggio(0, festiveChords, 0.25), ...arpeggio(32, festiveChords, 0.3)] },
-    { inst: "wood", gain: 0.12, events: Array.from({ length: 16 }, (_, i) => [{ t: 32 + i * 2 + 1, d: 0.2, p: "C6", v: 0.7 }]).flat() },
+    { inst: "pluck", gain: 0.18, events: [...broken(0, festiveChords), ...broken(32, festiveChords)] },
     { inst: "gong", gain: 0.1, events: [{ t: 32, d: 4, p: "C3", v: 0.5 }, { t: 63, d: 1, p: "C3", v: 0.5 }] },
   ],
 };
 
 const WALTZ: Piece = {
   id: "waltz",
-  level: 0.281,
+  level: 0.387,
   name: "Music-box waltz (original)",
   mood: "happy",
   seconds: 30,
@@ -301,7 +310,7 @@ const WALTZ: Piece = {
   tracks: [
     {
       inst: "musicbox",
-      gain: 0.85,
+      gain: 1,
       events: seq(0, [
         ["B4", 1], ["D5", 1], ["G5", 1], ["F#5", 2], ["E5", 1], ["D5", 1], ["B4", 1], ["G4", 1], ["A4", 3],
         ["C5", 1], ["E5", 1], ["A5", 1], ["G5", 2], ["F#5", 1], ["E5", 1], ["C5", 1], ["A4", 1], ["B4", 3],
@@ -312,7 +321,7 @@ const WALTZ: Piece = {
     },
     {
       inst: "piano",
-      gain: 0.25,
+      gain: 0.12,
       events: comp(0, 3, [
         ["G2", "B3", "D4"], ["D2", "A3", "C4"], ["G2", "B3", "D4"], ["D2", "F#3", "C4"],
         ["A2", "C4", "E4"], ["D2", "F#3", "C4"], ["C3", "E3", "G3"], ["G2", "B3", "D4"],
@@ -326,7 +335,7 @@ const WALTZ: Piece = {
 
 const AISI: Piece = {
   id: "aisi",
-  level: 0.65,
+  level: 0.593,
   name: "Remembrance (original, Chinese style)",
   mood: "mourning",
   seconds: 60,
@@ -380,7 +389,7 @@ const funeralBars = (lo: string[], hi: string[]): Step[] => [
 
 const CHOPIN: Piece = {
   id: "chopin",
-  level: 0.265,
+  level: 0.429,
   name: "Funeral March (Chopin)",
   mood: "mourning",
   seconds: 30,
@@ -399,7 +408,7 @@ const CHOPIN: Piece = {
     },
     {
       inst: "piano",
-      gain: 0.2,
+      gain: 0.1,
       events: Array.from({ length: 32 }, (_, i) => ({
         t: i,
         d: 1,
@@ -412,7 +421,7 @@ const CHOPIN: Piece = {
 
 const TAPS: Piece = {
   id: "taps",
-  level: 1.52,
+  level: 1.583,
   name: "Taps (bugle call)",
   mood: "mourning",
   seconds: 30,
@@ -438,7 +447,7 @@ const TAPS: Piece = {
 
 const REFLECTION: Piece = {
   id: "reflection",
-  level: 0.379,
+  level: 0.767,
   name: "Reflection (original, piano)",
   mood: "mourning",
   seconds: 60,
@@ -457,7 +466,7 @@ const REFLECTION: Piece = {
     },
     {
       inst: "piano",
-      gain: 0.28,
+      gain: 0.16,
       events: arpeggio(0, [
         ["A2", "E3", "C4"], ["F2", "C3", "A3"], ["C3", "G3", "E4"], ["G2", "D3", "B3"],
         ["A2", "E3", "C4"], ["F2", "C3", "A3"], ["G2", "D3", "B3"], ["E2", "B2", "G#3"],
@@ -472,12 +481,18 @@ export const PIECES: Piece[] = [BIRTHDAY, CANON, ODE, JASMINE, FESTIVE, WALTZ, A
 
 // --- Synthesis -----------------------------------------------------------
 
+/**
+ * Struck sound: up to `peak` in `attack`, then dies away (time constant `decay`); at `end` it's
+ * damped to silence. The level at `end` is worked out here: reading `gain.value` would give
+ * the parameter's value now, not at `end`, and jump back up there (a click after every note).
+ */
 function env(g: GainNode, t: number, peak: number, attack: number, decay: number, end: number) {
+  const left = Math.max(0.0001, peak * Math.exp(-Math.max(0, end - t - attack) / decay));
   g.gain.setValueAtTime(0.0001, t);
   g.gain.linearRampToValueAtTime(peak, t + attack);
   g.gain.setTargetAtTime(0.0001, t + attack, decay);
-  g.gain.setValueAtTime(g.gain.value, end);
-  g.gain.linearRampToValueAtTime(0.0001, end + 0.05);
+  g.gain.setValueAtTime(left, end);
+  g.gain.linearRampToValueAtTime(0.0001, end + 0.08);
 }
 
 function osc(ctx: BaseAudioContext, type: OscillatorType, f: number, t: number, stop: number): OscillatorNode {
