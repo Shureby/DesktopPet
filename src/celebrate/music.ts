@@ -571,64 +571,51 @@ const MENDELSSOHN: Piece = {
   ],
 };
 
-// Wagner's Bridal Chorus (Lohengrin, "Here comes the bride"), in its own B-flat.
+// Wagner's Bridal Chorus (Lohengrin, "Here comes the bride"), in its own B-flat: the first
+// strain (to "Fine"), checked against a piano score.
+const wagnerTune = (oct: number): Step[] =>
+  ([
+    ["F4", 1], ["Bb4", 0.75], ["Bb4", 0.25], ["Bb4", 2],
+    ["F4", 1], ["C5", 0.75], ["A4", 0.25], ["Bb4", 2],
+    ["F4", 1], ["Bb4", 0.75], ["Eb5", 0.25], ["Eb5", 1], ["D5", 0.75], ["C5", 0.25],
+    ["Bb4", 1], ["A4", 0.75], ["Bb4", 0.25], ["C5", 2],
+    ["F4", 1], ["Bb4", 0.75], ["Bb4", 0.25], ["Bb4", 2],
+    ["F4", 1], ["C5", 0.75], ["A4", 0.25], ["Bb4", 2],
+    ["F4", 1], ["Bb4", 0.75], ["D5", 0.25], ["F5", 1], ["D5", 0.75], ["Bb4", 0.25],
+    ["G4", 1], ["C5", 0.75], ["D5", 0.25], ["Bb4", 2],
+  ] as Step[]).map(([p, d]): Step => [typeof p === "string" ? transpose(p, oct) : p, d]);
+
+const BB = ["Bb3", "D4", "F4"];
+const F7 = ["Eb4", "F4", "A4"];
+const EB = ["Bb3", "Eb4", "G4"];
+
 const WAGNER: Piece = {
   id: "wagner",
-  level: 2.103,
+  level: 1.881,
   name: "Bridal Chorus (Wagner)",
   mood: "happy",
   seconds: 30,
   beats: 36,
   reverb: 0.4,
   tracks: [
-    {
-      inst: "strings",
-      gain: 0.55,
-      events: seq(0, [
-        ["F4", 1], ["Bb4", 0.75], ["Bb4", 0.25], ["Bb4", 2],
-        ["F4", 1], ["C5", 0.75], ["A4", 0.25], ["Bb4", 2],
-        ["F4", 1], ["Bb4", 0.75], ["Eb5", 0.25], ["Eb5", 1], ["D5", 0.75], ["C5", 0.25],
-        ["Bb4", 0.75], ["A4", 0.25], ["Bb4", 1], ["C5", 2],
-        ["F4", 1], ["Bb4", 0.75], ["Bb4", 0.25], ["Bb4", 2],
-        ["F4", 1], ["C5", 0.75], ["A4", 0.25], ["Bb4", 2],
-        ["F4", 1], ["Bb4", 0.75], ["D5", 0.25], ["F5", 1], ["D5", 0.75], ["Bb4", 0.25],
-        ["G4", 0.75], ["A4", 0.25], ["C5", 1], ["Bb4", 2],
-      ]),
-    },
-    // An organ-like doubling an octave up, soft.
-    {
-      inst: "flute",
-      gain: 0.12,
-      events: seq(16, [
-        ["F5", 1], ["Bb5", 0.75], ["Bb5", 0.25], ["Bb5", 2],
-        ["F5", 1], ["C6", 0.75], ["A5", 0.25], ["Bb5", 2],
-        ["F5", 1], ["Bb5", 0.75], ["D6", 0.25], ["F6", 1], ["D6", 0.75], ["Bb5", 0.25],
-        ["G5", 0.75], ["A5", 0.25], ["C6", 1], ["Bb5", 2],
-      ], 0.5),
-    },
+    { inst: "strings", gain: 0.55, events: seq(0, wagnerTune(0)) },
+    // An organ-like doubling an octave up in the second half, soft.
+    { inst: "flute", gain: 0.12, events: seq(16, wagnerTune(12).slice(18), 0.5) },
     {
       inst: "strings",
       gain: 0.16,
       events: seq(0, [
-        [["D4", "F4"], 2], [["D4", "F4"], 2],
-        [["Eb4", "A4"], 2], [["D4", "F4"], 2],
-        [["D4", "F4"], 2], [["Eb4", "G4"], 2],
-        [["D4", "F4"], 2], [["C4", "F4", "A4"], 2],
-        [["D4", "F4"], 2], [["D4", "F4"], 2],
-        [["Eb4", "A4"], 2], [["D4", "F4"], 2],
-        [["D4", "F4"], 4],
-        [["Eb4", "G4"], 1], [["Eb4", "A4"], 1], [["D4", "F4"], 2],
-        [["D4", "F4", "Bb4"], 4],
+        [BB, 4], [F7, 2], [BB, 2], [BB, 2], [EB, 2], [BB, 2], [F7, 2],
+        [BB, 4], [F7, 2], [BB, 2], [BB, 4], [EB, 2], [BB, 2],
+        [[...BB, "Bb4"], 4],
       ], 0.5),
     },
     {
       inst: "strings",
       gain: 0.3,
       events: seq(0, [
-        ["Bb2", 2], ["Bb2", 2], ["F2", 2], ["Bb2", 2],
-        ["Bb2", 2], ["Eb3", 2], ["F2", 2], ["F2", 2],
-        ["Bb2", 2], ["Bb2", 2], ["F2", 2], ["Bb2", 2],
-        ["Bb2", 2], ["D3", 2], ["Eb3", 1], ["F2", 1], ["Bb2", 2],
+        ["Bb2", 4], ["A2", 2], ["Bb2", 2], ["Bb2", 4], ["Bb2", 2], ["A2", 2],
+        ["Bb2", 4], ["A2", 2], ["Bb2", 2], ["Bb2", 4], ["Bb2", 4],
         ["Bb2", 4],
       ], 0.6),
     },
