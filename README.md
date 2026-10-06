@@ -43,9 +43,28 @@ Tauri prerequisites: <https://v2.tauri.app/start/prerequisites/> (Linux also nee
 ## Checks
 
 ```bash
-npm run typecheck && npm test                  # TypeScript + 59 Vitest tests
+npm run typecheck && npm test                  # TypeScript + Vitest tests
 cargo test --workspace                         # Rust core: storage, alarms, focus sessions
 cargo clippy --workspace --all-targets -- -D warnings
+```
+
+### Automated tests of the real app
+
+`e2e/` drives the built app (the pet window and the panel) through WebDriver, with
+[tauri-driver](https://v2.tauri.app/develop/tests/webdriver/). Each test is named after
+the manual checklist item it covers (`check("todo.edit", …)`), and Vitest tests can
+cover one too by naming it in their title (`it("[tray.items] …")`). CI runs them on
+Windows (`End-to-end (Windows)`); `scripts/e2e-report.mjs` turns the results into a
+report per item, fails if an item marked `"ci"` in `docs/test-checklist.json` has no
+test, and the online checklist shows the results (🤖 items need no manual testing on
+Windows; 🤖+👀 items say what a person still checks). macOS isn't covered: tauri-driver
+doesn't support it.
+
+```bash
+npx tauri build --debug --no-bundle            # the app to test
+cargo install tauri-driver --locked            # once (Linux also needs WebKitWebDriver)
+EPET_APP=target/debug/desktoppet npm run e2e   # Linux: under xvfb-run; Windows: also NATIVE_DRIVER=msedgedriver.exe
+node scripts/e2e-report.mjs                    # report by checklist item
 ```
 
 ## Project layout

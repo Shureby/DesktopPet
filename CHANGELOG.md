@@ -16,6 +16,17 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.32.2] - 2026-10-06
+
+### Fixed
+- Copies of a character all had the same name, "Cat (copy)". They're now named after their
+  folder: "Cat (copy)", "Cat (copy 2)", "Cat (copy 3)"…
+
+### Added (development)
+- Automated tests of the real app on Windows CI (WebDriver), mapped to the manual checklist:
+  43 of its 146 items are now tested on every push (39 fully, 4 partly). The online
+  checklist marks them 🤖 / 🤖+👀 and shows their CI results.
+
 ## [0.32.1] - 2026-10-06
 
 ### Fixed

@@ -113,7 +113,9 @@ describe("validation", () => {
     loadUser([{ dir: "/chars/cat-copy", json: first.json }], (p) => p, reg);
     expect(reg.get("cat-copy")).toMatchObject({ source: "user", dir: "/chars/cat-copy" });
     // A copy of the copy, or a second copy of the cat, takes the next free id.
-    expect(copyOf(reg.get("cat-copy")!, reg).id).toBe("cat-copy-2");
+    const second = copyOf(reg.get("cat-copy")!, reg);
+    expect(second.id).toBe("cat-copy-2");
+    expect(JSON.parse(second.json).displayName).toBe("Cat (copy 2)");
     expect(copyOf(reg.get("cat")!, reg).id).toBe("cat-copy-2");
   });
 });

@@ -1,0 +1,231 @@
+/**
+ * End-to-end tests against the real built app (README.md, "Automated tests of the real app").
+ *
+ * Each test file starts ePet with an empty data folder through tauri-driver (WebDriver),
+ * drives its windows (the pet and the panel) and records results by checklist id, so CI
+ * can tick the matching items in docs/test-checklist.json.
+ *
+ * Env: EPET_APP (the built executable), TAURI_DRIVER (default "tauri-driver"),
+ * NATIVE_DRIVER (msedgedriver on Windows), E2E_RESULTS (default "e2e-results").
+ */
+import { spawn, spawnSync } from "node:child_process";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { basename, join } from "node:path";
+import { after, before, test } from "node:test";
+import { remote } from "webdriverio";
+
+const IDENTIFIER = "com.ezyappco.epet";
+
+/** Where the app keeps its database and characters (Tauri's app data dir). */
+export function appDataDir() {
+  if (process.platform === "win32") return join(process.env.APPDATA ?? join(homedir(), "AppData", "Roaming"), IDENTIFIER);
+  if (process.platform === "darwin") return join(homedir(), "Library", "Application Support", IDENTIFIER);
+  return join(process.env.XDG_DATA_HOME ?? join(homedir(), ".local", "share"), IDENTIFIER);
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+export class App {
+  /** @type {import("webdriverio").Browser} */
+  b;
+  driver;
+  petHandle = "";
+
+  /** Starts ePet with no data (unless `keepData`) and waits for the pet window. */
+  static async launch({ keepData = false } = {}) {
+    if (!process.env.EPET_APP) throw new Error("Set EPET_APP to the built ePet executable");
+    if (!keepData) rmSync(appDataDir(), { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
+    const app = new App();
+    const args = process.env.NATIVE_DRIVER ? ["--native-driver", process.env.NATIVE_DRIVER] : [];
+    app.driver = spawn(process.env.TAURI_DRIVER ?? "tauri-driver", args, { stdio: ["ignore", "ignore", "inherit"] });
+    await sleep(1500);
+    app.b = await remote({
+      hostname: "127.0.0.1",
+      port: 4444,
+      logLevel: "warn",
+      connectionRetryCount: 5,
+      capabilities: { "tauri:options": { application: process.env.EPET_APP } },
+    });
+    await app.b.waitUntil(async () => (await app.b.getUrl()).includes("pet.html"), { timeout: 30_000 });
+    app.petHandle = await app.b.getWindowHandle();
+    // The pet page is ready once its canvas has a size.
+    await app.b.waitUntil(() => app.b.execute(() => (document.getElementById("pet")?.width ?? 0) > 0), { timeout: 30_000 });
+    return app;
+  }
+
+  async quit() {
+    await this.b?.deleteSession().catch(() => {});
+    this.driver?.kill();
+    // Nothing may outlive a test file: the next one starts the app afresh (a leftover
+    // instance would take its place through single-instance, and lock the data folder).
+    if (process.platform === "win32") {
+      for (const exe of ["desktoppet.exe", "msedgedriver.exe", "tauri-driver.exe"]) spawnSync("taskkill", ["/F", "/T", "/IM", exe], { stdio: "ignore" });
+    } else {
+      spawnSync("pkill", ["-f", process.env.EPET_APP], { stdio: "ignore" });
+    }
+    await sleep(1000);
+  }
+
+  /** A Tauri command from the current window. */
+  invoke(cmd, args = {}) {
+    return this.b.execute((c, a) => window.__TAURI_INTERNALS__.invoke(c, a), cmd, args);
+  }
+
+  /** Settings as stored, merged by the app (`get_settings`). */
+  settings() {
+    return this.invoke("get_settings");
+  }
+
+  async toPet() {
+    await this.b.switchToWindow(this.petHandle);
+  }
+
+  /** Opens the panel on `tab` and switches to it; waits for the tab to render. */
+  async panel(tab) {
+    await this.toPet();
+    await this.invoke("open_panel", { tab });
+    await this.b.waitUntil(async () => (await this.b.getWindowHandles()).length > 1, { timeout: 15_000 });
+    for (const h of await this.b.getWindowHandles()) {
+      if (h === this.petHandle) continue;
+      await this.b.switchToWindow(h);
+      if ((await this.b.getUrl()).includes("panel.html")) break;
+    }
+    await this.tab(tab);
+  }
+
+  /** Clicks a panel tab and waits for its content. */
+  async tab(tab) {
+    await this.b.execute((t) => document.querySelector(`nav button[data-tab="${t}"]`)?.click(), tab);
+    await this.b.waitUntil(
+      () => this.b.execute((t) => document.querySelector(`nav button[data-tab="${t}"]`)?.classList.contains("active") && document.querySelector("main")?.children.length > 0, tab),
+      { timeout: 10_000 },
+    );
+    await sleep(300);
+  }
+
+  /** Text of the first element matching `css` (trimmed, spaces collapsed), or null. */
+  text(css) {
+    return this.b.execute((s) => document.querySelector(s)?.innerText.replace(/\s+/g, " ").trim() ?? null, css);
+  }
+
+  /** Texts of all elements matching `css` (including collapsed ones). */
+  texts(css) {
+    return this.b.execute((s) => [...document.querySelectorAll(s)].map((e) => e.textContent.replace(/\s+/g, " ").trim()), css);
+  }
+
+  /** Clicks the first element matching `css` whose text includes `withText` (if given). */
+  async click(css, withText) {
+    const ok = await this.b.execute(
+      (s, t) => {
+        const el = [...document.querySelectorAll(s)].find((e) => !t || e.innerText.includes(t) || e.title?.includes(t));
+        if (!el) return false;
+        el.click();
+        return true;
+      },
+      css,
+      withText ?? null,
+    );
+    if (!ok) throw new Error(`Nothing to click: ${css}${withText ? ` "${withText}"` : ""}`);
+    await sleep(250);
+  }
+
+  /** Types into an input (replacing its value) the way a user would, firing input events. */
+  async type(css, value, { enter = false } = {}) {
+    const el = await this.b.$(css);
+    await el.waitForExist({ timeout: 5000 });
+    await el.clearValue();
+    if (value) await el.setValue(value);
+    // Clearing alone fires no "input" event.
+    else await this.b.execute((s) => document.querySelector(s).dispatchEvent(new Event("input", { bubbles: true })), css);
+    if (enter) await this.b.keys("Enter");
+    await sleep(250);
+  }
+
+  /** Waits until some element matching `css` has text including `text` (shown or not). */
+  async waitText(css, text, timeout = 10_000) {
+    await this.until(
+      (s, t) => [...document.querySelectorAll(s)].some((e) => e.textContent.replace(/\s+/g, " ").includes(t)),
+      [css, text],
+      timeout,
+    );
+  }
+
+  /** Waits until no element matching `css` has text including `text`. */
+  async waitNoText(css, text, timeout = 10_000) {
+    await this.until(
+      (s, t) => ![...document.querySelectorAll(s)].some((e) => e.textContent.replace(/\s+/g, " ").includes(t)),
+      [css, text],
+      timeout,
+    );
+  }
+
+  /**
+   * Presses keys on the element matching `css` (focused first): keydown events sent to it
+   * directly, so they don't depend on which window has the system focus.
+   */
+  async press(css, keys) {
+    await this.b.execute(
+      (s, ks) => {
+        const el = document.querySelector(s);
+        // Focused afresh, as a click into it would start a new entry.
+        if (document.activeElement === el) el.blur();
+        el.focus();
+        for (const key of ks) {
+          const target = document.activeElement ?? el;
+          target.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+        }
+      },
+      css,
+      keys,
+    );
+    await sleep(200);
+  }
+
+  /** Waits until `fn` (run in the page) returns something truthy; returns it. */
+  async until(fn, args = [], timeout = 10_000) {
+    let value;
+    await this.b.waitUntil(async () => (value = await this.b.execute(fn, ...args)), { timeout, interval: 200 });
+    return value;
+  }
+
+  sleep(ms) {
+    return sleep(ms);
+  }
+}
+
+// --- Results by checklist id -------------------------------------------------------
+
+const results = [];
+
+/**
+ * A test for checklist item `id` (docs/test-checklist.json). Several tests may share an
+ * id; the item passes only if all of them do.
+ */
+export function check(id, name, fn, { timeout = 90_000 } = {}) {
+  test(`[${id}] ${name}`, { timeout }, async (t) => {
+    const started = Date.now();
+    try {
+      await fn(t);
+      results.push({ id, name, ok: true, ms: Date.now() - started });
+    } catch (e) {
+      results.push({ id, name, ok: false, ms: Date.now() - started, error: String(e?.stack ?? e).slice(0, 2000) });
+      throw e;
+    }
+  });
+}
+
+/** Launches the app before this file's tests and quits it after; writes the results. */
+export function useApp(file) {
+  const holder = { app: /** @type {App} */ (null) };
+  before(async () => {
+    holder.app = await App.launch();
+  });
+  after(async () => {
+    await holder.app?.quit();
+    const dir = process.env.E2E_RESULTS ?? "e2e-results";
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, `${basename(file).replace(/(\.test)?\.m?js$/, "")}.json`), JSON.stringify(results, null, 2));
+  });
+  return holder;
+}

@@ -22,7 +22,7 @@ Users don't see the bundled folders, so the app gives them a way in:
   `character.schema.json` and `example-cat/character.json.example` (the cat with id
   `example-cat`; the `.example` keeps it from loading). Edited files are left alone.
 - **"⧉ Make a copy"** under each card writes the character's JSON with a new id
-  (`cat-copy`, `cat-copy-2`…), the name "Cat (copy)" and `"$schema": "../character.schema.json"`
+  (`cat-copy`, `cat-copy-2`…), the name "Cat (copy)" ("Cat (copy 2)"…) and `"$schema": "../character.schema.json"`
   into a new folder (with a user character's images and sounds), opens that folder and
   reloads. (`copy_character`; the source must be inside the characters folder.)
 - **"⟳ Reload characters"** makes every window read the folder again

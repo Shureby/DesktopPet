@@ -118,7 +118,8 @@ export async function loadAll(list: () => Promise<UserCharacterFile[]>, toUrl: (
 
 /**
  * "Make a copy" of `c`: its character.json with a new id ("cat-copy", "cat-copy-2"… not
- * taken in `registry`) and name, pointing "$schema" at the schema in the characters folder.
+ * taken in `registry`) and a matching name ("Cat (copy)", "Cat (copy 2)"…), pointing
+ * "$schema" at the schema in the characters folder.
  */
 export function copyOf(c: LoadedCharacter, registry: CharacterRegistry): { id: string; json: string } {
   const base = `${c.def.id.replace(/-copy(-\d+)?$/, "")}-copy`;
@@ -126,6 +127,9 @@ export function copyOf(c: LoadedCharacter, registry: CharacterRegistry): { id: s
   for (let n = 2; registry.get(id); n++) id = `${base}-${n}`;
   const raw = (typeof c.raw === "object" && c.raw !== null ? c.raw : {}) as Record<string, unknown>;
   const { $schema: _schema, id: _id, displayName: _name, ...rest } = raw;
-  const copy = { $schema: "../character.schema.json", id, displayName: `${c.def.displayName} (copy)`, ...rest };
+  // Named like its id, so copies can be told apart: "Cat (copy)", "Cat (copy 2)"…
+  const n = id.slice(base.length + 1);
+  const name = c.def.displayName.replace(/ \(copy( \d+)?\)$/, "");
+  const copy = { $schema: "../character.schema.json", id, displayName: `${name} (copy${n ? ` ${n}` : ""})`, ...rest };
   return { id, json: JSON.stringify(copy, null, 2) + "\n" };
 }

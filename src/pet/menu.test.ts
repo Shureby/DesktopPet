@@ -67,13 +67,13 @@ const timer = (id: number, min: number): Alarm & { nextFire: number } => ({
 });
 
 describe("pet menu", () => {
-  it("starts every item with a verb", () => {
+  it("[menu.items] starts every item with a verb", () => {
     const verbs = /^(Stroke|Scratch|Rub|Feed|Add|Set|Cancel|Start|Stop|Play|Switch|Open|Hide)\b/;
     expect(texts(buildItems(ctx()))).toContain("Set alarm…");
     for (const t of texts(buildItems(ctx({ timers: [timer(1, 5)] })))) expect(t).toMatch(verbs);
   });
 
-  it("offers a care action with the character's name, feeding first when hungry", () => {
+  it("[menu.care] offers a care action with the character's name, feeding first when hungry", () => {
     expect(careLabel(cat.personality.care[0], cat)).toBe("Stroke the Cat");
     for (let seed = 0; seed < 20; seed++) expect(pickCare(cat, true, createRng(seed)).kind).toBe("feed");
     const kinds = new Set(Array.from({ length: 40 }, (_, seed) => pickCare(cat, false, createRng(seed)).kind));
@@ -88,7 +88,7 @@ describe("pet menu", () => {
     expect(cancel?.items).toHaveLength(2);
   });
 
-  it("lists presets, then the user's custom lengths and Custom / Edit… below a separator", () => {
+  it("[timer.presets] lists presets, then the user's custom lengths and Custom / Edit… below a separator", () => {
     const settings = { ...DEFAULT_SETTINGS, recentTimers: [20, 1.5, 90] };
     const set = buildItems(ctx({ settings })).find((i): i is Item => i !== "sep" && i.text === "Set timer")!;
     expect(set.items!.map((i) => (i === "sep" ? "—" : i.text))).toEqual([
@@ -125,7 +125,7 @@ describe("tray menu", () => {
     settings: { ...DEFAULT_SETTINGS, recentTimers: [20] },
   };
 
-  it("has exactly the pet menu's functions, in the same order", () => {
+  it("[tray.items] has exactly the pet menu's functions, in the same order", () => {
     for (const state of [{}, busy]) {
       const pet = outline(buildItems(ctx(state)));
       const tray = outline(buildTrayItems(trayCtx(state)));
@@ -136,7 +136,7 @@ describe("tray menu", () => {
     }
   });
 
-  it("differs only in show/hide on top and Quit at the bottom", () => {
+  it("[tray.items] differs only in show/hide on top and Quit at the bottom", () => {
     expect(outline(buildTrayItems(trayCtx())).slice(0, 2)).toEqual(["Hide pet", "—"]);
     expect(outline(buildTrayItems(trayCtx({ petVisible: false })))[0]).toBe("Show pet");
     expect(outline(buildTrayItems(trayCtx())).slice(-3)).toEqual(["Open panel…", "—", "Quit"]);

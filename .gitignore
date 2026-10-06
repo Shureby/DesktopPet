@@ -5,3 +5,6 @@ target/
 src-tauri/gen/
 *.log
 .DS_Store
+
+# End-to-end test results (scripts/e2e-report.mjs)
+e2e-results/
