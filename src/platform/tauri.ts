@@ -64,6 +64,8 @@ export const tauriBackend: Backend = {
   loadMood: (character) => invoke("load_mood", { character }),
   saveMood: (character, mood) => invoke("save_mood", { character, mood }),
   openUserCharactersFolder: () => invoke("open_user_characters_folder"),
+  copyCharacter: (json, sourceDir) => invoke("copy_character", { json, sourceDir }),
+  reloadCharacters: () => invoke("reload_characters"),
   assetUrl: (path) => convertFileSrc(path),
 
   openPanel: (tab?: PanelTab) => invoke("open_panel", { tab: tab ?? null }),

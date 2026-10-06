@@ -987,3 +987,22 @@ details.upcoming summary > :first-child {
 .ann-form select.ann-music {
   flex: 1;
 }
+.card-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.card-wrap .card {
+  flex: 1;
+}
+.card-wrap button.copy {
+  align-self: flex-end;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 12px;
+  padding: 2px 4px;
+}
+button.reload {
+  font-size: 13px;
+}

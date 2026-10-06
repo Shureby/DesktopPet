@@ -21,6 +21,7 @@ import {
   type Score,
   type Settings,
   type Todo,
+  type UserCharacterFile,
 } from "./types";
 
 /**
@@ -36,6 +37,8 @@ interface MockState {
   todos: MockTodo[];
   /** Anniversaries, with what the store keeps beside them. */
   anniversaries?: (Anniversary & { changedAt: number; celebratedOn?: string })[];
+  /** "Make a copy" in the browser mock: kept here instead of a folder. */
+  userCharacters?: UserCharacterFile[];
   /** Reminders already made into to-dos: "id|lead|label|YYYY-MM-DD". */
   prepsMade?: string[];
   alarms: Alarm[];
@@ -674,10 +677,19 @@ export const mockBackend: Backend = {
     fire("mood", { character, mood });
   },
   async listUserCharacters() {
-    return [];
+    return load().userCharacters ?? [];
   },
   async openUserCharactersFolder() {
     alert("In the desktop app this opens the folder for your own characters.");
+  },
+  async copyCharacter(json) {
+    const id = (JSON.parse(json) as { id: string }).id;
+    mutate((s) => (s.userCharacters = [...(s.userCharacters ?? []), { dir: `characters/${id}`, json }]));
+    fire("characters-changed", null);
+    return id;
+  },
+  async reloadCharacters() {
+    fire("characters-changed", null);
   },
   assetUrl: (path) => path,
 

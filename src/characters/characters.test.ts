@@ -4,7 +4,7 @@ import { createRng } from "../engine/random";
 import { ABILITIES } from "./abilities";
 import { movesetPower, POWER_BUDGET } from "./combat/moveset";
 import { Pet } from "./Pet";
-import { loadBundled, loadUser } from "./registry";
+import { copyOf, loadBundled, loadUser } from "./registry";
 import type { CharacterDef } from "./schema";
 import { validateCharacter } from "./validate";
 
@@ -101,6 +101,20 @@ describe("validation", () => {
     expect(reg.get("goat")?.source).toBe("user");
     expect(reg.issues).toHaveLength(1);
     expect(reg.issues[0].errors[0]).toMatch(/invalid JSON/);
+  });
+
+  it("makes a copy that loads as a new user character", () => {
+    const reg = loadBundled();
+    const first = copyOf(reg.get("cat")!, reg);
+    expect(first.id).toBe("cat-copy");
+    const copy = JSON.parse(first.json);
+    expect(copy).toMatchObject({ $schema: "../character.schema.json", id: "cat-copy", displayName: "Cat (copy)" });
+    expect(validateCharacter(copy).ok).toBe(true);
+    loadUser([{ dir: "/chars/cat-copy", json: first.json }], (p) => p, reg);
+    expect(reg.get("cat-copy")).toMatchObject({ source: "user", dir: "/chars/cat-copy" });
+    // A copy of the copy, or a second copy of the cat, takes the next free id.
+    expect(copyOf(reg.get("cat-copy")!, reg).id).toBe("cat-copy-2");
+    expect(copyOf(reg.get("cat")!, reg).id).toBe("cat-copy-2");
   });
 });
 

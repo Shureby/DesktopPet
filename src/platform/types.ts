@@ -317,6 +317,8 @@ export interface BackendEvents {
   "todos-changed": null;
   "alarms-changed": null;
   "anniversaries-changed": null;
+  /** Characters were copied or reloaded: read them again. */
+  "characters-changed": null;
   /** Today is an anniversary (once a day, the first time you're at the computer). */
   celebrate: Celebration;
   game: { state: "started" | "ended"; game: string };
@@ -416,6 +418,13 @@ export interface Backend {
   saveMood(character: string, mood: unknown): Promise<void>;
   /** Opens the folder where users drop their own characters. */
   openUserCharactersFolder(): Promise<void>;
+  /**
+   * "Make a copy": writes `json` into a new folder in the characters folder (with a user
+   * character's images from `sourceDir`), opens it and reloads characters. Returns the folder.
+   */
+  copyCharacter(json: string, sourceDir: string | null): Promise<string>;
+  /** Every window reads the characters again ("characters-changed"). */
+  reloadCharacters(): Promise<void>;
   assetUrl(path: string): string;
 
   openPanel(tab?: PanelTab): Promise<void>;

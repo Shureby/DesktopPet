@@ -5,7 +5,7 @@ import { playEffect } from "../celebrate/effects";
 import { applyMoodEvent, isHungry, moodTier, parseMood, type MoodEvent } from "../brain/mood";
 import { RulesBrain } from "../brain/RulesBrain";
 import { Pet } from "../characters/Pet";
-import type { CharacterRegistry, LoadedCharacter } from "../characters/registry";
+import { loadAll, type CharacterRegistry, type LoadedCharacter } from "../characters/registry";
 import { areaIndexAt } from "../engine/physics";
 import { createRng } from "../engine/random";
 import { SpriteAtlas } from "../engine/sprites";
@@ -150,7 +150,7 @@ export class PetHost {
 
   constructor(
     private readonly backend: Backend,
-    private readonly registry: CharacterRegistry,
+    private registry: CharacterRegistry,
     private readonly canvas: HTMLCanvasElement,
     private readonly bubble: HTMLElement,
     /** Countdown badges (focus session, timers) next to the pet. */
@@ -225,6 +225,7 @@ export class PetHost {
       if (c === "greet") this.pet.react({ type: "greet" });
     });
     await this.backend.on("alarms-changed", () => void this.refreshTimers());
+    await this.backend.on("characters-changed", () => void this.reloadCharacters());
     await this.backend.on("pet-event", (e) => this.onActivity(e));
     await this.refreshTimers();
     // Anything the hidden pet couldn't tell you before ePet was last closed.
@@ -269,6 +270,13 @@ export class PetHost {
       console.warn("Could not load mood", e);
     }
     this.updateMode();
+  }
+
+  /** "Reload characters" or a copy: read them again and redraw the pet from its new file. */
+  private async reloadCharacters(): Promise<void> {
+    this.registry = await loadAll(() => this.backend.listUserCharacters(), this.backend.assetUrl);
+    const { x, y } = this.pet.body;
+    await this.setCharacter(this.settings.character, x, y - 1);
   }
 
   private async applySettings(s: Settings): Promise<void> {

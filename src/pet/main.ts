@@ -1,4 +1,4 @@
-import { loadBundled, loadUser } from "../characters/registry";
+import { loadAll } from "../characters/registry";
 import { backend } from "../platform";
 import { startMockScheduler } from "../platform/mock";
 import "../styles/pet.css";
@@ -6,12 +6,7 @@ import { enableFakeWindowDragging } from "./demo";
 import { PetHost } from "./PetHost";
 
 async function main() {
-  const registry = loadBundled();
-  try {
-    loadUser(await backend.listUserCharacters(), backend.assetUrl, registry);
-  } catch (e) {
-    console.warn("Could not load user characters", e);
-  }
+  const registry = await loadAll(() => backend.listUserCharacters(), backend.assetUrl);
   for (const issue of registry.issues) console.warn(`Character not loaded: ${issue.source}\n  ${issue.errors.join("\n  ")}`);
 
   if (backend.kind === "mock") {

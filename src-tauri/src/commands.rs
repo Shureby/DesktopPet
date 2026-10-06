@@ -407,7 +407,33 @@ pub struct UserCharacterFile {
 fn characters_dir(app: &AppHandle) -> CmdResult<std::path::PathBuf> {
     let dir = app.path().app_data_dir().map_err(err)?.join("characters");
     std::fs::create_dir_all(&dir).map_err(err)?;
+    write_characters_guide(&dir);
     Ok(dir)
+}
+
+const CHARACTERS_README: &str = include_str!("characters_readme.txt");
+const CHARACTER_SCHEMA: &str = include_str!("../../schema/character.schema.json");
+const EXAMPLE_CAT: &str = include_str!("../../assets/characters/cat/character.json");
+
+/// What a new user needs in the characters folder: a README, the JSON schema (editors check
+/// against it) and the cat as an example that isn't loaded (".example"). Each is written only
+/// if it's missing, so edits stay; one that can't be written is skipped.
+fn write_characters_guide(dir: &std::path::Path) {
+    let write = |path: std::path::PathBuf, text: &str| {
+        if !path.exists() {
+            if let Some(parent) = path.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            let _ = std::fs::write(path, text);
+        }
+    };
+    write(dir.join("README.txt"), CHARACTERS_README);
+    write(dir.join("character.schema.json"), CHARACTER_SCHEMA);
+    let example = EXAMPLE_CAT
+        .replacen("../../../schema/character.schema.json", "../character.schema.json", 1)
+        .replacen("\"id\": \"cat\"", "\"id\": \"example-cat\"", 1)
+        .replacen("\"displayName\": \"Cat\"", "\"displayName\": \"Example Cat\"", 1);
+    write(dir.join("example-cat").join("character.json.example"), &example);
 }
 
 /// Data-only characters (character.json + images) from the user's characters folder.
@@ -417,7 +443,7 @@ pub fn list_user_characters(app: AppHandle) -> CmdResult<Vec<UserCharacterFile>>
     for entry in std::fs::read_dir(characters_dir(&app)?).map_err(err)?.flatten() {
         let path = entry.path().join("character.json");
         // Cap the size: these files come from the internet (Workshop, forums…).
-        if path.metadata().is_ok_and(|m| m.is_file() && m.len() < 2_000_000) {
+        if path.metadata().is_ok_and(|m| m.is_file() && m.len() < MAX_CHARACTER_JSON) {
             if let Ok(json) = std::fs::read_to_string(&path) {
                 out.push(UserCharacterFile { dir: entry.path().to_string_lossy().into_owned(), json });
             }
@@ -426,10 +452,64 @@ pub fn list_user_characters(app: AppHandle) -> CmdResult<Vec<UserCharacterFile>>
     Ok(out)
 }
 
+const MAX_CHARACTER_JSON: u64 = 2_000_000;
+/// Images and sounds copied along with a user character (each under 20 MB).
+const CHARACTER_ASSETS: [&str; 5] = ["png", "webp", "ogg", "mp3", "wav"];
+
 #[tauri::command]
 pub async fn open_user_characters_folder(app: AppHandle) -> CmdResult<()> {
     let dir = characters_dir(&app)?;
     app.opener().open_path(dir.to_string_lossy(), None::<&str>).map_err(err)
+}
+
+/// "Make a copy": a new folder in the characters folder named after the copy's id (with
+/// "-2", "-3"… if taken) holding `json`, plus the images and sounds of `source_dir` when
+/// it's a user character. Opens the new folder and tells every window to reload characters.
+/// Returns the folder's name.
+#[tauri::command]
+pub async fn copy_character(app: AppHandle, json: String, source_dir: Option<String>) -> CmdResult<String> {
+    if json.len() as u64 >= MAX_CHARACTER_JSON {
+        return Err("character.json is too big".into());
+    }
+    let value: Value = serde_json::from_str(&json).map_err(err)?;
+    let id = value.get("id").and_then(Value::as_str).unwrap_or_default();
+    if id.is_empty() || id.len() > 64 || !id.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-') {
+        return Err("invalid character id".into());
+    }
+    let dir = characters_dir(&app)?;
+    let name = (1..1000)
+        .map(|n| if n == 1 { id.to_string() } else { format!("{id}-{n}") })
+        .find(|n| !dir.join(n).exists())
+        .ok_or("no free folder name")?;
+    let target = dir.join(&name);
+    std::fs::create_dir_all(&target).map_err(err)?;
+    if let Some(source) = source_dir {
+        // Only from inside the characters folder.
+        let source = std::fs::canonicalize(source).map_err(err)?;
+        if !source.starts_with(std::fs::canonicalize(&dir).map_err(err)?) {
+            return Err("not a user character".into());
+        }
+        for entry in std::fs::read_dir(&source).map_err(err)?.flatten() {
+            let path = entry.path();
+            let asset = path
+                .extension()
+                .and_then(|e| e.to_str())
+                .is_some_and(|e| CHARACTER_ASSETS.contains(&e.to_ascii_lowercase().as_str()));
+            if asset && path.metadata().is_ok_and(|m| m.is_file() && m.len() < 20_000_000) {
+                std::fs::copy(&path, target.join(entry.file_name())).map_err(err)?;
+            }
+        }
+    }
+    std::fs::write(target.join("character.json"), json).map_err(err)?;
+    let _ = app.emit("characters-changed", ());
+    let _ = app.opener().open_path(target.to_string_lossy(), None::<&str>);
+    Ok(name)
+}
+
+/// "Reload characters": every window reads the characters folder again.
+#[tauri::command]
+pub fn reload_characters(app: AppHandle) -> CmdResult<()> {
+    app.emit("characters-changed", ()).map_err(err)
 }
 
 // --- Windows ------------------------------------------------------------------------
@@ -453,4 +533,30 @@ pub async fn open_game(app: AppHandle, game: String) -> CmdResult<()> {
 #[tauri::command]
 pub async fn close_game(app: AppHandle) -> CmdResult<()> {
     app_windows::close_game(&app).map_err(err)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_characters_folder_gets_a_readme_schema_and_example() {
+        let dir = std::env::temp_dir().join(format!("epet-guide-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        write_characters_guide(&dir);
+        assert!(std::fs::read_to_string(dir.join("README.txt")).unwrap().contains("Make a copy"));
+        assert!(dir.join("character.schema.json").exists());
+        let example: Value =
+            serde_json::from_str(&std::fs::read_to_string(dir.join("example-cat/character.json.example")).unwrap())
+                .unwrap();
+        assert_eq!(example["id"], "example-cat");
+        assert_eq!(example["displayName"], "Example Cat");
+        assert_eq!(example["$schema"], "../character.schema.json");
+        // An edited README stays.
+        std::fs::write(dir.join("README.txt"), "mine").unwrap();
+        write_characters_guide(&dir);
+        assert_eq!(std::fs::read_to_string(dir.join("README.txt")).unwrap(), "mine");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 }

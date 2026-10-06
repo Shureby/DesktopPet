@@ -12,6 +12,23 @@ assets/characters/<id>/
 Adding the folder is all it takes: [`registry.ts`](../src/characters/registry.ts)
 discovers it, the panel lists it, and every mini-game can use it.
 
+## Users' own characters (since 0.31.0)
+
+Users don't see the bundled folders, so the app gives them a way in:
+
+- **The characters folder** (Panel → Characters → "your characters folder"; on Windows
+  `%APPDATA%\com.ezyappco.epet\characters`) gets, whenever it's opened or read and they're
+  missing: `README.txt` (the user guide, `src-tauri/src/characters_readme.txt`),
+  `character.schema.json` and `example-cat/character.json.example` (the cat with id
+  `example-cat`; the `.example` keeps it from loading). Edited files are left alone.
+- **"⧉ Make a copy"** under each card writes the character's JSON with a new id
+  (`cat-copy`, `cat-copy-2`…), the name "Cat (copy)" and `"$schema": "../character.schema.json"`
+  into a new folder (with a user character's images and sounds), opens that folder and
+  reloads. (`copy_character`; the source must be inside the characters folder.)
+- **"⟳ Reload characters"** makes every window read the folder again
+  (`characters-changed`); the pet redraws itself from the new file and keeps its mood.
+  Load errors are listed, opened, on the Characters page.
+
 ## character.json
 
 Point `"$schema"` at `schema/character.schema.json` for autocompletion. The main fields:

@@ -2,7 +2,7 @@ import { version } from "../../package.json";
 import product from "../../product.config.json";
 import { isHungry, moodTier, parseMood, type Mood } from "../brain/mood";
 import { ABILITIES } from "../characters/abilities";
-import { loadBundled, loadUser, type CharacterRegistry, type LoadedCharacter } from "../characters/registry";
+import { copyOf, loadAll, type CharacterRegistry, type LoadedCharacter } from "../characters/registry";
 import { SpriteAtlas } from "../engine/sprites";
 import { formatRemaining, gameHeld } from "../features/pomodoro/logic";
 import { alarmName, clock, DEFAULT_ALARM_LABEL } from "../features/alarm/ringing";
@@ -1243,17 +1243,31 @@ function moodCard(m: Mood): Node {
 }
 
 async function renderCharacters(): Promise<Node> {
+  // "Make a copy": a new folder in the characters folder, opened, and loaded straight away.
+  const copy = (c: LoadedCharacter) => {
+    const { json } = copyOf(c, registry);
+    void backend.copyCharacter(json, c.source === "user" ? (c.dir ?? null) : null);
+  };
   const cards = await Promise.all(
     registry.list().map(async (c) =>
       h(
-        "button",
-        { class: `card ${c.def.id === settings.character ? "selected" : ""}`, onclick: () => void save({ character: c.def.id }) },
-        await preview(c),
-        h("strong", {}, c.def.displayName, c.source === "user" ? h("em", {}, " (custom)") : null),
-        h("p", {}, c.def.description),
-        h("div", { class: "chips" }, ...c.def.abilities.map((a) => h("span", { class: "chip", title: ABILITIES[a.id]?.description ?? "" }, a.id))),
-        h("p", { class: "style" }, `🥊 ${c.def.moveset.style}`),
-        moodCard(parseMood(await backend.loadMood(c.def.id))),
+        "div",
+        { class: "card-wrap" },
+        h(
+          "button",
+          { class: `card ${c.def.id === settings.character ? "selected" : ""}`, onclick: () => void save({ character: c.def.id }) },
+          await preview(c),
+          h("strong", {}, c.def.displayName, c.source === "user" ? h("em", {}, " (custom)") : null),
+          h("p", {}, c.def.description),
+          h("div", { class: "chips" }, ...c.def.abilities.map((a) => h("span", { class: "chip", title: ABILITIES[a.id]?.description ?? "" }, a.id))),
+          h("p", { class: "style" }, `🥊 ${c.def.moveset.style}`),
+          moodCard(parseMood(await backend.loadMood(c.def.id))),
+        ),
+        h(
+          "button",
+          { class: "link copy", title: "Copy it into your characters folder to make your own", onclick: () => copy(c) },
+          "⧉ Make a copy",
+        ),
       ),
     ),
   );
@@ -1264,7 +1278,7 @@ async function renderCharacters(): Promise<Node> {
     registry.issues.length
       ? h(
           "details",
-          { class: "issues" },
+          { class: "issues", open: true },
           h("summary", {}, `${registry.issues.length} character(s) could not be loaded`),
           ...registry.issues.map((i) => h("pre", {}, `${i.source}\n  ${i.errors.join("\n  ")}`)),
         )
@@ -1272,10 +1286,11 @@ async function renderCharacters(): Promise<Node> {
     h(
       "p",
       { class: "hint" },
-      "More animals are on the way. Make your own: copy a character folder, edit character.json, and drop it in ",
+      "More animals are on the way. Make your own: “⧉ Make a copy” of one above, edit its character.json in ",
       h("a", { href: "#", onclick: (e: Event) => (e.preventDefault(), void backend.openUserCharactersFolder()) }, "your characters folder"),
-      ".",
+      " (its README explains everything), then reload.",
     ),
+    h("button", { class: "reload", title: "Read your characters folder again", onclick: () => void backend.reloadCharacters() }, "⟳ Reload characters"),
   );
 }
 
@@ -1606,17 +1621,16 @@ async function save(patch: Partial<Settings>) {
 
 async function main() {
   document.title = product.productName;
-  registry = loadBundled();
-  try {
-    loadUser(await backend.listUserCharacters(), backend.assetUrl, registry);
-  } catch {
-    // Missing folder is fine.
-  }
+  registry = await loadAll(() => backend.listUserCharacters(), backend.assetUrl);
   settings = await backend.getSettings();
   for (const t of TABS) nav.append(h("button", { "data-tab": t.id, onclick: () => select(t.id) }, t.label));
 
   await backend.on("todos-changed", () => current === "todos" && void render());
   await backend.on("anniversaries-changed", () => current === "todos" && void render());
+  await backend.on("characters-changed", async () => {
+    registry = await loadAll(() => backend.listUserCharacters(), backend.assetUrl);
+    if (current === "characters") void render();
+  });
   await backend.on("alarms-changed", () => current === "alarms" && void render());
   await backend.on("pomodoro", () => current === "focus" && void render());
   await backend.on("settings", (s) => {

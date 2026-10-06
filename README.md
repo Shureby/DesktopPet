@@ -74,7 +74,9 @@ Copy `assets/characters/cat`, change `id` and the art, and pick abilities and a
 personality. [docs/CHARACTERS.md](docs/CHARACTERS.md) explains the format,
 abilities, movesets and the conformance test every character must pass. Users
 can drop data-only characters into their characters folder (Panel → Characters);
-that folder is also the path for Steam Workshop content.
+that folder is also the path for Steam Workshop content. "⧉ Make a copy" on a
+character card copies it there to edit, the folder carries a README, the JSON schema
+and an example, and "⟳ Reload characters" applies edits without a restart.
 
 ## More
 

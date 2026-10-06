@@ -16,6 +16,17 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-10-06
+
+### Added
+- Your own characters are usable without the source code:
+  - "⧉ Make a copy" under each character on the Characters page copies it into your
+    characters folder (as "cat-copy" and so on), opens it and loads it straight away.
+  - The characters folder now has a README (how to make a character, what each part of
+    character.json does), the JSON schema (editors check against it) and an example cat.
+  - "⟳ Reload characters" applies your edits without restarting; the pet on the desktop
+    redraws itself. Load errors show opened on the Characters page.
+
 ## [0.30.0] - 2026-10-06
 
 ### Added

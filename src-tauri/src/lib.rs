@@ -90,6 +90,8 @@ pub fn run() {
             commands::load_mood,
             commands::save_mood,
             commands::open_user_characters_folder,
+            commands::copy_character,
+            commands::reload_characters,
             commands::open_panel,
             commands::open_game,
             commands::close_game,

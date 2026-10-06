@@ -889,9 +889,21 @@
         },
         {
           "id": "characters.folder",
-          "rev": "0.1.0",
-          "do": "Characters 页点 “your characters folder”",
-          "expect": "打开用户角色文件夹"
+          "rev": "0.31.0",
+          "do": "Characters 页点 “your characters folder”；删掉里面的 README.txt 再点一次；把 README.txt 改几个字再点一次",
+          "expect": "打开用户角色文件夹，里面有 README.txt（英文说明）、character.schema.json 和 example-cat/character.json.example（id 是 example-cat）；example-cat 不会出现在 Characters 页；删掉的 README 会重新生成，改过的 README 不会被覆盖"
+        },
+        {
+          "id": "characters.copy",
+          "rev": "0.31.0",
+          "do": "Characters 页在 Cat 卡片下点 “⧉ Make a copy”；再点一次；在 “Cat (copy)” 下也点一次",
+          "expect": "文件夹里出现 cat-copy 文件夹并自动打开，里面有 character.json（id 是 cat-copy，名字 “Cat (copy)”）；面板马上多出 “Cat (copy) (custom)”，不用重启；第二次得到 cat-copy-2，复制 copy 也得到下一个不重复的名字"
+        },
+        {
+          "id": "characters.reload",
+          "rev": "0.31.0",
+          "do": "选用 Cat (copy)；用记事本把它 character.json 里 palette 的 \"o\" 改成 \"#9e9e9e\"、\"d\" 改成 \"#6d6d6d\"，把 greet 台词改成自己的话，保存；点 “⟳ Reload characters”；再故意删掉一个逗号保存后 Reload",
+          "expect": "不重启，桌面上的宠物立刻变成灰猫，心情值还在，打招呼说的是新台词；JSON 写错时 Characters 页展开显示 “1 character(s) could not be loaded” 和出错的文件、原因，其他角色照常可用"
         }
       ]
     },

@@ -35,6 +35,30 @@ Comes after 0.24.0 (repeating to-dos and editing to-dos) and 0.25.0 (Today / Upc
   - Settings switch "Celebrate anniversaries with fireworks", on by default.
   - The hidden-pet checkboxes get "Anniversaries", ticked by default.
 
+## Character editor in the panel (later)
+
+> **Status: idea for later.** Recorded 2026-10-06. 0.31.0 made custom characters usable
+> by hand ("Make a copy", a README in the folder, "Reload characters"), but editing
+> pixel art as JSON text is still hard for most users.
+
+- Start small: change a copy's palette with colour pickers (a grey cat in two clicks),
+  its name, description and speech lines, all saved to its character.json.
+- Later: a pixel editor for the frames (draw, mirror, copy a frame), and importing a
+  PNG sprite sheet with a frame-grid preview.
+- Optionally publish to the Steam Workshop from the editor.
+
+## Localisation (i18n) for the whole app (later)
+
+> **Status: idea for later.** Recorded 2026-10-06.
+
+The app is English only. Translate everything at once rather than piecemeal: panel,
+pet lines and menus, tray, celebration words, the characters README, the installer and
+store pages. Simplified Chinese first (with 铃宠, see the rename), then others.
+- Strings move into per-language files; the language follows the system, with a choice
+  in Settings.
+- Characters can carry lines per language (falling back to English).
+- Dates and times already follow the system locale.
+
 ## Holidays on moving dates (later)
 
 Mother's Day, Father's Day and the like ("the second Sunday of May") as anniversary
