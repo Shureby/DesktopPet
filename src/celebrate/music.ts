@@ -41,7 +41,7 @@ export interface Piece {
   beats: number;
   /** Reverb mix 0..1. */
   reverb: number;
-  /** Loudness trim so every piece peaks about the same (measured by rendering it). */
+  /** Loudness trim so every piece sounds about as loud (average level, measured by rendering it). */
   level: number;
   tracks: Track[];
 }
@@ -79,18 +79,18 @@ function transpose(p: string, semis: number): string {
 }
 
 /** Oom-pah-pah (3/4) or bass-chord-chord-chord (4/4) under chords [root, ...upper]. */
-function comp(start: number, beatsPerBar: number, bars: string[][], v = 0.45): Ev[] {
+function comp(start: number, beatsPerBar: number, bars: string[][], v = 0.22): Ev[] {
   const out: Ev[] = [];
   bars.forEach((chord, i) => {
     const t = start + i * beatsPerBar;
-    out.push({ t, d: 1, p: chord[0], v: v + 0.1 });
+    out.push({ t, d: 1, p: chord[0], v: v + 0.06 });
     for (let b = 1; b < beatsPerBar; b++) out.push({ t: t + b, d: 1, p: chord.slice(1), v });
   });
   return out;
 }
 
 /** Eighth-note arpeggios over chords (root first), 8 per 4/4 bar. */
-function arpeggio(start: number, bars: string[][], v = 0.5, beatsPerBar = 4): Ev[] {
+function arpeggio(start: number, bars: string[][], v = 0.3, beatsPerBar = 4): Ev[] {
   const out: Ev[] = [];
   bars.forEach((chord, i) => {
     const [r, a, b] = chord;
@@ -119,7 +119,7 @@ const birthdayTune = (start: number, oct = 0): Ev[] => {
 
 const BIRTHDAY: Piece = {
   id: "birthday",
-  level: 0.27,
+  level: 0.242,
   name: "Happy Birthday",
   mood: "happy",
   seconds: 30,
@@ -131,13 +131,13 @@ const BIRTHDAY: Piece = {
     { inst: "piano", gain: 0.55, events: birthdayTune(25) },
     {
       inst: "piano",
-      gain: 0.45,
+      gain: 0.3,
       events: comp(26, 3, [
         ["C3", "E4", "G4"], ["G2", "F4", "G4"], ["G2", "F4", "B4"], ["C3", "E4", "G4"],
         ["C3", "E4", "Bb4"], ["F2", "F4", "A4"], ["G2", "F4", "G4"], ["C3", "E4", "G4"],
       ]),
     },
-    { inst: "bell", gain: 0.35, events: seq(48, [["C6", 2]]) },
+    { inst: "bell", gain: 0.18, events: seq(48, [["C6", 2]]) },
   ],
 };
 
@@ -146,17 +146,17 @@ const canonBass = (start: number) =>
 
 const CANON: Piece = {
   id: "canon",
-  level: 0.4,
+  level: 0.453,
   name: "Canon in D (Pachelbel)",
   mood: "happy",
   seconds: 30,
   beats: 32,
   reverb: 0.35,
   tracks: [
-    { inst: "strings", gain: 0.55, events: [...canonBass(0), ...canonBass(16)] },
+    { inst: "strings", gain: 0.35, events: [...canonBass(0), ...canonBass(16)] },
     {
       inst: "pluck",
-      gain: 0.35,
+      gain: 0.18,
       events: arpeggio(0, [
         ["D3", "F#3", "A3"], ["A2", "C#3", "E3"], ["B2", "D3", "F#3"], ["F#2", "A2", "C#3"],
         ["G2", "B2", "D3"], ["D3", "F#3", "A3"], ["G2", "B2", "D3"], ["A2", "C#3", "E3"],
@@ -176,7 +176,7 @@ const CANON: Piece = {
         "F#4", "D4", "E4", "C#5", "D5", "F#5", "A5", "A4", "B4", "G4", "A4", "F#4", "D4", "D5", "D5", "C#5",
       ].map((p): Step => [p, 0.5])),
     },
-    { inst: "bell", gain: 0.3, events: seq(16, ["F#5", "E5", "D5", "C#5", "B4", "A4", "B4", "C#5"].map((p): Step => [p, 2]), 0.5) },
+    { inst: "bell", gain: 0.12, events: seq(16, ["F#5", "E5", "D5", "C#5", "B4", "A4", "B4", "C#5"].map((p): Step => [p, 2]), 0.5) },
   ],
 };
 
@@ -189,7 +189,7 @@ const odeA = (end: "D" | "C"): Step[] => [
 
 const ODE: Piece = {
   id: "ode",
-  level: 0.35,
+  level: 0.487,
   name: "Ode to Joy (Beethoven)",
   mood: "happy",
   seconds: 30,
@@ -211,15 +211,15 @@ const ODE: Piece = {
     },
     {
       inst: "piano",
-      gain: 0.45,
+      gain: 0.3,
       events: comp(0, 4, [
         ["C3", "E4", "G4"], ["G2", "D4", "G4"], ["C3", "E4", "G4"], ["G2", "D4", "G4"],
         ["C3", "E4", "G4"], ["G2", "D4", "G4"], ["C3", "E4", "G4"], ["G2", "C4", "E4"],
         ["G2", "D4", "G4"], ["C3", "E4", "G4"], ["G2", "D4", "G4"], ["C3", "E4", "G4"],
         ["C3", "E4", "G4"], ["G2", "D4", "G4"], ["C3", "E4", "G4"], ["C3", "E4", "G4"],
-      ], 0.35),
+      ], 0.2),
     },
-    { inst: "bell", gain: 0.25, events: seq(32, ["C6", "G5", "E5", "G5"].map((p): Step => [p, 4]), 0.5) },
+    { inst: "bell", gain: 0.1, events: seq(32, ["C6", "G5", "E5", "G5"].map((p): Step => [p, 4]), 0.4) },
   ],
 };
 
@@ -238,7 +238,7 @@ const jasmine = (): Step[] => {
 
 const JASMINE: Piece = {
   id: "jasmine",
-  level: 1.2,
+  level: 0.641,
   name: "Jasmine Flower 茉莉花",
   mood: "happy",
   seconds: 30,
@@ -248,13 +248,13 @@ const JASMINE: Piece = {
     { inst: "flute", gain: 0.7, events: seq(0, jasmine()) },
     {
       inst: "pluck",
-      gain: 0.4,
+      gain: 0.22,
       events: arpeggio(0, [
         ["C3", "G3", "E4"], ["C3", "G3", "E4"], ["C3", "G3", "E4"], ["C3", "G3", "E4"],
         ["C3", "G3", "E4"], ["A2", "E3", "C4"], ["C3", "G3", "E4"], ["C3", "G3", "C4"],
-      ], 0.35),
+      ], 0.25),
     },
-    { inst: "pluck", gain: 0.3, events: seq(0.5, jasmine().map(([p, d]): Step => [typeof p === "string" ? transpose(p, 12) : p, d]), 0.35) },
+    { inst: "pluck", gain: 0.15, events: seq(0.5, jasmine().map(([p, d]): Step => [typeof p === "string" ? transpose(p, 12) : p, d]), 0.35) },
   ],
 };
 
@@ -276,7 +276,7 @@ const festiveChords = [
 
 const FESTIVE: Piece = {
   id: "festive",
-  level: 1.15,
+  level: 0.623,
   name: "Festive (original, Chinese style)",
   mood: "happy",
   seconds: 30,
@@ -284,15 +284,15 @@ const FESTIVE: Piece = {
   reverb: 0.2,
   tracks: [
     { inst: "flute", gain: 0.65, events: [...seq(0, festiveTune), ...seq(32, festiveTune.map(([p, d]): Step => [typeof p === "string" ? transpose(p, 12) : p, d]))] },
-    { inst: "pluck", gain: 0.45, events: [...arpeggio(0, festiveChords, 0.4), ...arpeggio(32, festiveChords, 0.45)] },
-    { inst: "wood", gain: 0.5, events: Array.from({ length: 16 }, (_, i) => [{ t: 32 + i * 2 + 1, d: 0.2, p: "C6", v: 0.7 }]).flat() },
-    { inst: "gong", gain: 0.25, events: [{ t: 32, d: 4, p: "C3", v: 0.6 }, { t: 63, d: 1, p: "C3", v: 0.7 }] },
+    { inst: "pluck", gain: 0.22, events: [...arpeggio(0, festiveChords, 0.25), ...arpeggio(32, festiveChords, 0.3)] },
+    { inst: "wood", gain: 0.12, events: Array.from({ length: 16 }, (_, i) => [{ t: 32 + i * 2 + 1, d: 0.2, p: "C6", v: 0.7 }]).flat() },
+    { inst: "gong", gain: 0.1, events: [{ t: 32, d: 4, p: "C3", v: 0.5 }, { t: 63, d: 1, p: "C3", v: 0.5 }] },
   ],
 };
 
 const WALTZ: Piece = {
   id: "waltz",
-  level: 0.35,
+  level: 0.281,
   name: "Music-box waltz (original)",
   mood: "happy",
   seconds: 30,
@@ -312,21 +312,21 @@ const WALTZ: Piece = {
     },
     {
       inst: "piano",
-      gain: 0.4,
+      gain: 0.25,
       events: comp(0, 3, [
         ["G2", "B3", "D4"], ["D2", "A3", "C4"], ["G2", "B3", "D4"], ["D2", "F#3", "C4"],
         ["A2", "C4", "E4"], ["D2", "F#3", "C4"], ["C3", "E3", "G3"], ["G2", "B3", "D4"],
         ["G2", "B3", "D4"], ["G2", "B3", "D4"], ["C3", "E3", "G3"], ["D2", "F#3", "A3"],
         ["D2", "F#3", "C4"], ["G2", "B3", "D4"], ["D2", "F#3", "C4"], ["G2", "B3", "D4"],
         ["G2", "B3", "D4"], ["D2", "F#3", "C4"], ["G2", "B3", "D4"],
-      ], 0.3),
+      ], 0.18),
     },
   ],
 };
 
 const AISI: Piece = {
   id: "aisi",
-  level: 0.82,
+  level: 0.65,
   name: "Remembrance (original, Chinese style)",
   mood: "mourning",
   seconds: 60,
@@ -368,8 +368,8 @@ const AISI: Piece = {
         [["A2", "E3"], 16], [["D3", "A3"], 8], [["A2", "E3"], 8], [["C3", "G3"], 8], [["A2", "E3"], 8],
       ], 0.5),
     },
-    { inst: "gong", gain: 0.45, events: [0, 8, 16, 24, 32, 40].map((t) => ({ t, d: 6, p: "A2", v: 0.55 })) },
-    { inst: "bell", gain: 0.18, events: [4, 20, 36].map((t) => ({ t, d: 4, p: "E5", v: 0.4 })) },
+    { inst: "gong", gain: 0.14, events: [0, 8, 16, 24, 32, 40].map((t) => ({ t, d: 6, p: "A2", v: 0.45 })) },
+    { inst: "bell", gain: 0.08, events: [4, 20, 36].map((t) => ({ t, d: 4, p: "E5", v: 0.4 })) },
   ],
 };
 
@@ -380,7 +380,7 @@ const funeralBars = (lo: string[], hi: string[]): Step[] => [
 
 const CHOPIN: Piece = {
   id: "chopin",
-  level: 0.33,
+  level: 0.265,
   name: "Funeral March (Chopin)",
   mood: "mourning",
   seconds: 30,
@@ -399,12 +399,12 @@ const CHOPIN: Piece = {
     },
     {
       inst: "piano",
-      gain: 0.45,
+      gain: 0.2,
       events: Array.from({ length: 32 }, (_, i) => ({
         t: i,
         d: 1,
         p: i % 2 === 0 ? ["Bb1", "F2", "Db3"] : ["Gb1", "Db2", "Bb2"],
-        v: 0.5,
+        v: 0.35,
       })),
     },
   ],
@@ -412,7 +412,7 @@ const CHOPIN: Piece = {
 
 const TAPS: Piece = {
   id: "taps",
-  level: 6.5,
+  level: 1.52,
   name: "Taps (bugle call)",
   mood: "mourning",
   seconds: 30,
@@ -432,13 +432,13 @@ const TAPS: Piece = {
         ["G3", 0.75], ["G3", 0.25], ["C4", 4], [null, 1],
       ], 0.7),
     },
-    { inst: "strings", gain: 0.22, events: seq(0, [[["C3", "G3"], 12], [["C3", "E3"], 12], [["C3", "G3"], 6]], 0.4) },
+    { inst: "strings", gain: 0.12, events: seq(0, [[["C3", "G3"], 12], [["C3", "E3"], 12], [["C3", "G3"], 6]], 0.4) },
   ],
 };
 
 const REFLECTION: Piece = {
   id: "reflection",
-  level: 0.34,
+  level: 0.379,
   name: "Reflection (original, piano)",
   mood: "mourning",
   seconds: 60,
@@ -457,13 +457,13 @@ const REFLECTION: Piece = {
     },
     {
       inst: "piano",
-      gain: 0.4,
+      gain: 0.28,
       events: arpeggio(0, [
         ["A2", "E3", "C4"], ["F2", "C3", "A3"], ["C3", "G3", "E4"], ["G2", "D3", "B3"],
         ["A2", "E3", "C4"], ["F2", "C3", "A3"], ["G2", "D3", "B3"], ["E2", "B2", "G#3"],
         ["A2", "E3", "C4"], ["D3", "A3", "F4"], ["G2", "D3", "B3"], ["C3", "G3", "E4"],
         ["F2", "C3", "A3"], ["E2", "B2", "G#3"], ["A2", "E3", "C4"],
-      ], 0.35),
+      ], 0.22),
     },
   ],
 };
@@ -536,7 +536,7 @@ function voice(ctx: BaseAudioContext, out: AudioNode, inst: Instrument, f: numbe
       lp.type = "lowpass";
       lp.frequency.value = 500;
       const g = ctx.createGain();
-      env(g, t, 0.12 * vel, 0.005, 0.08, t + 0.35);
+      env(g, t, 0.05 * vel, 0.01, 0.08, t + 0.35);
       n.connect(lp).connect(g).connect(out);
       n.start(t);
       break;
@@ -544,7 +544,7 @@ function voice(ctx: BaseAudioContext, out: AudioNode, inst: Instrument, f: numbe
     case "wood": {
       const o = osc(ctx, "sine", 1100, t, t + 0.12);
       const g = ctx.createGain();
-      env(g, t, 0.5 * vel, 0.001, 0.025, t + 0.1);
+      env(g, t, 0.3 * vel, 0.004, 0.03, t + 0.1);
       o.connect(g).connect(out);
       break;
     }
@@ -640,7 +640,7 @@ function impulse(ctx: BaseAudioContext, seconds: number): AudioBuffer {
  */
 export function playPiece(ctx: BaseAudioContext, piece: Piece, start: number, seconds: number, volume: number): GainNode {
   const master = ctx.createGain();
-  const level = volume * piece.level * 0.85;
+  const level = volume * piece.level;
   master.gain.setValueAtTime(level, start);
   master.gain.setValueAtTime(level, start + Math.max(0, seconds - 2));
   master.gain.linearRampToValueAtTime(0.0001, start + seconds);
