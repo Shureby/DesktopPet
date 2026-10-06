@@ -582,7 +582,7 @@ const wagnerTune = (oct: number): Step[] =>
     ["F4", 1], ["Bb4", 0.75], ["Bb4", 0.25], ["Bb4", 2],
     ["F4", 1], ["C5", 0.75], ["A4", 0.25], ["Bb4", 2],
     ["F4", 1], ["Bb4", 0.75], ["D5", 0.25], ["F5", 1], ["D5", 0.75], ["Bb4", 0.25],
-    ["G4", 1], ["C5", 0.75], ["D5", 0.25], ["Bb4", 2],
+    ["G4", 1], ["C5", 0.75], ["D5", 0.25], ["Bb4", 3],
   ] as Step[]).map(([p, d]): Step => [typeof p === "string" ? transpose(p, oct) : p, d]);
 
 const BB = ["Bb3", "D4", "F4"];
@@ -591,11 +591,11 @@ const EB = ["Bb3", "Eb4", "G4"];
 
 const WAGNER: Piece = {
   id: "wagner",
-  level: 1.881,
+  level: 1.906,
   name: "Bridal Chorus (Wagner)",
   mood: "happy",
   seconds: 30,
-  beats: 36,
+  beats: 33,
   reverb: 0.4,
   tracks: [
     { inst: "strings", gain: 0.55, events: seq(0, wagnerTune(0)) },
@@ -615,11 +615,10 @@ const WAGNER: Piece = {
       gain: 0.3,
       events: seq(0, [
         ["Bb2", 4], ["A2", 2], ["Bb2", 2], ["Bb2", 4], ["Bb2", 2], ["A2", 2],
-        ["Bb2", 4], ["A2", 2], ["Bb2", 2], ["Bb2", 4], ["Bb2", 4],
-        ["Bb2", 4],
+        ["Bb2", 4], ["A2", 2], ["Bb2", 2], ["Bb2", 4], ["Bb2", 5],
       ], 0.6),
     },
-    { inst: "bell", gain: 0.12, events: [{ t: 30, d: 3, p: ["Bb5", "F6"], v: 0.5 }] },
+    { inst: "bell", gain: 0.12, events: [{ t: 30, d: 2.5, p: ["Bb5", "F6"], v: 0.5 }] },
   ],
 };
 
