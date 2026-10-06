@@ -16,6 +16,14 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-10-06
+
+### Added
+- Two wedding pieces: Mendelssohn's Wedding March (the trumpet fanfare and the first
+  strain) and Wagner's Bridal Chorus ("Here comes the bride"). A wedding anniversary
+  can now choose between the Canon (still the default) and these two; other happy days
+  can pick them too.
+
 ## [0.28.0] - 2026-10-06
 
 ### Added

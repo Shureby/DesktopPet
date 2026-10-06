@@ -703,15 +703,15 @@
         },
         {
           "id": "anniv.music-form",
-          "rev": "0.28.0",
+          "rev": "0.29.0",
           "do": "Settings 里音乐先关着；在 Anniversaries 表单依次选 Type：Birthday、Pet's birthday、Wedding anniversary、Work anniversary、Remembrance；Work 时选 Jasmine Flower 后保存，再 ✎ 编辑它；把一个选了 Taps 的 Remembrance 改成 Custom",
-          "expect": "Birthday 和 Pet's birthday 显示 “Music 🎵 Happy Birthday”，Wedding 显示 “🎵 Canon in D (Pachelbel)”，都不能改；其他喜庆类型是下拉框，只有 6 首喜庆曲目，默认 Music-box waltz；Remembrance 只有 4 首哀乐，默认 Remembrance (original, Chinese style)；音乐关着时旁边写 “· off in Settings”；编辑时保留选的曲目；喜庆和祭日之间换类型时回到新类型的默认曲目"
+          "expect": "Birthday 和 Pet's birthday 显示 “Music 🎵 Happy Birthday”，不能改；Wedding 是下拉框，只有 Canon in D (Pachelbel)、Wedding March (Mendelssohn)、Bridal Chorus (Wagner) 三首，默认卡农；其他喜庆类型是下拉框，有 8 首喜庆曲目（含两首婚礼曲），默认 Music-box waltz；在 Dating 里选 Wedding March 后换成 Wedding，保留 Wedding March，选 Waltz 后换成 Wedding 则回到卡农；Remembrance 只有 4 首哀乐，默认 Remembrance (original, Chinese style)；音乐关着时旁边写 “· off in Settings”；编辑时保留选的曲目；喜庆和祭日之间换类型时回到新类型的默认曲目"
         },
         {
           "id": "anniv.music-play",
-          "rev": "0.28.0",
-          "do": "Settings → To-do reminders 勾上 “Play music with it”，音量调一半；分别 ▶ Preview 一个生日、一个结婚纪念日、一个选了 Ode to Joy 的 Custom、一个默认的 Remembrance；把时长设成 60 秒再听一次；播放中设一个 1 分钟后的计时器让它响；最后把音量拉到最右、再关掉音乐预览一次",
-          "expect": "每次预览都和效果一起放对应的曲子（生日歌、卡农、欢乐颂、哀思）；不同曲目听起来音量差不多，没有爆音、咔哒声；伴奏不盖过主旋律；时长到了音乐在最后 2 秒淡出，和效果、那句话一起结束；60 秒时曲子循环衔接自然；计时器响时音乐停下；关掉 “Celebrate anniversaries on screen” 时音乐照样放；关掉音乐后预览没有声音"
+          "rev": "0.29.0",
+          "do": "Settings → To-do reminders 勾上 “Play music with it”，音量调一半；分别 ▶ Preview 一个生日、三个结婚纪念日（分别选卡农、Wedding March、Bridal Chorus）、一个选了 Ode to Joy 的 Custom、一个默认的 Remembrance；把时长设成 60 秒再听一次；播放中设一个 1 分钟后的计时器让它响；最后把音量拉到最右、再关掉音乐预览一次",
+          "expect": "每次预览都和效果一起放对应的曲子（生日歌、卡农、门德尔松《婚礼进行曲》开头的小号号角、瓦格纳《婚礼合唱》“Here comes the bride”、欢乐颂、哀思）；不同曲目听起来音量差不多，没有爆音、咔哒声；伴奏不盖过主旋律；时长到了音乐在最后 2 秒淡出，和效果、那句话一起结束；60 秒时曲子循环衔接自然；计时器响时音乐停下；关掉 “Celebrate anniversaries on screen” 时音乐照样放；关掉音乐后预览没有声音"
         },
         {
           "id": "anniv.prep-todo",

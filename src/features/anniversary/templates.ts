@@ -20,6 +20,8 @@ export interface AnniversaryTemplate {
   /** The music on the day (src/celebrate/music.ts): the default, or the only one when `musicFixed`. */
   music: string;
   musicFixed?: boolean;
+  /** The only pieces it can choose from (otherwise any of its mood). */
+  musicOptions?: string[];
 }
 
 export const TEMPLATES: Record<AnniversaryKind, AnniversaryTemplate> = {
@@ -47,7 +49,7 @@ export const TEMPLATES: Record<AnniversaryKind, AnniversaryTemplate> = {
     falling: ["❤️", "🥂"],
     placeholder: "e.g. Our wedding",
     music: "canon",
-    musicFixed: true,
+    musicOptions: ["canon", "mendelssohn", "wagner"],
   },
   dating: {
     label: "Dating anniversary",
@@ -146,8 +148,10 @@ export function celebrationEffect(a: Pick<Anniversary, "kind" | "icon">): { mode
   return { mode: "fireworks", icons: [a.icon, ...templateOf(a.kind).falling.filter((i) => i !== a.icon)] };
 }
 
-/** The pieces it can choose from: happy ones, or for a remembrance the mourning ones. */
+/** The pieces it can choose from: its template's list (a wedding), else happy ones, or for a remembrance the mourning ones. */
 export function musicChoices(kind: string): Piece[] {
+  const options = templateOf(kind).musicOptions;
+  if (options) return PIECES.filter((p) => options.includes(p.id));
   const mood = kind === "remembrance" ? "mourning" : "happy";
   return PIECES.filter((p) => p.mood === mood);
 }

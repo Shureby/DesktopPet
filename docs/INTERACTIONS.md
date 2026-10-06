@@ -362,12 +362,14 @@ Code: `renderAnniversaries` in `src/panel/main.ts`, `src/features/anniversary/te
   - **The day's effect:** "Fireworks on the day 🎆" (on for happy days), or for a
     remembrance "Candle and flowers on the day 🕯️" (off by default, since some find it
     unlucky, but the day is still remembered).
-  - **Music (since 0.28.0):** Birthday and Pet's birthday always play "Happy Birthday",
-    and Wedding anniversary Pachelbel's Canon (shown, not a choice). Other happy days
-    choose from the happy pieces (default: the music-box waltz); a remembrance chooses
-    from the mourning ones (default: Remembrance, an original Chinese-style piece). Changing the
-    type between happy and remembrance goes back to the new type's default. "· off in
-    Settings" shows while the music setting is off.
+  - **Music (since 0.28.0):** Birthday and Pet's birthday always play "Happy Birthday"
+    (shown, not a choice). Wedding anniversary chooses between Pachelbel's Canon (the
+    default), Mendelssohn's Wedding March and Wagner's Bridal Chorus (since 0.29.0; the
+    Canon only before). Other happy days choose from all the happy pieces (default: the
+    music-box waltz); a remembrance chooses from the mourning ones (default: Remembrance,
+    an original Chinese-style piece). Changing the type goes back to the new type's
+    default when the chosen piece isn't one of its choices. "· off in Settings" shows
+    while the music setting is off.
 - **The list:** soonest first: "Sat, 25 Oct · in 3 days · 36th" (orange within a week,
   "Today 🎉" on the day), and the reminders. ✎ (on hover) edits it like alarms and to-dos.
   ✕ deletes it, but the to-dos it already made stay.
@@ -397,7 +399,8 @@ Code: `renderAnniversaries` in `src/panel/main.ts`, `src/features/anniversary/te
     2 s. It plays even if the effect is off. An alarm or reminder ringing over it stops
     it.
     - The pieces are synthesized (`src/celebrate/music.ts`), no audio files. Happy:
-      Happy Birthday, Canon in D, Ode to Joy, Jasmine Flower (茉莉花), Festive (original,
+      Happy Birthday, Canon in D, Wedding March (Mendelssohn: the trumpet fanfare and the
+      first strain), Bridal Chorus (Wagner: the first strain, "Here comes the bride"), Ode to Joy, Jasmine Flower (茉莉花), Festive (original,
       Chinese style), Music-box waltz (original). Mourning: Remembrance (original, Chinese
       style), Chopin's funeral march, Taps, Reflection (original, piano). The melodies
       are public domain or written for ePet. 《哀乐》 isn't used: it's under copyright

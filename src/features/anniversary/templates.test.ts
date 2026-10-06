@@ -5,10 +5,15 @@ const at = (y: number, m: number, d: number) => new Date(y, m - 1, d, 10).getTim
 
 describe("anniversaries", () => {
   it("play music by type", () => {
-    // Birthdays (a pet's too) and weddings always play their own.
+    // Birthdays (a pet's too) always play their own.
     expect(musicFor({ kind: "birthday", music: "canon" }).id).toBe("birthday");
     expect(musicFor({ kind: "pet", music: null }).id).toBe("birthday");
+    // A wedding: the Canon, or either wedding march.
+    expect(musicChoices("wedding").map((p) => p.id)).toEqual(["canon", "mendelssohn", "wagner"]);
+    expect(musicFor({ kind: "wedding", music: null }).id).toBe("canon");
+    expect(musicFor({ kind: "wedding", music: "wagner" }).id).toBe("wagner");
     expect(musicFor({ kind: "wedding", music: "waltz" }).id).toBe("canon");
+    expect(musicFor({ kind: "dating", music: "mendelssohn" }).id).toBe("mendelssohn");
     // Others choose among their mood's pieces; nothing chosen, or one that doesn't suit: the default.
     expect(musicFor({ kind: "work", music: null }).id).toBe("waltz");
     expect(musicFor({ kind: "dating", music: "jasmine" }).id).toBe("jasmine");

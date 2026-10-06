@@ -1,8 +1,9 @@
 /**
  * Music for anniversaries, synthesized with Web Audio like the ringtones (no audio files).
  * Each piece lasts 30 or 60 s, so it repeats exactly within the longest celebration (60 s).
- * Melodies are public domain (Happy Birthday, Pachelbel's Canon, Ode to Joy, Jasmine
- * Flower, Chopin's funeral march, Taps) or written for ePet.
+ * Melodies are public domain (Happy Birthday, Pachelbel's Canon, Mendelssohn's Wedding March,
+ * Wagner's Bridal Chorus, Ode to Joy, Jasmine Flower, Chopin's funeral march, Taps) or written
+ * for ePet.
  */
 
 export type Instrument =
@@ -493,7 +494,7 @@ const mendelssohnBars = (t: number): Ev[] =>
 
 const MENDELSSOHN: Piece = {
   id: "mendelssohn",
-  level: 2.379,
+  level: 2.3,
   name: "Wedding March (Mendelssohn)",
   mood: "happy",
   seconds: 30,
@@ -622,8 +623,6 @@ const WAGNER: Piece = {
   ],
 };
 
-/** On trial: listened to before they're added. */
-export const TRIAL_PIECES: Piece[] = [MENDELSSOHN, WAGNER];
 
 // --- Fuller versions (chosen by listening): the accompaniment taken back up now that the click
 // that made it sound like drumming is fixed, plus a swell and a little colour.
@@ -677,6 +676,8 @@ const [BIRTHDAY_FULL, CANON_FULL, FESTIVE_FULL, WALTZ_FULL, CHOPIN_FULL, REFLECT
 export const PIECES: Piece[] = [
   BIRTHDAY_FULL,
   CANON_FULL,
+  MENDELSSOHN,
+  WAGNER,
   ODE,
   JASMINE,
   FESTIVE_FULL,
