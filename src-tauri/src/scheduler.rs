@@ -7,7 +7,7 @@ use desktoppet_core::{Celebration, Reminder, ReminderKind};
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
-use crate::app_windows::{open_celebration, peek};
+use crate::app_windows::peek;
 use crate::state::{now_ms, AppState};
 
 pub fn spawn<R: Runtime>(app: AppHandle<R>) {
@@ -118,20 +118,14 @@ fn celebrate<R: Runtime>(app: &AppHandle<R>, presence: &mut Presence) {
     if hidden && !comes_out.anniversaries {
         return;
     }
-    // One a day on screen; several on the same day are told one after another by the pet.
-    let mut played = false;
+    // Several on the same day (remembrances first) are played one after another by the
+    // pet, which asks for each one's effect window when its turn comes (show_celebration).
     for c in due {
         if let Err(e) = state.store().mark_celebrated(&Local, c.anniversary.id, now) {
             log::error!("could not mark an anniversary celebrated: {e}");
             continue;
         }
         let peeks = hidden && peek(app);
-        if c.effect && !played {
-            played = true;
-            if let Err(e) = open_celebration(app, &c) {
-                log::warn!("could not open the celebration: {e}");
-            }
-        }
         let _ = app.emit("celebrate", Celebration { peek: peeks, ..c });
     }
 }

@@ -231,7 +231,9 @@ export function startMockScheduler(): () => void {
       const today = new Date(now);
       today.setHours(0, 0, 0, 0);
       let madeTodo = false;
-      for (const a of s.anniversaries ?? []) {
+      // Remembrances first, as celebrations_due orders them (the pet plays them in turn).
+      const byTurn = [...(s.anniversaries ?? [])].sort((x, y) => Number(x.kind !== "remembrance") - Number(y.kind !== "remembrance") || x.id - y.id);
+      for (const a of byTurn) {
         const on = nextAnniversary(a.month, a.day, now);
         const since = new Date(a.changedAt);
         since.setHours(0, 0, 0, 0);
@@ -422,6 +424,9 @@ export const mockBackend: Backend = {
       seconds: s.settings.celebrate.seconds,
       peek: petHidden,
     });
+  },
+  async showCelebration() {
+    // The browser draws the effect in the pet's page.
   },
   async deleteAnniversary(id) {
     mutate((s) => (s.anniversaries = (s.anniversaries ?? []).filter((r) => r.id !== id)));

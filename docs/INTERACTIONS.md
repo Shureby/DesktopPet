@@ -395,9 +395,14 @@ Code: `renderAnniversaries` in `src/panel/main.ts`, `src/features/anniversary/te
         their strings, about one a second. Some are pets' heads (cat, dog or bear, with a
         face): about 30% on a birthday, 60% on a pet's birthday. A 🎈 icon doesn't fall as
         well.
-    - **for a remembrance:** the screen dims, and a white candle about 12% of the screen's
-      height flickers between two small bouquets of three white chrysanthemums, beside
-      the pet and clear of its bubble (since 0.28.0; one small flower each side before).
+    - **for a remembrance:** the screen dims, and a white candle flickers between two small
+      bouquets of three white chrysanthemums **at the bottom middle of the pet's screen**
+      (since 0.32.0; beside the pet before, which on a portrait screen could run off the
+      edge). The candle is about 12% of the screen's shorter side, and the whole scene at
+      most half its width (`candleLayout`). The pet walks calmly to the nearer side (the
+      other if there's no room), far enough that its bubble clears the flowers, and sits
+      facing the candle until it's over (`walkTo`, then `vigil`); then it roams again
+      from there. Without the effect it just sits where it is.
   - **Settings → To-do reminders → "Celebrate anniversaries on screen for [15] s"**
     (10–60 s). Off: no effect, the pet just says it.
   - **Music (since 0.28.0):** "Play music with it" (off by default) and its volume, under
@@ -416,6 +421,11 @@ Code: `renderAnniversaries` in `src/panel/main.ts`, `src/features/anniversary/te
   - **Hidden pet:** it comes out for it if "When hidden, it comes out for → Anniversaries"
     is ticked (the default). Otherwise the celebration waits until the pet is shown that
     day.
+  - **Several on the same day (since 0.32.0)** play one after another, each in full
+    (words, effect, music), with a 2 s pause between: remembrances first, then the happy
+    ones (by when they were added). Before, they all started at once and only the last
+    was seen. The pet asks for each effect window when its turn comes
+    (`show_celebration`).
   - An alarm ringing at the time goes first.
   - The effect window is above other apps but below the pet, so the pet and its words stay
     clear. In a remembrance the pet sits by the candle instead of cheering.

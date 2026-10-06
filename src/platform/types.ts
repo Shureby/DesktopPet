@@ -365,6 +365,8 @@ export interface Backend {
   deleteAnniversary(id: number): Promise<void>;
   /** "▶ Preview": its day's celebration now (words and effect), marking nothing. */
   previewCelebration(a: NewAnniversary): Promise<void>;
+  /** The pet plays a celebration: the app opens its effect's window over the pet's screen. */
+  showCelebration(celebration: Celebration): Promise<void>;
 
   listAlarms(): Promise<Alarm[]>;
   /** `days` is for repeat "days". */

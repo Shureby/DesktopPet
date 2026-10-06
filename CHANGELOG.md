@@ -16,6 +16,18 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-10-06
+
+### Changed
+- A remembrance's candle and flowers stand at the bottom middle of the pet's screen, sized
+  by the screen's shorter side, so they fit on a portrait screen too. The pet walks aside,
+  clear of the flowers, and sits facing the candle; afterwards it roams again from there.
+
+### Fixed
+- Two or more anniversaries on the same day all started at once, and only the last one
+  was seen. Now they play one after another, remembrances first, with a short pause
+  between.
+
 ## [0.31.0] - 2026-10-06
 
 ### Added

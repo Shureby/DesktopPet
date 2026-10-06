@@ -16,7 +16,7 @@ export interface EffectOptions {
   balloons?: number;
   /** How long it plays, fading out at the end. */
   ms: number;
-  /** Where the pet stands (CSS px in the canvas), for the candle and flowers. */
+  /** Where the pet stands (CSS px in the canvas); the candle stands on the same floor. */
   petX: number;
   petY: number;
 }
@@ -314,15 +314,21 @@ function balloon(ctx: CanvasRenderingContext2D, x: number, y: number, b: Balloon
   }
 }
 
+/**
+ * The remembrance scene's size on a screen `w` × `h` (CSS px): the candle is about 12% of the
+ * shorter side (drawn at 58 px and scaled by `k`), the whole scene at most half the width.
+ * `reach` is how far it spreads either side of the candle.
+ */
+export function candleLayout(w: number, h: number): { k: number; reach: number } {
+  const k = Math.max(1, Math.min(3, (Math.min(w, h) * 0.12) / 58, (w * 0.5) / 170));
+  return { k, reach: 85 * k };
+}
+
 function candleScene(ctx: CanvasRenderingContext2D, w: number, h: number, o: EffectOptions) {
+  // At the bottom middle of the screen, where the pet stands; the pet walks aside to it.
   const baseY = Math.min(h - 8, o.petY);
-  // The candle is about 12% of the screen's height (drawn at 58 px, scaled up).
-  const k = Math.min(3, Math.max(1.3, (h * 0.12) / 58));
-  // Beside the pet, clear of its bubble (about 220 px wide, centred on it); the scene
-  // reaches about 85 px (scaled) either side of the candle.
-  const reach = 85 * k;
-  const gap = 115 + reach;
-  const cx = o.petX - gap > reach ? o.petX - gap : Math.min(w - reach, o.petX + gap);
+  const { k } = candleLayout(w, h);
+  const cx = w / 2;
   return (t: number) => {
     // The screen dims, with warm light around the candle.
     const glow = ctx.createRadialGradient(cx, baseY - 60 * k, 10, cx, baseY - 60 * k, Math.max(w, h) * 0.6);

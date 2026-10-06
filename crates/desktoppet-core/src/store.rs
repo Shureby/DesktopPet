@@ -532,6 +532,9 @@ impl Store {
             let effect = enabled && a.effect;
             out.push(Celebration { anniversary: a, years, effect, seconds, peek: false });
         }
+        // Several on one day are played one after another: remembrances first (quietly),
+        // then the happy ones.
+        out.sort_by_key(|c| (c.anniversary.kind != "remembrance", c.anniversary.id));
         Ok(out)
     }
 
@@ -1837,6 +1840,22 @@ mod tests {
         let next = London.with_ymd_and_hms(2027, 1, 10, 9, 0, 0).unwrap().timestamp_millis();
         let due = s.celebrations_due(&London, next).unwrap();
         assert_eq!((due[0].years, due[0].effect, due[0].seconds), (Some(37), false, 60));
+    }
+
+    #[test]
+    fn several_on_one_day_come_remembrances_first() {
+        let s = Store::open_in_memory().unwrap();
+        let chloe = s.add_anniversary(&birthday(10), at(9, 0)).unwrap();
+        let wedding = s.add_anniversary(&NewAnniversary { kind: "wedding".into(), ..birthday(10) }, at(9, 0)).unwrap();
+        let grandpa = s
+            .add_anniversary(
+                &NewAnniversary { kind: "remembrance".into(), name: "Grandpa".into(), ..birthday(10) },
+                at(9, 0),
+            )
+            .unwrap();
+        let due = s.celebrations_due(&London, at(10, 0) + 3 * DAY).unwrap();
+        let ids: Vec<i64> = due.iter().map(|c| c.anniversary.id).collect();
+        assert_eq!(ids, vec![grandpa.id, chloe.id, wedding.id]);
     }
 
     #[test]

@@ -145,6 +145,44 @@ export const core: AbilityModule<Record<string, never>> = {
         p.body.vx = 0;
       },
     },
+    /**
+     * Walk calmly to `pet.target`, then keep vigil if one is set (`scratch.vigil`: a
+     * remembrance's candle), else idle.
+     */
+    walkTo: {
+      anim: "walk",
+      update: (p) => {
+        if (!p.target) return "idle";
+        const dx = p.target.x - p.body.x;
+        if (Math.abs(dx) < p.u(8) || p.lastStep?.hitWall || p.fsm.time > 10) {
+          p.target = null;
+          p.body.vx = 0;
+          return p.scratch.vigil ? "vigil" : "idle";
+        }
+        p.facing = dx > 0 ? 1 : -1;
+        p.body.vx = p.facing * p.walkSpeed();
+      },
+      exit: (p) => {
+        p.body.vx = 0;
+      },
+    },
+    /** Sits facing `scratch.vigil.face` for `scratch.vigil.seconds`, then roams again. */
+    vigil: {
+      anim: "sit",
+      enter: (p) => {
+        p.body.vx = 0;
+        const v = p.scratch.vigil as Vigil | undefined;
+        p.activity(v?.seconds ?? 5, v?.seconds ?? 5);
+      },
+      update: (p) => {
+        const v = p.scratch.vigil as Vigil | undefined;
+        if (v) p.facing = v.face;
+        if (p.activityDone()) {
+          delete p.scratch.vigil;
+          return p.next();
+        }
+      },
+    },
     /** Run to `pet.target` (e.g. to the middle of the screen for a reminder), then alert. */
     goto: {
       anim: "run",
@@ -165,6 +203,12 @@ export const core: AbilityModule<Record<string, never>> = {
     },
   },
 };
+
+/** Where a vigil faces and how long it lasts (set in `pet.scratch.vigil`). */
+export interface Vigil {
+  face: 1 | -1;
+  seconds: number;
+}
 
 /** Horizontal centre of the work area the pet is on (target for reminders). */
 export function areaCentreX(p: Pet): number {

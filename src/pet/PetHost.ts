@@ -1,7 +1,8 @@
 import { HoverTracker } from "../brain/hover";
 import { todoRemindsAt } from "../features/todo/repeat";
 import { celebrationEffect, celebrationLines, musicFor } from "../features/anniversary/templates";
-import { playEffect } from "../celebrate/effects";
+import { candleLayout, playEffect } from "../celebrate/effects";
+import type { Vigil } from "../characters/abilities/core";
 import { applyMoodEvent, isHungry, moodTier, parseMood, type MoodEvent } from "../brain/mood";
 import { RulesBrain } from "../brain/RulesBrain";
 import { Pet } from "../characters/Pet";
@@ -70,6 +71,10 @@ interface BubbleAction {
  */
 /** How long to wait for more to-dos without a time before telling them (they come due together). */
 const DAY_TODO_GATHER_MS = 400;
+/** The pause between two celebrations on the same day. */
+const CELEBRATION_GAP_MS = 2000;
+/** How far (CSS px) beyond a remembrance's flowers the pet sits, so its bubble stays clear. */
+const VIGIL_BUBBLE_CLEARANCE = 160;
 
 export class PetHost {
   pet!: Pet;
@@ -109,7 +114,9 @@ export class PetHost {
   private dayTodos: ReminderEvent[] = [];
   /** Stops the anniversary music playing now (an alarm ringing over it stops it). */
   private stopMusic: (() => void) | null = null;
-  /** Anniversaries that came while an alarm rang: celebrated after it. */
+  /** A celebration is playing (the next waits for it, and a short pause). */
+  private celebrating = false;
+  /** Anniversaries that came while an alarm rang or another played: celebrated after it. */
   private celebrations: Celebration[] = [];
   /** A game asked for during a focus session while something was ringing (see playGame). */
   private pendingGame: string | null = null;
@@ -1317,14 +1324,23 @@ export class PetHost {
    */
   private onCelebrate(c: Celebration): void {
     if (c.peek) this.enterPeek();
-    if (this.activeRing) {
+    // One at a time: several on one day come in turn (remembrances first), and an alarm
+    // ringing goes first.
+    if (this.activeRing || this.celebrating) {
       this.celebrations.push(c);
       return;
     }
+    this.celebrating = true;
+    setTimeout(() => {
+      this.celebrating = false;
+      this.nextQueued();
+    }, c.seconds * 1000 + CELEBRATION_GAP_MS);
     const [line, sub] = celebrationLines(c.anniversary, c.years);
     const remembrance = c.anniversary.kind === "remembrance";
-    // A remembrance is quiet: the pet sits by the candle instead of cheering.
-    if (remembrance) this.pet.fsm.set("sit", true);
+    // A remembrance is quiet: the pet walks aside from the candle (in the middle of the
+    // screen) and sits facing it; then it roams again from there.
+    if (remembrance && c.effect) this.keepVigil(c.seconds);
+    else if (remembrance) this.pet.fsm.set("sit", true);
     else this.pet.react({ type: "praise" });
     this.say(sub ? [line, sub] : line, c.seconds * 1000, [], undefined, true);
     const music = this.settings.celebrate;
@@ -1336,21 +1352,48 @@ export class PetHost {
         if (this.stopMusic === stop) this.stopMusic = null;
       }, c.seconds * 1000);
     }
-    if (c.effect && !this.windowed) {
-      const canvas = document.createElement("canvas");
-      // Under the pet and its bubble, like the app's window under the pet's.
-      Object.assign(canvas.style, { position: "fixed", inset: "0", width: "100vw", height: "100vh", pointerEvents: "none", zIndex: "0" });
-      document.body.prepend(canvas);
-
-      const b = this.pet.body;
-      void playEffect(canvas, { ...celebrationEffect(c.anniversary), ms: c.seconds * 1000, petX: b.x / this.dpr, petY: b.y / this.dpr }).then(() =>
-        canvas.remove(),
-      );
+    if (!c.effect) return;
+    if (this.windowed) {
+      void this.backend.showCelebration(c);
+      return;
     }
+    const canvas = document.createElement("canvas");
+    // Under the pet and its bubble, like the app's window under the pet's.
+    Object.assign(canvas.style, { position: "fixed", inset: "0", width: "100vw", height: "100vh", pointerEvents: "none", zIndex: "0" });
+    document.body.prepend(canvas);
+    const b = this.pet.body;
+    void playEffect(canvas, { ...celebrationEffect(c.anniversary), ms: c.seconds * 1000, petX: b.x / this.dpr, petY: b.y / this.dpr }).then(() =>
+      canvas.remove(),
+    );
+  }
+
+  /**
+   * The candle stands in the middle of the pet's screen: the pet walks to whichever side is
+   * nearer (the other if there's no room), clear of the flowers with its bubble, and sits
+   * facing the candle for `seconds`.
+   */
+  private keepVigil(seconds: number): void {
+    const area = this.peekArea();
+    if (!area || this.drag) {
+      this.pet.fsm.set("sit", true);
+      return;
+    }
+    const { reach } = candleLayout(area.w / this.dpr, area.h / this.dpr);
+    const centre = area.x + area.w / 2;
+    const away = (reach + VIGIL_BUBBLE_CLEARANCE) * this.dpr;
+    const margin = this.pet.spriteSize.w;
+    let side: 1 | -1 = this.pet.body.x < centre ? -1 : 1;
+    const fits = (s: 1 | -1) => (s === -1 ? centre - away - margin >= area.x : centre + away + margin <= area.x + area.w);
+    if (!fits(side) && fits(side === 1 ? -1 : 1)) side = side === 1 ? -1 : 1;
+    const x = Math.min(area.x + area.w - margin, Math.max(area.x + margin, centre + side * away));
+    const vigil: Vigil = { face: side === 1 ? -1 : 1, seconds };
+    this.pet.scratch.vigil = vigil;
+    this.pet.target = { x };
+    this.pet.fsm.set("walkTo", true);
   }
 
   private nextQueued(): void {
-    if (this.activeRing) return;
+    if (this.activeRing || this.celebrating) return;
     const party = this.celebrations.shift();
     if (party) {
       this.onCelebrate(party);
