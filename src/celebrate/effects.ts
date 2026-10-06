@@ -140,13 +140,13 @@ function fireworksScene(ctx: CanvasRenderingContext2D, w: number, h: number, o: 
         x: w * (0.05 + Math.random() * 0.9),
         y: h + 80,
         vy: -(70 + Math.random() * 60),
-        r: 22 + Math.random() * 12,
+        r: 15 + Math.random() * 8,
         colour: pick(BALLOON_COLOURS),
         shape: pet ? pick(["cat", "dog", "bear"] as const) : "plain",
         sway: 10 + Math.random() * 18,
         phase: Math.random() * 6,
       });
-      nextBalloon = t + 350 + Math.random() * 350;
+      nextBalloon = t + 750 + Math.random() * 650;
     }
     if (o.icons.length && t >= nextIcon && !ending) {
       falling.push({ icon: pick(o.icons), x: Math.random() * w, y: -40, vy: 60 + Math.random() * 70, sway: 20 + Math.random() * 30, phase: Math.random() * 6, size: 26 + Math.random() * 14 });
