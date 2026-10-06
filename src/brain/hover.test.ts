@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HOVER, HoverTracker, type HoverEvent, type HoverInput } from "./hover";
+import { HOVER, HoverTracker, RunStopper, type HoverEvent, type HoverInput } from "./hover";
 
 const FRAME = 1000 / 30;
 
@@ -88,5 +88,47 @@ describe("an unhappy pet", () => {
     expect(types(run(t, 60_000, 100, { unhappy: "grumpy" }))).toEqual(["attend"]);
     run(t, 60_100, 100, { over: false });
     expect(types(run(t, HOVER.DODGE_COOLDOWN + 1000, 100, { unhappy: "grumpy" }))).toEqual(["dodge"]);
+  });
+});
+
+describe("stopping the pet running to a reminder", () => {
+  /** Frame by frame; `over(now)` says when the pet is under the cursor. Returns when it stops, or null. */
+  const stopAt = (
+    ms: number,
+    over: (now: number) => boolean,
+    at: (now: number) => { x: number; y: number } = () => ({ x: 100, y: 100 }),
+    running = true,
+  ) => {
+    const s = new RunStopper();
+    for (let now = 0; now < ms; now += FRAME) {
+      if (s.update(now, { running, over: over(now), cursor: at(now), unit: 1 })) return now;
+    }
+    return null;
+  };
+
+  it("stops when it runs under a mouse waiting in its path", () => {
+    // The mouse has been still since the start; the pet reaches it at 500 ms.
+    const at = stopAt(1000, (now) => now >= 500);
+    expect(at).not.toBeNull();
+    expect(at!).toBeLessThan(500 + 2 * FRAME);
+  });
+
+  it("stops when the mouse is put on it and held still", () => {
+    // The mouse moves until 400 ms, then stays on the pet.
+    const at = stopAt(1000, () => true, (now) => ({ x: 100 + Math.min(now, 400), y: 100 }));
+    expect(at!).toBeGreaterThanOrEqual(400 + HOVER.STOP_RUN_AFTER - FRAME);
+    expect(at!).toBeLessThan(400 + HOVER.STOP_RUN_AFTER + 2 * FRAME);
+  });
+
+  it("stops when the mouse is put on it and it runs out from under it", () => {
+    // On the pet until 450 ms (the mouse still from 400 ms), then the pet has moved on.
+    const at = stopAt(1000, (now) => now < 450, (now) => ({ x: 100 + Math.min(now, 400), y: 100 }));
+    expect(at!).toBeLessThan(400 + HOVER.STOP_RUN_AFTER + 2 * FRAME);
+  });
+
+  it("doesn't stop for a mouse sweeping across it, or when it isn't running", () => {
+    expect(stopAt(1000, () => true, (now) => ({ x: 100 + now / 5, y: 100 }))).toBeNull();
+    expect(stopAt(1000, () => true, undefined, false)).toBeNull();
+    expect(stopAt(1000, () => false)).toBeNull();
   });
 });

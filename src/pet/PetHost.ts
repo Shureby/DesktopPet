@@ -1,4 +1,4 @@
-import { HoverTracker } from "../brain/hover";
+import { HoverTracker, RunStopper } from "../brain/hover";
 import { todoRemindsAt } from "../features/todo/repeat";
 import { celebrationEffect, celebrationLines, musicFor } from "../features/anniversary/templates";
 import { candleLayout, playEffect } from "../celebrate/effects";
@@ -140,6 +140,7 @@ export class PetHost {
   private overSprite = false;
   /** The mouse resting on the pet: stop, react, stroke (brain/hover.ts, docs/INTERACTIONS.md). */
   private readonly hover = new HoverTracker();
+  private readonly runStopper = new RunStopper();
   /** What the hovered badge stands for (see updateBadgeInfo). */
   private readonly badgeInfo = Object.assign(document.createElement("div"), { className: "badge-info", hidden: true });
   /** The badge the info box is about; clicking the box clicks it. */
@@ -676,13 +677,30 @@ export class PetHost {
 
   /** Feeds the hover rules and turns what they decide into pet reactions or petting. */
   private updateHover(cursor: { x: number; y: number }, winX: number, winY: number): void {
+    // Running to the middle for a reminder: under a still mouse it stops where it is (not
+    // when it walks back to the edge to hide, nor to a remembrance's candle).
+    const running = this.pet.state === "goto" && !this.peek?.leaving && !this.drag;
+    const over = this.isNearSprite(cursor.x, cursor.y, winX, winY);
+    if (this.runStopper.update(performance.now(), { running, over, cursor, unit: this.dpr })) {
+      this.pet.target = null;
+      const c = this.pet.cursor;
+      if (c) this.pet.facing = c.x > this.pet.body.x ? 1 : -1;
+      this.pet.fsm.set("alert", true);
+    }
     const tier = moodTier(this.pet.mood);
     const events = this.hover.update(performance.now(), {
-      over: this.isNearSprite(cursor.x, cursor.y, winX, winY),
+      over,
       cursor,
       unit: this.dpr,
+      // Off while ringing or a bubble waits for an answer (a to-do's ✓ Done / Later): a
+      // hover line would replace it and its buttons.
       canAttend:
-        !this.drag && !this.activeRing && !this.hidden && this.pet.mode === "free" && this.pet.state !== "goto",
+        !this.drag &&
+        !this.activeRing &&
+        !this.awaitingAnswer() &&
+        !this.hidden &&
+        this.pet.mode === "free" &&
+        this.pet.state !== "goto",
       unhappy: isHungry(this.pet.mood) ? "hungry" : tier === "grumpy" || tier === "sulking" ? "grumpy" : null,
     });
     for (const e of events) {
@@ -690,6 +708,11 @@ export class PetHost {
       else if (e.type === "dodge") this.pet.react({ type: "hover", phase: "dodge", reason: e.reason });
       else this.pet.react({ type: "hover", phase: e.type });
     }
+  }
+
+  /** The bubble shows buttons (a reminder) and nobody has answered yet. */
+  private awaitingAnswer(): boolean {
+    return !this.bubble.hidden && this.bubble.querySelector(".actions") !== null;
   }
 
   /**

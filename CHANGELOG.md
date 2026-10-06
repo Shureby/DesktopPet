@@ -16,6 +16,16 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.32.1] - 2026-10-06
+
+### Fixed
+- The pet running to the middle of the screen for a reminder now stops where it is when
+  you put the mouse on it (or in its way), and rings there. Sweeping the mouse across it
+  doesn't stop it.
+- Resting the mouse on the pet while a to-do reminder waited for an answer replaced the
+  reminder (and its ✓ Done / Later buttons) with a hover line such as "Yes? Can I help
+  you?". Hover reactions now wait until it's answered.
+
 ## [0.32.0] - 2026-10-06
 
 ### Changed

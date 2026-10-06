@@ -13,6 +13,9 @@
  *  6. A cursor that sits still for RELEASE_AFTER lets the pet go on (`release`), so a
  *     parked mouse never keeps it blocking whatever is underneath; it won't stop again
  *     until the cursor leaves and comes back.
+ *
+ * While the pet runs to a reminder these rules are off, except one (`RunStopper`): the
+ * mouse resting on it for STOP_RUN_AFTER stops it where it is.
  */
 export const HOVER = {
   REACT_AFTER: 2_000,
@@ -26,6 +29,13 @@ export const HOVER = {
   RELEASE_AFTER: 8_000,
   /** How long a dodge (stepping away) plays before hovering counts again. */
   DODGE_TIME: 1_500,
+  /**
+   * The pet running to a reminder stops when it's under a mouse that has been still this
+   * long (a mouse put on it, or waiting in its path; not one sweeping across).
+   */
+  STOP_RUN_AFTER: 150,
+  /** …and it counts if the pet was under the mouse this recently (it runs on meanwhile). */
+  STOP_RUN_GRACE: 300,
 } as const;
 
 export type HoverEvent =
@@ -123,5 +133,32 @@ export class HoverTracker {
     if (a && Math.hypot(cursor.x - a.x, cursor.y - a.y) / unit < HOVER.STILL_WITHIN) return false;
     this.anchor = cursor;
     return a !== null;
+  }
+}
+
+/**
+ * The pet is running to the middle of the screen for a reminder and you put the mouse on it
+ * or in its way: once the mouse is still (unmoved, within STILL_WITHIN, for
+ * STOP_RUN_AFTER) and the pet is under it, or was within STOP_RUN_GRACE, it stops there and
+ * rings where it is. A running pet slips out from under a cursor in a fraction of a second,
+ * hence the grace. A mouse sweeping across doesn't count: it isn't still.
+ */
+export class RunStopper {
+  private stillSince = 0;
+  private overAt = -Infinity;
+  private anchor: { x: number; y: number } | null = null;
+
+  /** True when the pet should stop. `unit`: physical px per logical px. */
+  update(now: number, input: { running: boolean; over: boolean; cursor: { x: number; y: number } | null; unit: number }): boolean {
+    const { cursor } = input;
+    if (!cursor) return false;
+    const a = this.anchor;
+    if (!a || Math.hypot(cursor.x - a.x, cursor.y - a.y) / input.unit >= HOVER.STILL_WITHIN) {
+      this.anchor = cursor;
+      this.stillSince = now;
+    }
+    if (input.over) this.overAt = now;
+    if (!input.running) return false;
+    return now - this.stillSince >= HOVER.STOP_RUN_AFTER && now - this.overAt <= HOVER.STOP_RUN_GRACE;
   }
 }

@@ -35,8 +35,16 @@ Limits and reasons:
   a slow stroke still counts.
 - **Hover rules are off while:**
   - the pet is being dragged;
-  - an alarm or reminder is ringing (the bubble's buttons need the mouse);
-  - the pet is running to a reminder;
+  - an alarm or reminder is ringing, or a bubble waits for an answer (✓ Done / Later): the
+    buttons need the mouse, and a hover line would replace the bubble (it did before
+    0.32.1);
+  - the pet is running to a reminder, except for one rule (since 0.32.1): **the mouse put
+    on it, or waiting in its way, stops it where it is.** It counts once the mouse has been
+    still for 0.15 s and the pet is under it or was within 0.3 s (a running pet slips out
+    from under a cursor in a fraction of a second). It turns to the cursor and rings
+    there, and doesn't go on to the middle. A mouse sweeping across doesn't count. It
+    doesn't apply to walking back to the edge to hide, or to a remembrance's candle
+    (`RunStopper` in `brain/hover.ts`);
   - a focus session is on (the pet sits still anyway);
   - the pet is hidden, or a mini-game is open.
 
