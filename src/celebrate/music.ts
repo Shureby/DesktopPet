@@ -480,20 +480,17 @@ const REFLECTION: Piece = {
   ],
 };
 
-export const PIECES: Piece[] = [BIRTHDAY, CANON, ODE, JASMINE, FESTIVE, WALTZ, AISI, CHOPIN, TAPS, REFLECTION];
-
-// --- "Full" versions (for comparison): the accompaniment taken back up now that the click
+// --- Fuller versions (chosen by listening): the accompaniment taken back up now that the click
 // that made it sound like drumming is fixed, plus a swell and a little colour.
 
 /** A copy of `base` with its tracks changed by `edit` (tracks are copied first). */
 function fuller(base: Piece, level: number, edit: (tracks: Track[]) => Track[]): Piece {
   const tracks = base.tracks.map((t) => ({ ...t, events: [...t.events] }));
-  return { ...base, id: `${base.id}-full`, name: `${base.name} (full)`, level, swell: 0.15, tracks: edit(tracks) };
+  return { ...base, level, swell: 0.15, tracks: edit(tracks) };
 }
 
-const top = (chord: string | string[]) => (Array.isArray(chord) ? chord[chord.length - 1] : chord);
 
-export const FULL_PIECES: Piece[] = [
+const [BIRTHDAY_FULL, CANON_FULL, FESTIVE_FULL, WALTZ_FULL, CHOPIN_FULL, REFLECTION_FULL] = [
   fuller(BIRTHDAY, 0.32, (t) => {
     t[3].gain = 0.3;
     t[4] = { inst: "celesta", gain: 0.25, events: [{ t: 48, d: 2, p: ["C6", "E6", "G6"], v: 0.6 }] };
@@ -503,16 +500,6 @@ export const FULL_PIECES: Piece[] = [
     t[1].gain = 0.18;
     t[3].gain = 0.6;
     t.push({ inst: "celesta", gain: 0.15, events: seq(16, ["F#4", "E4", "D4", "C#4", "B3", "A3", "B3", "C#4"].map((p): Step => [p, 2]), 0.5) });
-    return t;
-  }),
-  fuller(ODE, 1.487, (t) => {
-    const chords = t[1].events.map((e) => e.p as string[]);
-    t.push({ inst: "piano", gain: 0.2, events: comp(0, 4, chords, 0.2) });
-    t.push({
-      inst: "celesta",
-      gain: 0.14,
-      events: chords.slice(8).map((c, i) => ({ t: 32 + i * 4, d: 2, p: transpose(top(c), 12), v: 0.5 })),
-    });
     return t;
   }),
   fuller(FESTIVE, 0.668, (t) => {
@@ -541,6 +528,23 @@ export const FULL_PIECES: Piece[] = [
     return t;
   }),
 ];
+
+export const PIECES: Piece[] = [
+  BIRTHDAY_FULL,
+  CANON_FULL,
+  ODE,
+  JASMINE,
+  FESTIVE_FULL,
+  WALTZ_FULL,
+  AISI,
+  CHOPIN_FULL,
+  TAPS,
+  REFLECTION_FULL,
+];
+
+export function pieceById(id: string | null | undefined): Piece | undefined {
+  return PIECES.find((p) => p.id === id);
+}
 
 // --- Synthesis -----------------------------------------------------------
 

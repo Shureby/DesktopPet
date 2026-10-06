@@ -116,9 +116,11 @@ const MIGRATIONS: &[&str] = &[
        prep TEXT NOT NULL,
        occurrence TEXT NOT NULL,
        PRIMARY KEY (anniversary_id, prep, occurrence));",
+    // v13: the music an anniversary plays on its day (none: its type's default).
+    "ALTER TABLE anniversaries ADD COLUMN music TEXT;",
 ];
 
-const ANNIVERSARY_COLUMNS: &str = "id, kind, icon, name, month, day, since, preps, effect, created_at";
+const ANNIVERSARY_COLUMNS: &str = "id, kind, icon, name, month, day, since, preps, effect, created_at, music";
 
 /// How long the celebration lasts if the settings don't say (`celebrate.seconds`, 10–60).
 const DEFAULT_CELEBRATE_SECONDS: u32 = 15;
@@ -378,6 +380,7 @@ impl Store {
             preps: serde_json::from_str(&preps).unwrap_or_default(),
             effect: r.get(8)?,
             created_at: r.get(9)?,
+            music: r.get(10)?,
         })
     }
 
@@ -421,9 +424,9 @@ impl Store {
     pub fn add_anniversary(&self, a: &NewAnniversary, now: Millis) -> Result<Anniversary> {
         let (name, preps) = Self::check_anniversary(a)?;
         self.conn.execute(
-            "INSERT INTO anniversaries (kind, icon, name, month, day, since, preps, effect, created_at, changed_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?9)",
-            params![a.kind, a.icon, name, a.month, a.day, a.since, serde_json::to_string(&preps)?, a.effect, now],
+            "INSERT INTO anniversaries (kind, icon, name, month, day, since, preps, effect, music, created_at, changed_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?10)",
+            params![a.kind, a.icon, name, a.month, a.day, a.since, serde_json::to_string(&preps)?, a.effect, a.music, now],
         )?;
         let id = self.conn.last_insert_rowid();
         self.anniversary(id)?.ok_or_else(|| StoreError::Invalid("not saved".into()))
@@ -434,8 +437,20 @@ impl Store {
         let (name, preps) = Self::check_anniversary(a)?;
         let changed = self.conn.execute(
             "UPDATE anniversaries SET kind = ?2, icon = ?3, name = ?4, month = ?5, day = ?6, since = ?7, preps = ?8,
-               effect = ?9, changed_at = ?10 WHERE id = ?1",
-            params![id, a.kind, a.icon, name, a.month, a.day, a.since, serde_json::to_string(&preps)?, a.effect, now],
+               effect = ?9, music = ?10, changed_at = ?11 WHERE id = ?1",
+            params![
+                id,
+                a.kind,
+                a.icon,
+                name,
+                a.month,
+                a.day,
+                a.since,
+                serde_json::to_string(&preps)?,
+                a.effect,
+                a.music,
+                now
+            ],
         )?;
         if changed == 0 {
             return Err(StoreError::Invalid("that anniversary no longer exists".into()));
@@ -548,6 +563,7 @@ impl Store {
             since: a.since,
             preps: a.preps.clone(),
             effect: a.effect,
+            music: a.music.clone(),
             created_at: now,
         };
         let years = a.since.map(|y| on.year() - y).filter(|&n| n > 0);
@@ -1770,6 +1786,7 @@ mod tests {
                 AnniversaryPrep { lead: "2d".into(), label: "  ".into() },
             ],
             effect: true,
+            music: None,
         }
     }
 
@@ -1844,9 +1861,14 @@ mod tests {
         assert!(s.add_anniversary(&NewAnniversary { month: 2, day: 30, ..birthday(10) }, 0).is_err());
         let leap = s.add_anniversary(&NewAnniversary { month: 2, day: 29, ..birthday(10) }, 0).unwrap();
         let edited = s
-            .update_anniversary(leap.id, &NewAnniversary { name: "Dad".into(), effect: false, ..birthday(3) }, 5)
+            .update_anniversary(
+                leap.id,
+                &NewAnniversary { name: "Dad".into(), effect: false, music: Some("canon".into()), ..birthday(3) },
+                5,
+            )
             .unwrap();
         assert_eq!((edited.name.as_str(), edited.month, edited.day, edited.effect), ("Dad", 1, 3, false));
+        assert_eq!(edited.music.as_deref(), Some("canon"));
         assert!(s.update_anniversary(999, &birthday(3), 5).is_err());
     }
 

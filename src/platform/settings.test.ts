@@ -26,6 +26,17 @@ describe("mergeSettings", () => {
     expect(m("abc").minutes).toBe(60);
   });
 
+  it("keeps anniversary music off by default and its volume within 0–1", () => {
+    // Saved by 0.26/0.27: no music fields yet.
+    const old = mergeSettings({ celebrate: { enabled: false, seconds: 30 } } as unknown as Partial<Settings>);
+    expect(old.celebrate).toEqual({ enabled: false, seconds: 30, music: false, musicVolume: 0.5 });
+    const c = (musicVolume: unknown) =>
+      mergeSettings({ celebrate: { enabled: true, seconds: 15, music: true, musicVolume } } as unknown as Partial<Settings>).celebrate;
+    expect(c(0.2)).toEqual({ enabled: true, seconds: 15, music: true, musicVolume: 0.2 });
+    expect(c(3).musicVolume).toBe(1);
+    expect(c("x").musicVolume).toBe(0.5);
+  });
+
   it("handles missing settings", () => {
     expect(mergeSettings(null)).toEqual(DEFAULT_SETTINGS);
   });

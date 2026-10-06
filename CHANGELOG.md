@@ -16,6 +16,21 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-10-06
+
+### Added
+- Music for anniversaries, synthesized in the app (no audio files). Settings → To-do
+  reminders → "Play music with it" (off by default) and its volume. It plays with the
+  celebration and its preview, for the same length, fading out at the end; an alarm
+  ringing over it stops it.
+  - Birthdays (a pet's too) play Happy Birthday and weddings Pachelbel's Canon. Other happy
+    days choose from six pieces in the form (default: the music-box waltz), a remembrance
+    from four mourning pieces (default: an original Chinese-style piece).
+
+### Changed
+- A remembrance's candle is bigger (about 12% of the screen's height), between two small
+  bouquets of three white chrysanthemums.
+
 ## [0.27.1] - 2026-10-06
 
 ### Fixed

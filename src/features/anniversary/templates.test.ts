@@ -1,9 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { celebrationEffect, celebrationLines, daysUntil, nextAnniversary, ordinal, untilText, yearsText } from "./templates";
+import { celebrationEffect, celebrationLines, daysUntil, musicChoices, musicFor, nextAnniversary, ordinal, untilText, yearsText } from "./templates";
 
 const at = (y: number, m: number, d: number) => new Date(y, m - 1, d, 10).getTime();
 
 describe("anniversaries", () => {
+  it("play music by type", () => {
+    // Birthdays (a pet's too) and weddings always play their own.
+    expect(musicFor({ kind: "birthday", music: "canon" }).id).toBe("birthday");
+    expect(musicFor({ kind: "pet", music: null }).id).toBe("birthday");
+    expect(musicFor({ kind: "wedding", music: "waltz" }).id).toBe("canon");
+    // Others choose among their mood's pieces; nothing chosen, or one that doesn't suit: the default.
+    expect(musicFor({ kind: "work", music: null }).id).toBe("waltz");
+    expect(musicFor({ kind: "dating", music: "jasmine" }).id).toBe("jasmine");
+    expect(musicFor({ kind: "custom", music: "chopin" }).id).toBe("waltz");
+    expect(musicFor({ kind: "remembrance", music: null }).id).toBe("aisi");
+    expect(musicFor({ kind: "remembrance", music: "taps" }).id).toBe("taps");
+    expect(musicFor({ kind: "remembrance", music: "festive" }).id).toBe("aisi");
+    expect(musicChoices("remembrance").map((p) => p.id)).toEqual(["aisi", "chopin", "taps", "reflection"]);
+    expect(musicChoices("home").every((p) => p.mood === "happy")).toBe(true);
+  });
+
   it("count years the way people say them", () => {
     expect([1, 2, 3, 4, 11, 12, 13, 21, 22, 36, 101, 111].map(ordinal)).toEqual([
       "1st", "2nd", "3rd", "4th", "11th", "12th", "13th", "21st", "22nd", "36th", "101st", "111th",

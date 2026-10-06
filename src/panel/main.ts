@@ -30,6 +30,8 @@ import {
   TEMPLATES,
   untilText,
   yearsText,
+  musicChoices,
+  musicFor,
   type AnniversaryKind,
 } from "../features/anniversary/templates";
 import { GAMES } from "../features/games/catalog";
@@ -371,6 +373,8 @@ interface AnniversaryDraft {
   since: string;
   preps: AnniversaryPrep[];
   effect: boolean;
+  /** The piece chosen in the form; null: the type's default. */
+  music: string | null;
   iconTouched: boolean;
   prepsTouched: boolean;
   effectTouched: boolean;
@@ -388,6 +392,7 @@ function newAnniversaryDraft(kind: AnniversaryKind = "birthday"): AnniversaryDra
     since: "",
     preps: t.preps.map((p) => ({ ...p })),
     effect: t.effect,
+    music: null,
     iconTouched: false,
     prepsTouched: false,
     effectTouched: false,
@@ -418,6 +423,8 @@ function renderAnniversaries(list: Anniversary[]): Node {
         if (!draft.iconTouched) draft.icon = t.icon;
         if (!draft.prepsTouched) draft.preps = t.preps.map((p) => ({ ...p }));
         if (!draft.effectTouched) draft.effect = t.effect;
+        // A happy piece doesn't carry over to a remembrance, nor the other way.
+        if (!musicChoices(kind).some((p) => p.id === draft.music)) draft.music = null;
         redraw();
       },
     },
@@ -506,6 +513,25 @@ function renderAnniversaries(list: Anniversary[]): Node {
     remembrance ? "Candle and flowers on the day 🕯️" : "Fireworks on the day 🎆",
     settings.celebrate.enabled ? null : h("small", { class: "hint" }, " · off in Settings"),
   );
+  // Music: Birthday and Wedding always play their own; the others choose by mood.
+  const piece = musicFor(draft);
+  const musicOff = settings.celebrate.music ? null : h("small", { class: "hint" }, " · off in Settings");
+  const music = TEMPLATES[draft.kind].musicFixed
+    ? h("div", { class: "row" }, h("span", { class: "lbl" }, "Music"), h("span", { class: "fixed-music" }, `🎵 ${piece.name}`), musicOff)
+    : h(
+        "div",
+        { class: "row" },
+        h("span", { class: "lbl" }, "Music"),
+        h(
+          "select",
+          {
+            class: "ann-music",
+            onchange: (e: Event) => (draft.music = (e.target as HTMLSelectElement).value),
+          },
+          ...musicChoices(draft.kind).map((p) => h("option", { value: p.id, selected: p.id === piece.id }, p.name)),
+        ),
+        musicOff,
+      );
   /** What the form holds, as it would be saved. */
   const formAnniversary = (): NewAnniversary => {
     const [, mm, dd] = draft.date.split("-").map(Number);
@@ -519,6 +545,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
       since: Number.isInteger(year) && year >= 1900 && year <= new Date().getFullYear() ? year : null,
       preps: draft.preps.filter((p) => p.label.trim()),
       effect: draft.effect,
+      music: TEMPLATES[draft.kind].musicFixed ? null : draft.music,
     };
   };
   // "▶ Preview" plays the day's celebration as the form stands (unsaved is fine; no name yet
@@ -547,6 +574,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
       since: a.since === null ? "" : String(a.since),
       preps: a.preps.map((p) => ({ ...p })),
       effect: a.effect,
+      music: a.music,
       iconTouched: true,
       prepsTouched: true,
       effectTouched: true,
@@ -621,6 +649,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
           )
         : null,
       effect,
+      music,
       h(
         "div",
         { class: "row end" },
@@ -1466,7 +1495,33 @@ function celebrateRow(): Node {
       }),
       "s",
     ),
-    h("p", { class: "hint" }, "Fireworks, or a candle and flowers for a remembrance. Each anniversary can turn its own off; when this is off, your pet just says it."),
+    h(
+      "div",
+      { class: "row celebrate-music" },
+      h(
+        "label",
+        { class: "check" },
+        h("input", { type: "checkbox", checked: c.music, onchange: () => void save({ celebrate: { ...c, music: !c.music } }) }),
+        "Play music with it",
+      ),
+      h("span", { class: "hint" }, "🔈"),
+      h("input", {
+        type: "range",
+        min: 0,
+        max: 1,
+        step: 0.05,
+        value: c.musicVolume,
+        disabled: !c.music,
+        title: "Music volume",
+        onchange: (e: Event) => void save({ celebrate: { ...c, musicVolume: Number((e.target as HTMLInputElement).value) } }),
+      }),
+    ),
+    h(
+      "p",
+      { class: "hint" },
+      "Fireworks, or a candle and flowers for a remembrance. Each anniversary can turn its own off; when this is off, your pet just says it. " +
+        "The music is chosen with each anniversary (▶ Preview plays it).",
+    ),
   );
 }
 

@@ -362,6 +362,12 @@ Code: `renderAnniversaries` in `src/panel/main.ts`, `src/features/anniversary/te
   - **The day's effect:** "Fireworks on the day 🎆" (on for happy days), or for a
     remembrance "Candle and flowers on the day 🕯️" (off by default, since some find it
     unlucky, but the day is still remembered).
+  - **Music (since 0.28.0):** Birthday and Pet's birthday always play "Happy Birthday",
+    and Wedding anniversary Pachelbel's Canon (shown, not a choice). Other happy days
+    choose from the happy pieces (default: the music-box waltz); a remembrance chooses
+    from the mourning ones (default: Remembrance, an original Chinese-style piece). Changing the
+    type between happy and remembrance goes back to the new type's default. "· off in
+    Settings" shows while the music setting is off.
 - **The list:** soonest first: "Sat, 25 Oct · in 3 days · 36th" (orange within a week,
   "Today 🎉" on the day), and the reminders. ✎ (on hover) edits it like alarms and to-dos.
   ✕ deletes it, but the to-dos it already made stay.
@@ -380,10 +386,23 @@ Code: `renderAnniversaries` in `src/panel/main.ts`, `src/features/anniversary/te
     click-through window over the pet's monitor:
     - **Fireworks**, with the anniversary's icon and its template's icons falling
       (🎂🎈🎁, 💍❤️🥂…);
-    - **for a remembrance:** the screen dims, a white candle flickers between two white
-      chrysanthemums beside the pet.
+    - **for a remembrance:** the screen dims, and a white candle about 12% of the screen's
+      height flickers between two small bouquets of three white chrysanthemums, beside
+      the pet and clear of its bubble (since 0.28.0; one small flower each side before).
   - **Settings → To-do reminders → "Celebrate anniversaries on screen for [15] s"**
     (10–60 s). Off: no effect, the pet just says it.
+  - **Music (since 0.28.0):** "Play music with it" (off by default) and its volume, under
+    the line above. When on, the anniversary's piece plays in the pet's window for the
+    celebration's length (looping; every piece is 30 or 60 s) and fades out over its last
+    2 s. It plays even if the effect is off. An alarm or reminder ringing over it stops
+    it.
+    - The pieces are synthesized (`src/celebrate/music.ts`), no audio files. Happy:
+      Happy Birthday, Canon in D, Ode to Joy, Jasmine Flower (茉莉花), Festive (original,
+      Chinese style), Music-box waltz (original). Mourning: Remembrance (original, Chinese
+      style), Chopin's funeral march, Taps, Reflection (original, piano). The melodies
+      are public domain or written for ePet. 《哀乐》 isn't used: it's under copyright
+      until 2065.
+    - Every piece is levelled by its average loudness, and a limiter stops any clipping.
   - **Hidden pet:** it comes out for it if "When hidden, it comes out for → Anniversaries"
     is ticked (the default). Otherwise the celebration waits until the pet is shown that
     day.
@@ -396,7 +415,8 @@ Code: `renderAnniversaries` in `src/panel/main.ts`, `src/features/anniversary/te
     name yet, it borrows the template's.
   - Each row's ▶ (on hover, before ✎) previews a saved anniversary.
   - It's exactly what the day does: the words, the years, the effect or none (the
-    anniversary's switch and the setting), and the length.
+    anniversary's switch and the setting), the music or none (the setting), and the
+    length.
   - It marks nothing: the real day still celebrates, and no reminder to-dos are made.
   - A hidden pet comes out for it.
   - The effect window is shown only after it's made click-through, so it can never block

@@ -1,6 +1,6 @@
 import { HoverTracker } from "../brain/hover";
 import { todoRemindsAt } from "../features/todo/repeat";
-import { celebrationEffect, celebrationLines } from "../features/anniversary/templates";
+import { celebrationEffect, celebrationLines, musicFor } from "../features/anniversary/templates";
 import { playEffect } from "../celebrate/effects";
 import { applyMoodEvent, isHungry, moodTier, parseMood, type MoodEvent } from "../brain/mood";
 import { RulesBrain } from "../brain/RulesBrain";
@@ -42,7 +42,7 @@ import type { Alarm, Backend, Celebration, PetActivity, PomodoroStatus, Reminder
 import type { CareAction } from "../characters/schema";
 import { buildTrayItems, nativeMenu, showPetMenu, type MenuContext } from "./menu";
 import { inQuietHours } from "./quietHours";
-import { playRingtone, ringAlarm, sounds } from "./sound";
+import { playMusic, playRingtone, ringAlarm, sounds } from "./sound";
 
 const STEP = 1 / 30;
 /**
@@ -107,6 +107,8 @@ export class PetHost {
   private queued: ReminderEvent[] = [];
   /** To-dos without a time arriving together, told in one bubble (remindDayTodo). */
   private dayTodos: ReminderEvent[] = [];
+  /** Stops the anniversary music playing now (an alarm ringing over it stops it). */
+  private stopMusic: (() => void) | null = null;
   /** Anniversaries that came while an alarm rang: celebrated after it. */
   private celebrations: Celebration[] = [];
   /** A game asked for during a focus session while something was ringing (see playGame). */
@@ -1086,6 +1088,11 @@ export class PetHost {
     important = false,
   ): void {
     if (this.activeRing && !onTimeout) return;
+    // An alarm or reminder ringing stops the anniversary music.
+    if (onTimeout) {
+      this.stopMusic?.();
+      this.stopMusic = null;
+    }
     if (!onTimeout && !important && Date.now() < this.importantUntil) return;
     // Don't talk over the custom-timer prompt (an alarm still takes priority).
     if (this.prompting && !onTimeout) return;
@@ -1312,6 +1319,15 @@ export class PetHost {
     if (remembrance) this.pet.fsm.set("sit", true);
     else this.pet.react({ type: "praise" });
     this.say(sub ? [line, sub] : line, c.seconds * 1000, [], undefined, true);
+    const music = this.settings.celebrate;
+    if (music.music) {
+      this.stopMusic?.();
+      const stop = playMusic(musicFor(c.anniversary), c.seconds, music.musicVolume);
+      this.stopMusic = stop;
+      setTimeout(() => {
+        if (this.stopMusic === stop) this.stopMusic = null;
+      }, c.seconds * 1000);
+    }
     if (c.effect && !this.windowed) {
       const canvas = document.createElement("canvas");
       // Under the pet and its bubble, like the app's window under the pet's.

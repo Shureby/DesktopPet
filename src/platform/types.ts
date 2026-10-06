@@ -61,8 +61,11 @@ export interface Settings {
   upcomingAlarms: { show: boolean; minutes: number };
   /** "HH:MM": when to-dos without a time remind you on their day. */
   todoDayTime: string;
-  /** Anniversaries on screen (fireworks, or a remembrance's candle) and for how long (10–60 s). */
-  celebrate: { enabled: boolean; seconds: number };
+  /**
+   * Anniversaries on screen (fireworks, or a remembrance's candle) and for how long (10–60 s);
+   * music with it (off by default) and its volume (0–1).
+   */
+  celebrate: { enabled: boolean; seconds: number; music: boolean; musicVolume: number };
   pomodoro: PomodoroConfig;
   autostart: boolean;
 }
@@ -81,7 +84,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hiddenAlerts: { alarms: true, timers: true, todos: true, focus: false, anniversaries: true },
   upcomingAlarms: { show: true, minutes: 60 },
   todoDayTime: "09:00",
-  celebrate: { enabled: true, seconds: 15 },
+  celebrate: { enabled: true, seconds: 15, music: false, musicVolume: 0.5 },
   pomodoro: {
     focusMin: 25,
     shortBreakMin: 5,
@@ -117,7 +120,13 @@ export function mergeSettings(stored: Partial<Settings> | null | undefined): Set
     celebrate: (() => {
       const c = { ...d.celebrate, ...s.celebrate };
       const seconds = Math.round(Number(c.seconds));
-      return { enabled: c.enabled !== false, seconds: Number.isFinite(seconds) ? Math.min(60, Math.max(10, seconds)) : 15 };
+      const vol = Number(c.musicVolume);
+      return {
+        enabled: c.enabled !== false,
+        seconds: Number.isFinite(seconds) ? Math.min(60, Math.max(10, seconds)) : 15,
+        music: c.music === true,
+        musicVolume: Number.isFinite(vol) ? Math.min(1, Math.max(0, vol)) : d.celebrate.musicVolume,
+      };
     })(),
     todoDayTime: typeof s.todoDayTime === "string" && /^\d{2}:\d{2}$/.test(s.todoDayTime) ? s.todoDayTime : d.todoDayTime,
     pomodoro: { ...d.pomodoro, ...s.pomodoro, workHours: { ...d.pomodoro.workHours, ...s.pomodoro?.workHours } },
@@ -252,6 +261,8 @@ export interface Anniversary {
   preps: AnniversaryPrep[];
   /** Fireworks (a remembrance: a candle and flowers) on the day. */
   effect: boolean;
+  /** The piece played on the day (src/celebrate/music.ts); null: the type's default. */
+  music: string | null;
   createdAt: number;
 }
 

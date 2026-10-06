@@ -163,7 +163,7 @@ function checkAnniversary(a: NewAnniversary): NewAnniversary {
   if (!name) throw new Error("name is empty");
   if (new Date(2000, a.month - 1, a.day).getDate() !== a.day) throw new Error("no such day");
   const preps = a.preps.filter((p) => p.label.trim()).slice(0, 3).map((p) => ({ lead: p.lead, label: p.label.trim() }));
-  return { ...a, name, preps };
+  return { ...a, name, preps, music: a.music ?? null };
 }
 
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -383,7 +383,8 @@ export const mockBackend: Backend = {
     fire("todos-changed", null);
   },
   async listAnniversaries() {
-    return (load().anniversaries ?? []).map(({ changedAt: _c, celebratedOn: _d, ...a }) => a);
+    // Saved before 0.28.0: no music chosen (the type's default).
+    return (load().anniversaries ?? []).map(({ changedAt: _c, celebratedOn: _d, ...a }) => ({ ...a, music: a.music ?? null }));
   },
   async addAnniversary(a) {
     const checked = checkAnniversary(a);

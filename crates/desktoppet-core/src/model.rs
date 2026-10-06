@@ -356,6 +356,9 @@ pub struct Anniversary {
     pub preps: Vec<AnniversaryPrep>,
     /// Fireworks (or, for a remembrance, a candle and flowers) on the day.
     pub effect: bool,
+    /// The piece played on the day (`src/celebrate/music.ts`); none: the type's default.
+    #[serde(default)]
+    pub music: Option<String>,
     pub created_at: Millis,
 }
 
@@ -381,6 +384,8 @@ pub struct NewAnniversary {
     pub preps: Vec<AnniversaryPrep>,
     #[serde(default)]
     pub effect: bool,
+    #[serde(default)]
+    pub music: Option<String>,
 }
 
 /// Today is an anniversary: the pet celebrates it (and the app may play the effect).

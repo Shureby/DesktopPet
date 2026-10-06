@@ -981,3 +981,9 @@ details.upcoming summary > :first-child {
   width: 64px;
   margin: 0 4px;
 }
+.box.alert .celebrate-music input[type="range"] {
+  width: 110px;
+}
+.ann-form select.ann-music {
+  flex: 1;
+}

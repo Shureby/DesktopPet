@@ -702,6 +702,18 @@
           "expect": "点预览后宠物马上说那句话、屏幕播放效果；播放期间和结束后，宠物所在屏幕上的所有窗口（包括 ePet 面板）都能正常点击，不会卡死；预览和当天的庆祝一模一样（说的话、第几年、效果、时长），没填名字时用模板名；预览不会保存纪念日、不会生成待办；隐藏时宠物出来，播完回去；总开关关掉时只说一句话；预览过的今天的纪念日，动鼠标后仍会真正庆祝一次"
         },
         {
+          "id": "anniv.music-form",
+          "rev": "0.28.0",
+          "do": "Settings 里音乐先关着；在 Anniversaries 表单依次选 Type：Birthday、Pet's birthday、Wedding anniversary、Work anniversary、Remembrance；Work 时选 Jasmine Flower 后保存，再 ✎ 编辑它；把一个选了 Taps 的 Remembrance 改成 Custom",
+          "expect": "Birthday 和 Pet's birthday 显示 “Music 🎵 Happy Birthday”，Wedding 显示 “🎵 Canon in D (Pachelbel)”，都不能改；其他喜庆类型是下拉框，只有 6 首喜庆曲目，默认 Music-box waltz；Remembrance 只有 4 首哀乐，默认 Remembrance (original, Chinese style)；音乐关着时旁边写 “· off in Settings”；编辑时保留选的曲目；喜庆和祭日之间换类型时回到新类型的默认曲目"
+        },
+        {
+          "id": "anniv.music-play",
+          "rev": "0.28.0",
+          "do": "Settings → To-do reminders 勾上 “Play music with it”，音量调一半；分别 ▶ Preview 一个生日、一个结婚纪念日、一个选了 Ode to Joy 的 Custom、一个默认的 Remembrance；把时长设成 60 秒再听一次；播放中设一个 1 分钟后的计时器让它响；最后把音量拉到最右、再关掉音乐预览一次",
+          "expect": "每次预览都和效果一起放对应的曲子（生日歌、卡农、欢乐颂、哀思）；不同曲目听起来音量差不多，没有爆音、咔哒声；伴奏不盖过主旋律；时长到了音乐在最后 2 秒淡出，和效果、那句话一起结束；60 秒时曲子循环衔接自然；计时器响时音乐停下；关掉 “Celebrate anniversaries on screen” 时音乐照样放；关掉音乐后预览没有声音"
+        },
+        {
           "id": "anniv.prep-todo",
           "rev": "0.26.0",
           "do": "建一个明天的纪念日，提前提醒 1 day / Buy flowers 和 1 week / Book a restaurant；切到 To-dos 子页；关掉 ePet，第二天再开（或改系统日期）测一个昨天该生成的提醒",
@@ -715,9 +727,9 @@
         },
         {
           "id": "anniv.candle",
-          "rev": "0.27.1",
+          "rev": "0.28.0",
           "do": "Type 选 Remembrance、Since 2019，先不勾 “Candle and flowers on the day” 点 ▶ Preview；再勾上预览一次",
-          "expect": "不勾：没有屏幕效果，宠物安静地说 “🕯️ Remembering 名字 today.”，下面写 “7 years”，宠物不做开心的动作；勾上：屏幕变暗，宠物旁边（不被气泡挡住）一支白蜡烛在闪动、两边各一朵白菊花，宠物坐着不动，时间到自动消失"
+          "expect": "不勾：没有屏幕效果，宠物安静地说 “🕯️ Remembering 名字 today.”，下面写 “7 years”，宠物不做开心的动作；勾上：屏幕变暗，宠物旁边（不被气泡挡住）一支白蜡烛在闪动，蜡烛约屏幕高度的 1/8，两边各一小束（3 朵）白菊花，宠物坐着不动，时间到自动消失"
         },
         {
           "id": "anniv.settings",

@@ -2,6 +2,8 @@
  * Synthesized sounds and ringtones (WebAudio), so the app needs no audio files.
  * Characters or skins can ship recorded sounds later.
  */
+import { playPiece, type Piece } from "../celebrate/music";
+
 let ctx: AudioContext | null = null;
 
 function audio(): AudioContext | null {
@@ -129,3 +131,17 @@ export const sounds = {
   chime: () => playRingtone("chime", 0.5),
   pop: () => play([{ f: 660, at: 0, dur: 0.08 }], 0.4),
 };
+
+/** An anniversary's music for `seconds` (fading out at the end). Returns a function that stops it early. */
+export function playMusic(piece: Piece, seconds: number, volume: number): () => void {
+  const c = audio();
+  if (!c || volume <= 0) return () => {};
+  const out = playPiece(c, piece, c.currentTime + 0.05, seconds, volume);
+  return () => {
+    const now = c.currentTime;
+    out.gain.cancelScheduledValues(now);
+    out.gain.setValueAtTime(out.gain.value, now);
+    out.gain.linearRampToValueAtTime(0.0001, now + 0.4);
+    setTimeout(() => out.disconnect(), 500);
+  };
+}

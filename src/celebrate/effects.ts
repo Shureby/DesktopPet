@@ -162,20 +162,37 @@ function fireworksScene(ctx: CanvasRenderingContext2D, w: number, h: number, o: 
 
 function candleScene(ctx: CanvasRenderingContext2D, w: number, h: number, o: EffectOptions) {
   const baseY = Math.min(h - 8, o.petY);
-  // Beside the pet, clear of its bubble (about 220 px wide, centred on it).
-  const cx = o.petX - 170 > 70 ? o.petX - 170 : Math.min(w - 70, o.petX + 170);
+  // The candle is about 12% of the screen's height (drawn at 58 px, scaled up).
+  const k = Math.min(3, Math.max(1.3, (h * 0.12) / 58));
+  // Beside the pet, clear of its bubble (about 220 px wide, centred on it); the scene
+  // reaches about 85 px (scaled) either side of the candle.
+  const reach = 85 * k;
+  const gap = 115 + reach;
+  const cx = o.petX - gap > reach ? o.petX - gap : Math.min(w - reach, o.petX + gap);
   return (t: number) => {
     // The screen dims, with warm light around the candle.
-    const glow = ctx.createRadialGradient(cx, baseY - 60, 10, cx, baseY - 60, Math.max(w, h) * 0.6);
+    const glow = ctx.createRadialGradient(cx, baseY - 60 * k, 10, cx, baseY - 60 * k, Math.max(w, h) * 0.6);
     glow.addColorStop(0, "rgba(255, 190, 110, 0.30)");
     glow.addColorStop(0.25, "rgba(60, 40, 30, 0.35)");
     glow.addColorStop(1, "rgba(5, 5, 15, 0.55)");
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, w, h);
-    chrysanthemum(ctx, cx - 46, baseY, t, 0);
-    chrysanthemum(ctx, cx + 46, baseY, t, 1.7);
-    candle(ctx, cx, baseY, t);
+    ctx.save();
+    ctx.translate(cx, baseY);
+    ctx.scale(k, k);
+    bouquet(ctx, -54, t, -1, 0);
+    bouquet(ctx, 54, t, 1, 1.7);
+    candle(ctx, 0, 0, t);
+    ctx.restore();
   };
+}
+
+/** Three white chrysanthemums fanned out, on the side of the candle `side` says (-1 left, 1 right). */
+function bouquet(ctx: CanvasRenderingContext2D, x: number, t: number, side: -1 | 1, phase: number) {
+  // Back to front: the tall one in the middle, then the outer, then the inner (lowest).
+  chrysanthemum(ctx, x, 0, t, phase, 58, 0);
+  chrysanthemum(ctx, x + side * 4, 0, t, phase + 0.8, 46, side * 15);
+  chrysanthemum(ctx, x - side * 4, 0, t, phase + 1.9, 36, -side * 12);
 }
 
 function candle(ctx: CanvasRenderingContext2D, x: number, base: number, t: number) {
@@ -218,21 +235,21 @@ function candle(ctx: CanvasRenderingContext2D, x: number, base: number, t: numbe
   ctx.fill();
 }
 
-/** A white chrysanthemum on a stem, swaying a little. */
-function chrysanthemum(ctx: CanvasRenderingContext2D, x: number, base: number, t: number, phase: number) {
+/** A white chrysanthemum on a stem `stem` px tall, its head `lean` px to the side, swaying a little. */
+function chrysanthemum(ctx: CanvasRenderingContext2D, x: number, base: number, t: number, phase: number, stem = 46, lean = 0) {
   const sway = Math.sin(t / 900 + phase) * 2;
-  const top = base - 46;
+  const top = base - stem;
   ctx.strokeStyle = "#4f7a3a";
   ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.moveTo(x, base);
-  ctx.quadraticCurveTo(x - 4, base - 24, x + sway, top);
+  ctx.quadraticCurveTo(x - 4 + lean * 0.3, base - stem / 2, x + lean + sway, top);
   ctx.stroke();
   ctx.fillStyle = "#5f8f45";
   ctx.beginPath();
-  ctx.ellipse(x - 7, base - 18, 8, 3.5, -0.5, 0, Math.PI * 2);
+  ctx.ellipse(x - 7 + lean * 0.4, base - stem * 0.4, 8, 3.5, -0.5, 0, Math.PI * 2);
   ctx.fill();
-  const cx = x + sway;
+  const cx = x + lean + sway;
   for (const [n, r, len] of [
     [18, 0, 15],
     [14, 0.2, 11],

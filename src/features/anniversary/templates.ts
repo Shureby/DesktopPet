@@ -1,4 +1,5 @@
 import type { Anniversary, AnniversaryPrep } from "../../platform/types";
+import { PIECES, pieceById, type Piece } from "../../celebrate/music";
 
 /**
  * Anniversary templates (docs/INTERACTIONS.md, "Anniversaries"): picking one fills in the
@@ -16,6 +17,9 @@ export interface AnniversaryTemplate {
   /** What falls with the fireworks, after the anniversary's own icon. */
   falling: string[];
   placeholder: string;
+  /** The music on the day (src/celebrate/music.ts): the default, or the only one when `musicFixed`. */
+  music: string;
+  musicFixed?: boolean;
 }
 
 export const TEMPLATES: Record<AnniversaryKind, AnniversaryTemplate> = {
@@ -29,6 +33,8 @@ export const TEMPLATES: Record<AnniversaryKind, AnniversaryTemplate> = {
     effect: true,
     falling: ["🎈", "🎁"],
     placeholder: "Whose birthday? e.g. Mum",
+    music: "birthday",
+    musicFixed: true,
   },
   wedding: {
     label: "Wedding anniversary",
@@ -40,6 +46,8 @@ export const TEMPLATES: Record<AnniversaryKind, AnniversaryTemplate> = {
     effect: true,
     falling: ["❤️", "🥂"],
     placeholder: "e.g. Our wedding",
+    music: "canon",
+    musicFixed: true,
   },
   dating: {
     label: "Dating anniversary",
@@ -48,10 +56,20 @@ export const TEMPLATES: Record<AnniversaryKind, AnniversaryTemplate> = {
     effect: true,
     falling: ["🌹", "❤️"],
     placeholder: "e.g. Us",
+    music: "waltz",
   },
-  pet: { label: "Pet's birthday", icon: "🐾", preps: [{ lead: "1d", label: "Buy treats" }], effect: true, falling: ["🦴", "🎈"], placeholder: "Your pet's name" },
-  work: { label: "Work anniversary", icon: "🏆", preps: [], effect: true, falling: ["🎉", "⭐"], placeholder: "e.g. Joined EzyAppCo" },
-  home: { label: "Home anniversary", icon: "🏠", preps: [], effect: true, falling: ["🎉", "🎈"], placeholder: "e.g. Moved in" },
+  pet: {
+    label: "Pet's birthday",
+    icon: "🐾",
+    preps: [{ lead: "1d", label: "Buy treats" }],
+    effect: true,
+    falling: ["🦴", "🎈"],
+    placeholder: "Your pet's name",
+    music: "birthday",
+    musicFixed: true,
+  },
+  work: { label: "Work anniversary", icon: "🏆", preps: [], effect: true, falling: ["🎉", "⭐"], placeholder: "e.g. Joined EzyAppCo", music: "waltz" },
+  home: { label: "Home anniversary", icon: "🏠", preps: [], effect: true, falling: ["🎉", "🎈"], placeholder: "e.g. Moved in", music: "waltz" },
   remembrance: {
     label: "Remembrance",
     icon: "🕯️",
@@ -59,8 +77,9 @@ export const TEMPLATES: Record<AnniversaryKind, AnniversaryTemplate> = {
     effect: false,
     falling: [],
     placeholder: "Who you remember",
+    music: "aisi",
   },
-  custom: { label: "Custom", icon: "🌟", preps: [], effect: true, falling: ["🎉", "🎊"], placeholder: "Name" },
+  custom: { label: "Custom", icon: "🌟", preps: [], effect: true, falling: ["🎉", "🎊"], placeholder: "Name", music: "waltz" },
 };
 
 export const KINDS = Object.keys(TEMPLATES) as AnniversaryKind[];
@@ -125,6 +144,19 @@ export function celebrationLines(a: Pick<Anniversary, "kind" | "name" | "icon">,
 export function celebrationEffect(a: Pick<Anniversary, "kind" | "icon">): { mode: "fireworks" | "candle"; icons: string[] } {
   if (a.kind === "remembrance") return { mode: "candle", icons: [] };
   return { mode: "fireworks", icons: [a.icon, ...templateOf(a.kind).falling.filter((i) => i !== a.icon)] };
+}
+
+/** The pieces it can choose from: happy ones, or for a remembrance the mourning ones. */
+export function musicChoices(kind: string): Piece[] {
+  const mood = kind === "remembrance" ? "mourning" : "happy";
+  return PIECES.filter((p) => p.mood === mood);
+}
+
+/** The piece it plays: the template's own when fixed, else its choice (if it suits), else the default. */
+export function musicFor(a: Pick<Anniversary, "kind" | "music">): Piece {
+  const t = templateOf(a.kind);
+  const chosen = t.musicFixed ? undefined : musicChoices(a.kind).find((p) => p.id === a.music);
+  return chosen ?? pieceById(t.music) ?? PIECES[0];
 }
 
 /** The next time it comes round, on or after `now`'s day (Feb 29 is Feb 28 in other years). */
