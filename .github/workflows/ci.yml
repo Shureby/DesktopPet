@@ -81,7 +81,7 @@ jobs:
     name: End-to-end (Windows)
     needs: test
     runs-on: windows-latest
-    timeout-minutes: 60
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -111,7 +111,7 @@ jobs:
         run: npx vitest run --reporter=default --reporter=json --outputFile.json=e2e-results/unit.json
       - name: End-to-end tests
         if: success() || failure()
-        timeout-minutes: 30
+        timeout-minutes: 45
         run: npm run e2e
         env:
           EPET_APP: ${{ github.workspace }}\target\debug\desktoppet.exe

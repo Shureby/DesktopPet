@@ -84,6 +84,10 @@ struct Presence {
 
 impl Presence {
     fn moved<R: Runtime>(&mut self, app: &AppHandle<R>) -> bool {
+        // The end-to-end tests stand in for a mouse move (e2e_present).
+        if app.state::<AppState>().e2e_present.swap(false, std::sync::atomic::Ordering::Relaxed) {
+            return true;
+        }
         let Ok(p) = app.cursor_position() else {
             return false;
         };

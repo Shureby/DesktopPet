@@ -16,6 +16,22 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.32.4] - 2026-10-07
+
+## [0.32.4] - 2026-10-07
+
+### Added (development)
+- The rest of the pet's timed behaviour is tested on every push: alarms ringing, snoozing
+  themselves and being missed, the 🔔 badge, the hidden pet coming out and going back,
+  "While I was hidden you missed…", to-do reminders, anniversaries (previews, fireworks,
+  the candle, two on one day, their music and settings) and the sound settings (25 more
+  items; 112 of 146 in all). The tests check which sounds and music play, not how they sound.
+- Debug builds started for the tests can stand in for a mouse move (`e2e_present`, so a
+  day's anniversary is celebrated), and keep a log of what was played.
+
+### Changed (development)
+- A snooze may be shorter than a minute when Settings say so (only the tests do).
+
 ## [0.32.3] - 2026-10-07
 
 ## [0.32.3] - 2026-10-07

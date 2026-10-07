@@ -13,6 +13,8 @@ pub struct AppState {
     pub pet_hidden: AtomicBool,
     /// The hidden pet is out for a reminder ("peek"); `end_peek` sends it back.
     pub peeking: AtomicBool,
+    /// End-to-end tests: count as a mouse move on the next presence check (e2e_present).
+    pub e2e_present: AtomicBool,
     pub storefront: Box<dyn Storefront>,
 }
 
@@ -23,6 +25,7 @@ impl AppState {
             ignore_cursor: AtomicBool::new(false),
             pet_hidden: AtomicBool::new(false),
             peeking: AtomicBool::new(false),
+            e2e_present: AtomicBool::new(false),
             storefront,
         }
     }

@@ -127,6 +127,8 @@ export class PetHost {
    * out, and whether it is walking back to the edge to hide again.
    */
   private peek: { since: number; leaving: { x: number; since: number } | null } | null = null;
+  /** The celebration playing last (for the end-to-end tests). */
+  private lastCelebration: Celebration | null = null;
   /** A mini-game is open (the pet is hidden for it). */
   private gameOn = false;
   /** "While I was hidden you missed…" waits for a ring to finish. */
@@ -882,6 +884,8 @@ export class PetHost {
         return item.text;
       },
       care: (kind: CareAction["kind"]) => this.care({ label: "", kind }),
+      /** The mouse arriving on the pet (as syncWindow does when the cursor comes over it). */
+      hoverIn: () => this.welcomeBack(),
       /** The settings in force (stored ones merged with the defaults). */
       settings: () => this.settings,
       state: () => ({
@@ -901,6 +905,12 @@ export class PetHost {
         mood: { ...this.pet.mood },
         character: this.character.def.id,
         pomodoro: this.pomodoro,
+        vigil: (this.pet.scratch.vigil as Vigil | undefined) ?? null,
+        celebration: this.lastCelebration,
+        celebrating: this.celebrating,
+        facing: this.pet.facing,
+        size: this.pet.spriteSize,
+        speed: this.pet.speed,
       }),
     };
   }
@@ -1415,6 +1425,7 @@ export class PetHost {
       return;
     }
     this.celebrating = true;
+    this.lastCelebration = c;
     setTimeout(() => {
       this.celebrating = false;
       this.nextQueued();

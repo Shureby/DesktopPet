@@ -191,8 +191,9 @@ pub fn unskip_alarm(app: AppHandle, state: State<AppState>, id: i64) -> CmdResul
 }
 
 #[tauri::command]
-pub fn snooze_alarm(app: AppHandle, state: State<AppState>, id: i64, minutes: i64) -> CmdResult<()> {
-    state.store().snooze_alarm(id, minutes.clamp(1, 24 * 60), now_ms()).map_err(err)?;
+pub fn snooze_alarm(app: AppHandle, state: State<AppState>, id: i64, minutes: f64) -> CmdResult<()> {
+    // (Under a minute only in the end-to-end tests, which shorten snoozes through Settings.)
+    state.store().snooze_alarm(id, minutes.clamp(0.05, 24.0 * 60.0), now_ms()).map_err(err)?;
     let _ = app.emit("alarms-changed", ());
     Ok(())
 }
@@ -595,5 +596,16 @@ pub fn e2e_close(app: AppHandle, label: String) -> CmdResult<()> {
     if let Some(w) = app.get_webview_window(&label) {
         w.destroy().map_err(err)?;
     }
+    Ok(())
+}
+
+/// As if the mouse had moved: today's anniversaries are celebrated on the next check (they
+/// wait for you to be at the computer, see scheduler.rs).
+#[tauri::command]
+pub fn e2e_present(state: State<AppState>) -> CmdResult<()> {
+    if !e2e_enabled() {
+        return Err("only in end-to-end tests".into());
+    }
+    state.e2e_present.store(true, std::sync::atomic::Ordering::Relaxed);
     Ok(())
 }

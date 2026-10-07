@@ -1633,6 +1633,8 @@ async function main() {
   document.title = product.productName;
   registry = await loadAll(() => backend.listUserCharacters(), backend.assetUrl);
   settings = await backend.getSettings();
+  // End-to-end tests (debug builds): what the panel plays (ringtone previews).
+  if (await backend.e2eEnabled()) Object.assign(window, { __epetSounds: [] });
   for (const t of TABS) nav.append(h("button", { "data-tab": t.id, onclick: () => select(t.id) }, t.label));
 
   await backend.on("todos-changed", () => current === "todos" && void render());

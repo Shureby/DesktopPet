@@ -100,6 +100,12 @@ export class App {
       });
   }
 
+  /** Quits and starts the app again with the same data; returns the new App. */
+  async restart() {
+    await this.quit();
+    return App.launch({ keepData: true });
+  }
+
   async quit() {
     await this.b?.deleteSession().catch(() => {});
     this.driver?.kill();
@@ -217,8 +223,14 @@ export class App {
   /** Changes settings: `change` gets the stored settings and returns the new ones. */
   async setSettings(change) {
     const s = await this.fullSettings();
-    await this.invoke("set_settings", { settings: change(structuredClone(s)) });
-    await sleep(300);
+    const next = change(structuredClone(s));
+    await this.invoke("set_settings", { settings: next });
+    // Until the pet has them (the next change starts from what it has).
+    const want = JSON.stringify(next);
+    await this.b
+      .waitUntil(() => this.b.execute((w) => JSON.stringify(window.__epet.settings()) === w, want), { timeout: 5000, interval: 100 })
+      .catch(() => {});
+    await sleep(200);
   }
 
   /** The settings in force (merged with the defaults, as the pet sees them). */
@@ -231,6 +243,29 @@ export class App {
   async addTimer(minutes, ms) {
     await this.toPet();
     return this.invoke("add_alarm", { label: `Timer: ${minutes} min`, at: Date.now() + ms, repeat: "none", days: null });
+  }
+
+  /** What the current window played since `since` (window.__epetSounds, src/pet/sound.ts). */
+  sounds(since = 0) {
+    return this.b.execute((t) => (window.__epetSounds ?? []).filter((s) => s.at >= t), since);
+  }
+
+  /** As if the mouse moved: today's anniversaries are celebrated (they wait for you). */
+  async present() {
+    await this.toPet();
+    await this.invoke("e2e_present");
+  }
+
+  /** Answers the pet's bubble with the button labelled `label` (if there is one). */
+  async answer(label) {
+    await this.toPet();
+    const ok = await this.b.execute((l) => {
+      const b = [...document.querySelectorAll("#bubble .actions button")].find((x) => x.textContent === l);
+      b?.click();
+      return !!b;
+    }, label);
+    if (!ok) throw new Error(`No "${label}" in the bubble: ${await this.bubble()}`);
+    await sleep(300);
   }
 
   /** A time range as the badges' info shows it ("8:10 → 8:22 PM"). */

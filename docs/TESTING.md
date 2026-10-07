@@ -2,7 +2,7 @@
 
 <!-- Generated from test-checklist.json by `npm run test-checklist`. Edit the JSON, not this file. -->
 
-当前版本 `0.32.3`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
+当前版本 `0.32.4`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
 标 🤖 的项目由 CI 自动测（Windows），不用手动测；标 🤖+👀 的项目逻辑由 CI 测，你只看 👀 后面写的部分。
 在线勾选页面（保存结果，自动标出需要重测的项目）：https://claude.ai/artifact/XQVzPKq4w2MThVnTLYCGy1
 
@@ -10,7 +10,7 @@
 
 - [ ] 1.1 安装包安装 → **开始菜单/启动台里有应用，图标和名字正常**
 - [ ] 1.2 首次启动 → **宠物从屏幕上方掉下来，落在任务栏/Dock 上方**
-- [ ] 1.3 🤖 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.32.3 · …`，与安装包版本一致**
+- [ ] 1.3 🤖 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.32.4 · …`，与安装包版本一致**
 - [ ] 1.4 已经运行时再启动一次 → **不会出现第二只宠物（只打开面板）**
 - [ ] 1.5 覆盖安装新版本 → **之前的待办、闹钟、设置、心情值都还在**
 - [ ] 1.6 Settings → 勾选 Start with my computer，重启电脑；再取消并重启 → **勾选时自动启动，取消后不启动**
@@ -42,8 +42,8 @@
 - [ ] 3.1 🤖+👀 右键宠物 → **菜单各项以动词开头：Set timer / 照顾动作 / Add to-do… / Set alarm… / Start focus session / Play Safe Landing / Switch character / Open panel… / Hide pet** 👀 你只看右键菜单显示正常（每项的写法和顺序由 CI 测）
 - [ ] 3.2 🤖 多次打开菜单；等宠物饿了再打开 → **照顾动作文字随机变化（Cat：Scratch the Cat's chin 等；Rooster：Scatter some corn 等）；饿时喂食排第一**
 - [ ] 3.3 🤖+👀 宠物右键 → Hide pet，再点托盘图标 → Show pet → **宠物消失后重新出现；托盘第一项随状态在 Show pet / Hide pet 之间切换** 👀 你只看真的点托盘图标能打开菜单（隐藏/显示和托盘第一项的文字由 CI 测）
-- [ ] 3.4 🤖 **【新】** Add to-do… → **面板打开到 To-dos；宠物继续正常动，不卡死**
-- [ ] 3.5 🤖 **【新】** Set alarm… → **面板打开到 Alarms，时间框已获得焦点，可以直接输入**
+- [ ] 3.4 🤖 Add to-do… → **面板打开到 To-dos；宠物继续正常动，不卡死**
+- [ ] 3.5 🤖 Set alarm… → **面板打开到 Alarms，时间框已获得焦点，可以直接输入**
 - [ ] 3.6 🤖 同时开一个 5 分钟计时器和一个专注时段，分别从宠物菜单和托盘点 Open panel…；再只保留专注时段试一次；什么都不开再试一次 → **先结束的是计时器时打开 Alarms 页，先结束的是专注时打开 Focus 页；什么都没有时打开面板默认页**
 
 ## 4. 托盘
@@ -95,12 +95,12 @@
 - [ ] 7.8 🤖 设一个每天响的闹钟和一个工作日闹钟（周五晚上测最好），在 Alarms 页点它们的开关；分别试 Skip once、Undo、Turn off repeating alarm、Cancel/Esc；再点一个一次性闹钟的开关 → **重复闹钟弹框：闹钟名、重复方式，按钮 “Skip once · Sep 30 7:00 PM (Today)”（明天写 (Tomorrow)，更远写星期几，如周五跳工作日闹钟写 (Monday)），“Turn off repeating alarm”，“Cancel”；Cancel/Esc/点框外不改变任何东西，开关仍开着；Skip once 后开关仍开着，行里出现 “⏭ Skips … · Undo”，下次响铃变成再下一次，那一次不响，也不出现在 🔔 角标里；Undo 恢复；已跳过时再点开关只有 Turn off 和 Cancel；一次性闹钟直接关，不弹框**
 - [ ] 7.9 🤖 鼠标悬停一行，点 ✕ → **出现 ✕，点后删除**
 - [ ] 7.10 🤖 鼠标悬停一个 Custom days 闹钟（比如 Tue, Thu, Sat），点 ✎；把日期改成 Mon, Wed, Fri，改标签，点 Save。再对一个关着的、正在贪睡的或设了 Skip once 的重复闹钟点 ✎ → Save；再点一次 ✎，然后点标题右边的 Cancel；最后点 ✎ 后在列表里删掉这个闹钟 → **✎ 在 ✕ 左边，和 ✕ 一样只在悬停时出现；点 ✎ 后上面的表单标题变成 “Edit alarm · 名字”，时间、重复方式、日期、标签都已填好（没起名的闹钟标签为空），Add 变成 Save，列表里这一行有橙色边框；Save 后列表里只改了这一个闹钟（不会多出一个），标题回到 New alarm；关着的闹钟保存后自动打开，贪睡 💤 和 ⏭ Skips 提示消失，按新时间响；Cancel 不改任何东西；编辑中的闹钟被删掉时表单回到 New alarm**
-- [ ] 7.11 等闹钟到点 → **宠物响铃/跑到中间（按设置），气泡有 Snooze 5 min / Done**
-- [ ] 7.12 新建一个不填标签的一次性闹钟，到点后不理会，等它响完；再等下一次（贪睡后）响铃 → **自动贪睡：宠物旁 “💤 …”，面板显示 (1/3)，右键菜单 “Cancel snooze: Alarm 9:40 PM (next ring 9:46 PM)”；贪睡后的响铃气泡仍写 “Alarm 9:40 PM”，并有小字 “Snoozed 1× · first rang 9:40 PM”；第 3 次贪睡的响铃还写 “last try before it's marked missed”；所有时间都是同一种格式（跟随系统 12/24 小时制）**
-- [ ] 7.13 第 3 次贪睡后仍不理会 → **不再有系统通知；橙色 “⏰ Missed 9:40 PM” 角标（闹钟本来的时间，不是最后放弃的时间），完整显示不被截断，点击才消失**
-- [ ] 7.14 之后第一次把鼠标移到宠物上，并马上点一下宠物 → **宠物说 “You missed Alarm 9:40 PM (I tried 3 more times)…”，只说一次；点击不会把这句换成闲聊或抚摸台词（爱心照常增加）**
-- [ ] 7.15 设两个 1 小时内响的闹钟和一个 1.5 小时后响的闹钟；悬停并点击 🔔 角标；再到 Settings → Alarms & timers 关掉/打开 “Show alarms due within … min by the pet”，把分钟数改成 30、0、500；再让其中一个闹钟响起后贪睡 → **宠物旁出现 “🔔 最近那个闹钟的时间 +1”，悬停小框逐行列出这两个闹钟（自定义名字的写成 “Login CMC · 10:05 PM”），1.5 小时后的不在内；点击打开 Alarms 页；贪睡中的闹钟和快到点的闹钟在同一个角标里，按响铃时间排序：最近的是贪睡时角标写 “💤 时间 +n”，小框里贪睡的那行写 “Alarm 11:25 AM · 💤×1 · next 11:33 AM”；关掉 Show upcoming alarms 后贪睡的仍然显示；关掉后 🔔 消失且分钟数变灰，打开后恢复；分钟数只接受 1–120（0 变 1，500 变 120），改小后超出范围的闹钟从 🔔 里消失**
-- [ ] 7.16 任意一次贪睡响铃时点 Done → **整个贪睡周期结束，不再响**
+- [ ] 7.11 🤖+👀 等闹钟到点 → **宠物响铃/跑到中间（按设置），气泡有 Snooze 5 min / Done** 👀 你只听铃声、看宠物跑到中间的样子（气泡、按钮，按设置响或不响由 CI 测）
+- [ ] 7.12 🤖 新建一个不填标签的一次性闹钟，到点后不理会，等它响完；再等下一次（贪睡后）响铃 → **自动贪睡：宠物旁 “💤 …”，面板显示 (1/3)，右键菜单 “Cancel snooze: Alarm 9:40 PM (next ring 9:46 PM)”；贪睡后的响铃气泡仍写 “Alarm 9:40 PM”，并有小字 “Snoozed 1× · first rang 9:40 PM”；第 3 次贪睡的响铃还写 “last try before it's marked missed”；所有时间都是同一种格式（跟随系统 12/24 小时制）**
+- [ ] 7.13 🤖+👀 第 3 次贪睡后仍不理会 → **不再有系统通知；橙色 “⏰ Missed 9:40 PM” 角标（闹钟本来的时间，不是最后放弃的时间），完整显示不被截断，点击才消失** 👀 你只看橙色角标完整显示、没被截断（出现时机、时间、点击消失由 CI 测）
+- [ ] 7.14 🤖+👀 之后第一次把鼠标移到宠物上，并马上点一下宠物 → **宠物说 “You missed Alarm 9:40 PM (I tried 3 more times)…”，只说一次；点击不会把这句换成闲聊或抚摸台词（爱心照常增加）** 👀 你只看真实鼠标移到宠物上时它会说（只说一次、点击不替换由 CI 测）
+- [ ] 7.15 🤖 设两个 1 小时内响的闹钟和一个 1.5 小时后响的闹钟；悬停并点击 🔔 角标；再到 Settings → Alarms & timers 关掉/打开 “Show alarms due within … min by the pet”，把分钟数改成 30、0、500；再让其中一个闹钟响起后贪睡 → **宠物旁出现 “🔔 最近那个闹钟的时间 +1”，悬停小框逐行列出这两个闹钟（自定义名字的写成 “Login CMC · 10:05 PM”），1.5 小时后的不在内；点击打开 Alarms 页；贪睡中的闹钟和快到点的闹钟在同一个角标里，按响铃时间排序：最近的是贪睡时角标写 “💤 时间 +n”，小框里贪睡的那行写 “Alarm 11:25 AM · 💤×1 · next 11:33 AM”；关掉 Show upcoming alarms 后贪睡的仍然显示；关掉后 🔔 消失且分钟数变灰，打开后恢复；分钟数只接受 1–120（0 变 1，500 变 120），改小后超出范围的闹钟从 🔔 里消失**
+- [ ] 7.16 🤖 任意一次贪睡响铃时点 Done → **整个贪睡周期结束，不再响**
 - [ ] 7.17 让 Every day 闹钟被错过 → **明天照常响**
 - [ ] 7.18 🤖 点掉 ⏰ Missed 角标后，看 Finished 区，再点 Clear → **错过的闹钟仍显示 “Missed · Today 9:40 PM · snoozed 3×”，左边大字 9:40 PM（不会变成 Rang 9:58）；按过 Done 的闹钟显示 “Rang · … · snoozed N×”；计时器显示 “Done · …”；最新的在最上面；Clear 后清空**
 - [ ] 7.19 跨天后（或改系统日期）打开面板 → **前一天已结束的项目被自动清理**
@@ -108,9 +108,9 @@
 
 ## 8. 宠物隐藏时的提醒
 
-- [ ] 8.1 隐藏宠物（托盘 Hide pet），设一个 2 分钟后的闹钟；到点后点 Done；再设一个，到点后点 Snooze；再设一个，到点时在托盘点 Show pet → **到点时宠物从最近的屏幕边缘出来，走到屏幕中央响铃，托盘仍写 Show pet；不再弹出系统通知；Done 或 Snooze 后宠物走回边缘隐藏；Snooze 后下次响铃时又出来；响铃时点 Show pet，宠物留在外面不再隐藏**
-- [ ] 8.2 隐藏宠物，设一个 1 分钟计时器和一个 2 分钟后提醒的待办，都不理；然后打开 Focus sessions 勾选，开始一个 1 分钟的专注（Focus 设为 1 分钟） → **计时器和待办到点时宠物都会出来响铃，没人理后走回边缘隐藏；勾了 Focus sessions 时，专注结束宠物出来说一句话，几秒后回去；没勾时不出来**
-- [ ] 8.3 接上一项（或隐藏时让一个闹钟贪睡 3 次后被标记为错过），然后点 Show pet；先不点 Done，摸摸宠物、悬停；退出 ePet 再打开；最后点 Done → **宠物出来后气泡写 “While I was hidden you missed:”，每条带日期（Today/Yesterday/具体日期）和类型图标，按时间先后，超过 5 条显示 “…and N more”；摸宠物或闲聊不会把它替换掉；重启后仍然出现；点 Done 后清单和 ⏰ Missed 角标消失（Finished 里仍写 Missed）；待办仍在列表里显示红色 Overdue**
+- [ ] 8.1 🤖+👀 隐藏宠物（托盘 Hide pet），设一个 2 分钟后的闹钟；到点后点 Done；再设一个，到点后点 Snooze；再设一个，到点时在托盘点 Show pet → **到点时宠物从最近的屏幕边缘出来，走到屏幕中央响铃，托盘仍写 Show pet；不再弹出系统通知；Done 或 Snooze 后宠物走回边缘隐藏；Snooze 后下次响铃时又出来；响铃时点 Show pet，宠物留在外面不再隐藏** 👀 你只看宠物从屏幕边走出来、走回去的样子（出来、回去、托盘文字由 CI 测）
+- [ ] 8.2 🤖+👀 隐藏宠物，设一个 1 分钟计时器和一个 2 分钟后提醒的待办，都不理；然后打开 Focus sessions 勾选，开始一个 1 分钟的专注（Focus 设为 1 分钟） → **计时器和待办到点时宠物都会出来响铃，没人理后走回边缘隐藏；勾了 Focus sessions 时，专注结束宠物出来说一句话，几秒后回去；没勾时不出来** 👀 你只看宠物走出来、走回去的样子（何时出来、何时回去由 CI 测）
+- [ ] 8.3 🤖 接上一项（或隐藏时让一个闹钟贪睡 3 次后被标记为错过），然后点 Show pet；先不点 Done，摸摸宠物、悬停；退出 ePet 再打开；最后点 Done → **宠物出来后气泡写 “While I was hidden you missed:”，每条带日期（Today/Yesterday/具体日期）和类型图标，按时间先后，超过 5 条显示 “…and N more”；摸宠物或闲聊不会把它替换掉；重启后仍然出现；点 Done 后清单和 ⏰ Missed 角标消失（Finished 里仍写 Missed）；待办仍在列表里显示红色 Overdue**
 - [ ] 8.4 🤖 Settings → Pet 找到 “When hidden, it comes out for”，逐个取消 Alarms、Timers、To-do reminders，再勾回来；取消 Timers 后隐藏宠物，让一个计时器到点 → **默认 Alarms、Timers、To-do reminders 勾选，Focus sessions 不勾；取消任一前三项时出现红色 ❗ “While your pet is hidden, … will not alert you.”，写出具体是哪几项，全部勾回后消失；取消 Timers 时计时器到点宠物不出来，也没有声音，显示宠物时出现在 “While I was hidden you missed” 清单里**
 
 ## 9. 面板 Quick timer
@@ -132,10 +132,10 @@
 - [ ] 10.8 🤖 建一个 Weekly 的 bins（今天），勾选完成；再建一个日期在三周前的 Weekly 待办，勾选；再建一个 Monthly 31 号的待办，勾选几次 → **勾选后 Done 区多一条 “bins · Done · Today …”，bins 本身留在列表里，日期变成下周同一天，前面显示 🔁 Weekly；拖了三周的那个直接跳到今天之后最近的一次，不会冒出好几条；31 号的在 30 天的月份变成 30 号，下个月又回到 31 号**
 - [ ] 10.9 🤖 在 Upcoming 里提前勾掉一个 Fortnightly 待办（比如 Tue 6 Oct 的），再到 Done 区把它那条的勾去掉；再对一个今天的 Daily 待办做同样的事；最后勾掉一个重复待办后把它删掉，再去 Done 区取消勾选 → **勾掉后日期跳到两周后（20 Oct），Done 多一条；取消勾选后 Done 那条消失，待办回到 6 Oct，没有多出一条；今天的那条回到 Today，不会再为今天提醒一次；待办删掉后再取消勾选，那条记录变成普通的一次性待办**
 - [ ] 10.10 🤖 鼠标悬停一条待办，点 ✎；改标题、日期、加时间、改重复方式，点 Save；再点一次 ✎ 后点标题右边的 Cancel；再点 ✎ 后把这条勾掉或删掉 → **✎ 只在悬停时出现（已完成的没有 ✎）；表单标题变成 “Edit to-do · 名字”，内容都已填好，Add 变成 Save，这一行橙色边框；Save 后只改这一条，不会多出一条；Cancel 不改任何东西；编辑中的那条被勾掉或删掉时表单回到新建状态**
-- [ ] 10.11 Settings → To-do reminders 把 “To-dos without a time remind you at” 设成 1–2 分钟后；建两个今天的、不带时间的待办；到点后点 Later；另一次：把时间设在早上，晚点再打开 ePet → **到点宠物出来，一个气泡同时列出两条：“📅 Today: • … • …”，按钮 Open To-dos 和 Later；Later 后 10 分钟再提醒一次，日期不变（不会变成带时间的待办）；时间过了才打开 ePet，当天打开时仍提醒一次；只有一条时和普通待办提醒一样，有 ✓ Done**
+- [ ] 10.11 🤖 Settings → To-do reminders 把 “To-dos without a time remind you at” 设成 1–2 分钟后；建两个今天的、不带时间的待办；到点后点 Later；另一次：把时间设在早上，晚点再打开 ePet → **到点宠物出来，一个气泡同时列出两条：“📅 Today: • … • …”，按钮 Open To-dos 和 Later；Later 后 10 分钟再提醒一次，日期不变（不会变成带时间的待办）；时间过了才打开 ePet，当天打开时仍提醒一次；只有一条时和普通待办提醒一样，有 ✓ Done**
 - [ ] 10.12 建一个今天的不带时间的待办、一个今天早些时候带时间的待办，不勾；第二天（或改系统日期）再看 → **当天：不带时间的显示橙色 “Today”（不算 Overdue），带时间的过了时间就显示红色 “Overdue · Today …”；第二天不带时间的才变成红色 “Overdue · Yesterday”；第二天打开 ePet 不会为昨天的补提醒**
-- [ ] 10.13 面板添加待办，再勾选完成 → **添加时宠物确认一句；完成时宠物夸奖，爱心增加**
-- [ ] 10.14 等待办提醒到点 → **按 Alerts → To-do reminders 设置提示，只响一次**
+- [ ] 10.13 🤖 面板添加待办，再勾选完成 → **添加时宠物确认一句；完成时宠物夸奖，爱心增加**
+- [ ] 10.14 🤖+👀 等待办提醒到点 → **按 Alerts → To-do reminders 设置提示，只响一次** 👀 你只听提示音（只提醒一次、用哪个铃声由 CI 测）
 - [ ] 10.15 🤖 Done 区点 Clear → **已完成的待办被清空**
 - [ ] 10.16 🤖 勾选完成几个待办，打开 Done 区 → **每个显示 “Done · Today 3:15 PM”，最近完成的在最上面；待办的提醒时间显示为 “Today 3:00 PM”（没有前导 0）**
 
@@ -144,15 +144,15 @@
 - [ ] 11.1 🤖 打开 To-dos 页，点 🎂 Anniversaries，再切回 To-dos；切到别的页再回来 → **顶部有 [To-dos] [🎂 Anniversaries] 两个子页按钮，打开 To-dos 默认在 To-dos 子页；7 天内有纪念日时按钮上有数字**
 - [ ] 11.2 🤖 在 Anniversaries 子页依次选 Type：Birthday、Remembrance、Wedding anniversary；点图标按钮选一个别的图标；手动改一条提前提醒后再换 Type → **Birthday 自动填 🎂、1 week: Buy a gift、1 day: Order a cake，勾选 “Fireworks on the day 🎆”；Remembrance 变 🕯️、1 day: Buy flowers，勾选框文字变成 “Candle and flowers on the day 🕯️” 且默认不勾；图标网格 20 个可选，选中的有橙框；手动改过的图标、提醒、勾选在换 Type 时保留**
 - [ ] 11.3 🤖 添加三个：今天的生日（Since 1990）、明天的结婚纪念日（Since 2016）、40 天后的忌日（Since 2019）；日期框试拖动和滚轮，选 2 月 29 日；最多加 3 条提前提醒 → **日期只有日和月，可拖、滚、打字，能选 Feb 29；列表按日期排序：“… · Today 🎉 · 36th”、“… · Tomorrow · 10th”（7 天内橙色）、“… · in 40 days · 7 years”，下面列出提前提醒；+ Add another 到 3 条后消失**
-- [ ] 11.4 不保存，直接在表单里点 ▶ Preview；保存后在列表那一行点 ▶；隐藏宠物后再点一次 ▶；关掉 Settings 里的 “Celebrate anniversaries on screen” 再预览；预览一个今天的纪念日后动鼠标 → **点预览后宠物马上说那句话、屏幕播放效果；播放期间和结束后，宠物所在屏幕上的所有窗口（包括 ePet 面板）都能正常点击，不会卡死；预览和当天的庆祝一模一样（说的话、第几年、效果、时长），没填名字时用模板名；预览不会保存纪念日、不会生成待办；隐藏时宠物出来，播完回去；总开关关掉时只说一句话；预览过的今天的纪念日，动鼠标后仍会真正庆祝一次**
+- [ ] 11.4 🤖+👀 不保存，直接在表单里点 ▶ Preview；保存后在列表那一行点 ▶；隐藏宠物后再点一次 ▶；关掉 Settings 里的 “Celebrate anniversaries on screen” 再预览；预览一个今天的纪念日后动鼠标 → **点预览后宠物马上说那句话、屏幕播放效果；播放期间和结束后，宠物所在屏幕上的所有窗口（包括 ePet 面板）都能正常点击，不会卡死；预览和当天的庆祝一模一样（说的话、第几年、效果、时长），没填名字时用模板名；预览不会保存纪念日、不会生成待办；隐藏时宠物出来，播完回去；总开关关掉时只说一句话；预览过的今天的纪念日，动鼠标后仍会真正庆祝一次** 👀 你只看效果的样子，以及播放中其他窗口都能正常点击（台词、不保存、隐藏时出来回去由 CI 测）
 - [ ] 11.5 🤖 Settings 里音乐先关着；在 Anniversaries 表单依次选 Type：Birthday、Pet's birthday、Wedding anniversary、Work anniversary、Remembrance；Work 时选 Jasmine Flower 后保存，再 ✎ 编辑它；把一个选了 Taps 的 Remembrance 改成 Custom → **Birthday 和 Pet's birthday 显示 “Music 🎵 Happy Birthday”，不能改；Wedding 是下拉框，只有 Canon in D (Pachelbel)、Wedding March (Mendelssohn)、Bridal Chorus (Wagner) 三首，默认卡农；其他喜庆类型是下拉框，有 8 首喜庆曲目（含两首婚礼曲），默认 Music-box waltz；在 Dating 里选 Wedding March 后换成 Wedding，保留 Wedding March，选 Waltz 后换成 Wedding 则回到卡农；Remembrance 只有 4 首哀乐，默认 Remembrance (original, Chinese style)；音乐关着时旁边写 “· off in Settings”；编辑时保留选的曲目；喜庆和祭日之间换类型时回到新类型的默认曲目**
-- [ ] 11.6 Settings → To-do reminders 勾上 “Play music with it”，音量调一半；分别 ▶ Preview 一个生日、三个结婚纪念日（分别选卡农、Wedding March、Bridal Chorus）、一个选了 Ode to Joy 的 Custom、一个默认的 Remembrance；把时长设成 60 秒再听一次；播放中设一个 1 分钟后的计时器让它响；最后把音量拉到最右、再关掉音乐预览一次 → **每次预览都和效果一起放对应的曲子（生日歌、卡农、门德尔松《婚礼进行曲》开头的小号号角、瓦格纳《婚礼合唱》“Here comes the bride”、欢乐颂、哀思）；不同曲目听起来音量差不多，没有爆音、咔哒声；伴奏不盖过主旋律；时长到了音乐在最后 2 秒淡出，和效果、那句话一起结束；60 秒时曲子循环衔接自然；计时器响时音乐停下；关掉 “Celebrate anniversaries on screen” 时音乐照样放；关掉音乐后预览没有声音**
-- [ ] 11.7 建一个明天的纪念日，提前提醒 1 day / Buy flowers 和 1 week / Book a restaurant；切到 To-dos 子页；关掉 ePet，第二天再开（或改系统日期）测一个昨天该生成的提醒 → **To-dos 的 Today 里出现 “💍 名字 - Buy flowers”（只有日期、没有时间，按待办提醒时间提醒），只出现一次；1 week 那条因为添加时已过期，不会生成；错过那天开机后补生成，显示 Overdue；删掉纪念日后已生成的待办保留**
-- [ ] 11.8 建一个生日（Since 1990），点表单里的 “▶ Preview”（或列表那一行悬停时的 ▶）；看完到 Settings 把时长改成 10 秒再预览；最后建一个今天的生日，动一下鼠标看真实的庆祝 → **预览立刻在宠物所在屏幕放烟花，同时飘落 🎂🎁，彩色气球（红、金、粉、橙、紫、嫩绿）从屏幕底部往上飘，约 3 成是猫、狗、熊脸气球，气球大小适中、不密；宠物说 “🎉 Happy 36th birthday, 名字!”；烟花在其他程序上面、宠物和气泡在烟花上面；烟花期间可以正常点击后面的窗口；时长到了烟花和这句话一起消失；真实那天：鼠标一动就庆祝，当天不会第二次**
+- [ ] 11.6 🤖+👀 Settings → To-do reminders 勾上 “Play music with it”，音量调一半；分别 ▶ Preview 一个生日、三个结婚纪念日（分别选卡农、Wedding March、Bridal Chorus）、一个选了 Ode to Joy 的 Custom、一个默认的 Remembrance；把时长设成 60 秒再听一次；播放中设一个 1 分钟后的计时器让它响；最后把音量拉到最右、再关掉音乐预览一次 → **每次预览都和效果一起放对应的曲子（生日歌、卡农、门德尔松《婚礼进行曲》开头的小号号角、瓦格纳《婚礼合唱》“Here comes the bride”、欢乐颂、哀思）；不同曲目听起来音量差不多，没有爆音、咔哒声；伴奏不盖过主旋律；时长到了音乐在最后 2 秒淡出，和效果、那句话一起结束；60 秒时曲子循环衔接自然；计时器响时音乐停下；关掉 “Celebrate anniversaries on screen” 时音乐照样放；关掉音乐后预览没有声音** 👀 你只听：好不好听、音量是否平衡、结尾淡出、60 秒循环（每次放哪首、何时开始和停止由 CI 测）
+- [ ] 11.7 🤖 建一个明天的纪念日，提前提醒 1 day / Buy flowers 和 1 week / Book a restaurant；切到 To-dos 子页；关掉 ePet，第二天再开（或改系统日期）测一个昨天该生成的提醒 → **To-dos 的 Today 里出现 “💍 名字 - Buy flowers”（只有日期、没有时间，按待办提醒时间提醒），只出现一次；1 week 那条因为添加时已过期，不会生成；错过那天开机后补生成，显示 Overdue；删掉纪念日后已生成的待办保留**
+- [ ] 11.8 🤖+👀 建一个生日（Since 1990），点表单里的 “▶ Preview”（或列表那一行悬停时的 ▶）；看完到 Settings 把时长改成 10 秒再预览；最后建一个今天的生日，动一下鼠标看真实的庆祝 → **预览立刻在宠物所在屏幕放烟花，同时飘落 🎂🎁，彩色气球（红、金、粉、橙、紫、嫩绿）从屏幕底部往上飘，约 3 成是猫、狗、熊脸气球，气球大小适中、不密；宠物说 “🎉 Happy 36th birthday, 名字!”；烟花在其他程序上面、宠物和气泡在烟花上面；烟花期间可以正常点击后面的窗口；时长到了烟花和这句话一起消失；真实那天：鼠标一动就庆祝，当天不会第二次** 👀 你只看烟花和气球的样子，以及能点到后面的窗口（台词、时长、当天只一次由 CI 测）
 - [ ] 11.9 ▶ Preview 一个结婚纪念日、一个恋爱纪念日，各看 15 秒；再 Preview 一个宠物生日和一个工作纪念日 → **结婚和恋爱：大约每 3 发烟花有 1 对并排的心形烟花，一红一粉或一红金，左右随机，心形清楚可辨、慢慢扩大下坠；宠物生日：气球从下往上飘，约 6 成是动物脸，🦴 往下落；工作纪念日：普通烟花，没有心形、没有气球**
-- [ ] 11.10 建两个今天的纪念日：一个生日、一个勾了 “Candle and flowers” 的忌日（先建生日）；Settings 里打开音乐；动一下鼠标（或重启 ePet 后动鼠标） → **先播忌日：花烛、宠物坐在旁边、哀乐；结束后停约 2 秒，再播生日：烟花、气球、生日歌、宠物说生日那句；两个都完整播完，互不覆盖；之后当天不会再播**
-- [ ] 11.11 Type 选 Remembrance、Since 2019，先不勾 “Candle and flowers on the day” 点 ▶ Preview；再勾上预览一次 → **不勾：没有屏幕效果，宠物安静地说 “🕯️ Remembering 名字 today.”，下面写 “7 years”，宠物不做开心的动作；勾上：屏幕变暗，屏幕底部正中一支白蜡烛在闪动，两边各一小束（3 朵）白菊花，横屏和竖屏都完整在屏幕内、不歪；宠物慢慢走到离它近的一侧（空间不够就去另一侧），气泡不碰到花，面朝蜡烛坐着；时间到效果消失，宠物留在原地，之后照常自由活动**
-- [ ] 11.12 Settings → To-do reminders 关掉 “Celebrate anniversaries on screen”，再测一个今天的生日；Pet 卡片取消 “Anniversaries” 后隐藏宠物，再测一个；最后勾回 Anniversaries 并隐藏宠物测一次 → **关掉后没有烟花，宠物只说一句；时长只能 10–60 秒；不勾 Anniversaries 时隐藏的宠物不出来，等你点 Show pet 后当天再庆祝；勾上时宠物从屏幕边出来庆祝，结束后回去隐藏**
+- [ ] 11.10 🤖+👀 建两个今天的纪念日：一个生日、一个勾了 “Candle and flowers” 的忌日（先建生日）；Settings 里打开音乐；动一下鼠标（或重启 ePet 后动鼠标） → **先播忌日：花烛、宠物坐在旁边、哀乐；结束后停约 2 秒，再播生日：烟花、气球、生日歌、宠物说生日那句；两个都完整播完，互不覆盖；之后当天不会再播** 👀 你只看、听两段的样子和音乐（先后顺序、间隔、不重播由 CI 测）
+- [ ] 11.11 🤖+👀 Type 选 Remembrance、Since 2019，先不勾 “Candle and flowers on the day” 点 ▶ Preview；再勾上预览一次 → **不勾：没有屏幕效果，宠物安静地说 “🕯️ Remembering 名字 today.”，下面写 “7 years”，宠物不做开心的动作；勾上：屏幕变暗，屏幕底部正中一支白蜡烛在闪动，两边各一小束（3 朵）白菊花，横屏和竖屏都完整在屏幕内、不歪；宠物慢慢走到离它近的一侧（空间不够就去另一侧），气泡不碰到花，面朝蜡烛坐着；时间到效果消失，宠物留在原地，之后照常自由活动** 👀 你只看花烛在横屏和竖屏上的位置和大小、宠物走过去坐下的样子（台词、走到哪一侧、朝向由 CI 测）
+- [ ] 11.12 🤖 Settings → To-do reminders 关掉 “Celebrate anniversaries on screen”，再测一个今天的生日；Pet 卡片取消 “Anniversaries” 后隐藏宠物，再测一个；最后勾回 Anniversaries 并隐藏宠物测一次 → **关掉后没有烟花，宠物只说一句；时长只能 10–60 秒；不勾 Anniversaries 时隐藏的宠物不出来，等你点 Show pet 后当天再庆祝；勾上时宠物从屏幕边出来庆祝，结束后回去隐藏**
 
 ## 12. 专注时段
 
@@ -175,12 +175,12 @@
 ## 14. 设置
 
 - [ ] 14.1 🤖+👀 打开面板，用默认窗口大小看 Focus 页（打开 Work hours）和 Settings 页；改几个设置（大小、Quiet hours 时间、铃声、Ring for、If nobody answers、隐藏时出来的勾选、开机启动）后切页再回来；把 “Show alarms due within” 改成 120，If nobody answers 选每一项，New alarm 的重复方式选 Custom days → **Focus 页不用滚动就能看到全部内容：顶部一张卡片（阶段、倒计时、按钮）、7 天柱状图和总数、四个时长一行、两个勾选、Work hours 卡片（星期和时间一行、一行小字说明）；Settings 分为 Pet / Alarms & timers / To-do reminders / General 四张卡片，Quiet hours 和 “When hidden, it comes out for” 在 Pet 卡片里，Ring for 和 If nobody answers 并排；改过的设置切页回来都还在；所有输入框和下拉框的文字都完整显示（120 不会变成 12，“Mark as missed”、“Custom days”、“Label” 不被截断）** 👀 你只看排版好不好看（四张卡片、Focus 页不出滚动条、改了能保存由 CI 测）
-- [ ] 14.2 拖动 Pet size / Pet speed 滑块 → **实时生效**
-- [ ] 14.3 Alerts 里分别切换跑到中间、Ring、铃声、音量 → **▶ 试听有声音；实际提醒按设置执行**
-- [ ] 14.4 逐个试听 6 种铃声 → **classic / chime / digital / gentle rise / marimba / rooster crow 都能播**
-- [ ] 14.5 改 Ring for 和 If nobody answers → **按设置执行（响铃时长、贪睡次数或直接标记 missed）**
-- [ ] 14.6 Quiet hours 设成包含当前时间 → **宠物安静，但闹钟照常响**
-- [ ] 14.7 关掉 Other sounds → **抚摸、专注提示不再有声音**
+- [ ] 14.2 🤖+👀 拖动 Pet size / Pet speed 滑块 → **实时生效** 👀 你只看大小和速度看起来对不对（数值即时生效由 CI 测）
+- [ ] 14.3 🤖+👀 Alerts 里分别切换跑到中间、Ring、铃声、音量 → **▶ 试听有声音；实际提醒按设置执行** 👀 你只听试听和铃声（响不响、用哪个铃声和音量、跑不跑由 CI 测）
+- [ ] 14.4 🤖+👀 逐个试听 6 种铃声 → **classic / chime / digital / gentle rise / marimba / rooster crow 都能播** 👀 你只听 6 种铃声是否都好听（都能播放由 CI 测）
+- [ ] 14.5 🤖 改 Ring for 和 If nobody answers → **按设置执行（响铃时长、贪睡次数或直接标记 missed）**
+- [ ] 14.6 🤖 Quiet hours 设成包含当前时间 → **宠物安静，但闹钟照常响**
+- [ ] 14.7 🤖+👀 关掉 Other sounds → **抚摸、专注提示不再有声音** 👀 你只听确实没声音、有声音（是否发声由 CI 测）
 
 ## 15. 角色
 

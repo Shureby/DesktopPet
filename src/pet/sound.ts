@@ -6,6 +6,14 @@ import { playPiece, type Piece } from "../celebrate/music";
 
 let ctx: AudioContext | null = null;
 
+/**
+ * What was played, for the end-to-end tests (e2e/): the windows set `window.__epetSounds`
+ * to an array in debug builds started for them; otherwise nothing is kept.
+ */
+function logSound(entry: Record<string, unknown>): void {
+  (globalThis as { __epetSounds?: unknown[] }).__epetSounds?.push({ ...entry, at: Date.now() });
+}
+
 function audio(): AudioContext | null {
   try {
     ctx ??= new AudioContext();
@@ -109,18 +117,21 @@ export const RINGTONE_IDS = Object.keys(RINGTONES) as RingtoneId[];
 
 /** Plays a ringtone once (previews and to-do reminders). */
 export function playRingtone(id: RingtoneId, volume: number): void {
+  logSound({ kind: "ringtone", id, volume, known: id in RINGTONES });
   play((RINGTONES[id] ?? RINGTONES.classic).notes(0), volume);
 }
 
 /** Rings until stopped (or for at most `maxSeconds`). Returns the stop function. */
 export function ringAlarm(id: RingtoneId, volume: number, maxSeconds = 60): () => void {
   const tone: Ringtone = RINGTONES[id] ?? RINGTONES.classic;
+  logSound({ kind: "ring", id, volume });
   let rep = 0;
   const ring = () => play(tone.notes(rep++), volume);
   ring();
   const timer = setInterval(ring, tone.period * 1000);
   const timeout = setTimeout(() => clearInterval(timer), maxSeconds * 1000);
   return () => {
+    logSound({ kind: "ring-stop", id });
     clearInterval(timer);
     clearTimeout(timeout);
   };
@@ -128,16 +139,24 @@ export function ringAlarm(id: RingtoneId, volume: number, maxSeconds = 60): () =
 
 /** Small UI sounds (petting, focus-session phase changes). */
 export const sounds = {
-  chime: () => playRingtone("chime", 0.5),
-  pop: () => play([{ f: 660, at: 0, dur: 0.08 }], 0.4),
+  chime: () => {
+    logSound({ kind: "chime" });
+    play((RINGTONES.chime as Ringtone).notes(0), 0.5);
+  },
+  pop: () => {
+    logSound({ kind: "pop" });
+    play([{ f: 660, at: 0, dur: 0.08 }], 0.4);
+  },
 };
 
 /** An anniversary's music for `seconds` (fading out at the end). Returns a function that stops it early. */
 export function playMusic(piece: Piece, seconds: number, volume: number): () => void {
+  logSound({ kind: "music", piece: piece.id, seconds, volume });
   const c = audio();
   if (!c || volume <= 0) return () => {};
   const out = playPiece(c, piece, c.currentTime + 0.05, seconds, volume);
   return () => {
+    logSound({ kind: "music-stop", piece: piece.id });
     const now = c.currentTime;
     out.gain.cancelScheduledValues(now);
     out.gain.setValueAtTime(out.gain.value, now);

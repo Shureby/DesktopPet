@@ -158,6 +158,10 @@ pub fn open_celebration<R: Runtime>(app: &AppHandle<R>, c: &desktoppet_core::Cel
         .position(mx / s, my / s)
         .inner_size(m.size().width as f64 / s, m.size().height as f64 / s)
         .build()?;
+    // Linux (development and the end-to-end tests only) needs the window on screen before
+    // it can ignore the mouse; on Windows and macOS it is shown only once it does.
+    #[cfg(target_os = "linux")]
+    window.show()?;
     if let Err(e) = window.set_ignore_cursor_events(true) {
         let _ = window.destroy();
         return Err(e);

@@ -32,7 +32,7 @@ async function main() {
     const errors: string[] = [];
     window.addEventListener("error", (e) => errors.push(String(e.message)));
     window.addEventListener("unhandledrejection", (e) => errors.push(String(e.reason)));
-    Object.assign(window, { __epet: { ...host.testHooks(), errors } });
+    Object.assign(window, { __epet: { ...host.testHooks(), errors }, __epetSounds: [] });
   }
 }
 

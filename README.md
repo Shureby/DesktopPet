@@ -62,8 +62,9 @@ doesn't support it.
 
 The tests start the app with `EPET_E2E=1`. A debug build then offers test hooks: the pet
 window's `window.__epet` (both menus as data and "clicking" their items, what the pet is
-doing, petting and feeding), the game window's `window.__epetGame`, and the commands
-`e2e_tray` and `e2e_close`. Release builds have none of these. Long waits are avoided
+doing, petting and feeding), the game window's `window.__epetGame`, a log of the sounds
+and music played (`window.__epetSounds`), and the commands `e2e_tray`, `e2e_close` and
+`e2e_present` (stands in for a mouse move, so today's anniversaries are celebrated). Release builds have none of these. Long waits are avoided
 through settings the tests store directly (three-second focus sessions, short rings).
 
 ```bash

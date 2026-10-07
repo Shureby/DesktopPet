@@ -792,10 +792,10 @@ impl Store {
 
     /// Rings the alarm again in `minutes` and counts the snooze. Errors if it no longer
     /// exists (a snooze is never silently dropped).
-    pub fn snooze_alarm(&self, id: i64, minutes: i64, now: Millis) -> Result<()> {
+    pub fn snooze_alarm(&self, id: i64, minutes: f64, now: Millis) -> Result<()> {
         let changed = self.conn.execute(
             "UPDATE alarms SET enabled = 1, next_fire = ?2, snoozes = snoozes + 1 WHERE id = ?1",
-            params![id, now + minutes * 60_000],
+            params![id, now + (minutes * 60_000.0).round() as Millis],
         )?;
         if changed == 0 {
             return Err(StoreError::Invalid("that alarm no longer exists".into()));
@@ -1203,7 +1203,7 @@ mod tests {
         // Finished, but it still knows when it rang ("Rang · Today 10:05").
         assert_eq!(saved.rang_at, Some(at(10, 5)));
         // Snoozed and rung again: still the time the cycle began ("Alarm 10:05", not 10:11).
-        s.snooze_alarm(a.id, 5, at(10, 6)).unwrap();
+        s.snooze_alarm(a.id, 5.0, at(10, 6)).unwrap();
         s.take_due(&London, at(10, 11)).unwrap();
         assert_eq!(s.list_alarms().unwrap()[0].rang_at, Some(at(10, 5)));
     }
@@ -1263,7 +1263,7 @@ mod tests {
         let next = s.list_alarms().unwrap()[0].next_fire.unwrap();
         assert_eq!(next, at(7, 30) + 24 * 60 * MIN);
 
-        s.snooze_alarm(a.id, 5, at(7, 31)).unwrap();
+        s.snooze_alarm(a.id, 5.0, at(7, 31)).unwrap();
         assert_eq!(s.take_due(&London, at(7, 36)).unwrap().len(), 1);
         // After the snooze rings, it goes back to its daily schedule.
         assert_eq!(s.list_alarms().unwrap()[0].next_fire, Some(next));
@@ -1409,7 +1409,7 @@ mod tests {
         assert_eq!(s.take_due(&London, at(10, 1)).unwrap().len(), 1);
         // Still there (finished) while the user decides.
         assert!(!s.list_alarms().unwrap()[0].enabled);
-        s.snooze_alarm(t.id, 5, at(10, 2)).unwrap();
+        s.snooze_alarm(t.id, 5.0, at(10, 2)).unwrap();
         let snoozed = &s.list_alarms().unwrap()[0];
         assert!(snoozed.enabled);
         assert_eq!(snoozed.next_fire, Some(at(10, 7)));
@@ -1422,9 +1422,9 @@ mod tests {
         let s = Store::open_in_memory().unwrap();
         let a = s.add_alarm(&London, "Wake up", at(7, 0), Repeat::Daily, 0, at(6, 0)).unwrap();
         s.take_due(&London, at(7, 0)).unwrap();
-        s.snooze_alarm(a.id, 5, at(7, 1)).unwrap();
+        s.snooze_alarm(a.id, 5.0, at(7, 1)).unwrap();
         s.take_due(&London, at(7, 6)).unwrap();
-        s.snooze_alarm(a.id, 5, at(7, 7)).unwrap();
+        s.snooze_alarm(a.id, 5.0, at(7, 7)).unwrap();
         let snoozed = &s.list_alarms().unwrap()[0];
         assert_eq!(snoozed.snoozes, 2);
         assert_eq!(snoozed.next_fire, Some(at(7, 12)));
@@ -1460,7 +1460,7 @@ mod tests {
         let a = s.add_alarm(&London, "Alarm", at(21, 40), Repeat::None, 0, at(6, 0)).unwrap();
         s.take_due(&London, at(21, 40)).unwrap();
         for i in 0..3 {
-            s.snooze_alarm(a.id, 5, at(21, 41 + 6 * i)).unwrap();
+            s.snooze_alarm(a.id, 5.0, at(21, 41 + 6 * i)).unwrap();
             s.take_due(&London, at(21, 46 + 6 * i)).unwrap();
         }
         s.mark_alarm_missed(a.id, at(21, 59)).unwrap();
@@ -1473,7 +1473,7 @@ mod tests {
         let s = Store::open_in_memory().unwrap();
         let a = s.add_alarm(&London, "Wake up", at(7, 0), Repeat::Daily, 0, at(6, 0)).unwrap();
         s.take_due(&London, at(7, 0)).unwrap();
-        s.snooze_alarm(a.id, 5, at(7, 1)).unwrap();
+        s.snooze_alarm(a.id, 5.0, at(7, 1)).unwrap();
         s.take_due(&London, at(7, 6)).unwrap();
         s.mark_alarm_missed(a.id, at(7, 7)).unwrap();
         let missed = &s.list_alarms().unwrap()[0];
@@ -1547,7 +1547,7 @@ mod tests {
         // Wednesday's 7:00 Mon/Wed/Fri alarm (Jan 7 2026 is a Wednesday), snoozed, then off.
         let a = s.add_alarm(&London, "Gym", at(7, 0), Repeat::Days, mon_wed_fri, at(6, 0)).unwrap();
         s.take_due(&London, at(7, 0)).unwrap();
-        s.snooze_alarm(a.id, 5, at(7, 1)).unwrap();
+        s.snooze_alarm(a.id, 5.0, at(7, 1)).unwrap();
         s.set_alarm_enabled(&London, a.id, false, at(7, 2)).unwrap();
         // Edited on Wednesday evening to Tue/Thu 6:30: on, first ring Thursday, no snooze left.
         let thu = at(6, 30) + DAY;
@@ -1917,7 +1917,7 @@ mod tests {
         let s = Store::open_in_memory().unwrap();
         let a = s.add_alarm(&London, "Wake up", at(7, 0), Repeat::Daily, 0, at(6, 0)).unwrap();
         s.take_due(&London, at(7, 0)).unwrap();
-        s.snooze_alarm(a.id, 5, at(7, 1)).unwrap();
+        s.snooze_alarm(a.id, 5.0, at(7, 1)).unwrap();
         s.skip_alarm_once(&London, a.id, at(7, 2)).unwrap();
         let x = &s.list_alarms().unwrap()[0];
         assert_eq!((x.next_fire, x.skipped_fire, x.snoozes), (Some(at(7, 0) + DAY), Some(at(7, 6)), 0));
@@ -1942,7 +1942,7 @@ mod tests {
         let s = Store::open_in_memory().unwrap();
         let t = s.add_alarm(&London, "Timer: 1 min", at(10, 1), Repeat::None, 0, at(6, 0)).unwrap();
         s.delete_alarm(t.id).unwrap();
-        assert!(s.snooze_alarm(t.id, 5, at(10, 2)).is_err());
+        assert!(s.snooze_alarm(t.id, 5.0, at(10, 2)).is_err());
     }
 
     #[test]
