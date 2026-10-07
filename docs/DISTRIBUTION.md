@@ -21,6 +21,25 @@ Edit [`product.config.json`](../product.config.json) (`productName`, `identifier
 directly. **The bundle identifier must be final before the first store upload.**
 It also names the data folder, so changing it later orphans users' to-dos.
 
+## Windows installer (direct build)
+
+The NSIS installer uses Tauri's own template with one change, in
+`src-tauri/windows/installer.nsi` (`bundle.windows.nsis.template`): **an upgrade asks
+nothing**. Over an older version it uninstalls that version quietly (its uninstaller runs
+passive: it closes a running ePet, and keeps the user's data as every uninstall does
+unless "Delete app data" is ticked), then installs the new one; the other pages
+(welcome, folder, progress, finish) are as before. Reinstalling the same version or going
+back to an older one still shows Tauri's question.
+
+- Command-line installs work as with Tauri: `/P` (progress only), `/S` (silent), `/R`
+  (start ePet afterwards).
+- **When upgrading Tauri**, compare `installer.nsi` with the new CLI's template
+  (`crates/tauri-bundler/src/bundle/windows/nsis/installer.nsi` at the CLI's tag) and carry
+  the `ePet:` changes over: they are marked, all in `PageReinstall` and `PageLeaveReinstall`.
+- CI checks it (`e2e/upgrade.test.mjs`): the newest earlier build of the branch is
+  installed, writes data, and stays running; this build's installer is then clicked
+  through page by page (`e2e/install-gui.ps1`), and must not ask, and must keep the data.
+
 ## Steam
 
 - Development: create `steam_appid.txt` containing `480` (Valve's Spacewar test app) next to the executable and keep Steam running. Without Steam the build falls back to local achievements.

@@ -18,6 +18,16 @@ import { remote } from "webdriverio";
 
 const IDENTIFIER = "com.ezyappco.epet";
 
+/** How many ePet processes are running. */
+export function appProcesses() {
+  if (process.platform === "win32") {
+    const out = spawnSync("tasklist", ["/FI", "IMAGENAME eq desktoppet.exe", "/NH", "/FO", "CSV"], { encoding: "utf8" }).stdout ?? "";
+    return out.split("\n").filter((l) => l.toLowerCase().includes("desktoppet.exe")).length;
+  }
+  const out = spawnSync("pgrep", ["-x", "desktoppet"], { encoding: "utf8" }).stdout ?? "";
+  return out.split("\n").filter(Boolean).length;
+}
+
 /** Where the app keeps its database and characters (Tauri's app data dir). */
 export function appDataDir() {
   if (process.platform === "win32") return join(process.env.APPDATA ?? join(homedir(), "AppData", "Roaming"), IDENTIFIER);
@@ -33,11 +43,16 @@ export class App {
   driver;
   petHandle = "";
 
-  /** Starts ePet with no data (unless `keepData`) and waits for the pet window. */
-  static async launch({ keepData = false } = {}) {
-    if (!process.env.EPET_APP) throw new Error("Set EPET_APP to the built ePet executable");
+  /**
+   * Starts ePet with no data (unless `keepData`) and waits for the pet window. `exe` is
+   * another build to start (e.g. an installed release, which has no test hooks: `hooks: false`).
+   */
+  static async launch({ keepData = false, exe = process.env.EPET_APP, hooks = true } = {}) {
+    if (!exe) throw new Error("Set EPET_APP to the built ePet executable");
     if (!keepData) rmSync(appDataDir(), { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
     const app = new App();
+    app.exe = exe;
+    app.hooks = hooks;
     try {
       await app.start();
     } catch (e) {
@@ -49,7 +64,7 @@ export class App {
   }
 
   async start() {
-    const application = process.env.EPET_APP;
+    const application = this.exe;
     let capabilities = { "tauri:options": { application } };
     if (process.platform === "win32" && process.env.NATIVE_DRIVER) {
       // Edge WebDriver directly, as tauri-driver would start it, with a log to read when a
@@ -93,6 +108,7 @@ export class App {
     // The pet page is ready once its canvas has a size.
     await this.b.waitUntil(() => this.b.execute(() => (document.getElementById("pet")?.width ?? 0) > 0), { timeout: 30_000 });
     // And its test hooks (EPET_E2E, debug builds): the pet has started.
+    if (!this.hooks) return;
     await this.b
       .waitUntil(() => this.b.execute(() => !!window.__epet), { timeout: 15_000 })
       .catch(() => {
@@ -103,7 +119,7 @@ export class App {
   /** Quits and starts the app again with the same data; returns the new App. */
   async restart() {
     await this.quit();
-    return App.launch({ keepData: true });
+    return App.launch({ keepData: true, exe: this.exe, hooks: this.hooks });
   }
 
   async quit() {
@@ -114,7 +130,7 @@ export class App {
     if (process.platform === "win32") {
       for (const exe of ["desktoppet.exe", "msedgedriver.exe", "tauri-driver.exe"]) spawnSync("taskkill", ["/F", "/T", "/IM", exe], { stdio: "ignore" });
     } else {
-      spawnSync("pkill", ["-f", process.env.EPET_APP], { stdio: "ignore" });
+      spawnSync("pkill", ["-f", this.exe ?? process.env.EPET_APP], { stdio: "ignore" });
     }
     await sleep(1000);
   }
@@ -430,9 +446,17 @@ export function useApp(file) {
   });
   after(async () => {
     await holder.app?.quit();
+  });
+  recordResults(file);
+  return holder;
+}
+
+/** Writes this file's results (by checklist id) once its tests are done. */
+export function recordResults(file) {
+  after(() => {
+    if (!results.length) return;
     const dir = process.env.E2E_RESULTS ?? "e2e-results";
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, `${basename(file).replace(/(\.test)?\.m?js$/, "")}.json`), JSON.stringify(results, null, 2));
   });
-  return holder;
 }

@@ -16,7 +16,20 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
-## [0.32.4] - 2026-10-07
+## [0.33.0] - 2026-10-07
+
+### Changed
+- Upgrading on Windows asks nothing: the installer no longer stops at "Already installed —
+  uninstall before installing?" or asks to close a running ePet. It closes ePet, quietly
+  uninstalls the older version (your to-dos, alarms, anniversaries, settings and mood stay)
+  and installs the new one. Reinstalling the same version or installing an older one still
+  asks.
+
+### Added (development)
+- Tested on every push: the first start, starting ePet twice, Start with my computer,
+  Quit, reminders due while ePet was off, the mood across a restart, opening and closing
+  windows many times, and upgrading a real installation (the previous build's installer,
+  then this one's clicked through page by page). 120 of 146 checklist items in all.
 
 ## [0.32.4] - 2026-10-07
 
@@ -31,8 +44,6 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ### Changed (development)
 - A snooze may be shorter than a minute when Settings say so (only the tests do).
-
-## [0.32.3] - 2026-10-07
 
 ## [0.32.3] - 2026-10-07
 

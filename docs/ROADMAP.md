@@ -102,7 +102,10 @@ social handles.
 before the first store upload). On first launch, if the new data folder has no
 database and the old one does, copy it across so alarms, to-dos and settings carry
 over. Testers uninstall ePet once: Windows treats the renamed app as a different
-program, so both would be installed and both would start with the computer.
+program, so both would be installed and both would start with the computer. The
+installer's quiet upgrade (`src-tauri/windows/installer.nsi`) finds the old version by
+product name, so it won't see ePet either: either uninstall it from the ChimePet
+installer too (look for the `ePet` uninstall entry), or tell testers to.
 
 **Not renamed (users don't see these):** the repo `DesktopPet`, the `desktoppet` crates,
 `desktoppet.db` and the mock's storage keys.

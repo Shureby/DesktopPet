@@ -14,6 +14,8 @@
         {
           "id": "install.first-launch",
           "rev": "0.1.0",
+          "ci": "partial",
+          "human": "你只看掉落的样子（窗口出现、宠物落在任务栏上方由 CI 测）",
           "do": "首次启动",
           "expect": "宠物从屏幕上方掉下来，落在任务栏/Dock 上方"
         },
@@ -27,18 +29,22 @@
         {
           "id": "install.single-instance",
           "rev": "0.1.0",
+          "ci": "auto",
           "do": "已经运行时再启动一次",
           "expect": "不会出现第二只宠物（只打开面板）"
         },
         {
           "id": "install.upgrade",
-          "rev": "0.1.0",
-          "do": "覆盖安装新版本",
-          "expect": "之前的待办、闹钟、设置、心情值都还在"
+          "rev": "0.33.0",
+          "ci": "auto",
+          "do": "装着旧版本、ePet 正在运行时，双击新版本的安装包，一路点 Next / Install / Finish",
+          "expect": "不再出现“已安装（Already Installed）/ 是否先卸载”那一页，也不提示 ePet 正在运行（会自动关掉它）；旧版被安静地卸载后装上新版；之前的待办、闹钟、纪念日、设置、心情值都还在。重装同一版本或装更旧的版本时仍会询问"
         },
         {
           "id": "install.autostart",
           "rev": "0.1.0",
+          "ci": "partial",
+          "human": "你只看真的重启电脑后 ePet 会自己启动（写入和删除系统启动项由 CI 测）",
           "do": "Settings → 勾选 Start with my computer，重启电脑；再取消并重启",
           "expect": "勾选时自动启动，取消后不启动"
         }
@@ -252,6 +258,7 @@
         {
           "id": "tray.quit",
           "rev": "0.1.0",
+          "ci": "auto",
           "do": "托盘 → Quit",
           "expect": "宠物和所有窗口关闭，进程退出"
         }
@@ -576,6 +583,7 @@
         {
           "id": "alarm.off-while-shut",
           "rev": "0.22.0",
+          "ci": "auto",
           "do": "设一个 3 分钟后的一次性闹钟、一个 3 分钟后的计时器、一个 3 分钟后提醒的待办，然后退出 ePet，等 10 分钟后再打开；另设一个 2 分钟后的闹钟（贪睡 5 分钟 × 3 次），退出后等约 12 分钟再打开",
           "expect": "第一组都不响：闹钟和计时器在 Finished 里写 “Didn't ring · … · ePet wasn't running”，没有 Missed 角标，也不在 “While I was hidden” 清单里；待办显示红色 “Overdue · …”；第二个闹钟打开后立刻补响，气泡写 “Snoozed 2× · first rang …”，不理的话再贪睡一次后被标记为错过；如果超过 15 分钟才打开则不响"
         }
@@ -952,6 +960,7 @@
         {
           "id": "mood.offline",
           "rev": "0.3.0",
+          "ci": "auto",
           "do": "关掉应用一段时间再打开",
           "expect": "心情不会因为关着的时间而下降"
         }
@@ -1101,6 +1110,7 @@
         {
           "id": "stability.windows",
           "rev": "0.2.0",
+          "ci": "auto",
           "do": "连续打开/关闭面板和游戏窗口 10 次",
           "expect": "不卡死、没有黑窗、任务栏不消失"
         },
