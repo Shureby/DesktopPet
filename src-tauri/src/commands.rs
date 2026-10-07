@@ -233,6 +233,12 @@ pub fn clear_unseen(app: AppHandle, state: State<AppState>) -> CmdResult<()> {
     Ok(())
 }
 
+/// The pet listens for reminders now: the scheduler starts taking what's due.
+#[tauri::command]
+pub fn pet_ready(state: State<AppState>) {
+    state.pet_ready.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
 /// The hidden pet has answered its reminder and walked off: hide it again.
 #[tauri::command]
 pub fn end_peek(app: AppHandle) -> CmdResult<()> {

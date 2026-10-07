@@ -239,6 +239,8 @@ export class PetHost {
     await this.backend.on("alarms-changed", () => void this.refreshTimers());
     await this.backend.on("characters-changed", () => void this.reloadCharacters());
     await this.backend.on("pet-event", (e) => this.onActivity(e));
+    // Listening: what's due (also what came due while ePet was off) can be sent now.
+    await this.backend.petReady();
     await this.refreshTimers();
     // Anything the hidden pet couldn't tell you before ePet was last closed.
     if (this.petVisible) void this.tellUnseen();

@@ -554,6 +554,7 @@ export const mockBackend: Backend = {
     });
     fire("alarms-changed", null);
   },
+  async petReady() {},
   async endPeek() {},
   async e2eEnabled() {
     return false;

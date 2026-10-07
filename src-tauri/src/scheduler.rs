@@ -17,6 +17,10 @@ pub fn spawn<R: Runtime>(app: AppHandle<R>) {
             let mut presence = Presence::default();
             loop {
                 std::thread::sleep(Duration::from_secs(1));
+                // Nothing is taken before the pet can show it (a slow start would lose it).
+                if !app.state::<AppState>().pet_ready.load(std::sync::atomic::Ordering::Relaxed) {
+                    continue;
+                }
                 tick(&app);
                 celebrate(&app, &mut presence);
             }

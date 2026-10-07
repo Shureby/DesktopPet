@@ -76,6 +76,7 @@ pub fn run() {
             commands::list_unseen,
             commands::clear_unseen,
             commands::end_peek,
+            commands::pet_ready,
             commands::e2e_enabled,
             commands::e2e_tray,
             commands::e2e_close,

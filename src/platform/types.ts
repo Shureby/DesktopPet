@@ -394,6 +394,8 @@ export interface Backend {
   listUnseen(): Promise<Unseen[]>;
   /** "Done" on the list; missed alarms in it count as seen. */
   clearUnseen(): Promise<void>;
+  /** The pet listens for reminders now: until then the app takes nothing due (a slow start would lose it). */
+  petReady(): Promise<void>;
   /** The hidden pet has answered its reminder and walked off: hide it again. */
   endPeek(): Promise<void>;
   /** A debug build started for the end-to-end tests: the windows offer test hooks (e2e/). */

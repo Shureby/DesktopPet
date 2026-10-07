@@ -25,6 +25,11 @@ affected items' `rev` to the new version so the online checklist asks for a rete
   and installs the new one. Reinstalling the same version or installing an older one still
   asks.
 
+### Fixed
+- An alarm, timer or to-do reminder due right when ePet starts (also one that came due
+  while it was off, within the snoozes' grace) could be lost on a slow start: it was sent
+  before the pet was listening, so it never rang. ePet now waits until the pet is ready.
+
 ### Added (development)
 - Tested on every push: the first start, starting ePet twice, Start with my computer,
   Quit, reminders due while ePet was off, the mood across a restart, opening and closing

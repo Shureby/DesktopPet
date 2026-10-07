@@ -13,6 +13,9 @@ pub struct AppState {
     pub pet_hidden: AtomicBool,
     /// The hidden pet is out for a reminder ("peek"); `end_peek` sends it back.
     pub peeking: AtomicBool,
+    /// The pet window listens for reminders. Until then nothing due is taken (the scheduler
+    /// waits), so what's due right at startup isn't sent before anyone can show it.
+    pub pet_ready: AtomicBool,
     /// End-to-end tests: count as a mouse move on the next presence check (e2e_present).
     pub e2e_present: AtomicBool,
     pub storefront: Box<dyn Storefront>,
@@ -25,6 +28,7 @@ impl AppState {
             ignore_cursor: AtomicBool::new(false),
             pet_hidden: AtomicBool::new(false),
             peeking: AtomicBool::new(false),
+            pet_ready: AtomicBool::new(false),
             e2e_present: AtomicBool::new(false),
             storefront,
         }
