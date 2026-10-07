@@ -127,6 +127,10 @@ jobs:
         env:
           EPET_APP: ${{ github.workspace }}\target\debug\desktoppet.exe
           NATIVE_DRIVER: ${{ github.workspace }}\webdriver\msedgedriver.exe
+      - name: Edge WebDriver log (end)
+        if: failure()
+        shell: pwsh
+        run: if (Test-Path e2e-results\msedgedriver.log) { Get-Content e2e-results\msedgedriver.log -Tail 200 }
       - name: Report by checklist item
         if: always()
         run: node scripts/e2e-report.mjs
