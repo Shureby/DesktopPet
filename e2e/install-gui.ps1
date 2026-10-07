@@ -11,6 +11,7 @@ Add-Type -Namespace Win32 -Name User32 -MemberDefinition @"
 [DllImport("user32.dll")] public static extern bool PostMessage(System.IntPtr hWnd, uint msg, System.IntPtr w, System.IntPtr l);
 [DllImport("user32.dll")] public static extern System.IntPtr GetParent(System.IntPtr hWnd);
 [DllImport("user32.dll")] public static extern int GetDlgCtrlID(System.IntPtr hWnd);
+[DllImport("user32.dll")] public static extern System.IntPtr GetDlgItem(System.IntPtr hDlg, int id);
 "@
 $WM_COMMAND = 0x0111
 $A = [System.Windows.Automation.AutomationElement]
@@ -31,21 +32,21 @@ while (-not $p.HasExited -and (Get-Date) -lt $deadline) {
       $texts = @($all | ForEach-Object { $_.Current.Name } | Where-Object { $_ -and $_.Trim() })
       $page = ($texts -join " | ")
       if ($pages.Count -eq 0 -or $pages[$pages.Count - 1] -ne $page) { $pages.Add($page) }
-      $button = $all | Where-Object {
-        $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
-        $_.Current.IsEnabled -and $_.Current.Name -match '^(&?Next|&?Install|&?Finish|OK|&?Yes)'
-      } | Select-Object -First 1
+      # The page's forward button, by its text (whatever UI Automation calls its type).
+      $named = @($all | Where-Object { $_.Current.Name -match '^(&?Next|&?Install|&?Finish|OK|&?Yes)\b' })
+      $button = $named | Where-Object { $_.Current.NativeWindowHandle -ne 0 } | Select-Object -First 1
       if ($button) {
         # What a click does in a dialog: WM_COMMAND (BN_CLICKED) to the button's parent with
         # its id. Neither UI Automation's Invoke nor BM_CLICK reached NSIS's buttons on CI.
         $hwnd = [System.IntPtr]$button.Current.NativeWindowHandle
-        if ($hwnd -ne [System.IntPtr]::Zero) {
-          $id = [Win32.User32]::GetDlgCtrlID($hwnd)
-          [Win32.User32]::PostMessage([Win32.User32]::GetParent($hwnd), $WM_COMMAND, [System.IntPtr]$id, $hwnd) | Out-Null
-        } else {
-          $button.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
-        }
-        $clicks.Add("$($button.Current.Name) (hwnd $hwnd)")
+        $id = [Win32.User32]::GetDlgCtrlID($hwnd)
+        [Win32.User32]::PostMessage([Win32.User32]::GetParent($hwnd), $WM_COMMAND, [System.IntPtr]$id, $hwnd) | Out-Null
+        $clicks.Add("$($button.Current.Name) (id $id, $($button.Current.ControlType.ProgrammaticName), enabled $($button.Current.IsEnabled))")
+      } elseif ($named.Count -gt 0) {
+        # No window handle for it: the wizard's own forward button is IDOK (1), as Enter.
+        $dlg = [System.IntPtr]$win.Current.NativeWindowHandle
+        [Win32.User32]::PostMessage($dlg, $WM_COMMAND, [System.IntPtr]1, [Win32.User32]::GetDlgItem($dlg, 1)) | Out-Null
+        $clicks.Add("IDOK to $dlg (" + (($named | ForEach-Object { "$($_.Current.Name)/$($_.Current.ControlType.ProgrammaticName)" }) -join ", ") + ")")
       } elseif ($errors.Count -lt 20) {
         $errors.Add("no button to press on: $page")
       }

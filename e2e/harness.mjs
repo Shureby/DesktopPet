@@ -361,6 +361,19 @@ export class App {
     if (value) await el.setValue(value);
     // Clearing alone fires no "input" event.
     else await this.b.execute((s) => document.querySelector(s).dispatchEvent(new Event("input", { bubbles: true })), css);
+    // A re-render can put the old text back between clearing and typing: then set it outright.
+    const now = await this.b.execute((s) => document.querySelector(s).value, css);
+    if (value && now !== value) {
+      await this.b.execute(
+        (s, v) => {
+          const e = document.querySelector(s);
+          e.value = v;
+          e.dispatchEvent(new Event("input", { bubbles: true }));
+        },
+        css,
+        value,
+      );
+    }
     if (enter) await this.b.keys("Enter");
     await sleep(250);
   }

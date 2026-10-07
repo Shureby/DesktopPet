@@ -22,6 +22,8 @@ async function reset(ringSeconds = 30) {
   // Answer anything still ringing (a test that failed), then let the bubble go.
   await app.b.execute(() => [...document.querySelectorAll("#bubble .actions button")].find((b) => b.textContent === "Done")?.click());
   await app.until(() => document.getElementById("bubble").hidden || !document.querySelector("#bubble .actions"), [], 15_000).catch(() => {});
+  // …and dismiss a "⏱ Done" badge it left.
+  if ((await app.badges()).some((b) => b.text.startsWith("⏱ Done"))) await clickBadge("⏱ Done");
 }
 
 /** Clicks a button in the pet's bubble. */
@@ -144,7 +146,9 @@ check("timer.unanswered", "nobody answers: no snooze; a quiet “⏱ Done …”
   assert.equal(after.snoozes, 0, "timers never snooze themselves");
   assert.equal(after.enabled, false);
   const badge = (await app.badges()).find((x) => x.text.startsWith("⏱ Done"));
-  assert.equal(badge.text, `⏱ Done ${await app.clock(after.rangAt)}`);
+  // When it finished: rang, or a minute later if the ring ran over the minute.
+  const times = [await app.clock(after.rangAt), await app.clock(after.rangAt + 60_000)];
+  assert.ok(times.some((c) => badge.text === `⏱ Done ${c}`), `${badge.text} (rang ${times[0]})`);
   await clickBadge("⏱ Done");
   assert.ok(!(await app.badges()).some((x) => x.text.startsWith("⏱ Done")));
 });
