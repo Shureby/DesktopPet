@@ -8,12 +8,14 @@
         {
           "id": "install.setup",
           "rev": "0.1.0",
+          "mac": true,
           "do": "安装包安装",
           "expect": "开始菜单/启动台里有应用，图标和名字正常"
         },
         {
           "id": "install.first-launch",
           "rev": "0.1.0",
+          "mac": true,
           "ci": "partial",
           "human": "你只看掉落的样子（窗口出现、宠物落在任务栏上方由 CI 测）",
           "do": "首次启动",
@@ -29,6 +31,7 @@
         {
           "id": "install.single-instance",
           "rev": "0.1.0",
+          "mac": true,
           "ci": "auto",
           "do": "已经运行时再启动一次",
           "expect": "不会出现第二只宠物（只打开面板）"
@@ -43,6 +46,7 @@
         {
           "id": "install.autostart",
           "rev": "0.1.0",
+          "mac": true,
           "ci": "partial",
           "human": "你只看真的重启电脑后 ePet 会自己启动（写入和删除系统启动项由 CI 测）",
           "do": "Settings → 勾选 Start with my computer，重启电脑；再取消并重启",
@@ -57,6 +61,7 @@
         {
           "id": "pet.idle",
           "rev": "0.1.0",
+          "mac": true,
           "ci": "partial",
           "human": "你只看动作流畅、不卡（会自己换动作、没有脚本错误由 CI 测）",
           "do": "放着不管 1–2 分钟",
@@ -65,6 +70,7 @@
         {
           "id": "pet.windows",
           "rev": "0.1.0",
+          "mac": true,
           "ci": "partial",
           "human": "你只试把窗口拖走时宠物会掉下来（站在窗口顶边、最小化后掉下来由 CI 测）",
           "do": "让宠物走到普通窗口的顶边",
@@ -73,6 +79,7 @@
         {
           "id": "pet.drag-throw",
           "rev": "0.1.0",
+          "mac": true,
           "ci": "partial",
           "human": "你只看手感：拖动是否跟手、飞出去的抛物线和撞墙反弹是否自然（跟手、甩出后继续飞再落地由 CI 测）",
           "do": "拖起宠物，然后甩出去",
@@ -81,18 +88,21 @@
         {
           "id": "pet.multi-monitor",
           "rev": "0.8.1",
+          "mac": true,
           "do": "多显示器：把宠物甩到另一块屏幕",
           "expect": "能跨屏，落在那块屏的底边"
         },
         {
           "id": "pet.click-through",
           "rev": "0.1.0",
+          "mac": true,
           "do": "点击宠物身体以外的透明区域",
           "expect": "点击穿透到下面的窗口，不挡桌面"
         },
         {
           "id": "pet.hover-meter",
           "rev": "0.4.0",
+          "mac": true,
           "ci": "partial",
           "human": "你只看爱心条的位置和样子（数值、不被气泡挡住由 CI 测）",
           "do": "鼠标悬停在宠物上",
@@ -115,6 +125,7 @@
         {
           "id": "pet.hidpi",
           "rev": "0.8.1",
+          "mac": true,
           "do": "在 125%/150% 缩放的屏幕上使用",
           "expect": "宠物大小正常，位置不偏"
         },
@@ -127,6 +138,7 @@
         {
           "id": "pet.mixed-dpi",
           "rev": "0.8.1",
+          "mac": true,
           "do": "两块屏幕缩放不同（如 100% 和 150%），把宠物甩过去再甩回来",
           "expect": "跨屏后宠物完整显示、能点击；到 150% 屏上看起来按比例变大"
         },
@@ -156,6 +168,7 @@
         {
           "id": "pet.hover-stroke",
           "rev": "0.12.0",
+          "mac": true,
           "ci": "auto",
           "do": "停满 2 秒后，在宠物身上来回移动鼠标几秒",
           "expect": "算作抚摸：飘出 “+3 ♥”、爱心增加，约每 1.5 秒一次；达到每小时上限后说 “That's plenty for now”。不满 2 秒就移动不算"
@@ -185,6 +198,7 @@
         {
           "id": "pet.screen-edge",
           "rev": "0.19.1",
+          "mac": true,
           "do": "有计时器和闹钟角标时，把宠物拖到屏幕最右边，再慢慢往左拖一点；让它说话（点它）并把鼠标停在它身上；把鼠标停在角标上看信息框；最后拖到屏幕最左边重复一遍",
           "expect": "最右边时角标移到宠物左侧，完整可见；往左拖一点角标不会马上跳回右侧（要空出约 40px 才回去），宠物在边上走动时角标不闪；鼠标停在角标或信息框上时角标不移动；爱心条在另一侧，放不下时显示在宠物头顶（有气泡时在气泡上方）；说话气泡和信息框都完整显示在屏幕内，气泡尖角仍指向宠物；最左边时角标仍在右侧，爱心条移到头顶"
         }
@@ -197,6 +211,7 @@
         {
           "id": "menu.items",
           "rev": "0.7.0",
+          "mac": true,
           "ci": "partial",
           "human": "你只看右键菜单显示正常（每项的写法和顺序由 CI 测）",
           "do": "右键宠物",
@@ -212,6 +227,7 @@
         {
           "id": "menu.hide",
           "rev": "0.9.0",
+          "mac": true,
           "ci": "partial",
           "human": "你只看真的点托盘图标能打开菜单（隐藏/显示和托盘第一项的文字由 CI 测）",
           "do": "宠物右键 → Hide pet，再点托盘图标 → Show pet",
@@ -254,6 +270,7 @@
         {
           "id": "tray.actions",
           "rev": "0.9.0",
+          "mac": true,
           "ci": "partial",
           "human": "你只看真的点托盘菜单项有反应（每项的效果由 CI 测）",
           "do": "从托盘逐个使用：Add to-do…、Set alarm…、Set timer → 5 min、Switch character → Rooster、Play Safe Landing、Open panel…",
@@ -276,6 +293,7 @@
         {
           "id": "tray.quit",
           "rev": "0.1.0",
+          "mac": true,
           "ci": "auto",
           "do": "托盘 → Quit",
           "expect": "宠物和所有窗口关闭，进程退出"
@@ -537,6 +555,7 @@
         {
           "id": "alarm.ring",
           "rev": "0.5.0",
+          "mac": true,
           "ci": "partial",
           "human": "你只听铃声、看宠物跑到中间的样子（气泡、按钮，按设置响或不响由 CI 测）",
           "do": "等闹钟到点",
@@ -614,6 +633,7 @@
         {
           "id": "hidden.peek-alarm",
           "rev": "0.22.0",
+          "mac": true,
           "ci": "partial",
           "human": "你只看宠物从屏幕边走出来、走回去的样子（出来、回去、托盘文字由 CI 测）",
           "do": "隐藏宠物（托盘 Hide pet），设一个 2 分钟后的闹钟；到点后点 Done；再设一个，到点后点 Snooze；再设一个，到点时在托盘点 Show pet",
@@ -774,6 +794,7 @@
         {
           "id": "todo.remind",
           "rev": "0.2.0",
+          "mac": true,
           "ci": "partial",
           "human": "你只听提示音（只提醒一次、用哪个铃声由 CI 测）",
           "do": "等待办提醒到点",
@@ -838,6 +859,7 @@
         {
           "id": "anniv.music-play",
           "rev": "0.29.0",
+          "mac": true,
           "ci": "partial",
           "human": "你只听：好不好听、音量是否平衡、结尾淡出、60 秒循环（每次放哪首、何时开始和停止由 CI 测）",
           "do": "Settings → To-do reminders 勾上 “Play music with it”，音量调一半；分别 ▶ Preview 一个生日、三个结婚纪念日（分别选卡农、Wedding March、Bridal Chorus）、一个选了 Ode to Joy 的 Custom、一个默认的 Remembrance；把时长设成 60 秒再听一次；播放中设一个 1 分钟后的计时器让它响；最后把音量拉到最右、再关掉音乐预览一次",
@@ -853,6 +875,7 @@
         {
           "id": "anniv.fireworks",
           "rev": "0.30.0",
+          "mac": true,
           "ci": "partial",
           "human": "你只看烟花和气球的样子，以及能点到后面的窗口（台词、时长、当天只一次由 CI 测）",
           "do": "建一个生日（Since 1990），点表单里的 “▶ Preview”（或列表那一行悬停时的 ▶）；看完到 Settings 把时长改成 10 秒再预览；最后建一个今天的生日，动一下鼠标看真实的庆祝",
@@ -992,6 +1015,7 @@
         {
           "id": "settings.layout",
           "rev": "0.22.2",
+          "mac": true,
           "ci": "partial",
           "human": "你只看排版好不好看（四张卡片、Focus 页不出滚动条、改了能保存由 CI 测）",
           "do": "打开面板，用默认窗口大小看 Focus 页（打开 Work hours）和 Settings 页；改几个设置（大小、Quiet hours 时间、铃声、Ring for、If nobody answers、隐藏时出来的勾选、开机启动）后切页再回来；把 “Show alarms due within” 改成 120，If nobody answers 选每一项，New alarm 的重复方式选 Custom days",
@@ -1016,6 +1040,7 @@
         {
           "id": "settings.ringtones",
           "rev": "0.2.0",
+          "mac": true,
           "ci": "partial",
           "human": "你只听 6 种铃声是否都好听（都能播放由 CI 测）",
           "do": "逐个试听 6 种铃声",
@@ -1060,6 +1085,7 @@
         {
           "id": "characters.folder",
           "rev": "0.31.0",
+          "mac": true,
           "ci": "auto",
           "do": "Characters 页点 “your characters folder”；删掉里面的 README.txt 再点一次；把 README.txt 改几个字再点一次",
           "expect": "打开用户角色文件夹，里面有 README.txt（英文说明）、character.schema.json 和 example-cat/character.json.example（id 是 example-cat）；example-cat 不会出现在 Characters 页；删掉的 README 会重新生成，改过的 README 不会被覆盖"
@@ -1087,6 +1113,7 @@
         {
           "id": "game.open",
           "rev": "0.2.0",
+          "mac": true,
           "ci": "auto",
           "do": "右键 → Play Safe Landing",
           "expect": "游戏窗口打开，宠物主窗口仍正常"
@@ -1101,6 +1128,7 @@
         {
           "id": "game.controls",
           "rev": "0.1.0",
+          "mac": true,
           "ci": "auto",
           "do": "← → / A D 移动；Space 或 Enter 开始",
           "expect": "操作正常"
@@ -1136,12 +1164,14 @@
         {
           "id": "stability.sleep",
           "rev": "0.5.0",
+          "mac": true,
           "do": "电脑睡眠后唤醒",
           "expect": "宠物正常；错过的闹钟按贪睡/Missed 规则处理"
         },
         {
           "id": "stability.long-run",
           "rev": "0.1.0",
+          "mac": true,
           "ci": "auto",
           "nightly": true,
           "do": "运行 1 小时以上，看任务管理器/活动监视器",

@@ -23,6 +23,9 @@ affected items' `rev` to the new version so the online checklist asks for a rete
   carrying and slamming, standing on a window's top edge, and the Rooster's glide.
 - A nightly long run: ePet runs for an hour while used now and then, and its memory,
   handles and CPU must level off (`.github/workflows/long-run.yml`).
+- The test checklist marks what to test on macOS (🍎, about 30 items: what depends on the
+  system). The rest is the same code on both, tested on Windows; the online checklist's
+  macOS view lists only the 🍎 items.
 
 ## [0.33.0] - 2026-10-07
 
