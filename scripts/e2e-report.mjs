@@ -23,7 +23,10 @@ const add = (id, test) => {
 
 for (const f of existsSync(dir) ? readdirSync(dir) : []) {
   if (!f.endsWith(".json") || f === "report.json" || f === "unit.json") continue;
-  for (const r of JSON.parse(readFileSync(join(dir, f), "utf8"))) add(r.id, { name: r.name, ok: r.ok, error: r.error, kind: "e2e" });
+  const results = JSON.parse(readFileSync(join(dir, f), "utf8").replace(/^\uFEFF/, ""));
+  // (Other JSON the tests leave there, e.g. install-pages.json, isn't a list of results.)
+  if (!Array.isArray(results)) continue;
+  for (const r of results) add(r.id, { name: r.name, ok: r.ok, error: r.error, kind: "e2e" });
 }
 const unitPath = join(dir, "unit.json");
 if (existsSync(unitPath)) {
