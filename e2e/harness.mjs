@@ -67,8 +67,23 @@ export class App {
     }
     await sleep(1500);
     this.b = await remote({ hostname: "127.0.0.1", port: 4444, logLevel: "warn", connectionRetryCount: 1, capabilities });
-    await this.b.waitUntil(async () => (await this.b.getUrl()).includes("pet.html"), { timeout: 30_000 });
-    this.petHandle = await this.b.getWindowHandle();
+    // The pet window, whichever window the session started on.
+    const seen = new Map();
+    const findPet = async () => {
+      for (const h of await this.b.getWindowHandles()) {
+        await this.b.switchToWindow(h);
+        const url = await this.b.getUrl();
+        seen.set(h, url);
+        if (url.includes("pet.html")) return h;
+      }
+      return null;
+    };
+    await this.b
+      .waitUntil(async () => (this.petHandle = await findPet()), { timeout: 30_000, interval: 500 })
+      .catch((e) => {
+        throw new Error(`No pet window; windows: ${JSON.stringify([...seen.values()])} (${e.message})`);
+      });
+    await this.b.switchToWindow(this.petHandle);
     // The pet page is ready once its canvas has a size.
     await this.b.waitUntil(() => this.b.execute(() => (document.getElementById("pet")?.width ?? 0) > 0), { timeout: 30_000 });
   }
