@@ -122,12 +122,12 @@ check("anniv.candle", "a remembrance: without the effect a quiet line; with it, 
   await preview({ ...r, effect: true });
   await app.waitBubble("Remembering", 5000);
   await app.b.waitUntil(async () => (await effect())?.anniversary.kind === "remembrance", { timeout: 10_000 });
-  const p = await app.pet();
-  assert.ok(p.vigil, "walks aside to keep vigil");
-  const centre = p.area.x + p.area.w / 2;
-  assert.ok(p.target && Math.abs(p.target.x - centre) > 160 * p.dpr, `aside, clear of the flowers: ${p.target?.x} vs ${centre}`);
-  assert.equal(p.vigil.face, p.target.x < centre ? 1 : -1, "facing the candle");
+  // It walks aside (it may already be there) and sits, facing the candle in the middle.
   await app.b.waitUntil(async () => (await app.pet()).state === "vigil", { timeout: 20_000 });
+  const p = await app.pet();
+  const centre = p.area.x + p.area.w / 2;
+  assert.ok(Math.abs(p.x - centre) > 160 * p.dpr, `aside, clear of the flowers: ${p.x} vs ${centre}`);
+  assert.equal(p.facing, p.x < centre ? 1 : -1, "facing the candle");
 }, { timeout: 90_000 });
 
 check("anniv.same-day", "two on one day: the remembrance first, then (after a pause) the birthday, both in full; not again that day", async () => {
