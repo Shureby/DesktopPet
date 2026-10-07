@@ -17,9 +17,10 @@ on:
       - .github/workflows/long-run.yml
       - e2e/long/**
 
+# One at a time; a newer one waits rather than cancelling an hour's run.
 concurrency:
   group: long-run-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   long-run:
