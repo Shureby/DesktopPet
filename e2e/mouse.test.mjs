@@ -448,7 +448,9 @@ if (process.platform === "win32") {
       p = await ringAndRun();
       const sweepSince = Date.now();
       const y = p.y - p.size.h * 0.4;
+      // Across it and on, without stopping (a mouse resting just past it counts as waiting).
       await mouse.glide({ x: p.x + p.size.w * 3, y }, { x: p.x - p.size.w, y }, 150, 10);
+      await mouse.glide({ x: p.x - p.size.w, y }, { x: p.area.x + 10, y: p.area.y + 10 }, 400, 20);
       await away();
       await app.b.waitUntil(async () => (await app.pet()).state !== "goto", { timeout: 15_000, interval: 100 });
       p = await app.pet();

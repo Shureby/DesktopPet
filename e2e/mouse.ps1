@@ -43,7 +43,8 @@ while ($null -ne ($line = [Console]::In.ReadLine())) {
         Answer "$($p.X) $($p.Y)"
       }
       { $_ -in 'minimize', 'restore' } {
-        $h = [Win32.Input]::FindWindow($null, $a[1])
+        # [NullString]: a plain $null would be passed as "" (a class named "").
+        $h = [Win32.Input]::FindWindow([NullString]::Value, $a[1])
         if ($h -eq [IntPtr]::Zero) { throw "no window titled $($a[1])" }
         # SW_MINIMIZE 6, SW_RESTORE 9
         [Win32.Input]::ShowWindow($h, $(if ($a[0] -eq 'minimize') { 6 } else { 9 })) | Out-Null
