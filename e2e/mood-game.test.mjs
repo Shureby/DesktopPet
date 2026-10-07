@@ -89,7 +89,8 @@ check("game.controls", "← → / A D steer; Space or Enter starts", async () =>
   await key("ArrowLeft", 400);
   const x1 = (await game()).x;
   assert.ok(x1 < x0, `left: ${x0} → ${x1}`);
-  await key("KeyD", 400);
+  // Long enough to turn round (it keeps some speed).
+  await key("KeyD", 1200);
   const x2 = (await game()).x;
   assert.ok(x2 > x1, `right: ${x1} → ${x2}`);
   // Enter starts too (after a restart from the result screen, see game.finish).
@@ -102,15 +103,20 @@ check("game.controls", "← → / A D steer; Space or Enter starts", async () =>
 
 check("game.finish", "after a round: R plays again; the round made the pet happier", async () => {
   const app = ctx.app;
+  // A round from the start (the last one may already be over).
+  if ((await game()).phase === "result") await key("KeyR");
+  assert.equal((await game()).phase, "playing");
+  await app.toPet();
   const before = (await app.pet()).mood.affection;
   await app.toWindow("game.html");
   await app.until(() => window.__epetGame.state.phase === "result", [], 90_000);
+  await app.toPet();
+  await app.b.waitUntil(async () => (await app.pet()).mood.affection > before, { timeout: 5000 }).catch(async () => {
+    throw new Error(`affection stayed at ${(await app.pet()).mood.affection} (was ${before})`);
+  });
   await key("KeyR");
   assert.equal((await game()).phase, "playing");
   await closeGame();
-  await app.toPet();
-  const after = (await app.pet()).mood.affection;
-  assert.ok(after > before, `affection ${before} → ${after}`);
 }, { timeout: 150_000 });
 
 check("game.abilities", "Cat grabs ☂ to slow down; Rooster holds Space to glide (the hints say so)", async () => {
