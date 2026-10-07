@@ -92,8 +92,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: npm ci
       - run: npx tauri build --debug --no-bundle
-      - name: Install tauri-driver
-        run: cargo install tauri-driver --locked
       - name: Edge WebDriver matching WebView2
         shell: pwsh
         run: |
@@ -109,6 +107,17 @@ jobs:
             Copy-Item "$env:EDGEWEBDRIVER\msedgedriver.exe" webdriver\
           }
           & webdriver\msedgedriver.exe --version
+      - name: Start the app once (diagnostics)
+        shell: pwsh
+        run: |
+          $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = "--remote-debugging-port=9222"
+          Start-Process -FilePath target\debug\desktoppet.exe
+          Start-Sleep 20
+          Get-CimInstance Win32_Process | Where-Object { $_.Name -in "desktoppet.exe", "msedgewebview2.exe" } | Select-Object ProcessId, ParentProcessId, CommandLine | Format-List
+          try { (Invoke-WebRequest http://127.0.0.1:9222/json/version -UseBasicParsing).Content } catch { "No DevTools on 9222: $_" }
+          Get-ChildItem -Recurse -Force "$env:LOCALAPPDATA\com.ezyappco.epet", "$env:APPDATA\com.ezyappco.epet" -ErrorAction SilentlyContinue | Select-Object -First 40 -ExpandProperty FullName
+          Stop-Process -Name desktoppet -Force -ErrorAction SilentlyContinue
+          Start-Sleep 2
       - name: Unit tests (for the report)
         run: npx vitest run --reporter=default --reporter=json --outputFile.json=e2e-results/unit.json
       - name: End-to-end tests

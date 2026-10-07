@@ -6,7 +6,8 @@
  * can tick the matching items in docs/test-checklist.json.
  *
  * Env: EPET_APP (the built executable), TAURI_DRIVER (default "tauri-driver"),
- * NATIVE_DRIVER (msedgedriver on Windows), E2E_RESULTS (default "e2e-results").
+ * NATIVE_DRIVER (msedgedriver on Windows, then used directly, without tauri-driver),
+ * E2E_RESULTS (default "e2e-results").
  */
 import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
@@ -37,21 +38,39 @@ export class App {
     if (!process.env.EPET_APP) throw new Error("Set EPET_APP to the built ePet executable");
     if (!keepData) rmSync(appDataDir(), { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
     const app = new App();
-    const args = process.env.NATIVE_DRIVER ? ["--native-driver", process.env.NATIVE_DRIVER] : [];
-    app.driver = spawn(process.env.TAURI_DRIVER ?? "tauri-driver", args, { stdio: ["ignore", "ignore", "inherit"] });
-    await sleep(1500);
-    app.b = await remote({
-      hostname: "127.0.0.1",
-      port: 4444,
-      logLevel: "warn",
-      connectionRetryCount: 5,
-      capabilities: { "tauri:options": { application: process.env.EPET_APP } },
-    });
-    await app.b.waitUntil(async () => (await app.b.getUrl()).includes("pet.html"), { timeout: 30_000 });
-    app.petHandle = await app.b.getWindowHandle();
-    // The pet page is ready once its canvas has a size.
-    await app.b.waitUntil(() => app.b.execute(() => (document.getElementById("pet")?.width ?? 0) > 0), { timeout: 30_000 });
+    try {
+      await app.start();
+    } catch (e) {
+      // Nothing left behind for the next file (a leftover would hold single-instance).
+      await app.quit();
+      throw e;
+    }
     return app;
+  }
+
+  async start() {
+    const application = process.env.EPET_APP;
+    let capabilities = { "tauri:options": { application } };
+    if (process.platform === "win32" && process.env.NATIVE_DRIVER) {
+      // Edge WebDriver directly, as tauri-driver would start it, with a log to read when a
+      // session can't start (e2e-results/msedgedriver.log).
+      const dir = process.env.E2E_RESULTS ?? "e2e-results";
+      mkdirSync(dir, { recursive: true });
+      this.driver = spawn(process.env.NATIVE_DRIVER, ["--port=4444", "--verbose", `--log-path=${join(dir, "msedgedriver.log")}`, "--append-log"], {
+        stdio: "ignore",
+        env: { ...process.env, TAURI_WEBVIEW_AUTOMATION: "true" },
+      });
+      capabilities = { browserName: "webview2", "ms:edgeChromium": true, "ms:edgeOptions": { binary: application, args: [] } };
+    } else {
+      const args = process.env.NATIVE_DRIVER ? ["--native-driver", process.env.NATIVE_DRIVER] : [];
+      this.driver = spawn(process.env.TAURI_DRIVER ?? "tauri-driver", args, { stdio: ["ignore", "ignore", "inherit"] });
+    }
+    await sleep(1500);
+    this.b = await remote({ hostname: "127.0.0.1", port: 4444, logLevel: "warn", connectionRetryCount: 1, capabilities });
+    await this.b.waitUntil(async () => (await this.b.getUrl()).includes("pet.html"), { timeout: 30_000 });
+    this.petHandle = await this.b.getWindowHandle();
+    // The pet page is ready once its canvas has a size.
+    await this.b.waitUntil(() => this.b.execute(() => (document.getElementById("pet")?.width ?? 0) > 0), { timeout: 30_000 });
   }
 
   async quit() {

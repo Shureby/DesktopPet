@@ -62,8 +62,10 @@ doesn't support it.
 
 ```bash
 npx tauri build --debug --no-bundle            # the app to test
-cargo install tauri-driver --locked            # once (Linux also needs WebKitWebDriver)
-EPET_APP=target/debug/desktoppet npm run e2e   # Linux: under xvfb-run; Windows: also NATIVE_DRIVER=msedgedriver.exe
+cargo install tauri-driver --locked            # once, Linux (also needs WebKitWebDriver)
+EPET_APP=target/debug/desktoppet npm run e2e   # Linux: under xvfb-run
+# Windows: NATIVE_DRIVER=msedgedriver.exe (matching WebView2), used without tauri-driver;
+# its log goes to e2e-results/msedgedriver.log
 node scripts/e2e-report.mjs                    # report by checklist item
 ```
 
