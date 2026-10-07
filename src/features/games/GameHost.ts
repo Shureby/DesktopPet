@@ -53,6 +53,20 @@ export class GameHost {
     this.best = (await this.backend.topScores(this.game.id, 1))[0]?.score ?? 0;
     this.game.reset(Date.now() & 0xffff, this.width, this.height);
     requestAnimationFrame((t) => this.frame(t));
+    // End-to-end tests (e2e/, debug builds only): what the game shows.
+    if (await this.backend.e2eEnabled()) {
+      const host = this;
+      Object.assign(window, {
+        __epetGame: {
+          get state() {
+            const g = host.game;
+            // Where the player is, if the game says (Safe Landing keeps it in its state).
+            const x = (g as unknown as { s?: { x?: number } }).s?.x ?? null;
+            return { phase: host.phase, status: g.status, score: g.score, message: g.message, controls: g.controls, x };
+          },
+        },
+      });
+    }
   }
 
   private get width() {

@@ -46,6 +46,8 @@ export const tauriBackend: Backend = {
   listUnseen: () => invoke("list_unseen"),
   clearUnseen: () => invoke("clear_unseen"),
   endPeek: () => invoke("end_peek"),
+  e2eEnabled: () => invoke<boolean>("e2e_enabled").catch(() => false),
+  e2eTray: (id) => invoke("e2e_tray", { id }),
   acknowledgeMissed: (id) => invoke("acknowledge_missed", { id }),
 
   pomodoroStart: () => invoke("pomodoro_start"),

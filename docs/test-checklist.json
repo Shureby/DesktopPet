@@ -51,6 +51,8 @@
         {
           "id": "pet.idle",
           "rev": "0.1.0",
+          "ci": "partial",
+          "human": "你只看动作流畅、不卡（会自己换动作、没有脚本错误由 CI 测）",
           "do": "放着不管 1–2 分钟",
           "expect": "自己走、跑、坐、睡，动作流畅不卡"
         },
@@ -186,24 +188,29 @@
         {
           "id": "menu.hide",
           "rev": "0.9.0",
+          "ci": "partial",
+          "human": "你只看真的点托盘图标能打开菜单（隐藏/显示和托盘第一项的文字由 CI 测）",
           "do": "宠物右键 → Hide pet，再点托盘图标 → Show pet",
           "expect": "宠物消失后重新出现；托盘第一项随状态在 Show pet / Hide pet 之间切换"
         },
         {
           "id": "menu.add-todo",
-          "rev": "0.2.0",
+          "rev": "0.32.3",
+          "ci": "auto",
           "do": "Add to-do…",
           "expect": "面板打开到 To-dos；宠物继续正常动，不卡死"
         },
         {
           "id": "menu.set-alarm",
-          "rev": "0.7.0",
+          "rev": "0.32.3",
+          "ci": "auto",
           "do": "Set alarm…",
           "expect": "面板打开到 Alarms，时间框已获得焦点，可以直接输入"
         },
         {
           "id": "menu.open-panel-tab",
           "rev": "0.11.0",
+          "ci": "auto",
           "do": "同时开一个 5 分钟计时器和一个专注时段，分别从宠物菜单和托盘点 Open panel…；再只保留专注时段试一次；什么都不开再试一次",
           "expect": "先结束的是计时器时打开 Alarms 页，先结束的是专注时打开 Focus 页；什么都没有时打开面板默认页"
         }
@@ -223,18 +230,22 @@
         {
           "id": "tray.actions",
           "rev": "0.9.0",
+          "ci": "partial",
+          "human": "你只看真的点托盘菜单项有反应（每项的效果由 CI 测）",
           "do": "从托盘逐个使用：Add to-do…、Set alarm…、Set timer → 5 min、Switch character → Rooster、Play Safe Landing、Open panel…",
           "expect": "每一项效果都和从宠物菜单点一样"
         },
         {
           "id": "tray.live-state",
           "rev": "0.10.0",
+          "ci": "auto",
           "do": "开一个计时器和一个专注时段，然后打开托盘菜单",
           "expect": "两个菜单都出现 “Cancel timer: 5 min (rings 3:52 PM)” 和 “Stop focus session (ends 4:10 PM)”，时刻正确且两边一致，不显示剩余时间；取消后再打开，这两项恢复原样"
         },
         {
           "id": "tray.custom-hidden",
           "rev": "0.9.0",
+          "ci": "auto",
           "do": "隐藏宠物，托盘 → Set timer → Custom / Edit…",
           "expect": "打开面板的 Alarms 页（宠物隐藏时没有气泡可用）"
         },
@@ -260,66 +271,80 @@
         {
           "id": "timer.confirm",
           "rev": "0.3.0",
+          "ci": "auto",
           "do": "选 1 min",
           "expect": "宠物说 “1 min timer set, I'll ring at …”；旁边出现 ⏱ 倒计时角标"
         },
         {
           "id": "timer.several",
           "rev": "0.10.0",
+          "ci": "auto",
           "do": "同时开 3 个计时器，再右键 → Cancel timer",
           "expect": "角标显示最近的一个 + “+2”；子菜单列出全部，每个带响铃时刻（rings 3:52 PM）"
         },
         {
           "id": "timer.cancel",
           "rev": "0.3.0",
+          "ci": "auto",
           "do": "取消其中一个",
           "expect": "角标和面板里同时消失"
         },
         {
           "id": "timer.ring",
           "rev": "0.5.0",
+          "ci": "partial",
+          "human": "你只听铃声、看宠物跑到屏幕中间的样子（气泡、按钮和“不跑”的设置由 CI 测）",
           "do": "等计时器到点",
           "expect": "按 Settings → Alarms & timers 的设置响铃/跑到屏幕中间；气泡有 Snooze N min 和 Done"
         },
         {
           "id": "timer.snooze",
           "rev": "0.4.1",
+          "ci": "auto",
           "do": "响铃时点 Snooze",
           "expect": "宠物说 “Snoozed until …”；面板 Timers 和角标里能看到，右键可以取消"
         },
         {
           "id": "timer.done",
           "rev": "0.15.0",
+          "ci": "auto",
           "do": "响铃时点 Done，再打开面板 Alarms → Finished",
           "expect": "停止；这个计时器留在 Finished 里，显示 “Done · Today 12:42 PM”（不再被删除）"
         },
         {
           "id": "timer.together",
           "rev": "0.15.0",
+          "ci": "auto",
           "do": "设两个几乎同时到点的计时器（如 1 min 和 1 min 30 s 或同一分钟内的两个），等第一个响铃时第二个也到点；然后按一次 Done",
           "expect": "两个合进同一个气泡（“⏱ 2 timers are up: • … • …”），不会有一个被悄悄当作没人理；按一次 Done 后两个都进入 Finished，各自显示时间"
         },
         {
           "id": "timer.unanswered",
           "rev": "0.5.0",
+          "ci": "auto",
           "do": "响铃时不理会，等响完",
           "expect": "不会自动贪睡；出现灰色 “⏱ Done 14:05” 角标，点击或 1 小时后消失"
         },
         {
           "id": "timer.badge-click",
           "rev": "0.11.0",
+          "ci": "auto",
           "do": "计时器和专注时段运行时，鼠标移到宠物旁的 ⏱ 和 🍅 角标上，分别点击",
           "expect": "悬停时有下划线；点 ⏱ 打开 Alarms 页，点 🍅（或休息时的 ☕）打开 Focus 页；倒计时照常跳动，点击每次都有效"
         },
         {
           "id": "timer.started",
           "rev": "0.16.1",
+          "ci": "partial",
+          "human": "你只看鼠标停在 ⏱ 角标上时小框会出现（面板文字和小框内容由 CI 测）",
           "do": "设几个计时器（包括两个相同时长的），打开面板 Alarms 页；再把鼠标停在宠物旁的 ⏱ 角标上",
           "expect": "面板里每个计时器写着 “Started 4:29 PM · rings at 4:41 PM”（升级前设的也有）；悬停角标时上方出现小框，每个计时器一行，如 “12 min · 8:10 → 8:22 PM”；贪睡过的计时器多一段 💤，如 “1 min · 💤×1 · 9:38 → 9:45 PM”；最后一行 “Open the Alarms tab”"
         },
         {
           "id": "timer.badge-info",
           "rev": "0.19.0",
+          "ci": "partial",
+          "human": "你只看真实悬停：小框出现、能斜着移到小框上、离开约 0.4 秒消失、不出现爱心条（各角标小框的文字由 CI 测）",
           "do": "有专注时段、贪睡中的闹钟、错过的闹钟、没人理的计时器时，分别把鼠标停在 🍅、🔔/💤、⏰、⏱ Done 角标上",
           "expect": "每个都出现小框，格式一致：先写内容和时间（如 “Focus · 8:00 → 8:25 PM”、“Alarm 9:25 PM · 💤×1 · next 9:33 PM”），最后一行是蓝色下划线链接（“Open the … tab”、“Mark as seen”、“Dismiss”）；鼠标从角标移到小框上（包括斜着移过去）小框不消失，点小框或链接的效果和点角标一样；离开后小框约 0.4 秒内消失；停在角标或小框上时不出现宠物的爱心/饱食度条"
         }
@@ -332,66 +357,78 @@
         {
           "id": "custom.prompt",
           "rev": "0.8.0",
+          "ci": "partial",
+          "human": "你只看在 Windows 上能直接打字（输入框出现并获得焦点由 CI 测）",
           "do": "Set timer → Custom / Edit…",
           "expect": "气泡出现 “How long?” 输入框，可以直接打字（Windows 上特别确认能拿到输入焦点）"
         },
         {
           "id": "custom.formats",
           "rev": "0.8.0",
+          "ci": "auto",
           "do": "依次输入 20、1:30、90s、2.5h、1h30m",
           "expect": "下方实时显示 = 20 min / = 1 h 30 min / = 1 min 30 s / = 2 h 30 min / = 1 h 30 min"
         },
         {
           "id": "custom.invalid",
           "rev": "0.8.0",
+          "ci": "auto",
           "do": "输入 abc 回车",
           "expect": "红字 “Try 20, 1:30 or 90s”，不启动"
         },
         {
           "id": "custom.start",
           "rev": "0.8.0",
+          "ci": "auto",
           "do": "输入 1:30 回车",
           "expect": "启动 1 h 30 min 计时器，宠物确认"
         },
         {
           "id": "custom.listed",
           "rev": "0.8.0",
+          "ci": "auto",
           "do": "再打开 Set timer，点 “1 h 30 min (custom)”",
           "expect": "分隔线下有这一项，点它直接启动"
         },
         {
           "id": "custom.max-three",
           "rev": "0.8.0",
+          "ci": "auto",
           "do": "再设 3 个不同的自定义时长",
           "expect": "最多保留 3 个，最新的在最上面，最早的被挤掉"
         },
         {
           "id": "custom.preset-skip",
           "rev": "0.8.0",
+          "ci": "auto",
           "do": "自定义输入 30（与预设相同）",
           "expect": "不会出现在 (custom) 列表里"
         },
         {
           "id": "custom.edit",
           "rev": "0.8.0",
+          "ci": "auto",
           "do": "Custom / Edit… → 点中间那个的 ✎，改成 25 回车",
           "expect": "输入框先填入原值，提示 “Change X → …”；启动后原位置变成 25 min，其他两个不动、顺序不变"
         },
         {
           "id": "custom.forget",
           "rev": "0.8.0",
+          "ci": "auto",
           "do": "Custom / Edit… → 点某个的 ✕",
           "expect": "立刻从气泡和 Set timer 菜单里消失"
         },
         {
           "id": "custom.cancel",
           "rev": "0.8.0",
+          "ci": "auto",
           "do": "按 Esc 或 ✕；再试一次什么都不做等 45 秒",
           "expect": "气泡关闭，不启动计时器"
         },
         {
           "id": "custom.chatter",
           "rev": "0.8.0",
+          "ci": "auto",
           "do": "输入框打开时等一会儿",
           "expect": "宠物的普通闲聊不会顶掉输入框"
         }
@@ -803,36 +840,42 @@
         {
           "id": "focus.start",
           "rev": "0.3.0",
+          "ci": "auto",
           "do": "右键 → Start focus session 🍅",
           "expect": "角标显示专注倒计时（在计时器角标上方）"
         },
         {
           "id": "focus.timer-during",
           "rev": "0.3.0",
+          "ci": "auto",
           "do": "专注中让一个计时器响",
           "expect": "宠物不离开原位"
         },
         {
           "id": "focus.cycle",
           "rev": "0.1.0",
+          "ci": "auto",
           "do": "让专注时段结束",
           "expect": "提示休息；每 N 轮进入长休息（按 Focus 页设置）"
         },
         {
           "id": "focus.stop",
           "rev": "0.10.0",
+          "ci": "auto",
           "do": "右键 → Stop focus session",
           "expect": "菜单显示 “Stop focus session (ends 4:10 PM)”；点后停止"
         },
         {
           "id": "focus.stats",
           "rev": "0.1.0",
+          "ci": "auto",
           "do": "Focus 页看 Last 7 days",
           "expect": "有统计记录"
         },
         {
           "id": "focus.work-hours",
           "rev": "0.20.0",
+          "ci": "auto",
           "do": "Focus 页打开 Work hours，保持周一到周五，把开始时间设成 1–2 分钟后、结束时间设成再过 30 分钟；等它自动开始；然后手动 Stop；再把结束时间改到 1 分钟后，手动 Start 看它到点后的表现；最后晚上（下班后）手动 Start",
           "expect": "打开后出现星期几和上下班时间，关闭后隐藏；到开始时间番茄钟自己开始（宠物旁出现 🍅）；手动停掉后当天不会再自动开始；过了结束时间，正在专注的番茄结束后不进入休息直接停，正在休息的休息完不再开始新番茄；下班后手动开始会一直循环（直到下一个工作日的结束时间）；关闭 Work hours 时和以前一样一直跑、不会自动开始"
         }
@@ -845,12 +888,14 @@
         {
           "id": "mood.start",
           "rev": "0.4.0",
+          "ci": "auto",
           "do": "新角色放着几分钟",
           "expect": "心情为 content（约 60%），不会自己变 grumpy"
         },
         {
           "id": "mood.care",
           "rev": "0.4.0",
+          "ci": "auto",
           "do": "抚摸/喂食，短时间内多次抚摸",
           "expect": "飘出 “+3 ♥”；抚摸太多时说 “That's plenty for now”"
         },
@@ -863,6 +908,7 @@
         {
           "id": "mood.full",
           "rev": "0.3.0",
+          "ci": "auto",
           "do": "一直喂到饱",
           "expect": "饱食度满，再喂有反应"
         },
@@ -973,30 +1019,36 @@
         {
           "id": "game.open",
           "rev": "0.2.0",
+          "ci": "auto",
           "do": "右键 → Play Safe Landing",
           "expect": "游戏窗口打开，宠物主窗口仍正常"
         },
         {
           "id": "focus.games-held",
           "rev": "0.20.1",
+          "ci": "auto",
           "do": "开始专注后：右键宠物和托盘里看 Play Safe Landing；点它，分别选 Cancel 和 Play anyway；隐藏宠物后看托盘；让一个计时器响铃时从托盘点游戏；在面板 Games 页点 Play；到休息时间再点；最后在 Focus 页关掉 “Ask before games during a focus session”",
           "expect": "专注中菜单写 “Play Safe Landing (focusing)”；宠物气泡先问 “We're focusing until … Play anyway?”，回答前不打开任何界面，Cancel 不开游戏，Play anyway 才打开；宠物隐藏时托盘里没有 Play Safe Landing（专注结束或显示宠物后重新出现）；响铃时点游戏，响铃结束后宠物再问；面板 Games 页点 Play 先弹框询问；休息时和关掉选项后不再询问，菜单也没有 (focusing)"
         },
         {
           "id": "game.controls",
           "rev": "0.1.0",
+          "ci": "auto",
           "do": "← → / A D 移动；Space 或 Enter 开始",
           "expect": "操作正常"
         },
         {
           "id": "game.abilities",
           "rev": "0.1.0",
+          "ci": "partial",
+          "human": "你只看玩起来的手感：猫抓伞减速、公鸡按住空格滑翔（提示文字由 CI 测）",
           "do": "分别用 Cat 和 Rooster 玩",
           "expect": "Cat 抓 ☂ 减速；Rooster 按住 Space 滑翔，提示文字对应"
         },
         {
           "id": "game.finish",
           "rev": "0.3.0",
+          "ci": "auto",
           "do": "结束后按 R 重来，再关闭窗口",
           "expect": "可以重来；关闭后回到桌面，宠物爱心增加"
         }

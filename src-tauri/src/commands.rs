@@ -567,3 +567,33 @@ mod tests {
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }
+
+// --- End-to-end tests (README.md, "Automated tests of the real app") ------------------
+
+/// Whether this is a debug build started for the end-to-end tests (`EPET_E2E` set). The
+/// windows then offer test hooks (`window.__epet`); release builds never do.
+#[tauri::command]
+pub fn e2e_enabled() -> bool {
+    cfg!(debug_assertions) && std::env::var_os("EPET_E2E").is_some()
+}
+
+/// Clicks a tray item the app handles itself ("show", "hide", "quit"), as the tray would.
+#[tauri::command]
+pub fn e2e_tray(app: AppHandle, id: String) -> CmdResult<()> {
+    if !e2e_enabled() {
+        return Err("only in end-to-end tests".into());
+    }
+    crate::tray::handle(&app, &id).map_err(err)
+}
+
+/// Closes a window by label (e.g. the panel, so the next "Open panel…" opens it afresh).
+#[tauri::command]
+pub fn e2e_close(app: AppHandle, label: String) -> CmdResult<()> {
+    if !e2e_enabled() {
+        return Err("only in end-to-end tests".into());
+    }
+    if let Some(w) = app.get_webview_window(&label) {
+        w.destroy().map_err(err)?;
+    }
+    Ok(())
+}

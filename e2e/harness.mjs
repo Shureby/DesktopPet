@@ -58,12 +58,15 @@ export class App {
       mkdirSync(dir, { recursive: true });
       this.driver = spawn(process.env.NATIVE_DRIVER, ["--port=4444", "--verbose", `--log-path=${join(dir, "msedgedriver.log")}`, "--append-log"], {
         stdio: "ignore",
-        env: { ...process.env, TAURI_WEBVIEW_AUTOMATION: "true" },
+        env: { ...process.env, TAURI_WEBVIEW_AUTOMATION: "true", EPET_E2E: "1" },
       });
       capabilities = { browserName: "webview2", "ms:edgeChromium": true, "ms:edgeOptions": { binary: application, args: [] } };
     } else {
       const args = process.env.NATIVE_DRIVER ? ["--native-driver", process.env.NATIVE_DRIVER] : [];
-      this.driver = spawn(process.env.TAURI_DRIVER ?? "tauri-driver", args, { stdio: ["ignore", "ignore", "inherit"] });
+      this.driver = spawn(process.env.TAURI_DRIVER ?? "tauri-driver", args, {
+        stdio: ["ignore", "ignore", "inherit"],
+        env: { ...process.env, EPET_E2E: "1" },
+      });
     }
     await sleep(1500);
     // Classic WebDriver: with BiDi (WebdriverIO's default) Edge WebDriver opens a tab of its
@@ -89,6 +92,12 @@ export class App {
     await this.b.switchToWindow(this.petHandle);
     // The pet page is ready once its canvas has a size.
     await this.b.waitUntil(() => this.b.execute(() => (document.getElementById("pet")?.width ?? 0) > 0), { timeout: 30_000 });
+    // And its test hooks (EPET_E2E, debug builds): the pet has started.
+    await this.b
+      .waitUntil(() => this.b.execute(() => !!window.__epet), { timeout: 15_000 })
+      .catch(() => {
+        throw new Error("No test hooks in the pet window: test a debug build (tauri build --debug), started with EPET_E2E");
+      });
   }
 
   async quit() {
@@ -116,6 +125,132 @@ export class App {
 
   async toPet() {
     await this.b.switchToWindow(this.petHandle);
+  }
+
+  // --- The pet window's test hooks (window.__epet, PetHost.testHooks) ----------------
+
+  /** A menu ("pet" or "tray") as data: texts, "—" for separators, submenus as { text, items }. */
+  async menu(which) {
+    await this.toPet();
+    return this.b.execute((w) => window.__epet.menu(w), which);
+  }
+
+  /** "Clicks" a menu item by path (each step the start of an item's text); returns its text. */
+  async run(which, ...path) {
+    await this.toPet();
+    const text = await this.b.execute((w, p) => window.__epet.run(w, p), which, path);
+    await sleep(400);
+    return text;
+  }
+
+  /** What the pet is doing (state, mode, position, mood, …). */
+  async pet() {
+    await this.toPet();
+    return this.b.execute(() => window.__epet.state());
+  }
+
+  /** The pet window's bubble text (spaces collapsed), or null when it's hidden. */
+  async bubble() {
+    await this.toPet();
+    return this.b.execute(() => {
+      const b = document.getElementById("bubble");
+      if (b.hidden) return null;
+      // Its lines (not the buttons), one space between.
+      const lines = [...b.children].filter((e) => !e.classList.contains("actions")).map((e) => e.textContent.trim());
+      return lines.join(" ").replace(/\s+/g, " ").trim();
+    });
+  }
+
+  /** Waits until the pet's bubble shows text including `text`; returns the bubble text. */
+  async waitBubble(text, timeout = 10_000) {
+    await this.toPet();
+    await this.waitText("#bubble:not([hidden])", text, timeout);
+    return this.bubble();
+  }
+
+  /** The badges beside the pet: [{ text, info }]. */
+  async badges() {
+    await this.toPet();
+    return this.b.execute(() =>
+      [...document.getElementById("badges").children].map((e) => ({ text: e.textContent, info: e.dataset.info ?? "" })),
+    );
+  }
+
+  /** Whether a window (by label) is shown. */
+  async visible(label) {
+    return this.invoke("plugin:window|is_visible", { label });
+  }
+
+  /** Switches to the window whose URL includes `part` (waiting for it); returns its handle. */
+  async toWindow(part, timeout = 15_000) {
+    let found = null;
+    await this.b.waitUntil(
+      async () => {
+        for (const h of await this.b.getWindowHandles()) {
+          await this.b.switchToWindow(h);
+          if ((await this.b.getUrl()).includes(part)) return (found = h);
+        }
+        return false;
+      },
+      { timeout, interval: 300 },
+    );
+    return found;
+  }
+
+  /** Whether a window whose URL includes `part` is open (leaves the pet window current). */
+  async hasWindow(part) {
+    let found = false;
+    for (const h of await this.b.getWindowHandles()) {
+      await this.b.switchToWindow(h);
+      if ((await this.b.getUrl()).includes(part)) found = true;
+    }
+    await this.toPet();
+    return found;
+  }
+
+  /** Waits for the panel and its tab; returns the tab (leaves the panel current). */
+  async panelTab(timeout = 15_000) {
+    await this.toWindow("panel.html", timeout);
+    return this.until(() => document.querySelector("nav button.active")?.dataset.tab, [], timeout);
+  }
+
+  /** Changes settings: `change` gets the stored settings and returns the new ones. */
+  async setSettings(change) {
+    const s = await this.fullSettings();
+    await this.invoke("set_settings", { settings: change(structuredClone(s)) });
+    await sleep(300);
+  }
+
+  /** The settings in force (merged with the defaults, as the pet sees them). */
+  async fullSettings() {
+    await this.toPet();
+    return this.b.execute(() => window.__epet.settings());
+  }
+
+  /** A timer of `minutes` (under an hour; named as the menu names it) that rings in `ms`. */
+  async addTimer(minutes, ms) {
+    await this.toPet();
+    return this.invoke("add_alarm", { label: `Timer: ${minutes} min`, at: Date.now() + ms, repeat: "none", days: null });
+  }
+
+  /** A time range as the badges' info shows it ("8:10 → 8:22 PM"). */
+  async badgeRange(start, end) {
+    const a = await this.clock(start);
+    const b = await this.clock(end);
+    const suffix = /\s*[^\d\s:.]+$/.exec(a)?.[0];
+    return `${suffix && b.endsWith(suffix) ? a.slice(0, -suffix.length) : a} → ${b}`;
+  }
+
+  /** Clock time as the app shows it ("3:52 PM"). */
+  clock(ms) {
+    return this.b.execute((t) => new Date(t).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }), ms);
+  }
+
+  /** Closes a window by label (e.g. the panel), back on the pet window. */
+  async closeWindow(label) {
+    await this.toPet();
+    await this.invoke("e2e_close", { label });
+    await sleep(500);
   }
 
   /** Opens the panel on `tab` and switches to it; waits for the tab to render. */

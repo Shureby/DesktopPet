@@ -555,6 +555,10 @@ export const mockBackend: Backend = {
     fire("alarms-changed", null);
   },
   async endPeek() {},
+  async e2eEnabled() {
+    return false;
+  },
+  async e2eTray() {},
   async markAlarmMissed(id) {
     mutate((s) => {
       const a = s.alarms.find((x) => x.id === id);

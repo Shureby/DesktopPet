@@ -396,6 +396,10 @@ export interface Backend {
   clearUnseen(): Promise<void>;
   /** The hidden pet has answered its reminder and walked off: hide it again. */
   endPeek(): Promise<void>;
+  /** A debug build started for the end-to-end tests: the windows offer test hooks (e2e/). */
+  e2eEnabled(): Promise<boolean>;
+  /** End-to-end tests only: a tray item the app handles itself ("show", "hide", "quit"). */
+  e2eTray(id: string): Promise<void>;
   /** The user saw a missed alarm (clicked its badge): the badge goes, the history keeps it. */
   acknowledgeMissed(id: number): Promise<void>;
 

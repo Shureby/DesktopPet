@@ -28,17 +28,7 @@ pub fn create<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
         .menu(&menu)
         .show_menu_on_left_click(true)
         .on_menu_event(|app, event| {
-            let result = match event.id.as_ref() {
-                "show" => app_windows::set_pet_visible(app, true),
-                "hide" => app_windows::set_pet_visible(app, false),
-                "panel" => app_windows::open_panel(app, None),
-                "quit" => {
-                    app.exit(0);
-                    Ok(())
-                }
-                _ => Ok(()),
-            };
-            if let Err(e) = result {
+            if let Err(e) = handle(app, event.id.as_ref()) {
                 log::error!("tray action failed: {e}");
             }
         });
@@ -47,4 +37,18 @@ pub fn create<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     }
     tray.build(app)?;
     Ok(())
+}
+
+/// What a tray item with one of the app's own ids does (the others run in the pet window).
+pub fn handle<R: Runtime>(app: &AppHandle<R>, id: &str) -> tauri::Result<()> {
+    match id {
+        "show" => app_windows::set_pet_visible(app, true),
+        "hide" => app_windows::set_pet_visible(app, false),
+        "panel" => app_windows::open_panel(app, None),
+        "quit" => {
+            app.exit(0);
+            Ok(())
+        }
+        _ => Ok(()),
+    }
 }

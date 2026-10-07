@@ -41,7 +41,7 @@ import {
 import { formatRemaining, gameHeld } from "../features/pomodoro/logic";
 import type { Alarm, Backend, Celebration, PetActivity, PomodoroStatus, ReminderEvent, Settings, Unseen } from "../platform";
 import type { CareAction } from "../characters/schema";
-import { buildTrayItems, nativeMenu, showPetMenu, type MenuContext } from "./menu";
+import { buildItems, buildTrayItems, nativeMenu, showPetMenu, type Item, type MenuContext, type PetMenuContext } from "./menu";
 import { inQuietHours } from "./quietHours";
 import { playMusic, playRingtone, ringAlarm, sounds } from "./sound";
 
@@ -88,6 +88,8 @@ export class PetHost {
   private acc = 0;
   private last = performance.now();
   private framePending = false;
+  /** Frames drawn (the end-to-end tests check the pet keeps going). */
+  private frames = 0;
   private snapshotPending = false;
   private dpr = 1;
   private ignoringCursor = false;
@@ -388,6 +390,7 @@ export class PetHost {
   private frame(now: number): void {
     const dt = Math.min(0.25, (now - this.last) / 1000);
     this.last = now;
+    this.frames++;
     this.acc += dt;
     const ratio = window.devicePixelRatio || 1;
     if (this.windowed && ratio !== this.dpr) this.setScale(ratio);
@@ -832,16 +835,74 @@ export class PetHost {
     ]);
   }
 
-  private onContextMenu(e: MouseEvent): void {
-    e.preventDefault();
-    void showPetMenu(e, {
+  private petMenuContext(): PetMenuContext {
+    return {
       ...this.menuContext(),
       character: this.character.def,
       hungry: isHungry(this.pet.mood),
       rng: this.pet.rng,
       care: (a) => this.care(a),
       hide: () => void this.hidePet(),
-    });
+    };
+  }
+
+  private onContextMenu(e: MouseEvent): void {
+    e.preventDefault();
+    void showPetMenu(e, this.petMenuContext());
+  }
+
+  /**
+   * Hooks for the end-to-end tests (e2e/; debug builds started with EPET_E2E only): both
+   * menus as data and "clicking" their items (the same actions the native menus run), and
+   * what the pet is doing.
+   */
+  testHooks() {
+    type Entry = Item | "sep";
+    const menus = {
+      pet: () => buildItems(this.petMenuContext()),
+      tray: () => buildTrayItems({ ...this.menuContext(), petVisible: this.petVisible }),
+    };
+    const outline = (items: Entry[]): unknown[] =>
+      items.map((i) => (i === "sep" ? "—" : i.items ? { text: i.text, items: outline(i.items) } : i.checked ? `✓ ${i.text}` : i.text));
+    return {
+      menu: (which: keyof typeof menus) => outline(menus[which]()),
+      /** Runs the item at `path` (each step: the start of an item's text); returns its text. */
+      run: async (which: keyof typeof menus, path: string[]) => {
+        let items: Entry[] = menus[which]();
+        let item: Item | undefined;
+        for (const step of path) {
+          item = items.find((i): i is Item => i !== "sep" && i.text.startsWith(step));
+          if (!item) throw new Error(`No menu item "${step}" in ${JSON.stringify(outline(items))}`);
+          items = item.items ?? [];
+        }
+        if (!item) throw new Error("Empty menu path");
+        // The tray's own items (show/hide, Quit) are handled by the app, as a click would be.
+        if (item.id) await this.backend.e2eTray(item.id);
+        else item.action?.();
+        return item.text;
+      },
+      care: (kind: CareAction["kind"]) => this.care({ label: "", kind }),
+      /** The settings in force (stored ones merged with the defaults). */
+      settings: () => this.settings,
+      state: () => ({
+        state: this.pet.state,
+        frames: this.frames,
+        mode: this.pet.mode,
+        target: this.pet.target,
+        x: this.pet.body.x,
+        y: this.pet.body.y,
+        dpr: this.dpr,
+        area: this.peekArea(),
+        hidden: this.hidden,
+        petVisible: this.petVisible,
+        peek: !!this.peek,
+        ringing: !!this.activeRing,
+        prompting: this.prompting,
+        mood: { ...this.pet.mood },
+        character: this.character.def.id,
+        pomodoro: this.pomodoro,
+      }),
+    };
   }
 
   /** Rebuilds the tray menu soon (state changes often come in bursts). */

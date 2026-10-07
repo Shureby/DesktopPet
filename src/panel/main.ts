@@ -87,6 +87,20 @@ const TABS: { id: PanelTab; label: string }[] = [
 ];
 
 let current: PanelTab = "todos";
+/**
+ * The tab was just opened (not re-rendered): its main field takes the focus, so "Set
+ * alarm…" or "Add to-do…" is ready to type. A re-render never moves the focus.
+ */
+let tabJustOpened = false;
+
+/** Focuses `el` once the tab just opened is on the page (render() puts it there afterwards). */
+function focusWhenOpened(el: HTMLElement): void {
+  if (!tabJustOpened) return;
+  tabJustOpened = false;
+  setTimeout(() => {
+    if (el.isConnected && (!document.activeElement || document.activeElement === document.body)) el.focus();
+  });
+}
 let settings: Settings;
 let registry: CharacterRegistry;
 const view = document.getElementById("view")!;
@@ -118,6 +132,7 @@ function select(tab: PanelTab) {
     todoSub = "todos";
   }
   current = tab;
+  tabJustOpened = true;
   for (const b of nav.querySelectorAll("button")) b.classList.toggle("active", b.dataset.tab === tab);
   cleanup.forEach((f) => f());
   cleanup = [];
@@ -302,9 +317,7 @@ async function renderTodos(): Promise<Node> {
     void render();
   };
   input.addEventListener("keydown", (e) => (e as KeyboardEvent).key === "Enter" && void add());
-  queueMicrotask(() => {
-    if (!document.activeElement || document.activeElement === document.body) input.focus();
-  });
+  focusWhenOpened(input);
   paintWhen();
   showHint();
 
@@ -691,10 +704,7 @@ async function renderAlarms(): Promise<Node> {
   // Starts at the current time, so it's quick to set one for a little later.
   const time = timeField(draft.time, (v) => (draft.time = v), "Alarm time");
   // Opened from "Set alarm…": start with the time field ready to type.
-  // (Only when nothing else has focus, so a re-render never steals it mid-typing.)
-  queueMicrotask(() => {
-    if (!document.activeElement || document.activeElement === document.body) time.focus();
-  });
+  focusWhenOpened(time);
   const addButton = h("button", { class: "primary", onclick: () => void add() }, editingAlarm ? "Save" : "Add");
   // Only Weekdays, Weekends and Custom days show the days. Picking days by hand names them:
   // Mon–Fri is Weekdays, Sat + Sun is Weekends, anything else Custom days.
@@ -1633,10 +1643,23 @@ async function main() {
   });
   await backend.on("alarms-changed", () => current === "alarms" && void render());
   await backend.on("pomodoro", () => current === "focus" && void render());
+  // When a time field or day picker was last dragged, scrolled or typed in.
+  let fieldUsedAt = 0;
+  for (const type of ["pointerdown", "pointermove", "wheel", "keydown"]) {
+    document.addEventListener(
+      type,
+      (e) => {
+        if ((e.target as Element | null)?.closest?.(".time-field, .day-picker") && (type !== "pointermove" || (e as PointerEvent).buttons))
+          fieldUsedAt = Date.now();
+      },
+      true,
+    );
+  }
   await backend.on("settings", (s) => {
     settings = s;
-    // Not while a time field or day picker is being used: rebuilding would drop the drag.
-    if (document.activeElement?.closest(".time-field, .day-picker")) return;
+    // Not while a time field or day picker is being used: rebuilding would drop the drag or
+    // what's being typed. (Just having the focus, as when the tab opens, doesn't count.)
+    if (document.activeElement?.closest(".time-field, .day-picker") && Date.now() - fieldUsedAt < 1500) return;
     if (["characters", "focus", "settings", "alarms"].includes(current)) void render();
   });
   await backend.on("panel-tab", (tab) => select(tab));

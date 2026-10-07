@@ -27,6 +27,13 @@ async function main() {
   await host.start();
   // Handy for poking at the simulation from devtools in the browser mock.
   if (backend.kind === "mock") Object.assign(window, { petHost: host });
+  if (await backend.e2eEnabled()) {
+    // Script errors are collected for the tests to check.
+    const errors: string[] = [];
+    window.addEventListener("error", (e) => errors.push(String(e.message)));
+    window.addEventListener("unhandledrejection", (e) => errors.push(String(e.reason)));
+    Object.assign(window, { __epet: { ...host.testHooks(), errors } });
+  }
 }
 
 main().catch((e) => console.error(e));

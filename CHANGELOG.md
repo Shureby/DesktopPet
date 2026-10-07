@@ -16,6 +16,20 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.32.3] - 2026-10-07
+
+## [0.32.3] - 2026-10-07
+
+### Fixed
+- "Set alarm…" and "Add to-do…" open the panel ready to type again: the time field (or the
+  to-do box) didn't get the focus, because it was focused before the page showed it.
+
+### Added (development)
+- More of the checklist is tested on every push: the pet's menu and the tray, timers and
+  their badges, custom lengths, focus sessions, mood and the mini-game (44 more items, 87
+  of 146 in all). Debug builds started for the tests (`EPET_E2E`) offer hooks to drive
+  the menus and read what the pet is doing; release builds don't have them.
+
 ## [0.32.2] - 2026-10-06
 
 ### Fixed
