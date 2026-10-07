@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { after, before } from "node:test";
+import { after, afterEach, before } from "node:test";
 import { check, Mouse, useApp } from "./harness.mjs";
 
 if (process.platform === "win32") {
@@ -74,17 +74,23 @@ if (process.platform === "win32") {
    */
   async function grab() {
     const app = ctx.app;
-    await away();
-    const p = await landed();
-    const at = onPet(p);
-    await mouse.move(at.x, at.y);
-    // The window stops letting clicks through once the cursor is over the pet.
-    await app.sleep(300);
-    await mouse.down();
-    const lifted = { x: at.x, y: p.y - p.size.h * 0.85 - 10 };
-    await mouse.glide(at, lifted, 200);
-    await app.b.waitUntil(async () => (await app.pet()).state === "drag", { timeout: 3000, interval: 50 });
-    return lifted;
+    for (let i = 0; ; i++) {
+      await away();
+      const p = await landed();
+      const at = onPet(p);
+      await mouse.move(at.x, at.y);
+      // The window stops letting clicks through once the cursor is over the pet.
+      await app.sleep(300);
+      await mouse.down();
+      const lifted = { x: at.x, y: p.y - p.size.h * 0.85 - 10 };
+      await mouse.glide(at, lifted, 200);
+      const dragging = await app.b
+        .waitUntil(async () => (await app.pet()).state === "drag", { timeout: 2000, interval: 50 })
+        .then(() => true, () => false);
+      if (dragging) return lifted;
+      await mouse.up();
+      if (i === 2) throw new Error(`couldn't pick the pet up (state ${(await app.pet()).state})`);
+    }
   }
 
   /** Lets go without throwing: a few slow small moves first, so it leaves the hand still. */
@@ -108,6 +114,16 @@ if (process.platform === "win32") {
       return q.grounded && q.state !== "walkTo" && Math.abs(q.x - middle) < q.size.w;
     }, { timeout: 15_000, interval: 200 });
   }
+
+  /** Leaves nothing behind for the next test: the button up, no ring, no focus session. */
+  afterEach(async () => {
+    const app = ctx.app;
+    await mouse.up().catch(() => {});
+    await app.toPet();
+    if ((await app.pet()).ringing) await app.answer("Done").catch(() => {});
+    await app.invoke("pomodoro_stop").catch(() => {});
+    await away();
+  });
 
   /** Floor of the work area (physical px). */
   const floor = (p) => p.area.y + p.area.h;
@@ -262,18 +278,25 @@ if (process.platform === "win32") {
     await mouse.move(onPet(p).x, onPet(p).y);
     await app.sleep(3000);
     assert.deepEqual(await hoverEvents(since), [], "no hover reactions while ringing");
-    // Done, clicked with the mouse.
-    p = await app.pet();
-    const r = await app.b.execute(() => {
-      const b = [...document.querySelectorAll("#bubble .actions button")].find((x) => x.textContent === "Done").getBoundingClientRect();
-      return { x: b.left + b.width / 2, y: b.top + b.height / 2 };
-    });
-    const at = toScreen(p, r.x, r.y);
-    await mouse.move(at.x, at.y);
-    await app.sleep(300);
-    await mouse.down();
-    await mouse.up();
-    await app.b.waitUntil(async () => !(await app.pet()).ringing, { timeout: 5000, interval: 100 });
+    // Done, clicked with the mouse (where the button is now: the pet may have moved).
+    let clicked = false;
+    for (let i = 0; i < 3 && !clicked; i++) {
+      p = await app.pet();
+      const r = await app.b.execute(() => {
+        const b = [...document.querySelectorAll("#bubble .actions button")].find((x) => x.textContent === "Done").getBoundingClientRect();
+        return { x: b.left + b.width / 2, y: b.top + b.height / 2 };
+      });
+      const at = toScreen(p, r.x, r.y);
+      await mouse.move(at.x, at.y);
+      await app.sleep(300);
+      await mouse.down();
+      await app.sleep(60);
+      await mouse.up();
+      clicked = await app.b
+        .waitUntil(async () => !(await app.pet()).ringing, { timeout: 2000, interval: 100 })
+        .then(() => true, () => false);
+    }
+    assert.ok(clicked, "Done, clicked, ends the ring");
     assert.equal((await app.invoke("list_alarms")).find((a) => a.id === t.id).enabled, false);
     // A focus session: no hover reactions either.
     await away();

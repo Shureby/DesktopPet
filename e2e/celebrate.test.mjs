@@ -129,7 +129,7 @@ check("anniv.candle", "a remembrance: without the effect a quiet line; with it, 
   });
   const centre = p.area.x + p.area.w / 2;
   assert.ok(Math.abs(p.x - centre) > 160 * p.dpr, `aside, clear of the flowers: ${p.x} vs ${centre}`);
-  assert.equal(p.facing, p.x < centre ? 1 : -1, "facing the candle");
+  assert.equal(p.facing, p.x < centre ? 1 : -1, `facing the candle: ${JSON.stringify({ x: p.x, centre, vigil: p.vigil, area: p.area })}`);
 }, { timeout: 90_000 });
 
 check("anniv.same-day", "two on one day: the remembrance first, then (after a pause) the birthday, both in full; not again that day", async () => {
