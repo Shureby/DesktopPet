@@ -96,6 +96,19 @@ if (process.platform === "win32") {
     await mouse.up();
   }
 
+  /** Walks the pet to the middle of the work area (away from the walls it might climb). */
+  async function toMiddle() {
+    const app = ctx.app;
+    await away();
+    const p = await landed();
+    const middle = p.area.x + p.area.w / 2;
+    await app.b.execute((x) => window.__epet.walkTo(x), middle);
+    await app.b.waitUntil(async () => {
+      const q = await app.pet();
+      return q.grounded && q.state !== "walkTo" && Math.abs(q.x - middle) < q.size.w;
+    }, { timeout: 15_000, interval: 200 });
+  }
+
   /** Floor of the work area (physical px). */
   const floor = (p) => p.area.y + p.area.h;
 
@@ -218,7 +231,8 @@ if (process.platform === "win32") {
   check("pet.hover-dodge", "hungry, it steps away and says why; hovering again within 10 s it stays and reacts at once", async () => {
     const app = ctx.app;
     await app.b.execute(() => window.__epet.setMood({ fullness: 20, affection: 60 }));
-    await away();
+    // In the middle: stepping away, it doesn't reach a wall (and climb it).
+    await toMiddle();
     await app.sleep(2500);
     const since = await hoverPet();
     await app.b.waitUntil(async () => (await hoverEvents(since)).includes("dodge"), { timeout: 3000, interval: 100 });

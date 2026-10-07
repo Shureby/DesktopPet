@@ -123,8 +123,10 @@ check("anniv.candle", "a remembrance: without the effect a quiet line; with it, 
   await app.waitBubble("Remembering", 5000);
   await app.b.waitUntil(async () => (await effect())?.anniversary.kind === "remembrance", { timeout: 10_000 });
   // It walks aside (it may already be there) and sits, facing the candle in the middle.
-  await app.b.waitUntil(async () => (await app.pet()).state === "vigil", { timeout: 20_000 });
-  const p = await app.pet();
+  let p;
+  await app.b.waitUntil(async () => (p = await app.pet()).state === "vigil", { timeout: 20_000 }).catch(() => {
+    throw new Error(`no vigil: ${JSON.stringify({ state: p.state, x: p.x, y: p.y, grounded: p.grounded, target: p.target, vigil: p.vigil, celebrating: p.celebrating })}`);
+  });
   const centre = p.area.x + p.area.w / 2;
   assert.ok(Math.abs(p.x - centre) > 160 * p.dpr, `aside, clear of the flowers: ${p.x} vs ${centre}`);
   assert.equal(p.facing, p.x < centre ? 1 : -1, "facing the candle");
