@@ -279,16 +279,23 @@ if (process.platform === "win32") {
     await app.sleep(3000);
     assert.deepEqual(await hoverEvents(since), [], "no hover reactions while ringing");
     // Done, clicked with the mouse (where the button is now: the pet may have moved).
-    let clicked = false;
-    for (let i = 0; i < 3 && !clicked; i++) {
-      p = await app.pet();
+    /** The Done button on screen (physical px): its middle and its half size. */
+    const doneButton = async () => {
+      const q = await app.pet();
       const r = await app.b.execute(() => {
         const b = [...document.querySelectorAll("#bubble .actions button")].find((x) => x.textContent === "Done").getBoundingClientRect();
-        return { x: b.left + b.width / 2, y: b.top + b.height / 2 };
+        return { x: b.left + b.width / 2, y: b.top + b.height / 2, w: b.width / 2, h: b.height / 2 };
       });
-      const at = toScreen(p, r.x, r.y);
+      return { ...toScreen(q, r.x, r.y), w: r.w * q.dpr, h: r.h * q.dpr };
+    };
+    let clicked = false;
+    for (let i = 0; i < 5 && !clicked; i++) {
+      const at = await doneButton();
       await mouse.move(at.x, at.y);
       await app.sleep(300);
+      // Only once the button is still where the cursor is (the bubble follows the pet).
+      const now = await doneButton();
+      if (Math.abs(now.x - at.x) > now.w - 4 || Math.abs(now.y - at.y) > now.h - 2) continue;
       await mouse.down();
       await app.sleep(60);
       await mouse.up();
@@ -297,7 +304,8 @@ if (process.platform === "win32") {
         .then(() => true, () => false);
     }
     assert.ok(clicked, "Done, clicked, ends the ring");
-    assert.equal((await app.invoke("list_alarms")).find((a) => a.id === t.id).enabled, false);
+    const after = (await app.invoke("list_alarms")).find((a) => a.id === t.id);
+    assert.equal(after.enabled, false, `Done, not Snooze: ${JSON.stringify(after)}`);
     // A focus session: no hover reactions either.
     await away();
     await app.invoke("pomodoro_start");
