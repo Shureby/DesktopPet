@@ -42,6 +42,7 @@ import { formatRemaining, gameHeld } from "../features/pomodoro/logic";
 import type { Alarm, Backend, Celebration, PetActivity, PomodoroStatus, ReminderEvent, Settings, Unseen } from "../platform";
 import type { CareAction } from "../characters/schema";
 import { buildItems, buildTrayItems, nativeMenu, showPetMenu, type Item, type MenuContext, type PetMenuContext } from "./menu";
+import { CLOCK_STEPS, shiftLabel } from "../platform/testClock";
 import { inQuietHours } from "./quietHours";
 import { playMusic, playRingtone, ringAlarm, sounds } from "./sound";
 
@@ -160,6 +161,9 @@ export class PetHost {
   /** Tray menus still referenced: the current one and the one before (it may be open). */
   private trayMenus: { close(): Promise<void> }[] = [];
   private trayOutline = "";
+  /** "ePet Test": the tray can set the clock ahead (src/platform/testClock.ts). */
+  private clockInTray = false;
+  private clockShift = 0;
   private trayTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(
@@ -241,6 +245,14 @@ export class PetHost {
     await this.backend.on("alarms-changed", () => void this.refreshTimers());
     await this.backend.on("characters-changed", () => void this.reloadCharacters());
     await this.backend.on("pet-event", (e) => this.onActivity(e));
+    const clock = await this.backend.testClock().catch(() => null);
+    this.clockInTray = clock?.inTray ?? false;
+    this.clockShift = clock?.shift ?? 0;
+    await this.backend.on("clock-shift", (shift) => {
+      this.clockShift = shift;
+      this.scheduleTray();
+      void this.refreshTimers();
+    });
     // Listening: what's due (also what came due while ePet was off) can be sent now.
     await this.backend.petReady();
     await this.refreshTimers();
@@ -961,6 +973,18 @@ export class PetHost {
       ...this.menuContext(),
       petVisible: this.petVisible,
     });
+    if (this.clockInTray) {
+      // ePet Test: above Quit, the clock and steps to set it ahead.
+      const shift = (ms: number) => () => void this.backend.shiftClock(ms);
+      items.splice(items.length - 1, 0, {
+        text: `🧪 Test clock: ${shiftLabel(this.clockShift)}`,
+        items: [
+          ...CLOCK_STEPS.map(([text, ms]): Item => ({ text: `Set ahead ${text}`, action: shift(ms) })),
+          "sep",
+          { text: "Back to now", action: shift(-this.clockShift) },
+        ],
+      }, "sep");
+    }
     const outline = JSON.stringify(items, (k, v) => (k === "action" ? undefined : v));
     if (outline === this.trayOutline) return;
     try {
@@ -1498,11 +1522,12 @@ export class PetHost {
   /**
    * The candle stands in the middle of the pet's screen: the pet walks to whichever side is
    * nearer (the other if there's no room), clear of the flowers with its bubble, and sits
-   * facing the candle for `seconds`.
+   * facing the candle for `seconds`. Whatever interrupts it on the way or while sitting, it
+   * goes back to it afterwards (Pet.next) until the time is up.
    */
   private keepVigil(seconds: number): void {
     const area = this.peekArea();
-    if (!area || this.drag) {
+    if (!area) {
       this.pet.fsm.set("sit", true);
       return;
     }
@@ -1514,8 +1539,10 @@ export class PetHost {
     const fits = (s: 1 | -1) => (s === -1 ? centre - away - margin >= area.x : centre + away + margin <= area.x + area.w);
     if (!fits(side) && fits(side === 1 ? -1 : 1)) side = side === 1 ? -1 : 1;
     const x = Math.min(area.x + area.w - margin, Math.max(area.x + margin, centre + side * away));
-    const vigil: Vigil = { face: side === 1 ? -1 : 1, seconds };
+    const vigil: Vigil = { x, centre, until: Date.now() + seconds * 1000 };
     this.pet.scratch.vigil = vigil;
+    // Held in the hand it goes once let go; in the air (a hop, a climb), once it lands.
+    if (this.drag) return;
     this.pet.target = { x };
     this.pet.fsm.set("walkTo", true);
   }

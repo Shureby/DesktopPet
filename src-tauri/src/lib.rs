@@ -81,6 +81,8 @@ pub fn run() {
             commands::e2e_tray,
             commands::e2e_close,
             commands::e2e_present,
+            commands::test_clock,
+            commands::shift_clock,
             commands::pomodoro_start,
             commands::pomodoro_skip,
             commands::pomodoro_stop,

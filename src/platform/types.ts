@@ -332,6 +332,14 @@ export interface BackendEvents {
   mood: { character: string; mood: unknown };
   /** Something the user did elsewhere that the pet reacts to. */
   "pet-event": PetActivity;
+  /** The test clock was set ahead: how far, in ms (test builds and end-to-end tests). */
+  "clock-shift": number;
+}
+
+/** The test clock (src/platform/testClock.ts): how far ahead, and whether the tray offers it. */
+export interface TestClock {
+  shift: number;
+  inTray: boolean;
 }
 
 export type PetActivity =
@@ -396,6 +404,10 @@ export interface Backend {
   clearUnseen(): Promise<void>;
   /** The pet listens for reminders now: until then the app takes nothing due (a slow start would lose it). */
   petReady(): Promise<void>;
+  /** The test clock, or null in a release (test builds and end-to-end tests only). */
+  testClock(): Promise<TestClock | null>;
+  /** Sets the test clock `ms` ahead (or back, not before now); returns how far ahead it is. */
+  shiftClock(ms: number): Promise<number>;
   /** The hidden pet has answered its reminder and walked off: hide it again. */
   endPeek(): Promise<void>;
   /** A debug build started for the end-to-end tests: the windows offer test hooks (e2e/). */

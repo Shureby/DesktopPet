@@ -1,4 +1,4 @@
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 use std::sync::{Mutex, MutexGuard};
 
 use desktoppet_core::Store;
@@ -40,6 +40,44 @@ impl AppState {
     }
 }
 
+/// The app's clock: the computer's, plus the test clock's shift (always 0 outside test
+/// builds and end-to-end tests, see `shift_clock`).
 pub fn now_ms() -> i64 {
-    chrono::Utc::now().timestamp_millis()
+    chrono::Utc::now().timestamp_millis() + CLOCK_SHIFT.load(Ordering::Relaxed)
+}
+
+/// How far the test clock is set ahead (ms).
+static CLOCK_SHIFT: AtomicI64 = AtomicI64::new(0);
+
+/// Whether the clock can be set ahead: a test build (feature `testbuild`, "ePet Test") or a
+/// debug build started for the end-to-end tests.
+pub fn test_clock_enabled() -> bool {
+    cfg!(feature = "testbuild") || crate::commands::e2e_enabled()
+}
+
+pub fn clock_shift() -> i64 {
+    CLOCK_SHIFT.load(Ordering::Relaxed)
+}
+
+/// Sets the test clock `ms` further ahead (negative: back, never before the real time);
+/// returns the new shift. Lasts until ePet quits.
+pub fn shift_clock(ms: i64) -> i64 {
+    let next = (clock_shift() + ms).max(0);
+    CLOCK_SHIFT.store(next, Ordering::Relaxed);
+    next
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_test_clock_moves_ahead_and_back_but_not_before_now() {
+        let real = chrono::Utc::now().timestamp_millis();
+        assert_eq!(shift_clock(86_400_000), 86_400_000);
+        assert!(now_ms() >= real + 86_400_000);
+        assert_eq!(shift_clock(-3_600_000), 82_800_000);
+        assert_eq!(shift_clock(-86_400_000), 0);
+        assert!(now_ms() - chrono::Utc::now().timestamp_millis() < 1000);
+    }
 }

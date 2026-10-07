@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { RulesBrain } from "../brain/RulesBrain";
 import { createRng } from "../engine/random";
 import { ABILITIES } from "./abilities";
@@ -278,6 +278,65 @@ describe("display scale", () => {
     expect(pet.body.y).toBeCloseTo(screen.y + screen.h);
     pet.setUnit(1);
     expect(pet.body.h).toBeCloseTo(h);
+  });
+});
+
+describe("a remembrance's vigil", () => {
+  afterEach(() => vi.useRealTimers());
+
+  /** A cat at `x` sent to keep vigil at `spot` beside a candle at `centre` for `seconds`. */
+  function vigil(x: number, spot: number, centre = 800, seconds = 60) {
+    const pet = spawn(registry.get("cat")!.def, 1, x);
+    simulate(pet, 1);
+    pet.scratch.vigil = { x: spot, centre, until: Date.now() + seconds * 1000 };
+    pet.target = { x: spot };
+    pet.fsm.set("walkTo", true);
+    return pet;
+  }
+
+  it("walks to its spot and sits facing the candle", () => {
+    const pet = vigil(1300, 1100);
+    simulate(pet, 15);
+    expect(pet.state).toBe("vigil");
+    expect(Math.abs(pet.body.x - 1100)).toBeLessThan(10);
+    expect(pet.facing).toBe(-1);
+  });
+
+  it("goes back to it after an interruption on the way (a hop, the mouse)", () => {
+    const pet = vigil(1300, 1100);
+    simulate(pet, 0.5);
+    pet.react({ type: "petted" });
+    expect(pet.state).toBe("happy");
+    simulate(pet, 15);
+    expect(pet.state).toBe("vigil");
+    pet.cursor = { x: pet.body.x, y: pet.body.y - 20 };
+    pet.react({ type: "hover", phase: "attend" });
+    simulate(pet, 1);
+    expect(pet.state).toBe("attend");
+    pet.react({ type: "hover", phase: "release" });
+    simulate(pet, 5);
+    expect(pet.state).toBe("vigil");
+    expect(pet.facing).toBe(-1);
+  });
+
+  it("faces the candle from whichever side it sits", () => {
+    const left = vigil(600, 600);
+    simulate(left, 2);
+    expect([left.state, left.facing]).toEqual(["vigil", 1]);
+    const right = vigil(1000, 1000);
+    simulate(right, 2);
+    expect([right.state, right.facing]).toEqual(["vigil", -1]);
+  });
+
+  it("is over when its time is up", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const pet = vigil(1000, 1000, 800, 5);
+    simulate(pet, 2);
+    expect(pet.state).toBe("vigil");
+    vi.setSystemTime(Date.now() + 6000);
+    simulate(pet, 1);
+    expect(pet.state).not.toBe("vigil");
+    expect(pet.scratch.vigil).toBeUndefined();
   });
 });
 

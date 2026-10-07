@@ -410,7 +410,11 @@ Code: `renderAnniversaries` in `src/panel/main.ts`, `src/features/anniversary/te
       most half its width (`candleLayout`). The pet walks calmly to the nearer side (the
       other if there's no room), far enough that its bubble clears the flowers, and sits
       facing the candle until it's over (`walkTo`, then `vigil`); then it roams again
-      from there. Without the effect it just sits where it is.
+      from there. Since 0.34.0, whatever interrupts it on the way or while it sits (the
+      mouse resting on it, petting, a hop, a climb, being carried, an alarm) only pauses
+      it: afterwards it goes back and sits again until the time is up (`Pet.next`), it
+      walks for as long as that takes, and it faces the candle from wherever it sits.
+      Without the effect it just sits where it is.
   - **Settings → To-do reminders → "Celebrate anniversaries on screen for [15] s"**
     (10–60 s). Off: no effect, the pet just says it.
   - **Music (since 0.28.0):** "Play music with it" (off by default) and its volume, under

@@ -4,12 +4,14 @@ import { loadBundled, loadUser } from "../../characters/registry";
 import { createRng } from "../../engine/random";
 import { SpriteAtlas } from "../../engine/sprites";
 import { backend } from "../../platform";
+import { followTestClock } from "../../platform/testClock";
 import "../../styles/game.css";
 import { GameHost, type MiniGame } from "./GameHost";
 import { SafeLandingGame } from "./safe-landing/game";
 
 /** Entry point of the game window: picks the game from the URL hash and the current character. */
 async function main() {
+  await followTestClock(backend);
   const registry = loadBundled();
   try {
     loadUser(await backend.listUserCharacters(), backend.assetUrl, registry);

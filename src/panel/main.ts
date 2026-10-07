@@ -52,6 +52,7 @@ import {
   type TodoRepeat,
   type WorkHours,
 } from "../platform";
+import { followTestClock } from "../platform/testClock";
 import { playRingtone, RINGTONE_IDS, RINGTONES, type RingtoneId } from "../pet/sound";
 import "../styles/panel.css";
 import {
@@ -1630,6 +1631,8 @@ async function save(patch: Partial<Settings>) {
 }
 
 async function main() {
+  // The test clock set ahead: Today, Overdue… read again.
+  await followTestClock(backend, () => void render());
   document.title = product.productName;
   registry = await loadAll(() => backend.listUserCharacters(), backend.assetUrl);
   settings = await backend.getSettings();

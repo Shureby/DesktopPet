@@ -555,6 +555,12 @@ export const mockBackend: Backend = {
     fire("alarms-changed", null);
   },
   async petReady() {},
+  async testClock() {
+    return null;
+  },
+  async shiftClock() {
+    throw new Error("no test clock in the browser mock");
+  },
   async endPeek() {},
   async e2eEnabled() {
     return false;

@@ -117,7 +117,7 @@ export class RulesBrain implements Brain {
       case "leave":
         pet.attending = false;
         if (e.phase === "release") pet.say("release", {}, 2500);
-        if (pet.state === "attend") pet.fsm.set(this.next(pet), true);
+        if (pet.state === "attend") pet.fsm.set(pet.next(), true);
         break;
     }
   }

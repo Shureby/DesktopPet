@@ -13,6 +13,11 @@ a store SDK.
 CI (`.github/workflows/ci.yml`) builds the direct installers for Windows and
 macOS and a Windows Steam depot on every push.
 
+For testing only, CI also builds **ePet Test** (artifact `test-Windows`):
+`npx tauri build --config src-tauri/tauri.test.conf.json --features testbuild`. It has its
+own name and identifier (`com.ezyappco.epet.test`), so it installs beside ePet with its own
+data, and its tray has a 🧪 Test clock to set the app's clock ahead. Never ship it.
+
 ## Renaming the product
 
 Edit [`product.config.json`](../product.config.json) (`productName`, `identifier`,

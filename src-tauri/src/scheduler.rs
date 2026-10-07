@@ -181,7 +181,9 @@ impl HiddenAlerts {
 
 /// Once per local day: clear finished alarms/timers and to-dos ticked off before today.
 fn daily_cleanup(store: &desktoppet_core::Store, now: i64) -> bool {
-    let today = Local::now().date_naive();
+    // The app's day (the test clock may be ahead of the computer's).
+    let today =
+        Local.timestamp_millis_opt(now).earliest().map_or_else(|| Local::now().date_naive(), |t| t.date_naive());
     let midnight = today.and_hms_opt(0, 0, 0).and_then(|t| Local.from_local_datetime(&t).earliest());
     let start = midnight.map_or(now, |t| t.timestamp_millis());
     match store.daily_cleanup(&today.format("%Y-%m-%d").to_string(), start, now) {

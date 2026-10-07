@@ -72,6 +72,12 @@ button (`Mouse` in `e2e/harness.mjs`), so hovering, stroking, dragging and throw
 go through the app as on a desktop (`e2e/mouse.test.mjs`; `e2e/window.ps1` opens a window
 for the pet to stand on).
 
+Across days, the tests set the app's clock ahead (`shift_clock`, `e2e/clock.test.mjs`)
+instead of waiting: the Rust side adds the shift to `now_ms()`, and each window's `Date`
+follows it (`src/platform/testClock.ts`). Only debug builds started for the tests and the
+"ePet Test" build (`--config src-tauri/tauri.test.conf.json --features testbuild`, CI
+artifact `test-Windows`, its tray has a 🧪 Test clock) can do this.
+
 The long run (`e2e/long/`, `npm run e2e:long`) keeps ePet running for an hour
 (`EPET_LONG_MINUTES`) and checks that memory, handles and CPU level off. It runs nightly
 on `main` (`.github/workflows/long-run.yml`, also by hand), not on every push; its

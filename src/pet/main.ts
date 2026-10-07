@@ -1,11 +1,13 @@
 import { loadAll } from "../characters/registry";
 import { backend } from "../platform";
+import { followTestClock } from "../platform/testClock";
 import { startMockScheduler } from "../platform/mock";
 import "../styles/pet.css";
 import { enableFakeWindowDragging } from "./demo";
 import { PetHost } from "./PetHost";
 
 async function main() {
+  await followTestClock(backend);
   const registry = await loadAll(() => backend.listUserCharacters(), backend.assetUrl);
   for (const issue of registry.issues) console.warn(`Character not loaded: ${issue.source}\n  ${issue.errors.join("\n  ")}`);
 

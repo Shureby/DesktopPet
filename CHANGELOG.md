@@ -16,7 +16,25 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-10-07
+
+### Fixed
+- Remembrance: the pet always ends up sitting by the candle, facing it. Before, anything on
+  its way there (the mouse resting on it, petting, a hop, a climb, being carried, an alarm)
+  made it forget the vigil and roam, and a long walk stopped after 10 s. Now it goes back
+  after each interruption until the time is up, and faces the candle from wherever it sits.
+
+### Added
+- **ePet Test** (a separate Windows installer from CI, `test-Windows`): installed beside
+  ePet with its own name and data, its tray has a **🧪 Test clock** to set the clock ahead
+  (+1 hour, +6 hours, +1 day, +1 week, back to now), to see tomorrow's reminders, Overdue
+  to-dos and the daily clean-up without waiting. The clock goes back to now when it quits.
+  ePet itself has no test clock.
+
 ### Added (development)
+- Tested across days with the test clock: an Every day alarm missed rings the next day;
+  the next day, yesterday's finished timers and ticked to-dos are cleared; a day's to-do is
+  “Today” all day and “Overdue · Yesterday” the next, and nothing of yesterday is reminded.
 - Tested with the real mouse on every push (Windows): hovering (the heart meter, the
   reaction after 2 s, stroking, letting go after 8 s, stepping away when hungry, nothing
   while ringing or focusing), stopping a pet that runs to ring, dragging and throwing,

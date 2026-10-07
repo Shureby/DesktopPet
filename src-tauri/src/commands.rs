@@ -584,6 +584,35 @@ pub fn e2e_enabled() -> bool {
     cfg!(debug_assertions) && std::env::var_os("EPET_E2E").is_some()
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TestClock {
+    /// How far ahead it is (ms).
+    shift: i64,
+    /// The tray offers to set it ahead ("ePet Test"; not in the end-to-end tests, which set it
+    /// themselves and compare the tray with the pet's menu).
+    in_tray: bool,
+}
+
+/// The test clock, or nothing if this build has none (a release).
+#[tauri::command]
+pub fn test_clock() -> Option<TestClock> {
+    crate::state::test_clock_enabled()
+        .then(|| TestClock { shift: crate::state::clock_shift(), in_tray: cfg!(feature = "testbuild") })
+}
+
+/// Test builds and end-to-end tests: sets the app's clock `ms` ahead (or back, never before
+/// the real time). Reminders due by then come at once; every window follows ("clock-shift").
+#[tauri::command]
+pub fn shift_clock(app: AppHandle, ms: i64) -> CmdResult<i64> {
+    if !crate::state::test_clock_enabled() {
+        return Err("no test clock in this build".into());
+    }
+    let shift = crate::state::shift_clock(ms);
+    let _ = app.emit("clock-shift", shift);
+    Ok(shift)
+}
+
 /// Clicks a tray item the app handles itself ("show", "hide", "quit"), as the tray would.
 #[tauri::command]
 pub fn e2e_tray(app: AppHandle, id: String) -> CmdResult<()> {

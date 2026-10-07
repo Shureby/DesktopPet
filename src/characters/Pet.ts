@@ -5,6 +5,7 @@ import { StateMachine, type StateDef } from "../engine/fsm";
 import { createBody, step, type Body, type StepResult, type World } from "../engine/physics";
 import { pick, range, type Rng } from "../engine/random";
 import { resolveAbilities, type ResolvedAbility } from "./abilities";
+import { pendingVigil } from "./abilities/core";
 import { BASE_GAME_MODIFIERS, type BehaviorDef, type GameModifiers } from "./abilities/types";
 import { frameSize, type CharacterDef } from "./schema";
 
@@ -141,6 +142,13 @@ export class Pet {
 
   /** Ask the brain what to do next (states return this from `update`). */
   next(): string {
+    // A remembrance's vigil that was interrupted (petted, the mouse, a hop, a ring, a
+    // climb): once on its feet and free, it goes back to it.
+    const v = pendingVigil(this);
+    if (v && this.grounded && !this.attending) {
+      this.target = { x: v.x };
+      return "walkTo";
+    }
     return this.brain.next(this);
   }
 

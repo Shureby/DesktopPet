@@ -147,17 +147,21 @@ export const core: AbilityModule<Record<string, never>> = {
     },
     /**
      * Walk calmly to `pet.target`, then keep vigil if one is set (`scratch.vigil`: a
-     * remembrance's candle), else idle.
+     * remembrance's candle), else idle. To a vigil it walks for as long as the vigil lasts;
+     * otherwise for 10 s at most.
      */
     walkTo: {
       anim: "walk",
       update: (p) => {
         if (!p.target) return "idle";
+        const hadVigil = p.scratch.vigil !== undefined;
+        const v = pendingVigil(p);
         const dx = p.target.x - p.body.x;
-        if (Math.abs(dx) < p.u(8) || p.lastStep?.hitWall || p.fsm.time > 10) {
+        const over = hadVigil ? !v : p.fsm.time > 10;
+        if (Math.abs(dx) < p.u(8) || p.lastStep?.hitWall || over) {
           p.target = null;
           p.body.vx = 0;
-          return p.scratch.vigil ? "vigil" : "idle";
+          return v ? "vigil" : "idle";
         }
         p.facing = dx > 0 ? 1 : -1;
         p.body.vx = p.facing * p.walkSpeed();
@@ -166,18 +170,20 @@ export const core: AbilityModule<Record<string, never>> = {
         p.body.vx = 0;
       },
     },
-    /** Sits facing `scratch.vigil.face` for `scratch.vigil.seconds`, then roams again. */
+    /** Sits facing the candle until the vigil is over, then roams again. */
     vigil: {
       anim: "sit",
       enter: (p) => {
         p.body.vx = 0;
-        const v = p.scratch.vigil as Vigil | undefined;
-        p.activity(v?.seconds ?? 5, v?.seconds ?? 5);
+        const v = pendingVigil(p);
+        const left = v ? (v.until - Date.now()) / 1000 : 0;
+        p.activity(left, left);
       },
       update: (p) => {
-        const v = p.scratch.vigil as Vigil | undefined;
-        if (v) p.facing = v.face;
-        if (p.activityDone()) {
+        const v = pendingVigil(p);
+        // Facing the candle from wherever it sits.
+        if (v) p.facing = p.body.x < v.centre ? 1 : -1;
+        if (!v || p.activityDone()) {
           delete p.scratch.vigil;
           return p.next();
         }
@@ -204,10 +210,25 @@ export const core: AbilityModule<Record<string, never>> = {
   },
 };
 
-/** Where a vigil faces and how long it lasts (set in `pet.scratch.vigil`). */
+/**
+ * A remembrance's vigil (`pet.scratch.vigil`): the pet goes to sit at `x`, facing the candle
+ * at `centre`, until `until` (Date.now() ms). Interrupted on the way or while sitting (petted,
+ * the mouse on it, a hop, a ring), it goes back to it afterwards (see `Pet.next`).
+ */
 export interface Vigil {
-  face: 1 | -1;
-  seconds: number;
+  x: number;
+  centre: number;
+  until: number;
+}
+
+/** The vigil still to keep, if any; one that is over is forgotten. */
+export function pendingVigil(p: Pet): Vigil | undefined {
+  const v = p.scratch.vigil as Vigil | undefined;
+  if (v && Date.now() >= v.until) {
+    delete p.scratch.vigil;
+    return undefined;
+  }
+  return v;
 }
 
 /** Horizontal centre of the work area the pet is on (target for reminders). */

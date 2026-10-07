@@ -18,6 +18,8 @@ default = ["direct"]
 direct = []
 steam = ["dep:steamworks"]
 epic = []
+# "ePet Test" (src-tauri/tauri.test.conf.json): the tray can set the clock ahead.
+testbuild = []
 
 [dependencies]
 desktoppet-core = { path = "../crates/desktoppet-core" }
