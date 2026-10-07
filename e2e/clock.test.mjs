@@ -83,7 +83,10 @@ check("alarm.repeat-missed", "an Every day alarm that was missed rings again the
     s.alerts.alarm = { ...s.alerts.alarm, ring: false, petRuns: false, ringSeconds: 3, autoSnoozeMax: 0 };
     return s;
   });
-  const a = await app.invoke("add_alarm", { label: "Every day test", at: appNow() + 2500, repeat: "daily", days: null });
+  // An Every day alarm keeps hours and minutes: on the next whole minute, 3 s from now.
+  const minute = Math.ceil((appNow() + 5000) / MIN) * MIN;
+  await ahead(minute - appNow() - 5500);
+  const a = await app.invoke("add_alarm", { label: "Every day test", at: minute, repeat: "daily", days: null });
   await app.waitBubble("Every day test", 10_000);
   const find = async () => (await app.invoke("list_alarms")).find((x) => x.id === a.id);
   let missed;
