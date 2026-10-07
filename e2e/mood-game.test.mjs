@@ -85,20 +85,19 @@ check("game.controls", "← → / A D steer; Space or Enter starts", async () =>
   const app = ctx.app;
   await key("Space");
   assert.equal((await game()).phase, "playing");
-  // Left, then right long enough to turn round (it keeps some speed). A round can end on
-  // the way (the pet landed): then again in a new one.
-  let moves = null;
-  for (let i = 0; i < 3 && !moves?.ok; i++) {
-    if ((await game()).phase === "result") await key("KeyR");
+  // Each way from a new round, briefly (held longer, the pet may crash into something).
+  for (const [code, sign] of [["ArrowLeft", -1], ["KeyD", 1]]) {
+    if (code !== "ArrowLeft") {
+      await closeGame();
+      await app.run("pet", "Play Safe Landing");
+      await game();
+      await key("Space");
+    }
     const x0 = (await game()).x;
-    await key("ArrowLeft", 400);
-    const x1 = (await game()).x;
-    await key("KeyD", 1200);
+    await key(code, 300);
     const g = await game();
-    moves = { ok: x1 < x0 && g.x > x1, text: `${x0} → ${x1} → ${g.x} (${g.phase}, ${g.status})` };
-    if (g.phase === "playing" && !moves.ok) break;
+    assert.ok(Math.sign(g.x - x0) === sign, `${code}: ${x0} → ${g.x} (${g.phase}, ${g.status})`);
   }
-  assert.ok(moves.ok, `left then right: ${moves.text}`);
   // Enter starts too (after a restart from the result screen, see game.finish).
   await closeGame();
   await app.run("pet", "Play Safe Landing");
