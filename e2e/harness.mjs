@@ -66,6 +66,9 @@ export class App {
       this.driver = spawn(process.env.TAURI_DRIVER ?? "tauri-driver", args, { stdio: ["ignore", "ignore", "inherit"] });
     }
     await sleep(1500);
+    // Classic WebDriver: with BiDi (WebdriverIO's default) Edge WebDriver opens a tab of its
+    // own and doesn't list the app's windows.
+    capabilities["wdio:enforceWebDriverClassic"] = true;
     this.b = await remote({ hostname: "127.0.0.1", port: 4444, logLevel: "warn", connectionRetryCount: 1, capabilities });
     // The pet window, whichever window the session started on.
     const seen = new Map();
