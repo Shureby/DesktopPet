@@ -213,8 +213,8 @@ check("alarm.custom-days", "the Repeat menu and the day picker follow each other
   // From Once, Custom days starts with just today.
   await chooseRepeat("none");
   await chooseRepeat("days");
-  for (const d of [today, "Monday", "Wednesday", "Friday"]) await clickDay(d);
-  if (["Monday", "Wednesday", "Friday"].includes(today)) await clickDay(today);
+  for (const d of ["Monday", "Wednesday", "Friday"]) if (d !== today) await clickDay(d);
+  if (!["Monday", "Wednesday", "Friday"].includes(today)) await clickDay(today);
   assert.deepEqual((await pickerState()).on, ["Monday", "Wednesday", "Friday"]);
   await addFromForm("Gym");
   assert.match((await row("One-off")).sub, /^Once · (Today|Tomorrow)$/);
@@ -245,7 +245,8 @@ check("alarm.switch", "a switched-off alarm greys out and comes back with the sa
 check("alarm.skip-once", "switching off a repeating alarm asks: Skip once, Turn off or Cancel", async () => {
   const app = await page();
   await clearAll();
-  const daily = await addAlarm("Morning", at(1, 7, 0), "daily");
+  // Its first ring is the next 7:00, as the form would set it (today's, if not yet past).
+  const daily = await addAlarm("Morning", at(new Date().getHours() < 7 ? 0 : 1, 7, 0), "daily");
   await addAlarm("Once only", at(1, 8, 0));
   await app.waitText("li.clock-row .title", "Once only");
   await clickInRow("Morning", "input[role=switch]");

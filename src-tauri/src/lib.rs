@@ -36,6 +36,7 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
+            app_windows::create_pet(app.handle())?;
             tray::create(app.handle())?;
             scheduler::spawn(app.handle().clone());
             Ok(())

@@ -14,6 +14,7 @@
     "windows": [
       {
         "label": "pet",
+        "create": false,
         "url": "pet.html",
         "title": "ePet",
         "width": 340,

@@ -12,6 +12,41 @@ pub const PANEL: &str = "panel";
 pub const GAME: &str = "game";
 pub const CELEBRATE: &str = "celebrate";
 
+/// Extra WebView2 arguments asked for through `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS`, as
+/// Edge WebDriver does for the end-to-end tests (it needs `--remote-debugging-port`).
+/// WebView2 ignores that variable once arguments are set in code, and wry always sets
+/// some, so they are passed on here with wry's defaults. All webviews share one WebView2
+/// environment, so every window must get the same; normally this is `None` and nothing changes.
+pub fn browser_args() -> Option<String> {
+    let extra = std::env::var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS").ok().filter(|a| !a.trim().is_empty())?;
+    Some(format!(
+        "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --autoplay-policy=no-user-gesture-required {extra}"
+    ))
+}
+
+/// A window builder with [`browser_args`] applied.
+fn window<'a, R: Runtime>(
+    app: &'a AppHandle<R>,
+    label: &str,
+    url: String,
+) -> WebviewWindowBuilder<'a, R, AppHandle<R>> {
+    let builder = WebviewWindowBuilder::new(app, label, WebviewUrl::App(url.into()));
+    match browser_args() {
+        Some(args) => builder.additional_browser_args(&args),
+        None => builder,
+    }
+}
+
+/// Creates the pet window from its entry in tauri.conf.json (`"create": false` there, so
+/// that [`browser_args`] apply to it too).
+pub fn create_pet<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
+    let mut config =
+        app.config().app.windows.iter().find(|w| w.label == PET).cloned().expect("pet window in tauri.conf.json");
+    config.additional_browser_args = browser_args();
+    WebviewWindowBuilder::from_config(app, &config)?.build()?;
+    Ok(())
+}
+
 #[derive(Clone, Serialize)]
 pub struct GameEvent<'a> {
     pub state: &'a str,
@@ -36,7 +71,7 @@ pub fn open_panel<R: Runtime>(app: &AppHandle<R>, tab: Option<&str>) -> tauri::R
         Some(t) => format!("panel.html#{t}"),
         None => "panel.html".into(),
     };
-    WebviewWindowBuilder::new(app, PANEL, WebviewUrl::App(url.into()))
+    window(app, PANEL, url)
         .title(product_name(app))
         .inner_size(460.0, 640.0)
         .min_inner_size(380.0, 420.0)
@@ -56,7 +91,7 @@ pub fn open_game<R: Runtime>(app: &AppHandle<R>, game: &str) -> tauri::Result<()
         None => None,
     }
     .or(app.primary_monitor()?);
-    let mut builder = WebviewWindowBuilder::new(app, GAME, WebviewUrl::App(format!("game.html#{game}").into()))
+    let mut builder = window(app, GAME, format!("game.html#{game}"))
         .title(product_name(app))
         .transparent(true)
         .decorations(false)
@@ -109,7 +144,7 @@ pub fn open_celebration<R: Runtime>(app: &AppHandle<R>, c: &desktoppet_core::Cel
     };
     let payload = serde_json::json!({ "celebration": c, "petX": pet_x, "petY": pet_y });
     let hex: String = payload.to_string().bytes().map(|b| format!("{b:02x}")).collect();
-    let window = WebviewWindowBuilder::new(app, CELEBRATE, WebviewUrl::App(format!("celebrate.html#{hex}").into()))
+    let window = window(app, CELEBRATE, format!("celebrate.html#{hex}"))
         .title(product_name(app))
         .transparent(true)
         .decorations(false)
