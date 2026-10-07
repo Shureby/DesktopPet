@@ -29,6 +29,8 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 - An alarm, timer or to-do reminder due right when ePet starts (also one that came due
   while it was off, within the snoozes' grace) could be lost on a slow start: it was sent
   before the pet was listening, so it never rang. ePet now waits until the pet is ready.
+- The "⏱ Done" badge of a timer nobody answered shows when it rang (as Finished does), not
+  when the ring ended, which could be a minute later.
 
 ### Added (development)
 - Tested on every push: the first start, starting ePet twice, Start with my computer,

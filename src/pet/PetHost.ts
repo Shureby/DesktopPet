@@ -1535,7 +1535,8 @@ export class PetHost {
       // Rung out of hiding: told when the pet is shown again, not as a badge.
       await this.recordUnseen(alarm);
     } else {
-      this.doneTimers = [...this.doneTimers, { id, label: alarm.label, at: Date.now() }];
+      // When it rang (as in Finished), not when the ring gave up on you.
+      this.doneTimers = [...this.doneTimers, { id, label: alarm.label, at: alarm.rangAt ?? Date.now() }];
     }
     await this.refreshTimers();
   }

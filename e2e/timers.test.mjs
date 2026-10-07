@@ -146,9 +146,8 @@ check("timer.unanswered", "nobody answers: no snooze; a quiet “⏱ Done …”
   assert.equal(after.snoozes, 0, "timers never snooze themselves");
   assert.equal(after.enabled, false);
   const badge = (await app.badges()).find((x) => x.text.startsWith("⏱ Done"));
-  // When it finished: rang, or a minute later if the ring ran over the minute.
-  const times = [await app.clock(after.rangAt), await app.clock(after.rangAt + 60_000)];
-  assert.ok(times.some((c) => badge.text === `⏱ Done ${c}`), `${badge.text} (rang ${times[0]})`);
+  // When it rang (as Finished says), not when the ring ended.
+  assert.equal(badge.text, `⏱ Done ${await app.clock(after.rangAt)}`);
   await clickBadge("⏱ Done");
   assert.ok(!(await app.badges()).some((x) => x.text.startsWith("⏱ Done")));
 });
