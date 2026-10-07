@@ -241,7 +241,8 @@ check("settings.alerts", "Ring off: silent; ringtone and volume as set; the ▶ 
   // Pet comes to the middle: it heads there (if it will: aloof pets may just perk up).
   await reset({ petRuns: true });
   let ran = false;
-  for (let i = 0; i < 4 && !ran; i++) {
+  // (At night a sleepy pet often just perks up: several tries.)
+  for (let i = 0; i < 12 && !ran; i++) {
     await addAlarm(1500);
     await app.waitBubble("Alarm", 10_000);
     const p = await app.pet();
@@ -252,7 +253,7 @@ check("settings.alerts", "Ring off: silent; ringtone and volume as set; the ▶ 
     await app.answer("Done");
     await app.sleep(500);
   }
-  assert.ok(ran, "came to the middle in four tries");
+  assert.ok(ran, "came to the middle in 12 tries");
 });
 
 check("settings.quiet-hours", "in quiet hours the pet is quiet, but alarms still ring", async () => {

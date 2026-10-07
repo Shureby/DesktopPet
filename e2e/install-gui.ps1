@@ -7,11 +7,16 @@ param(
   [int]$Minutes = 5
 )
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
+Add-Type -Namespace Win32 -Name User32 -MemberDefinition @"
+[DllImport("user32.dll")] public static extern System.IntPtr SendMessage(System.IntPtr hWnd, uint msg, System.IntPtr w, System.IntPtr l);
+"@
+$BM_CLICK = 0x00F5
 $A = [System.Windows.Automation.AutomationElement]
 $scope = [System.Windows.Automation.TreeScope]
 
 $p = Start-Process -FilePath $Setup -PassThru
 $pages = New-Object System.Collections.Generic.List[string]
+$errors = New-Object System.Collections.Generic.List[string]
 $deadline = (Get-Date).AddMinutes($Minutes)
 while (-not $p.HasExited -and (Get-Date) -lt $deadline) {
   Start-Sleep -Milliseconds 800
@@ -28,14 +33,22 @@ while (-not $p.HasExited -and (Get-Date) -lt $deadline) {
         $_.Current.IsEnabled -and $_.Current.Name -match '^(&?Next|&?Install|&?Finish|OK|&?Yes)'
       } | Select-Object -First 1
       if ($button) {
-        $button.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+        # A real click on the button (BM_CLICK), as a mouse would; UI Automation's Invoke
+        # doesn't reach NSIS's buttons from a service session.
+        $hwnd = [System.IntPtr]$button.Current.NativeWindowHandle
+        if ($hwnd -ne [System.IntPtr]::Zero) {
+          [Win32.User32]::SendMessage($hwnd, $BM_CLICK, [System.IntPtr]::Zero, [System.IntPtr]::Zero) | Out-Null
+        } else {
+          $button.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+        }
       }
     }
   } catch {
-    # The window changed under us; look again.
+    # The window changed under us; look again (kept for the report).
+    if ($errors.Count -lt 20) { $errors.Add("$_") }
   }
 }
 $timedOut = -not $p.HasExited
 if ($timedOut) { Stop-Process -Id $p.Id -Force }
-@{ exitCode = $(if ($timedOut) { -1 } else { $p.ExitCode }); timedOut = $timedOut; pages = $pages } |
+@{ exitCode = $(if ($timedOut) { -1 } else { $p.ExitCode }); timedOut = $timedOut; pages = $pages; errors = $errors } |
   ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 $Out

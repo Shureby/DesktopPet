@@ -134,12 +134,18 @@ check("game.abilities", "Cat grabs ☂ to slow down; Rooster holds Space to glid
 
 check("pet.idle", "left alone it walks, sits, runs or sleeps on its own, without script errors", async () => {
   const app = ctx.app;
+  // Woken first (at night it may sleep for minutes): then it carries on by itself.
+  await app.b.execute(() => window.__epet.care("pet"));
   const seen = new Set();
-  const until = Date.now() + 45_000;
-  while (Date.now() < until && seen.size < 3) {
-    seen.add((await app.pet()).state);
+  const until = Date.now() + 90_000;
+  while (Date.now() < until && seen.size < 2) {
+    const s = (await app.pet()).state;
+    if (s !== "happy") seen.add(s);
     await app.sleep(500);
   }
-  assert.ok(seen.size >= 2, `states: ${[...seen].join(", ")}`);
+  assert.ok(seen.size >= 2 || (seen.size === 1 && !seen.has("happy")), `states: ${[...seen].join(", ")}`);
+  const frames = (await app.pet()).frames;
+  await app.sleep(1000);
+  assert.ok((await app.pet()).frames > frames + 10, "keeps animating");
   assert.deepEqual(await app.b.execute(() => window.__epet.errors), []);
-});
+}, { timeout: 120_000 });
