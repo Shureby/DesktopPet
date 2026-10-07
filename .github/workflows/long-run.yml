@@ -1,0 +1,57 @@
+name: Long run
+
+# ePet running for an hour on Windows (e2e/long/long-run.test.mjs): memory, handles and CPU
+# must level off. Too long for every push: nightly (on main), by hand, and when the long run
+# itself changes in a pull request.
+on:
+  schedule:
+    # 02:37 in China (UTC+8).
+    - cron: "37 18 * * *"
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: How long to run (minutes)
+        default: "60"
+  pull_request:
+    paths:
+      - .github/workflows/long-run.yml
+      - e2e/long/**
+
+concurrency:
+  group: long-run-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  long-run:
+    name: Long run (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: npm ci
+      - run: npx tauri build --debug --no-bundle
+      - name: Edge WebDriver matching WebView2
+        shell: pwsh
+        run: scripts/edge-webdriver.ps1
+      - name: Long run
+        timeout-minutes: 100
+        run: npm run e2e:long
+        env:
+          EPET_APP: ${{ github.workspace }}\target\debug\desktoppet.exe
+          NATIVE_DRIVER: ${{ github.workspace }}\webdriver\msedgedriver.exe
+          EPET_LONG_MINUTES: ${{ inputs.minutes || '60' }}
+      - name: Report by checklist item
+        if: always()
+        run: node scripts/e2e-report.mjs --nightly
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: long-run-results
+          path: e2e-results
+          if-no-files-found: warn

@@ -13,6 +13,8 @@ import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
+import { createInterface } from "node:readline";
+import { fileURLToPath } from "node:url";
 import { after, before, test } from "node:test";
 import { remote } from "webdriverio";
 
@@ -427,6 +429,71 @@ export class App {
 
   sleep(ms) {
     return sleep(ms);
+  }
+}
+
+// --- The real mouse (Windows) ------------------------------------------------------
+
+/**
+ * The system cursor and left button, moved and pressed for real (e2e/mouse.ps1), so the pet
+ * gets the mouse as it would on a desktop. Positions are physical screen px.
+ */
+export class Mouse {
+  static open() {
+    if (process.platform !== "win32") throw new Error("The real mouse is driven on Windows only");
+    return new Mouse();
+  }
+
+  constructor() {
+    this.proc = spawn("pwsh", ["-NoProfile", "-File", fileURLToPath(new URL("./mouse.ps1", import.meta.url))], {
+      stdio: ["pipe", "pipe", "inherit"],
+    });
+    this.waiting = [];
+    createInterface({ input: this.proc.stdout }).on("line", (line) => this.waiting.shift()?.(line));
+  }
+
+  /** Sends a command to the helper; resolves with its answer. */
+  send(command) {
+    return new Promise((resolve, reject) => {
+      this.waiting.push((line) => (line.startsWith("error") ? reject(new Error(`mouse ${command}: ${line}`)) : resolve(line)));
+      this.proc.stdin.write(`${command}\n`);
+    });
+  }
+
+  move(x, y) {
+    return this.send(`move ${Math.round(x)} ${Math.round(y)}`);
+  }
+
+  down() {
+    return this.send("down");
+  }
+
+  up() {
+    return this.send("up");
+  }
+
+  async pos() {
+    const [x, y] = (await this.send("pos")).split(" ").map(Number);
+    return { x, y };
+  }
+
+  /** Moves from `from` to `to` in `ms`, in small steps as a hand would. */
+  async glide(from, to, ms, steps = Math.max(2, Math.round(ms / 16))) {
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      await this.move(from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t);
+      await sleep(ms / steps);
+    }
+  }
+
+  /** Minimizes, or restores, the window with this title. */
+  window(action, title) {
+    return this.send(`${action} ${title}`);
+  }
+
+  close() {
+    this.proc.stdin.end();
+    this.proc.kill();
   }
 }
 

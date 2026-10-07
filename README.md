@@ -67,6 +67,17 @@ and music played (`window.__epetSounds`), and the commands `e2e_tray`, `e2e_clos
 `e2e_present` (stands in for a mouse move, so today's anniversaries are celebrated). Release builds have none of these. Long waits are avoided
 through settings the tests store directly (three-second focus sessions, short rings).
 
+On Windows the mouse is real: `e2e/mouse.ps1` moves the system cursor and presses its
+button (`Mouse` in `e2e/harness.mjs`), so hovering, stroking, dragging and throwing the pet
+go through the app as on a desktop (`e2e/mouse.test.mjs`; `e2e/window.ps1` opens a window
+for the pet to stand on).
+
+The long run (`e2e/long/`, `npm run e2e:long`) keeps ePet running for an hour
+(`EPET_LONG_MINUTES`) and checks that memory, handles and CPU level off. It runs nightly
+on `main` (`.github/workflows/long-run.yml`, also by hand), not on every push; its
+checklist items are marked `"nightly"` (🌙) and reported with
+`node scripts/e2e-report.mjs --nightly`.
+
 ```bash
 npx tauri build --debug --no-bundle            # the app to test
 cargo install tauri-driver --locked            # once, Linux (also needs WebKitWebDriver)

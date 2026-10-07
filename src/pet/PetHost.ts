@@ -3,7 +3,7 @@ import { todoRemindsAt } from "../features/todo/repeat";
 import { celebrationEffect, celebrationLines, musicFor } from "../features/anniversary/templates";
 import { candleLayout, playEffect } from "../celebrate/effects";
 import type { Vigil } from "../characters/abilities/core";
-import { applyMoodEvent, isHungry, moodTier, parseMood, type MoodEvent } from "../brain/mood";
+import { applyMoodEvent, isHungry, moodTier, parseMood, type Mood, type MoodEvent } from "../brain/mood";
 import { RulesBrain } from "../brain/RulesBrain";
 import { Pet } from "../characters/Pet";
 import { loadAll, type CharacterRegistry, type LoadedCharacter } from "../characters/registry";
@@ -145,6 +145,8 @@ export class PetHost {
   /** The mouse resting on the pet: stop, react, stroke (brain/hover.ts, docs/INTERACTIONS.md). */
   private readonly hover = new HoverTracker();
   private readonly runStopper = new RunStopper();
+  /** What the hover rules decided, latest last (for the end-to-end tests' hooks). */
+  private hoverLog: { type: string; at: number }[] = [];
   /** What the hovered badge stands for (see updateBadgeInfo). */
   private readonly badgeInfo = Object.assign(document.createElement("div"), { className: "badge-info", hidden: true });
   /** The badge the info box is about; clicking the box clicks it. */
@@ -689,6 +691,7 @@ export class PetHost {
     const running = this.pet.state === "goto" && !this.peek?.leaving && !this.drag;
     const over = this.isNearSprite(cursor.x, cursor.y, winX, winY);
     if (this.runStopper.update(performance.now(), { running, over, cursor, unit: this.dpr })) {
+      this.logHover("stopRun");
       this.pet.target = null;
       const c = this.pet.cursor;
       if (c) this.pet.facing = c.x > this.pet.body.x ? 1 : -1;
@@ -711,10 +714,16 @@ export class PetHost {
       unhappy: isHungry(this.pet.mood) ? "hungry" : tier === "grumpy" || tier === "sulking" ? "grumpy" : null,
     });
     for (const e of events) {
+      this.logHover(e.type);
       if (e.type === "stroke") this.care({ label: "", kind: "pet" });
       else if (e.type === "dodge") this.pet.react({ type: "hover", phase: "dodge", reason: e.reason });
       else this.pet.react({ type: "hover", phase: e.type });
     }
+  }
+
+  private logHover(type: string): void {
+    this.hoverLog.push({ type, at: Date.now() });
+    if (this.hoverLog.length > 50) this.hoverLog.shift();
   }
 
   /** The bubble shows buttons (a reminder) and nobody has answered yet. */
@@ -888,6 +897,18 @@ export class PetHost {
       care: (kind: CareAction["kind"]) => this.care({ label: "", kind }),
       /** The mouse arriving on the pet (as syncWindow does when the cursor comes over it). */
       hoverIn: () => this.welcomeBack(),
+      /** What the hover rules decided since `since` (Date.now() ms): attend, react, stroke… */
+      hoverEvents: (since = 0) => this.hoverLog.filter((e) => e.at >= since).map((e) => e.type),
+      /** Sends the pet walking to `x` (physical px), as it walks to a candle. */
+      walkTo: (x: number) => {
+        this.pet.target = { x };
+        this.pet.fsm.set("walkTo", true);
+      },
+      /** Sets mood fields (affection, fullness, petWindow) as if time had passed. */
+      setMood: (m: Partial<Mood>) => {
+        Object.assign(this.pet.mood, m);
+        this.renderMoodMeter();
+      },
       /** The settings in force (stored ones merged with the defaults). */
       settings: () => this.settings,
       state: () => ({
@@ -913,6 +934,16 @@ export class PetHost {
         facing: this.pet.facing,
         size: this.pet.spriteSize,
         speed: this.pet.speed,
+        vx: this.pet.body.vx,
+        vy: this.pet.body.vy,
+        grounded: this.pet.grounded,
+        /** Where the pet window is (physical px): page px × dpr from here are screen px. */
+        origin: {
+          x: this.pet.body.x - (PET_WINDOW.w / 2) * this.dpr,
+          y: this.pet.body.y - (PET_WINDOW.h - 2) * this.dpr,
+        },
+        /** The windows it can stand on, as the app sees them (physical px). */
+        windows: this.pet.world.windows,
       }),
     };
   }

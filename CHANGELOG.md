@@ -16,6 +16,14 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+### Added (development)
+- Tested with the real mouse on every push (Windows): hovering (the heart meter, the
+  reaction after 2 s, stroking, letting go after 8 s, stepping away when hungry, nothing
+  while ringing or focusing), stopping a pet that runs to ring, dragging and throwing,
+  carrying and slamming, standing on a window's top edge, and the Rooster's glide.
+- A nightly long run: ePet runs for an hour while used now and then, and its memory,
+  handles and CPU must level off (`.github/workflows/long-run.yml`).
+
 ## [0.33.0] - 2026-10-07
 
 ### Changed

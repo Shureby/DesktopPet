@@ -4,13 +4,16 @@
 //   - e2e-results/unit.json, Vitest's JSON report (tests named "[item.id] …" count).
 // Writes e2e-results/report.json and a Markdown table to $GITHUB_STEP_SUMMARY (when set),
 // and prints the report on one line after "E2E_REPORT " so it can be read from the log.
-// Fails if a test failed, or an item marked "ci" in the checklist has no result.
+// Fails if a test failed, or an item marked "ci" in the checklist has no result. Items marked
+// "nightly" are tested by the nightly long run instead (.github/workflows/long-run.yml), which
+// reports with --nightly: then only those are expected.
 import { existsSync, readdirSync, readFileSync, writeFileSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
 
 const dir = process.env.E2E_RESULTS ?? "e2e-results";
 const { version } = JSON.parse(readFileSync("package.json", "utf8"));
 const { sections } = JSON.parse(readFileSync("docs/test-checklist.json", "utf8"));
+const nightly = process.argv.includes("--nightly");
 const items = sections.flatMap((s) => s.items);
 const byId = new Map(items.map((i) => [i.id, i]));
 
@@ -52,7 +55,7 @@ for (const [id, tests] of found) {
   report.items[id] = { ok, tests: tests.map(({ name, ok: o, kind, error }) => ({ name, ok: o, kind, ...(o ? {} : { error }) })) };
   if (!ok) problems.push(`${id}: ${tests.filter((t) => !t.ok).map((t) => t.name).join("; ")}`);
 }
-for (const it of items) if (it.ci && !found.has(it.id)) problems.push(`${it.id} is marked ci: "${it.ci}" but no test covers it`);
+for (const it of items) if (it.ci && !!it.nightly === nightly && !found.has(it.id)) problems.push(`${it.id} is marked ci: "${it.ci}" but no test covers it`);
 
 writeFileSync(join(dir, "report.json"), JSON.stringify(report, null, 2));
 const auto = items.filter((i) => i.ci === "auto").length;

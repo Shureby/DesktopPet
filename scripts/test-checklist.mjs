@@ -37,7 +37,7 @@ function render() {
     "<!-- Generated from test-checklist.json by `npm run test-checklist`. Edit the JSON, not this file. -->",
     "",
     `当前版本 \`${version}\`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。`,
-    "标 🤖 的项目由 CI 自动测（Windows），不用手动测；标 🤖+👀 的项目逻辑由 CI 测，你只看 👀 后面写的部分。",
+    "标 🤖 的项目由 CI 自动测（Windows），不用手动测；标 🤖+👀 的项目逻辑由 CI 测，你只看 👀 后面写的部分；标 🌙 的每晚测一次（太久，不在每次推送时测）。",
     "在线勾选页面（保存结果，自动标出需要重测的项目）：https://claude.ai/artifact/XQVzPKq4w2MThVnTLYCGy1",
     "",
   ];
@@ -45,7 +45,7 @@ function render() {
     lines.push(`## ${si + 1}. ${s.title}`, "");
     s.items.forEach((it, ii) => {
       const tag = it.rev === version ? "**【新】** " : "";
-      const ci = it.ci === "auto" ? "🤖 " : it.ci === "partial" ? "🤖+👀 " : "";
+      const ci = (it.ci === "auto" ? "🤖" : it.ci === "partial" ? "🤖+👀" : "") + (it.nightly ? "🌙" : "") + (it.ci ? " " : "");
       const human = it.ci === "partial" ? ` 👀 ${it.human}` : "";
       lines.push(`- [ ] ${si + 1}.${ii + 1} ${ci}${tag}${fill(it.do)} → **${fill(it.expect)}**${human}`);
     });
@@ -65,6 +65,7 @@ function check() {
       else if (cmp(it.rev, version) > 0) problems.push(`${it.id}: rev ${it.rev} is newer than ${version}`);
       if (it.ci !== undefined && it.ci !== "auto" && it.ci !== "partial") problems.push(`${it.id}: ci must be "auto" or "partial"`);
       if (it.ci === "partial" && !it.human) problems.push(`${it.id}: a partial item needs "human" (what a person checks)`);
+      if (it.nightly !== undefined && (it.nightly !== true || !it.ci)) problems.push(`${it.id}: nightly must be true, on an item tested by CI`);
     }
   if (readFileSync(mdPath, "utf8") !== render()) problems.push("docs/TESTING.md is stale: run npm run test-checklist");
   if (problems.length) {

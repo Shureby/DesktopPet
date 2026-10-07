@@ -15,7 +15,8 @@
     "tauri": "tauri",
     "set-version": "node scripts/version.mjs",
     "test-checklist": "node scripts/test-checklist.mjs",
-    "e2e": "node --test --test-concurrency=1 \"e2e/*.test.mjs\""
+    "e2e": "node --test --test-concurrency=1 \"e2e/*.test.mjs\"",
+    "e2e:long": "node --test \"e2e/long/*.test.mjs\""
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",
