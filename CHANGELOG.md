@@ -21,9 +21,9 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 ## [0.36.1] - 2026-10-08
 
 ### Changed
-- **Field phone** (the sound when a focus starts) now sounds like the trilling electronic
-  office phone of operations-room dramas, and rings once (about a second) instead of
-  twice.
+- **Field phone** (the sound when a focus starts) now sounds like the chirping
+  operations-room desk phone (timed and tuned from a recording), and rings once (about
+  1.3 s) instead of twice.
 
 ## [0.36.0] - 2026-10-08
 

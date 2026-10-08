@@ -53,9 +53,9 @@ function play(notes: Note[], volume: number): void {
     const peak = 0.25 * volume * (n.gain ?? 1);
     g.gain.setValueAtTime(0, t0 + n.at);
     if (n.hold) {
-      // 2 ms in and out: short enough to sound like a switched tone, long enough not to click.
-      g.gain.linearRampToValueAtTime(peak, t0 + n.at + 0.002);
-      g.gain.setValueAtTime(peak, t0 + n.at + n.dur - 0.002);
+      // 4 ms in and out, like a switched electronic ringer (and no clicks).
+      g.gain.linearRampToValueAtTime(peak, t0 + n.at + 0.004);
+      g.gain.setValueAtTime(peak, t0 + n.at + n.dur - 0.004);
       g.gain.linearRampToValueAtTime(0, t0 + n.at + n.dur);
     } else {
       g.gain.linearRampToValueAtTime(peak, t0 + n.at + 0.01);
@@ -147,23 +147,26 @@ export function ringAlarm(id: RingtoneId, volume: number, maxSeconds = 60): () =
   };
 }
 
+/** A pulse of two sine tones at once (a gated electronic ringer's chirp). */
+const chirp = (at: number, f1: number, g1: number, f2: number, g2: number): Note[] => [
+  { f: f1, at, dur: 0.03, wave: "sine", gain: g1, hold: true },
+  { f: f2, at, dur: 0.03, wave: "sine", gain: g2, hold: true },
+];
+
 /**
- * "Field phone": a focus session starts. One ring of the electronic office-phone ringer
- * (AT&T Merlin style) heard in operations-room dramas: three sine tones together, switched
- * on and off every 22 ms, 24 times (about a second), so it can be told from a break
- * starting without seeing the pet.
+ * "Field phone": a focus session starts. One ring (about 1.3 s) of the operations-room
+ * desk phone, timed and tuned from a recording: two pairs of 695 + 2075 Hz chirps, then
+ * 18 chirps a second, four of 985 + 2952 Hz and eight softer of 1476 + 2462 Hz. It can be
+ * told from a break starting without seeing the pet.
  */
 const FIELD_PHONE: Ringtone = {
   name: "Field phone",
-  period: 3,
-  notes: () =>
-    Array.from({ length: 24 }, (_, i) =>
-      [
-        { f: 755, gain: 0.6 },
-        { f: 2260, gain: 0.35 },
-        { f: 3800, gain: 0.2 },
-      ].map(({ f, gain }) => ({ f, at: i * 0.044, dur: 0.022, wave: "sine" as const, gain, hold: true })),
-    ).flat(),
+  period: 2.5,
+  notes: () => [
+    ...[0, 0.049, 0.22, 0.27].flatMap((t) => chirp(t, 695, 0.3, 2075, 0.33)),
+    ...[0, 1, 2, 3].flatMap((i) => chirp(0.66 + i * 0.0545, 985, 0.5, 2952, 0.47)),
+    ...[4, 5, 6, 7, 8, 9, 10, 11].flatMap((i) => chirp(0.66 + i * 0.0545, 1476, 0.3, 2462, 0.21)),
+  ],
 };
 
 /** The focus-session sounds' choices: Field phone first, then the ringtones. */
