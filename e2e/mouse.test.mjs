@@ -482,11 +482,29 @@ if (process.platform === "win32") {
         throw new Error("the pet never ran to the middle");
       };
       // A mouse waiting in its way: it stops under it and rings there.
-      let p = await ringAndRun();
-      const since = Date.now();
-      const wait = { x: p.x + p.size.w * 2.5, y: p.y - p.size.h * 0.4 };
-      await mouse.move(wait.x, wait.y);
-      await app.b.waitUntil(async () => (await hoverEvents(since)).includes("stopRun"), { timeout: 8000, interval: 50 });
+      let p;
+      let wait;
+      for (let tries = 1; ; tries++) {
+        p = await ringAndRun();
+        const since = Date.now();
+        wait = { x: p.x + p.size.w * 2.5, y: p.y - p.size.h * 0.4 };
+        await mouse.move(wait.x, wait.y);
+        const moved = await app.pet();
+        const stopped = await app.b
+          .waitUntil(async () => (await hoverEvents(since)).includes("stopRun"), { timeout: 8000, interval: 50 })
+          .then(() => true, () => false);
+        if (stopped) break;
+        // What happened, for the report.
+        const now = await app.pet();
+        const seen = `pet when the mouse came ${Math.round(moved.x)} (${moved.state}), mouse ${Math.round(wait.x)}, ${JSON.stringify(await mouse.pos())}; now ${Math.round(now.x)} (${now.state}); hover events ${JSON.stringify(await hoverEvents(since))}`;
+        console.log(`hover-stop-run, try ${tries}: no stop: ${seen}`);
+        // Already past the mouse when it came (a slow frame): once more.
+        if (tries < 2 && moved.x > wait.x - p.size.w) {
+          await app.answer("Done");
+          continue;
+        }
+        throw new Error(`it never stopped under the waiting mouse: ${seen}`);
+      }
       await app.sleep(500);
       p = await app.pet();
       assert.notEqual(p.state, "goto");

@@ -79,10 +79,13 @@ follows it (`src/platform/testClock.ts`). Only debug builds started for the test
 artifact `test-Windows`, its tray has a 🧪 Test clock) can do this.
 
 The long run (`e2e/long/`, `npm run e2e:long`) keeps ePet running for an hour
-(`EPET_LONG_MINUTES`) and checks that memory, handles and CPU level off. It runs nightly
-on `main` (`.github/workflows/long-run.yml`, also by hand), not on every push; its
-checklist items are marked `"nightly"` (🌙) and reported with
-`node scripts/e2e-report.mjs --nightly`.
+(`EPET_LONG_MINUTES`) and checks that memory, handles and CPU level off. It runs by hand
+(`.github/workflows/long-run.yml`), before a release; its checklist items are marked
+`"nightly"` (🌙) and reported with `node scripts/e2e-report.mjs --nightly`.
+
+CI runs lint & test and the Windows installer on every push. The end-to-end tests, the
+macOS build, the Steam depot and ePet Test run only when asked: run the CI workflow by
+hand with them ticked, or label the pull request `full-ci` for all of them.
 
 ```bash
 npx tauri build --debug --no-bundle            # the app to test

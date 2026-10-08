@@ -16,6 +16,11 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+### Changed (development)
+- CI on every push is only lint & test and the Windows installer, for quicker rounds. The
+  end-to-end tests, the macOS build, the Steam depot and ePet Test run when asked (by
+  hand, or with the `full-ci` label); the long run only by hand.
+
 ## [0.34.0] - 2026-10-07
 
 ### Fixed

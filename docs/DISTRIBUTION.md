@@ -10,10 +10,11 @@ a store SDK.
 | **Steam** | `npx tauri build --no-bundle --features steam` then `node scripts/steam-depot.mjs` → `build/steam-depot/` | Steam | Steam microtransactions for in-app purchases in the Steam build |
 | **Epic** | `npx tauri build --features epic` | Epic launcher | Epic allows third-party payments, so web billing can be reused |
 
-CI (`.github/workflows/ci.yml`) builds the direct installers for Windows and
-macOS and a Windows Steam depot on every push.
+CI (`.github/workflows/ci.yml`) builds the direct Windows installer on every push; the
+macOS installer, the Windows Steam depot and ePet Test when asked (the workflow run by
+hand with them ticked, or the pull request labelled `full-ci`).
 
-For testing only, CI also builds **ePet Test** (artifact `test-Windows`):
+For testing only, CI can also build **ePet Test** (artifact `test-Windows`):
 `npx tauri build --config src-tauri/tauri.test.conf.json --features testbuild`. It has its
 own name and identifier (`com.ezyappco.epet.test`), so it installs beside ePet with its own
 data, and its tray has a 🧪 Test clock to set the app's clock ahead. Never ship it.

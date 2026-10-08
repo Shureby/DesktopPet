@@ -1,21 +1,13 @@
 name: Long run
 
 # ePet running for an hour on Windows (e2e/long/long-run.test.mjs): memory, handles and CPU
-# must level off. Too long for every push: nightly (on main), by hand, and when the long run
-# itself changes in a pull request.
+# must level off. Too long for every push: run it by hand (before a release).
 on:
-  schedule:
-    # 02:37 in China (UTC+8).
-    - cron: "37 18 * * *"
   workflow_dispatch:
     inputs:
       minutes:
         description: How long to run (minutes)
         default: "60"
-  pull_request:
-    paths:
-      - .github/workflows/long-run.yml
-      - e2e/long/**
 
 # One at a time; a newer one waits rather than cancelling an hour's run.
 concurrency:
