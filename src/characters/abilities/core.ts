@@ -176,6 +176,8 @@ export const core: AbilityModule<Record<string, never>> = {
       enter: (p) => {
         p.body.vx = 0;
         const v = pendingVigil(p);
+        // Turned to the candle as it sits, not a frame later (walking there it faced the way it went).
+        if (v) p.facing = p.body.x < v.centre ? 1 : -1;
         const left = v ? (v.until - Date.now()) / 1000 : 0;
         p.activity(left, left);
       },

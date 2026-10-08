@@ -36,6 +36,8 @@ affected items' `rev` to the new version so the online checklist asks for a rete
   it's translated).
 
 ### Fixed
+- Remembrance: the pet turns to the candle as it sits down; for a moment it could still
+  face the way it had walked (the cause of an end-to-end test failing now and then).
 - ▶ Preview clicked several times played the celebration that many times, one after
   another; a new preview now replaces the one playing.
 - Installing ePet Test asked to close ePet (both programs were `desktoppet.exe`); ePet

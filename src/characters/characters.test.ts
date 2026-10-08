@@ -319,6 +319,16 @@ describe("a remembrance's vigil", () => {
     expect(pet.facing).toBe(-1);
   });
 
+  it("faces the candle the moment it sits, though it walked there facing away", () => {
+    // Walking left to a spot left of the candle: it faced left all the way.
+    const pet = vigil(700, 600);
+    let seen: [string, number] | null = null;
+    simulate(pet, 10, () => {
+      if (!seen && pet.state === "vigil") seen = [pet.state, pet.facing];
+    });
+    expect(seen).toEqual(["vigil", 1]);
+  });
+
   it("faces the candle from whichever side it sits", () => {
     const left = vigil(600, 600);
     simulate(left, 2);
