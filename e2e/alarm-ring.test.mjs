@@ -243,6 +243,13 @@ check("settings.alerts", "Ring off: silent; ringtone and volume as set; the ▶ 
   let ran = false;
   // (At night a sleepy pet often just perks up: several tries.)
   for (let i = 0; i < 12 && !ran; i++) {
+    // Away from the middle first (a pet already there has nowhere to run).
+    const at = await app.pet();
+    const side = at.area.x + at.area.w * 0.15;
+    await app.b.execute((x) => window.__epet.walkTo(x), side);
+    await app.b
+      .waitUntil(async () => Math.abs((await app.pet()).x - side) < at.area.w * 0.1, { timeout: 15_000, interval: 200 })
+      .catch(() => {});
     await addAlarm(1500);
     await app.waitBubble("Alarm", 10_000);
     const p = await app.pet();
