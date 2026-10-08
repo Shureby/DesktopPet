@@ -315,6 +315,6 @@ pub fn backup_list_auto(app: AppHandle) -> CmdResult<Vec<SavedBackup>> {
             Some(SavedBackup { path: e.path().to_string_lossy().into_owned(), kind, made_at, size: meta.len() })
         })
         .collect();
-    out.sort_by(|a, b| b.made_at.cmp(&a.made_at));
+    out.sort_by_key(|b| std::cmp::Reverse(b.made_at));
     Ok(out)
 }
