@@ -241,7 +241,9 @@ check("settings.alerts", "Ring off: silent; ringtone and volume as set; the ▶ 
   // Pet comes to the middle: it heads there (if it will: aloof pets may just perk up).
   await reset({ petRuns: true });
   let ran = false;
-  // (At night a sleepy pet often just perks up: several tries.)
+  const seen = [];
+  // (At night a sleepy pet often just perks up, and a walk of its own may still be under
+  // way when the bubble shows: several tries.)
   for (let i = 0; i < 12 && !ran; i++) {
     // Away from the middle first (a pet already there has nowhere to run).
     const at = await app.pet();
@@ -253,14 +255,13 @@ check("settings.alerts", "Ring off: silent; ringtone and volume as set; the ▶ 
     await addAlarm(1500);
     await app.waitBubble("Alarm", 10_000);
     const p = await app.pet();
-    if (p.target) {
-      assert.ok(Math.abs(p.target.x - (p.area.x + p.area.w / 2)) < 2);
-      ran = true;
-    }
+    const middle = p.area.x + p.area.w / 2;
+    seen.push(p.target ? Math.round(p.target.x - middle) : null);
+    ran = !!p.target && Math.abs(p.target.x - middle) < 2;
     await app.answer("Done");
     await app.sleep(500);
   }
-  assert.ok(ran, "came to the middle in 12 tries");
+  assert.ok(ran, `came to the middle in 12 tries (target − middle each try: ${JSON.stringify(seen)})`);
 });
 
 check("settings.quiet-hours", "in quiet hours the pet is quiet, but alarms still ring", async () => {
