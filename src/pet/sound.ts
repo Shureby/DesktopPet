@@ -38,6 +38,36 @@ interface Note {
   gain?: number;
   /** Full loudness for the whole note (a gated pulse), instead of dying away. */
   hold?: boolean;
+  /** Also through a small room's echo (`room`), so it rings on after the note. */
+  room?: boolean;
+}
+
+let roomEcho: { ctx: AudioContext; input: AudioNode } | null = null;
+
+/**
+ * A small room's echo: a reverb whose tail starts about 15 dB under the note and dies away
+ * in a quarter of a second (matched to the recording of the Field phone).
+ */
+function room(a: AudioContext): AudioNode {
+  if (roomEcho?.ctx !== a) {
+    const len = Math.round(a.sampleRate * 0.4);
+    const ir = a.createBuffer(1, len, a.sampleRate);
+    const d = ir.getChannelData(0);
+    let energy = 0;
+    for (let i = 0; i < len; i++) {
+      d[i] = (Math.random() * 2 - 1) * Math.exp(-i / a.sampleRate / 0.05);
+      energy += d[i] * d[i];
+    }
+    for (let i = 0; i < len; i++) d[i] /= Math.sqrt(energy);
+    const conv = a.createConvolver();
+    conv.normalize = false;
+    conv.buffer = ir;
+    const wet = a.createGain();
+    wet.gain.value = 0.2;
+    conv.connect(wet).connect(a.destination);
+    roomEcho = { ctx: a, input: conv };
+  }
+  return roomEcho.input;
 }
 
 function play(notes: Note[], volume: number): void {
@@ -62,6 +92,7 @@ function play(notes: Note[], volume: number): void {
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + n.at + n.dur);
     }
     osc.connect(g).connect(a.destination);
+    if (n.room) g.connect(room(a));
     osc.start(t0 + n.at);
     osc.stop(t0 + n.at + n.dur + 0.05);
   }
@@ -147,25 +178,40 @@ export function ringAlarm(id: RingtoneId, volume: number, maxSeconds = 60): () =
   };
 }
 
-/** A pulse of two sine tones at once (a gated electronic ringer's chirp). */
-const chirp = (at: number, f1: number, g1: number, f2: number, g2: number): Note[] => [
-  { f: f1, at, dur: 0.03, wave: "sine", gain: g1, hold: true },
-  { f: f2, at, dur: 0.03, wave: "sine", gain: g2, hold: true },
-];
+/** A gated electronic ringer's chirp: sine tones at once ([Hz, loudness]), with room echo. */
+const chirp = (at: number, tones: [number, number][]): Note[] =>
+  tones.map(([f, gain]) => ({ f, at, dur: 0.03, wave: "sine", gain, hold: true, room: true }));
 
 /**
  * "Field phone": a focus session starts. One ring (about 1.3 s) of the operations-room
- * desk phone, timed and tuned from a recording: two pairs of 695 + 2075 Hz chirps, then
- * 18 chirps a second, four of 985 + 2952 Hz and eight softer of 1476 + 2462 Hz. It can be
- * told from a break starting without seeing the pet.
+ * desk phone, timed and tuned from a recording: two pairs of chirps on 692 Hz's odd
+ * harmonics, then 18 chirps a second, four on 985 Hz's and eight softer on 492 Hz's, each
+ * echoing in the room. It can be told from a break starting without seeing the pet.
  */
 const FIELD_PHONE: Ringtone = {
   name: "Field phone",
   period: 2.5,
   notes: () => [
-    ...[0, 0.049, 0.22, 0.27].flatMap((t) => chirp(t, 695, 0.3, 2075, 0.33)),
-    ...[0, 1, 2, 3].flatMap((i) => chirp(0.66 + i * 0.0545, 985, 0.5, 2952, 0.47)),
-    ...[4, 5, 6, 7, 8, 9, 10, 11].flatMap((i) => chirp(0.66 + i * 0.0545, 1476, 0.3, 2462, 0.21)),
+    ...[0, 0.049, 0.22, 0.27].flatMap((t) =>
+      chirp(t, [
+        [695, 0.3],
+        [2075, 0.33],
+        [3459, 0.065],
+      ]),
+    ),
+    ...[0, 1, 2, 3].flatMap((i) =>
+      chirp(0.66 + i * 0.0545, [
+        [985, 0.5],
+        [2952, 0.47],
+      ]),
+    ),
+    ...[4, 5, 6, 7, 8, 9, 10, 11].flatMap((i) =>
+      chirp(0.66 + i * 0.0545, [
+        [1476, 0.3],
+        [2462, 0.21],
+        [492, 0.085],
+      ]),
+    ),
   ],
 };
 
