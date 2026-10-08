@@ -18,7 +18,7 @@ export interface PomodoroConfig {
 }
 
 /** A focus-session sound: "fieldPhone" (src/pet/sound.ts), any ringtone, or none. */
-export type FocusTone = "fieldPhone" | "classic" | "chime" | "digital" | "gentle" | "marimba" | "rooster" | "off";
+export type FocusTone = "fieldPhone" | "classic" | "chime" | "digital" | "gentle" | "marimba" | "rooster" | "trill" | "off";
 
 export interface FocusSounds {
   focus: FocusTone;
@@ -116,7 +116,7 @@ export function clampUpcomingMinutes(m: unknown): number {
   return Number.isFinite(n) ? Math.min(120, Math.max(1, n)) : DEFAULT_SETTINGS.upcomingAlarms.minutes;
 }
 
-const FOCUS_TONES: FocusTone[] = ["fieldPhone", "classic", "chime", "digital", "gentle", "marimba", "rooster", "off"];
+const FOCUS_TONES: FocusTone[] = ["fieldPhone", "classic", "chime", "digital", "gentle", "marimba", "rooster", "trill", "off"];
 
 /**
  * The focus sounds as stored, or for settings from before 0.36.0: "Other sounds" off (it

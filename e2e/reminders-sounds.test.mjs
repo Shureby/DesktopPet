@@ -131,12 +131,12 @@ check("settings.size-speed", "the Size and Speed sliders apply at once", async (
   await app.setSettings((s) => ({ ...s, size: 1, speed: 1 }));
 });
 
-check("settings.ringtones", "each of the six ringtones plays from ▶", async () => {
+check("settings.ringtones", "each of the seven ringtones plays from ▶", async () => {
   const app = ctx.app;
   await reset();
   await app.panel("settings");
   const ids = await app.b.execute(() => [...document.querySelector(".box.alert select").options].map((o) => o.value));
-  assert.equal(ids.length, 6);
+  assert.equal(ids.length, 7);
   const since = Date.now();
   for (const id of ids) {
     await app.b.execute((v) => {

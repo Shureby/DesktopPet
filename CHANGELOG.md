@@ -20,6 +20,10 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [0.36.1] - 2026-10-08
 
+### Added
+- A seventh ringtone, **Office trill**: a quick electronic office-phone trill (for alarms,
+  to-dos and focus sounds).
+
 ### Changed
 - **Field phone** (the sound when a focus starts) now sounds like the chirping
   operations-room desk phone (timed and tuned from a recording), and rings once (about

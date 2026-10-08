@@ -151,6 +151,20 @@ export const RINGTONES = {
       { f: 1150, to: 700, at: 0.64, dur: 0.9, wave: "sawtooth", gain: 0.5 },
     ],
   },
+  trill: {
+    name: "Office trill",
+    period: 3,
+    // The electronic office-phone ringer (AT&T Merlin style): three sine tones together,
+    // switched on and off every 22 ms, 24 times (about a second).
+    notes: () =>
+      Array.from({ length: 24 }, (_, i) =>
+        [
+          { f: 755, gain: 0.6 },
+          { f: 2260, gain: 0.35 },
+          { f: 3800, gain: 0.2 },
+        ].map(({ f, gain }) => ({ f, at: i * 0.044, dur: 0.022, wave: "sine" as const, gain, hold: true })),
+      ).flat(),
+  },
 } satisfies Record<string, Ringtone>;
 
 export type RingtoneId = keyof typeof RINGTONES;

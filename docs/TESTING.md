@@ -163,7 +163,7 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 - [ ] 12.2 🤖 专注中让一个计时器响 → **宠物不离开原位**
 - [ ] 12.3 🤖 让专注时段结束 → **提示休息；每 N 轮进入长休息（按 Focus 页设置）**
 - [ ] 12.4 🤖 右键 → Stop focus session → **菜单显示 “Stop focus session (ends 4:10 PM)”；点后停止**
-- [ ] 12.5 🍎 🤖+👀 **【新】** Focus 页把 Focus 设为 1 分钟、Short break 1 分钟；在 “Sound: focus starts / break starts” 各点 ▶ 试听，调一下 Volume；开始专注等它转入休息，再等休息结束；把 break starts 选 Off 再来一次；最后隐藏宠物再来一次 → **开始专注响 “Field phone”（像《24 小时》CTU 办公室电话那样先两对“啾啾”、再一串急促颤音的电子铃声，只响一次，约 1.3 秒），开始休息响 Chime，不看宠物也分得清；音量跟着滑块；选 Off 的那个不响；宠物隐藏时照样响；下拉框里有 Field phone、6 个铃声和 Off** 👀 你只听两个声音好不好听、分不分得清（何时响、响哪个、关掉不响由 CI 测）
+- [ ] 12.5 🍎 🤖+👀 **【新】** Focus 页把 Focus 设为 1 分钟、Short break 1 分钟；在 “Sound: focus starts / break starts” 各点 ▶ 试听，调一下 Volume；开始专注等它转入休息，再等休息结束；把 break starts 选 Off 再来一次；最后隐藏宠物再来一次 → **开始专注响 “Field phone”（像《24 小时》CTU 办公室电话那样先两对“啾啾”、再一串急促颤音的电子铃声，只响一次，约 1.3 秒），开始休息响 Chime，不看宠物也分得清；音量跟着滑块；选 Off 的那个不响；宠物隐藏时照样响；下拉框里有 Field phone、7 个铃声和 Off** 👀 你只听两个声音好不好听、分不分得清（何时响、响哪个、关掉不响由 CI 测）
 - [ ] 12.6 🤖 Focus 页看 Last 7 days → **有统计记录**
 - [ ] 12.7 🤖 Focus 页打开 Work hours，保持周一到周五，把开始时间设成 1–2 分钟后、结束时间设成再过 30 分钟；等它自动开始；然后手动 Stop；再把结束时间改到 1 分钟后，手动 Start 看它到点后的表现；最后晚上（下班后）手动 Start → **打开后出现星期几和上下班时间，关闭后隐藏；到开始时间番茄钟自己开始（宠物旁出现 🍅）；手动停掉后当天不会再自动开始；过了结束时间，正在专注的番茄结束后不进入休息直接停，正在休息的休息完不再开始新番茄；下班后手动开始会一直循环（直到下一个工作日的结束时间）；关闭 Work hours 时和以前一样一直跑、不会自动开始**
 
@@ -181,7 +181,7 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 - [ ] 14.1 🍎 🤖+👀 打开面板，用默认窗口大小看 Focus 页（打开 Work hours）和 Settings 页；改几个设置（大小、Quiet hours 时间、铃声、Ring for、If nobody answers、隐藏时出来的勾选、开机启动）后切页再回来；把 “Show alarms due within” 改成 120，If nobody answers 选每一项，New alarm 的重复方式选 Custom days → **Focus 页不用滚动就能看到全部内容：顶部一张卡片（阶段、倒计时、按钮）、7 天柱状图和总数、四个时长一行、两个勾选、Work hours 卡片（星期和时间一行、一行小字说明）；Settings 分为 Pet / Alarms & timers / To-do reminders / General 四张卡片，Quiet hours 和 “When hidden, it comes out for” 在 Pet 卡片里，Ring for 和 If nobody answers 并排；改过的设置切页回来都还在；所有输入框和下拉框的文字都完整显示（120 不会变成 12，“Mark as missed”、“Custom days”、“Label” 不被截断）** 👀 你只看排版好不好看（四张卡片、Focus 页不出滚动条、改了能保存由 CI 测）
 - [ ] 14.2 🤖+👀 拖动 Pet size / Pet speed 滑块 → **实时生效** 👀 你只看大小和速度看起来对不对（数值即时生效由 CI 测）
 - [ ] 14.3 🤖+👀 设置 → Alarms & timers 和 To-do reminders 两张卡片里，分别切换 “Pet comes to the middle of the screen”、Ring、铃声、音量 → **▶ 试听有声音；实际提醒按设置执行** 👀 你只听试听和铃声（响不响、用哪个铃声和音量、跑不跑由 CI 测）
-- [ ] 14.4 🍎 🤖+👀 逐个试听 6 种铃声 → **classic / chime / digital / gentle rise / marimba / rooster crow 都能播** 👀 你只听 6 种铃声是否都好听（都能播放由 CI 测）
+- [ ] 14.4 🍎 🤖+👀 **【新】** 逐个试听 7 种铃声 → **classic / chime / digital / gentle rise / marimba / rooster crow / office trill 都能播** 👀 你只听 7 种铃声是否都好听（都能播放由 CI 测）
 - [ ] 14.5 🤖 改 Ring for 和 If nobody answers → **按设置执行（响铃时长、贪睡次数或直接标记 missed）**
 - [ ] 14.6 🤖 Quiet hours 设成包含当前时间 → **宠物安静，但闹钟照常响**
 - [ ] 14.7 🤖+👀 设置 → General 关掉 “Other sounds (petting)”，摸一下宠物；开始一个专注；再打开它，摸一下宠物 → **关掉时摸宠物没有声音，但开始专注时照样响专注提示音（它在 Focus 页单独设）；打开后摸宠物有声音** 👀 你只听确实没声音、有声音（是否发声由 CI 测）
