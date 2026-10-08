@@ -289,21 +289,26 @@ if (process.platform === "win32") {
       return { ...toScreen(q, r.x, r.y), w: r.w * q.dpr, h: r.h * q.dpr };
     };
     let clicked = false;
-    for (let i = 0; i < 5 && !clicked; i++) {
+    const tries = [];
+    for (let i = 0; i < 10 && !clicked; i++) {
       const at = await doneButton();
       await mouse.move(at.x, at.y);
       await app.sleep(300);
       // Only once the button is still where the cursor is (the bubble follows the pet).
       const now = await doneButton();
-      if (Math.abs(now.x - at.x) > now.w - 4 || Math.abs(now.y - at.y) > now.h - 2) continue;
+      if (Math.abs(now.x - at.x) > now.w - 4 || Math.abs(now.y - at.y) > now.h - 2) {
+        tries.push(`moved ${Math.round(at.x)},${Math.round(at.y)} → ${Math.round(now.x)},${Math.round(now.y)}`);
+        continue;
+      }
       await mouse.down();
       await app.sleep(60);
       await mouse.up();
       clicked = await app.b
         .waitUntil(async () => !(await app.pet()).ringing, { timeout: 2000, interval: 100 })
         .then(() => true, () => false);
+      if (!clicked) tries.push(`clicked at ${Math.round(at.x)},${Math.round(at.y)}, cursor ${JSON.stringify(await mouse.pos())}, still ringing`);
     }
-    assert.ok(clicked, "Done, clicked, ends the ring");
+    assert.ok(clicked, `Done, clicked, ends the ring: ${tries.join("; ")}`);
     const after = (await app.invoke("list_alarms")).find((a) => a.id === t.id);
     assert.equal(after.enabled, false, `Done, not Snooze: ${JSON.stringify(after)}`);
     // A focus session: no hover reactions either.
