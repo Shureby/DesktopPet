@@ -13,6 +13,18 @@ export interface PomodoroConfig {
   workHours: WorkHours;
   /** During a focus, playing a game asks first. */
   holdGames: boolean;
+  /** What plays when a focus starts and when a break starts (each may be off). */
+  sounds: FocusSounds;
+}
+
+/** A focus-session sound: "fieldPhone" (src/pet/sound.ts), any ringtone, or none. */
+export type FocusTone = "fieldPhone" | "classic" | "chime" | "digital" | "gentle" | "marimba" | "rooster" | "off";
+
+export interface FocusSounds {
+  focus: FocusTone;
+  break: FocusTone;
+  /** 0–1. */
+  volume: number;
 }
 
 /** Days of the week as bits, Sunday = bit 0 … Saturday = bit 6 (like Date.getDay()). */
@@ -50,7 +62,7 @@ export interface Settings {
   size: number;
   /** Pet speed multiplier. */
   speed: number;
-  /** Small UI sounds: petting, tomato-clock phase changes. */
+  /** Small UI sounds: petting (focus sessions have their own, `pomodoro.sounds`). */
   sound: boolean;
   alerts: { alarm: AlertSettings; todo: AlertSettings };
   /** Custom timer lengths in minutes, most recent first (at most three). */
@@ -93,6 +105,7 @@ export const DEFAULT_SETTINGS: Settings = {
     autoContinue: true,
     workHours: { enabled: false, days: WEEKDAYS, start: "09:00", end: "17:30" },
     holdGames: true,
+    sounds: { focus: "fieldPhone", break: "chime", volume: 0.5 },
   },
   autostart: false,
 };
@@ -101,6 +114,25 @@ export const DEFAULT_SETTINGS: Settings = {
 export function clampUpcomingMinutes(m: unknown): number {
   const n = Math.round(Number(m));
   return Number.isFinite(n) ? Math.min(120, Math.max(1, n)) : DEFAULT_SETTINGS.upcomingAlarms.minutes;
+}
+
+const FOCUS_TONES: FocusTone[] = ["fieldPhone", "classic", "chime", "digital", "gentle", "marimba", "rooster", "off"];
+
+/**
+ * The focus sounds as stored, or for settings from before 0.36.0: "Other sounds" off (it
+ * covered focus sessions then) keeps them silent.
+ */
+function focusSounds(s: Partial<Settings>): FocusSounds {
+  const d = DEFAULT_SETTINGS.pomodoro.sounds;
+  const stored = s.pomodoro?.sounds;
+  if (!stored) return s.sound === false ? { ...d, focus: "off", break: "off" } : { ...d };
+  const tone = (t: unknown, fallback: FocusTone) => (FOCUS_TONES.includes(t as FocusTone) ? (t as FocusTone) : fallback);
+  const vol = Number(stored.volume);
+  return {
+    focus: tone(stored.focus, d.focus),
+    break: tone(stored.break, d.break),
+    volume: Number.isFinite(vol) ? Math.min(1, Math.max(0, vol)) : d.volume,
+  };
 }
 
 /** Fills in defaults for settings saved by older versions (nested objects merge too). */
@@ -129,7 +161,12 @@ export function mergeSettings(stored: Partial<Settings> | null | undefined): Set
       };
     })(),
     todoDayTime: typeof s.todoDayTime === "string" && /^\d{2}:\d{2}$/.test(s.todoDayTime) ? s.todoDayTime : d.todoDayTime,
-    pomodoro: { ...d.pomodoro, ...s.pomodoro, workHours: { ...d.pomodoro.workHours, ...s.pomodoro?.workHours } },
+    pomodoro: {
+      ...d.pomodoro,
+      ...s.pomodoro,
+      workHours: { ...d.pomodoro.workHours, ...s.pomodoro?.workHours },
+      sounds: focusSounds(s),
+    },
     alerts: {
       alarm: { ...d.alerts.alarm, ...s.alerts?.alarm },
       todo: { ...d.alerts.todo, ...s.alerts?.todo },
@@ -283,6 +320,8 @@ export interface Celebration {
   seconds: number;
   /** The pet is hidden and came out just for this. */
   peek?: boolean;
+  /** "▶ Preview": it can be stopped, and a new one replaces it. */
+  preview?: boolean;
 }
 
 /** "While I was hidden you missed…": something the hidden pet rang that nobody answered. */
@@ -334,6 +373,10 @@ export interface BackendEvents {
   "pet-event": PetActivity;
   /** The test clock was set ahead: how far, in ms (test builds and end-to-end tests). */
   "clock-shift": number;
+  /** A preview started playing (true) or is over (false): "▶ Preview" turns into "■ Stop". */
+  "preview-playing": boolean;
+  /** "■ Stop": the pet ends the preview now. */
+  "preview-stop": null;
 }
 
 /** The test clock (src/platform/testClock.ts): how far ahead, and whether the tray offers it. */
@@ -409,6 +452,8 @@ export interface Backend {
   previewCelebration(a: NewAnniversary): Promise<void>;
   /** The pet plays a celebration: the app opens its effect's window over the pet's screen. */
   showCelebration(celebration: Celebration): Promise<void>;
+  /** A preview stopped: its effect's window goes at once. */
+  closeCelebration(): Promise<void>;
 
   listAlarms(): Promise<Alarm[]>;
   /** `days` is for repeat "days". */

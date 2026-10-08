@@ -70,6 +70,7 @@ pub fn run() {
             commands::delete_anniversary,
             commands::preview_celebration,
             commands::show_celebration,
+            commands::close_celebration,
             commands::clear_finished_alarms,
             commands::dismiss_alarm,
             commands::mark_alarm_missed,

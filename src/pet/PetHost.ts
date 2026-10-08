@@ -44,7 +44,7 @@ import type { CareAction } from "../characters/schema";
 import { buildItems, buildTrayItems, nativeMenu, showPetMenu, type Item, type MenuContext, type PetMenuContext } from "./menu";
 import { CLOCK_STEPS, shiftLabel } from "../platform/testClock";
 import { inQuietHours } from "./quietHours";
-import { playMusic, playRingtone, ringAlarm, sounds } from "./sound";
+import { playFocusTone, playMusic, playRingtone, ringAlarm, sounds } from "./sound";
 
 const STEP = 1 / 30;
 /**
@@ -74,6 +74,13 @@ interface BubbleAction {
 const DAY_TODO_GATHER_MS = 400;
 /** The pause between two celebrations on the same day. */
 const CELEBRATION_GAP_MS = 2000;
+
+/** A celebration on screen: how it ends early ("■ Stop" on a preview). */
+interface PlayingCelebration {
+  preview: boolean;
+  timer: ReturnType<typeof setTimeout>;
+  stopEffect: (() => void) | null;
+}
 /** How far (CSS px) beyond a remembrance's flowers the pet sits, so its bubble stays clear. */
 const VIGIL_BUBBLE_CLEARANCE = 160;
 
@@ -119,6 +126,8 @@ export class PetHost {
   private stopMusic: (() => void) | null = null;
   /** A celebration is playing (the next waits for it, and a short pause). */
   private celebrating = false;
+  /** The celebration playing now (null in the pause after one, or when none plays). */
+  private playing: PlayingCelebration | null = null;
   /** Anniversaries that came while an alarm rang or another played: celebrated after it. */
   private celebrations: Celebration[] = [];
   /** A game asked for during a focus session while something was ringing (see playGame). */
@@ -207,6 +216,7 @@ export class PetHost {
 
     await this.backend.on("reminder", (r) => this.onReminder(r));
     await this.backend.on("celebrate", (c) => this.onCelebrate(c));
+    await this.backend.on("preview-stop", () => this.stopPreview());
     await this.backend.on("pomodoro", (p) => {
       // Finishing a focus session makes the pet proud of you.
       if (this.pomodoro.phase === "focus" && (p.phase === "short_break" || p.phase === "long_break")) {
@@ -216,7 +226,10 @@ export class PetHost {
       this.updateMode();
       this.scheduleTray();
       this.pet.react({ type: "pomodoro", phase: p.phase });
-      if (this.settings.sound) sounds.chime();
+      // Told apart by ear: the pet may be hidden or on another screen (Focus → Sounds).
+      const tones = this.settings.pomodoro.sounds;
+      if (p.phase === "focus") playFocusTone(tones.focus, tones.volume, "focus");
+      else if (p.phase !== "idle") playFocusTone(tones.break, tones.volume, "break");
     });
     await this.backend.on("settings", (s) => {
       void this.applySettings(s);
@@ -1475,18 +1488,37 @@ export class PetHost {
    */
   private onCelebrate(c: Celebration): void {
     if (c.peek) this.enterPeek();
-    // One at a time: several on one day come in turn (remembrances first), and an alarm
-    // ringing goes first.
-    if (this.activeRing || this.celebrating) {
+    if (c.preview) {
+      // A preview replaces the one playing; it never waits behind a real one or a ring.
+      if (this.playing?.preview) this.endCelebration();
+      else if (this.activeRing || this.celebrating) {
+        void this.backend.emit("preview-playing", false);
+        return;
+      }
+    } else if (this.activeRing || this.celebrating) {
+      // One at a time: several on one day come in turn (remembrances first), and an alarm
+      // ringing goes first.
       this.celebrations.push(c);
       return;
     }
     this.celebrating = true;
     this.lastCelebration = c;
-    setTimeout(() => {
-      this.celebrating = false;
-      this.nextQueued();
-    }, c.seconds * 1000 + CELEBRATION_GAP_MS);
+    const playing: PlayingCelebration = {
+      preview: !!c.preview,
+      timer: setTimeout(() => {
+        // Its time is up; the next one after a pause.
+        if (this.playing !== playing) return;
+        this.playing = null;
+        if (playing.preview) void this.backend.emit("preview-playing", false);
+        playing.timer = setTimeout(() => {
+          this.celebrating = false;
+          this.nextQueued();
+        }, CELEBRATION_GAP_MS);
+      }, c.seconds * 1000),
+      stopEffect: null,
+    };
+    this.playing = playing;
+    if (playing.preview) void this.backend.emit("preview-playing", true);
     const [line, sub] = celebrationLines(c.anniversary, c.years);
     const remembrance = c.anniversary.kind === "remembrance";
     // A remembrance is quiet: the pet walks aside from the candle (in the middle of the
@@ -1507,6 +1539,7 @@ export class PetHost {
     if (!c.effect) return;
     if (this.windowed) {
       void this.backend.showCelebration(c);
+      playing.stopEffect = () => void this.backend.closeCelebration();
       return;
     }
     const canvas = document.createElement("canvas");
@@ -1517,6 +1550,42 @@ export class PetHost {
     void playEffect(canvas, { ...celebrationEffect(c.anniversary), ms: c.seconds * 1000, petX: b.x / this.dpr, petY: b.y / this.dpr }).then(() =>
       canvas.remove(),
     );
+    playing.stopEffect = () => canvas.remove();
+  }
+
+  /**
+   * "■ Stop" on a preview: its words, music, effect and vigil end now, and whatever waited
+   * comes next. Nothing if no preview is playing.
+   */
+  private stopPreview(): void {
+    if (!this.playing?.preview) return;
+    this.endCelebration();
+    this.celebrating = false;
+    void this.backend.emit("preview-playing", false);
+    this.nextQueued();
+  }
+
+  /** Ends the celebration playing (all of it, at once). */
+  private endCelebration(): void {
+    const p = this.playing;
+    if (!p) return;
+    this.playing = null;
+    clearTimeout(p.timer);
+    p.stopEffect?.();
+    this.stopMusic?.();
+    this.stopMusic = null;
+    // Its words go; a ring or reminder would have its own bubble (they don't come while
+    // a celebration plays).
+    if (!this.activeRing) {
+      clearTimeout(this.bubbleTimer);
+      this.importantUntil = 0;
+      this.hideBubble();
+    }
+    if (this.pet.scratch.vigil) {
+      this.pet.scratch.vigil = undefined;
+      this.pet.target = null;
+      this.pet.fsm.set(this.pet.next(), true);
+    }
   }
 
   /**

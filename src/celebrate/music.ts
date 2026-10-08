@@ -253,7 +253,7 @@ const jasmine = (): Step[] => {
 const JASMINE: Piece = {
   id: "jasmine",
   level: 0.621,
-  name: "Jasmine Flower 茉莉花",
+  name: "Jasmine Flower",
   mood: "happy",
   seconds: 30,
   beats: 32,

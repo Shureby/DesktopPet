@@ -45,6 +45,8 @@ import {
   type AnniversaryPrep,
   type NewAnniversary,
   type HiddenAlerts,
+  type FocusSounds,
+  type FocusTone,
   type PanelTab,
   type Settings,
   type Todo,
@@ -53,7 +55,7 @@ import {
   type WorkHours,
 } from "../platform";
 import { followTestClock } from "../platform/testClock";
-import { playRingtone, RINGTONE_IDS, RINGTONES, type RingtoneId } from "../pet/sound";
+import { FOCUS_TONE_CHOICES, playFocusTone, playRingtone, RINGTONE_IDS, RINGTONES, type RingtoneId } from "../pet/sound";
 import "../styles/panel.css";
 import {
   bigTime,
@@ -397,6 +399,41 @@ interface AnniversaryDraft {
 }
 let annDraft: AnniversaryDraft | null = null;
 
+/** Which ▶ started the preview playing ("form" or "ann-<id>"); null when none plays. */
+let previewing: string | null = null;
+
+/** ▶ that turns into ■ Stop while its preview plays; `play` starts it. */
+function previewButton(key: string, cls: string, title: string, idle: string, play: () => void): HTMLButtonElement {
+  const btn = h("button", {
+    class: cls,
+    title,
+    "data-preview": key,
+    onclick: () => {
+      if (previewing === key) {
+        void backend.emit("preview-stop", null);
+        return;
+      }
+      previewing = key;
+      paintPreviewButtons();
+      play();
+    },
+  });
+  btn.dataset.idle = idle;
+  paintPreviewButton(btn);
+  return btn;
+}
+
+function paintPreviewButton(btn: HTMLElement): void {
+  const on = previewing === btn.dataset.preview;
+  const icon = btn.dataset.idle === "▶";
+  btn.textContent = on ? (icon ? "■" : "■ Stop") : (btn.dataset.idle ?? "");
+  btn.classList.toggle("stop", on);
+}
+
+function paintPreviewButtons(): void {
+  document.querySelectorAll<HTMLElement>("[data-preview]").forEach(paintPreviewButton);
+}
+
 function newAnniversaryDraft(kind: AnniversaryKind = "birthday"): AnniversaryDraft {
   const t = TEMPLATES[kind];
   return {
@@ -516,6 +553,29 @@ function renderAnniversaries(list: Anniversary[]): Node {
       ),
     ),
   );
+  /**
+   * Off for every anniversary in Settings → To-do reminders: say so here, and turn it on
+   * from here (whoever just ticked "Fireworks on the day" wants them).
+   */
+  const offForAll = (what: string, where: string, patch: Partial<Settings["celebrate"]>) =>
+    h(
+      "small",
+      { class: "hint off-for-all", title: `${where} are off in Settings → To-do reminders` },
+      ` ⚠ ${what} · `,
+      h(
+        "a",
+        {
+          href: "#",
+          class: "turn-on",
+          onclick: async (e: Event) => {
+            e.preventDefault();
+            settings = await backend.setSettings({ celebrate: { ...settings.celebrate, ...patch } });
+            redraw();
+          },
+        },
+        "Turn on",
+      ),
+    );
   const remembrance = draft.kind === "remembrance";
   const effect = h(
     "label",
@@ -526,11 +586,11 @@ function renderAnniversaries(list: Anniversary[]): Node {
       onchange: () => ((draft.effect = !draft.effect), (draft.effectTouched = true)),
     }),
     remembrance ? "Candle and flowers on the day 🕯️" : "Fireworks on the day 🎆",
-    settings.celebrate.enabled ? null : h("small", { class: "hint" }, " · off in Settings"),
+    settings.celebrate.enabled ? null : offForAll("Off for all anniversaries", "On-screen celebrations", { enabled: true }),
   );
   // Music: Birthday and Wedding always play their own; the others choose by mood.
   const piece = musicFor(draft);
-  const musicOff = settings.celebrate.music ? null : h("small", { class: "hint" }, " · off in Settings");
+  const musicOff = settings.celebrate.music ? null : offForAll("Music is off for all anniversaries", "Music with celebrations", { music: true });
   const music = TEMPLATES[draft.kind].musicFixed
     ? h("div", { class: "row" }, h("span", { class: "lbl" }, "Music"), h("span", { class: "fixed-music" }, `🎵 ${piece.name}`), musicOff)
     : h(
@@ -541,7 +601,11 @@ function renderAnniversaries(list: Anniversary[]): Node {
           "select",
           {
             class: "ann-music",
-            onchange: (e: Event) => (draft.music = (e.target as HTMLSelectElement).value),
+            onchange: (e: Event) => {
+              draft.music = (e.target as HTMLSelectElement).value;
+              // Previewing: the new piece plays instead.
+              if (previewing === "form") preview();
+            },
           },
           ...musicChoices(draft.kind).map((p) => h("option", { value: p.id, selected: p.id === piece.id }, p.name)),
         ),
@@ -618,11 +682,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
           ? h("span", { class: "preps" }, a.preps.map((p) => `${leadLabel(p.lead)} before: ${p.label}`).join(" · "))
           : null,
       ),
-      h(
-        "button",
-        { class: "icon edit", title: "Preview its day's celebration", onclick: () => void backend.previewCelebration(a) },
-        "▶",
-      ),
+      previewButton(`ann-${a.id}`, "icon edit", "Preview its day's celebration", "▶", () => void backend.previewCelebration(a)),
       h("button", { class: "icon edit", title: "Edit", onclick: () => startEdit(a) }, "✎"),
       h("button", { class: "icon delete", title: "Delete (its to-dos stay)", onclick: () => void backend.deleteAnniversary(a.id) }, "✕"),
     );
@@ -668,7 +728,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
       h(
         "div",
         { class: "row end" },
-        h("button", { class: "preview", title: "Play its day's celebration now", onclick: preview }, "▶ Preview"),
+        previewButton("form", "preview", "Play its day's celebration now", "▶ Preview", preview),
         h("button", { class: "primary", onclick: () => void save() }, editingAnn ? "Save" : "Add"),
       ),
     ),
@@ -1173,7 +1233,51 @@ async function renderFocus(): Promise<Node> {
     ),
     check("autoContinue", "Start the next round automatically"),
     check("holdGames", "Ask before games during a focus session"),
+    focusSoundsRow(),
     workHoursSection(),
+  );
+}
+
+/**
+ * Focus → Sounds: one for a focus starting, another for a break, so they can be told apart
+ * by ear (the pet may be hidden or on another screen). Either can be off.
+ */
+function focusSoundsRow(): Node {
+  const t = settings.pomodoro.sounds;
+  const update = (patch: Partial<FocusSounds>) =>
+    void save({ pomodoro: { ...settings.pomodoro, sounds: { ...settings.pomodoro.sounds, ...patch } } });
+  const pick = (what: "focus" | "break", text: string) => {
+    const select = h(
+      "select",
+      { class: `focus-tone-${what}`, onchange: (e: Event) => update({ [what]: (e.target as HTMLSelectElement).value as FocusTone }) },
+      ...FOCUS_TONE_CHOICES.map((c) => h("option", { value: c.id, selected: c.id === t[what] }, c.name)),
+    );
+    const play = () => playFocusTone(select.value as FocusTone, settings.pomodoro.sounds.volume, what);
+    return h(
+      "label",
+      {},
+      text,
+      h("span", { class: "row" }, select, h("button", { class: "mini", title: "Preview", onclick: (e: Event) => (e.preventDefault(), play()) }, "▶")),
+    );
+  };
+  return h(
+    "div",
+    { class: "timing focus-sounds" },
+    pick("focus", "Sound: focus starts"),
+    pick("break", "Sound: break starts"),
+    h(
+      "label",
+      {},
+      "Volume",
+      h("input", {
+        type: "range",
+        min: 0,
+        max: 1,
+        step: 0.05,
+        value: t.volume,
+        onchange: (e: Event) => update({ volume: Number((e.target as HTMLInputElement).value) }),
+      }),
+    ),
   );
 }
 
@@ -1402,7 +1506,7 @@ async function renderSettings(): Promise<Node> {
         "label",
         { class: "check" },
         h("input", { type: "checkbox", checked: settings.sound, onchange: () => void save({ sound: !settings.sound }) }),
-        "Other sounds (petting, focus sessions)",
+        "Other sounds (petting)",
       ),
     ),
     h("h3", {}, "Backup"),
@@ -1645,6 +1749,10 @@ async function main() {
 
   await backend.on("todos-changed", () => current === "todos" && void render());
   await backend.on("anniversaries-changed", () => current === "todos" && void render());
+  await backend.on("preview-playing", (on) => {
+    if (!on) previewing = null;
+    paintPreviewButtons();
+  });
   await backend.on("characters-changed", async () => {
     registry = await loadAll(() => backend.listUserCharacters(), backend.assetUrl);
     if (current === "characters") void render();

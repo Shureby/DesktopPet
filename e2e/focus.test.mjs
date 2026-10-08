@@ -173,3 +173,32 @@ check("focus.games-held", "during focus the game asks first (Cancel / Play anywa
   await app.b.waitUntil(async () => texts(await app.menu("pet")).includes("Play Safe Landing"), { timeout: 5000 });
   await app.invoke("pomodoro_stop");
 });
+
+check("focus.sounds", "a focus starting and a break starting have sounds of their own (Field phone, Chime by default), each can be off, and they play with the pet hidden too", async () => {
+  const app = ctx.app;
+  await reset({ focusMin: 0.05, shortBreakMin: 0.05, sounds: { focus: "fieldPhone", break: "chime", volume: 0.5 } });
+  const tones = async (since) => (await app.sounds(since)).filter((s) => s.kind === "focus-tone").map((s) => `${s.what}:${s.id}`);
+  let since = Date.now();
+  await app.invoke("pomodoro_start");
+  // 3 s of focus, then the break.
+  await app.b.waitUntil(async () => (await status()).phase === "short_break", { timeout: 15_000 });
+  await app.sleep(500);
+  assert.deepEqual(await tones(since), ["focus:fieldPhone", "break:chime"]);
+  await app.invoke("pomodoro_stop");
+  // Hidden, with other tones; the break's off.
+  await reset({ focusMin: 0.05, shortBreakMin: 0.05, sounds: { focus: "digital", break: "off", volume: 0.3 } });
+  await app.run("tray", "Hide pet");
+  since = Date.now();
+  await app.invoke("pomodoro_start");
+  await app.b.waitUntil(async () => (await status()).phase === "short_break", { timeout: 15_000 });
+  await app.sleep(500);
+  assert.deepEqual(await tones(since), ["focus:digital"]);
+  await app.invoke("pomodoro_stop");
+  await app.invoke("e2e_tray", { id: "show" });
+  // The Focus tab offers them, with Off.
+  await app.panel("focus");
+  const options = await app.b.execute(() => [...document.querySelectorAll(".focus-tone-focus option")].map((o) => o.textContent));
+  assert.equal(options[0], "Field phone");
+  assert.equal(options.at(-1), "Off");
+  await reset({ sounds: { focus: "fieldPhone", break: "chime", volume: 0.5 } });
+}, { timeout: 90_000 });

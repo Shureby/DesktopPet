@@ -3,6 +3,7 @@
  * Characters or skins can ship recorded sounds later.
  */
 import { playPiece, type Piece } from "../celebrate/music";
+import type { FocusTone } from "../platform/types";
 
 let ctx: AudioContext | null = null;
 
@@ -137,12 +138,40 @@ export function ringAlarm(id: RingtoneId, volume: number, maxSeconds = 60): () =
   };
 }
 
-/** Small UI sounds (petting, focus-session phase changes). */
+/**
+ * "Field phone": a focus session starts. An original two-tone electronic ring in the
+ * style of an operations-room phone (bi-bi-bu-do, twice), unlike any ringtone, so it can
+ * be told from a break starting without seeing the pet.
+ */
+const FIELD_PHONE: Ringtone = {
+  name: "Field phone",
+  period: 1.6,
+  notes: () =>
+    [0, 0.8].flatMap((t) => [
+      { f: 1568, at: t, dur: 0.07, wave: "square" as const, gain: 0.3 },
+      { f: 1568, at: t + 0.11, dur: 0.07, wave: "square" as const, gain: 0.3 },
+      { f: 1175, at: t + 0.24, dur: 0.12, wave: "triangle" as const, gain: 0.8 },
+      { f: 784, at: t + 0.4, dur: 0.24, wave: "triangle" as const, gain: 0.8 },
+    ]),
+};
+
+/** The focus-session sounds' choices: Field phone first, then the ringtones. */
+export const FOCUS_TONE_CHOICES: { id: FocusTone; name: string }[] = [
+  { id: "fieldPhone", name: FIELD_PHONE.name },
+  ...RINGTONE_IDS.map((id) => ({ id, name: (RINGTONES[id] as Ringtone).name })),
+  { id: "off", name: "Off" },
+];
+
+/** A focus starting or a break starting (Focus → Sounds); "off" plays nothing. */
+export function playFocusTone(id: FocusTone, volume: number, what: "focus" | "break"): void {
+  if (id === "off") return;
+  logSound({ kind: "focus-tone", what, id, volume });
+  const tone = id === "fieldPhone" ? FIELD_PHONE : ((RINGTONES[id] as Ringtone | undefined) ?? FIELD_PHONE);
+  play(tone.notes(0), volume);
+}
+
+/** Small UI sounds (petting). */
 export const sounds = {
-  chime: () => {
-    logSound({ kind: "chime" });
-    play((RINGTONES.chime as Ringtone).notes(0), 0.5);
-  },
   pop: () => {
     logSound({ kind: "pop" });
     play([{ f: 660, at: 0, dur: 0.08 }], 0.4);

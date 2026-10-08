@@ -402,4 +402,7 @@ pub struct Celebration {
     /// The pet is hidden and comes out just for this (set by the app).
     #[serde(default)]
     pub peek: bool,
+    /// "▶ Preview" in the panel: it can be stopped, and a new one replaces it (set by the app).
+    #[serde(default)]
+    pub preview: bool,
 }

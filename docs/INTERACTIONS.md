@@ -376,8 +376,11 @@ Code: `renderAnniversaries` in `src/panel/main.ts`, `src/features/anniversary/te
     Canon only before). Other happy days choose from all the happy pieces (default: the
     music-box waltz); a remembrance chooses from the mourning ones (default: Remembrance,
     an original Chinese-style piece). Changing the type goes back to the new type's
-    default when the chosen piece isn't one of its choices. "· off in Settings" shows
-    while the music setting is off.
+    default when the chosen piece isn't one of its choices.
+  - While Settings turns them off for every anniversary, the form says so beside them:
+    "⚠ Off for all anniversaries · Turn on" (on-screen celebrations) and "⚠ Music is off
+    for all anniversaries · Turn on"; Turn on switches the setting on there and then
+    (since 0.36.0; before, "· off in Settings").
 - **The list:** soonest first: "Sat, 25 Oct · in 3 days · 36th" (orange within a week,
   "Today 🎉" on the day), and the reminders. ✎ (on hover) edits it like alarms and to-dos.
   ✕ deletes it, but the to-dos it already made stay.
@@ -451,6 +454,13 @@ Code: `renderAnniversaries` in `src/panel/main.ts`, `src/features/anniversary/te
     length.
   - It marks nothing: the real day still celebrates, and no reminder to-dos are made.
   - A hidden pet comes out for it.
+  - **Stop (since 0.36.0):** while it plays, its ▶ turns into "■ Stop" (a row's into ■);
+    Stop ends it at once: the words, the music, the effect window and a remembrance's
+    vigil (the pet gets up and roams). It turns back by itself when the preview is over.
+  - **One at a time (since 0.36.0):** a new preview replaces the one playing, so clicking
+    three times plays it once; before, they queued and played one after another. A
+    preview doesn't wait behind a ringing alarm or a real celebration: it doesn't play.
+  - Changing the Music while the form's preview plays plays the new piece instead.
   - The effect window is shown only after it's made click-through, so it can never block
     the screen. Commands that open a window are async: opening one from a synchronous
     command deadlocks on Windows (0.27.0's preview froze ePet that way).
@@ -476,6 +486,19 @@ in the panel.
   difference is that it never starts by itself (it would start at midnight).
 - The run's start is `PomodoroStatus.runStartedAt`. The cutoff is worked out when needed,
   so changing the hours applies at once.
+
+## Focus sounds (since 0.36.0)
+
+- **A focus starting and a break starting sound different,** so they can be told apart
+  without seeing the pet (it may be hidden or on another screen). Focus → "Sound: focus
+  starts" (default **Field phone**: a quick two-tone electronic ring, bi-bi-bu-do, twice;
+  an original in the style of an operations-room phone) and "Sound: break starts"
+  (default **Chime**), each with ▶ and Off; one Volume for both.
+- They play whether the pet is shown or hidden ("When hidden, it comes out for → Focus
+  sessions" decides only whether the pet comes out).
+- Before 0.36.0 both were the same chime, under Settings → "Other sounds"; that is now
+  "Other sounds (petting)". Settings from before with Other sounds off start with both
+  focus sounds Off.
 
 ## Games during a focus session (since 0.20.0)
 
@@ -509,7 +532,7 @@ panel.
   - Alarms & timers: ring (tone, preview, volume), Ring for / If nobody answers side by
     side, coming to the middle, the 🔔 look-ahead;
   - To-do reminders: ring, coming to the middle;
-  - General: start with the computer, other sounds;
+  - General: start with the computer, other sounds (petting);
   - Backup (since 0.35.0).
 
 ## Backup and restore (since 0.35.0)

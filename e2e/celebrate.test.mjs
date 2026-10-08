@@ -84,6 +84,59 @@ check("anniv.preview", "▶ Preview plays the day's celebration at once without 
   await app.waitBubble("Happy birthday, Today's!", 10_000);
 }, { timeout: 180_000 });
 
+check("anniv.preview-stop", "▶ Preview turns into ■ Stop while it plays, and Stop ends it at once (words, effect, music); previews never pile up; changing the music while previewing plays the new piece", async () => {
+  const app = ctx.app;
+  await reset({ music: true });
+  await app.panel("todos");
+  await app.click(".subtabs button", "Anniversaries");
+  await app.until(() => document.querySelector(".ann-form"));
+  const formButton = () => app.b.execute(() => document.querySelector(".ann-form button.preview")?.textContent);
+  let since = Date.now();
+  await app.click(".ann-form button.preview", "Preview");
+  await app.until(() => document.querySelector(".ann-form button.preview")?.textContent === "■ Stop", [], 5000);
+  await app.toPet();
+  await app.waitBubble("Happy birthday", 5000);
+  await app.b.waitUntil(async () => !!(await effect()), { timeout: 10_000 });
+  // ■ Stop: all of it goes now.
+  await app.toWindow("panel.html");
+  await app.click(".ann-form button.preview", "Stop");
+  await app.until(() => document.querySelector(".ann-form button.preview")?.textContent === "▶ Preview", [], 5000);
+  await app.toPet();
+  await app.until(() => document.getElementById("bubble").hidden, [], 3000);
+  await app.b.waitUntil(async () => !(await effect()), { timeout: 3000 });
+  assert.ok((await app.sounds(since)).some((s) => s.kind === "music-stop"), "the music stops");
+  // Three previews in a row: the last replaces the others, nothing waits to play after it.
+  since = Date.now();
+  for (let i = 0; i < 3; i++) await preview({ name: `Ann ${i}` });
+  await app.waitBubble("Ann 2", 5000);
+  await app.sleep(10_000 + 3000);
+  const started = (await app.sounds(since)).filter((s) => s.kind === "music");
+  assert.ok(started.every((m) => m.at - since < 5000), `no preview played after the others: ${JSON.stringify(started)}`);
+  assert.equal(await app.bubble(), null);
+  // While previewing from the form, another piece plays at once.
+  await app.toWindow("panel.html");
+  await app.b.execute(() => {
+    const s = document.querySelector(".ann-form select.ann-type");
+    s.value = "wedding";
+    s.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await app.sleep(300);
+  await app.click(".ann-form button.preview", "Preview");
+  await app.until(() => document.querySelector(".ann-form button.preview")?.textContent === "■ Stop", [], 5000);
+  since = Date.now();
+  await app.b.execute(() => {
+    const s = document.querySelector(".ann-form select.ann-music");
+    s.value = "wagner";
+    s.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await app.toPet();
+  await app.b.waitUntil(async () => (await app.sounds(since)).some((s) => s.kind === "music" && s.piece === "wagner"), { timeout: 5000 });
+  await app.toWindow("panel.html");
+  assert.equal(await formButton(), "■ Stop");
+  await app.click(".ann-form button.preview", "Stop");
+  await app.until(() => document.querySelector(".ann-form button.preview")?.textContent === "▶ Preview", [], 5000);
+}, { timeout: 120_000 });
+
 check("anniv.fireworks", "a birthday's fireworks: “🎉 Happy 36th birthday, …!”, the effect (fireworks, 🎂🎁, balloons) for the set time; on the day it plays once", async () => {
   const app = ctx.app;
   await reset();

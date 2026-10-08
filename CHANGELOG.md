@@ -16,6 +16,36 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.36.0] - 2026-10-08
+
+### Added
+- Focus sessions sound different when a focus starts (**Field phone**, a quick two-tone
+  ring) and when a break starts (**Chime**), so you can tell them apart without seeing the
+  pet: Focus → Sound: focus starts / break starts (each with ▶ and Off) and Volume. They
+  play with the pet hidden too. "Other sounds" in Settings is now for petting only.
+- Anniversaries: ▶ Preview turns into **■ Stop** while it plays (a list row's ▶ into ■);
+  Stop ends it at once. Changing the Music while previewing plays the new piece.
+
+### Changed
+- When Settings turns celebrations or their music off for every anniversary, the form
+  says "⚠ Off for all anniversaries · Turn on" (or "Music is off…"), and Turn on switches
+  it on there; before, a vague "off in Settings".
+- Installing ePet closes a running ePet quietly, as an upgrade does, instead of asking
+  "ePet is running! Click OK to kill it".
+- The piece "Jasmine Flower" is named in English only (no Chinese in the interface until
+  it's translated).
+
+### Fixed
+- ▶ Preview clicked several times played the celebration that many times, one after
+  another; a new preview now replaces the one playing.
+- Installing ePet Test asked to close ePet (both programs were `desktoppet.exe`); ePet
+  Test is now `epet-test.exe` and the two run side by side.
+
+### Changed (development)
+- The test checklist says what to look for in 8.2 (hidden pet and focus sessions, ticked
+  and not), uses the current Settings names (no more "Alerts"), and tests two
+  anniversaries on one day with ePet Test's clock.
+
 ## [0.35.0] - 2026-10-08
 
 ### Added

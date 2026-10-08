@@ -151,7 +151,7 @@ check("settings.ringtones", "each of the six ringtones plays from ▶", async ()
   assert.ok(played.every((s) => s.known));
 });
 
-check("settings.other-sounds", "Other sounds off: no petting or focus sounds; on: both", async () => {
+check("settings.other-sounds", "Other sounds off: no petting sound (focus sessions have their own sounds now); on: petting", async () => {
   const app = ctx.app;
   await reset();
   const tryAll = async () => {
@@ -166,8 +166,9 @@ check("settings.other-sounds", "Other sounds off: no petting or focus sounds; on
   };
   await app.setSettings((s) => ({ ...s, sound: false }));
   const off = await tryAll();
-  assert.ok(!off.includes("pop") && !off.includes("chime"), off.join(","));
+  assert.ok(!off.includes("pop"), off.join(","));
+  assert.ok(off.includes("focus-tone"), `the focus sound doesn't depend on it: ${off.join(",")}`);
   await app.setSettings((s) => ({ ...s, sound: true }));
   const on = await tryAll();
-  assert.ok(on.includes("pop") && on.includes("chime"), on.join(","));
+  assert.ok(on.includes("pop"), on.join(","));
 });

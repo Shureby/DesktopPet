@@ -37,6 +37,13 @@ describe("mergeSettings", () => {
     expect(c("x").musicVolume).toBe(0.5);
   });
 
+  it("gives focus sessions their own sounds; “Other sounds” off before 0.36 keeps them silent", () => {
+    expect(mergeSettings({}).pomodoro.sounds).toEqual({ focus: "fieldPhone", break: "chime", volume: 0.5 });
+    expect(mergeSettings({ sound: false }).pomodoro.sounds).toEqual({ focus: "off", break: "off", volume: 0.5 });
+    const kept = mergeSettings({ sound: false, pomodoro: { sounds: { focus: "digital", break: "nope", volume: 7 } } } as unknown as Partial<Settings>);
+    expect(kept.pomodoro.sounds).toEqual({ focus: "digital", break: "chime", volume: 1 });
+  });
+
   it("handles missing settings", () => {
     expect(mergeSettings(null)).toEqual(DEFAULT_SETTINGS);
   });

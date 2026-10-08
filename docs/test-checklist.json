@@ -44,6 +44,12 @@
           "expect": "不再出现“已安装（Already Installed）/ 是否先卸载”那一页，也不提示 ePet 正在运行（会自动关掉它）；旧版被安静地卸载后装上新版；之前的待办、闹钟、纪念日、设置、心情值都还在。重装同一版本或装更旧的版本时仍会询问"
         },
         {
+          "id": "install.running",
+          "rev": "0.36.0",
+          "do": "正式版 ePet 开着时安装 ePet Test；装好后两个都开着，再重装一次 ePet Test；最后在 ePet 开着时重装正式版",
+          "expect": "装 ePet Test 时不弹 “is running”、不关正式版，装完两个可以同时运行（任务管理器里是 desktoppet.exe 和 epet-test.exe）；重装哪一个都不弹框，正在运行的那一个被悄悄关掉、装完重新打开即可，另一个不受影响"
+        },
+        {
           "id": "install.autostart",
           "rev": "0.1.0",
           "mac": true,
@@ -643,11 +649,11 @@
         },
         {
           "id": "hidden.peek-timer-todo",
-          "rev": "0.22.0",
+          "rev": "0.36.0",
           "ci": "partial",
           "human": "你只看宠物走出来、走回去的样子（何时出来、何时回去由 CI 测）",
-          "do": "隐藏宠物，设一个 1 分钟计时器和一个 2 分钟后提醒的待办，都不理；然后打开 Focus sessions 勾选，开始一个 1 分钟的专注（Focus 设为 1 分钟）",
-          "expect": "计时器和待办到点时宠物都会出来响铃，没人理后走回边缘隐藏；勾了 Focus sessions 时，专注结束宠物出来说一句话，几秒后回去；没勾时不出来"
+          "do": "Focus 页把专注设为 1 分钟。① 隐藏宠物（托盘 Hide pet），设一个 1 分钟计时器和一个 2 分钟后提醒的待办，都不理。② 设置 → Pet 卡片勾上 “When hidden, it comes out for” 里的 Focus sessions，隐藏宠物，开始一个专注。③ 取消勾选 Focus sessions，再隐藏宠物开始一个专注",
+          "expect": "①：计时器和待办到点时宠物从屏幕边出来响铃，没人理后走回边缘隐藏。②：1 分钟后宠物出来说一句（如 “Break! Stretch like me.”），气泡消失几秒后走回去；托盘一直写 Show pet。③：1 分钟后宠物不出来、屏幕上什么都没有，但专注提示音照样响（Focus 页 Sounds 里选的声音）；专注照常转入休息，也不会进 “While I was hidden you missed” 清单"
         },
         {
           "id": "hidden.unseen-list",
@@ -800,8 +806,8 @@
           "mac": true,
           "ci": "partial",
           "human": "你只听提示音（只提醒一次、用哪个铃声由 CI 测）",
-          "do": "等待办提醒到点",
-          "expect": "按 Alerts → To-do reminders 设置提示，只响一次"
+          "do": "设置 → To-do reminders 勾上 Ring，选一个好认的铃声、调好音量；加一个 2 分钟后提醒的待办，等它到点",
+          "expect": "宠物出来提醒，气泡里有 ✓ Done 和 Later；响的是选的铃声、音量合适；只响一遍，不会像闹钟那样过几分钟自己再响"
         },
         {
           "id": "todo.clear",
@@ -853,11 +859,20 @@
           "expect": "点预览后宠物马上说那句话、屏幕播放效果；播放期间和结束后，宠物所在屏幕上的所有窗口（包括 ePet 面板）都能正常点击，不会卡死；预览和当天的庆祝一模一样（说的话、第几年、效果、时长），没填名字时用模板名；预览不会保存纪念日、不会生成待办；隐藏时宠物出来，播完回去；总开关关掉时只说一句话；预览过的今天的纪念日，动鼠标后仍会真正庆祝一次"
         },
         {
+          "id": "anniv.preview-stop",
+          "rev": "0.36.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你只看按钮的样子，以及点 Stop 后是不是立刻安静（何时变、停没停、放的哪首由 CI 测）",
+          "do": "设置里打开音乐；在纪念日表单点 ▶ Preview，播放中再点它（现在写 ■ Stop）；连点 Preview 三次；Type 选 Wedding 点 Preview，播放中在 Music 里换成 Bridal Chorus；列表里某一行的 ▶ 也试一次",
+          "expect": "播放时按钮变成 “■ Stop”（列表那一行变成 ■）；点了立刻停：音乐、烟火或蜡烛、宠物的话一起消失，守蜡烛的宠物起身走开，按钮变回 “▶ Preview”；播完自己也变回；连点只放一遍，不会一遍接一遍；播放中换曲子立刻改放新曲子"
+        },
+        {
           "id": "anniv.music-form",
-          "rev": "0.29.0",
+          "rev": "0.36.0",
           "ci": "auto",
           "do": "Settings 里音乐先关着；在 Anniversaries 表单依次选 Type：Birthday、Pet's birthday、Wedding anniversary、Work anniversary、Remembrance；Work 时选 Jasmine Flower 后保存，再 ✎ 编辑它；把一个选了 Taps 的 Remembrance 改成 Custom",
-          "expect": "Birthday 和 Pet's birthday 显示 “Music 🎵 Happy Birthday”，不能改；Wedding 是下拉框，只有 Canon in D (Pachelbel)、Wedding March (Mendelssohn)、Bridal Chorus (Wagner) 三首，默认卡农；其他喜庆类型是下拉框，有 8 首喜庆曲目（含两首婚礼曲），默认 Music-box waltz；在 Dating 里选 Wedding March 后换成 Wedding，保留 Wedding March，选 Waltz 后换成 Wedding 则回到卡农；Remembrance 只有 4 首哀乐，默认 Remembrance (original, Chinese style)；音乐关着时旁边写 “· off in Settings”；编辑时保留选的曲目；喜庆和祭日之间换类型时回到新类型的默认曲目"
+          "expect": "Birthday 和 Pet's birthday 显示 “Music 🎵 Happy Birthday”，不能改；Wedding 是下拉框，只有 Canon in D (Pachelbel)、Wedding March (Mendelssohn)、Bridal Chorus (Wagner) 三首，默认卡农；其他喜庆类型是下拉框，有 8 首喜庆曲目（含两首婚礼曲），默认 Music-box waltz；在 Dating 里选 Wedding March 后换成 Wedding，保留 Wedding March，选 Waltz 后换成 Wedding 则回到卡农；Remembrance 只有 4 首哀乐，默认 Remembrance (original, Chinese style)；音乐关着时旁边写 “⚠ Music is off for all anniversaries · Turn on”，点 Turn on 就在设置里打开音乐、警告消失；编辑时保留选的曲目；喜庆和祭日之间换类型时回到新类型的默认曲目"
         },
         {
           "id": "anniv.music-play",
@@ -882,7 +897,7 @@
           "ci": "partial",
           "human": "你只看烟花和气球的样子，以及能点到后面的窗口（台词、时长、当天只一次由 CI 测）",
           "do": "建一个生日（Since 1990），点表单里的 “▶ Preview”（或列表那一行悬停时的 ▶）；看完到 Settings 把时长改成 10 秒再预览；最后建一个今天的生日，动一下鼠标看真实的庆祝",
-          "expect": "预览立刻在宠物所在屏幕放烟花，同时飘落 🎂🎁，彩色气球（红、金、粉、橙、紫、嫩绿）从屏幕底部往上飘，约 3 成是猫、狗、熊脸气球，气球大小适中、不密；宠物说 “🎉 Happy 36th birthday, 名字!”；烟花在其他程序上面、宠物和气泡在烟花上面；烟花期间可以正常点击后面的窗口；时长到了烟花和这句话一起消失；真实那天：鼠标一动就庆祝，当天不会第二次"
+          "expect": "预览立刻在宠物所在屏幕放烟花，同时飘落 🎂🎁，彩色气球（红、金、粉、橙、紫、嫩绿）从屏幕底部往上飘，约 3 成是猫、狗、熊脸气球，气球大小适中、不密；宠物说 “🎉 Happy 36th birthday, 名字!”；烟花在其他程序上面、宠物和气泡在烟花上面；烟花期间可以正常点击后面的窗口；时长到了烟花和这句话一起消失；真实那天：纪念日没有几点几分，当天第一次动鼠标时就庆祝，当天不会第二次"
         },
         {
           "id": "anniv.hearts",
@@ -895,7 +910,7 @@
           "rev": "0.32.0",
           "ci": "partial",
           "human": "你只看、听两段的样子和音乐（先后顺序、间隔、不重播由 CI 测）",
-          "do": "建两个今天的纪念日：一个生日、一个勾了 “Candle and flowers” 的忌日（先建生日）；Settings 里打开音乐；动一下鼠标（或重启 ePet 后动鼠标）",
+          "do": "用 ePet Test：设置 → To-do reminders 勾上 “Play music with it”；建两个明天的纪念日：一个生日、一个勾了 “Candle and flowers” 的忌日；托盘 → 🧪 Test clock → +1 day，再动一下鼠标。（纪念日没有几点几分：当天第一次动鼠标时开始庆祝，所以要用明天的日期再拨时钟，两个才会同时到期。重测：删掉重建，或点 Back to now）",
           "expect": "先播忌日：花烛、宠物坐在旁边、哀乐；结束后停约 2 秒，再播生日：烟花、气球、生日歌、宠物说生日那句；两个都完整播完，互不覆盖；之后当天不会再播"
         },
         {
@@ -946,6 +961,15 @@
           "ci": "auto",
           "do": "右键 → Stop focus session",
           "expect": "菜单显示 “Stop focus session (ends 4:10 PM)”；点后停止"
+        },
+        {
+          "id": "focus.sounds",
+          "rev": "0.36.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你只听两个声音好不好听、分不分得清（何时响、响哪个、关掉不响由 CI 测）",
+          "do": "Focus 页把 Focus 设为 1 分钟、Short break 1 分钟；在 “Sound: focus starts / break starts” 各点 ▶ 试听，调一下 Volume；开始专注等它转入休息，再等休息结束；把 break starts 选 Off 再来一次；最后隐藏宠物再来一次",
+          "expect": "开始专注响 “Field phone”（急促的滴-滴-嘟-哆，响两遍），开始休息响 Chime，不看宠物也分得清；音量跟着滑块；选 Off 的那个不响；宠物隐藏时照样响；下拉框里有 Field phone、6 个铃声和 Off"
         },
         {
           "id": "focus.stats",
@@ -1037,7 +1061,7 @@
           "rev": "0.2.0",
           "ci": "partial",
           "human": "你只听试听和铃声（响不响、用哪个铃声和音量、跑不跑由 CI 测）",
-          "do": "Alerts 里分别切换跑到中间、Ring、铃声、音量",
+          "do": "设置 → Alarms & timers 和 To-do reminders 两张卡片里，分别切换 “Pet comes to the middle of the screen”、Ring、铃声、音量",
           "expect": "▶ 试听有声音；实际提醒按设置执行"
         },
         {
@@ -1065,11 +1089,11 @@
         },
         {
           "id": "settings.other-sounds",
-          "rev": "0.3.0",
+          "rev": "0.36.0",
           "ci": "partial",
           "human": "你只听确实没声音、有声音（是否发声由 CI 测）",
-          "do": "关掉 Other sounds",
-          "expect": "抚摸、专注提示不再有声音"
+          "do": "设置 → General 关掉 “Other sounds (petting)”，摸一下宠物；开始一个专注；再打开它，摸一下宠物",
+          "expect": "关掉时摸宠物没有声音，但开始专注时照样响专注提示音（它在 Focus 页单独设）；打开后摸宠物有声音"
         }
       ]
     },

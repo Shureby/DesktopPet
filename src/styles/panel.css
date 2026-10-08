@@ -659,6 +659,13 @@ h3.split small {
 .pair select {
   width: 100%;
 }
+.off-for-all {
+  color: #b9770e;
+}
+.off-for-all .turn-on {
+  color: var(--accent);
+  font-weight: 600;
+}
 .warning {
   margin: 0;
   color: #c0392b;
@@ -735,6 +742,22 @@ h3.split small {
 }
 .focus-page > label.check {
   margin: 8px 0;
+}
+.timing.focus-sounds {
+  grid-template-columns: 1fr 1fr 0.7fr;
+  margin-top: 4px;
+}
+.focus-sounds .row {
+  gap: 4px;
+}
+.focus-sounds select {
+  flex: 1;
+  min-width: 0;
+}
+.focus-sounds input[type="range"] {
+  width: 100%;
+  margin-top: 6px;
+  accent-color: var(--accent);
 }
 
 /* ----- Settings tab ----- */

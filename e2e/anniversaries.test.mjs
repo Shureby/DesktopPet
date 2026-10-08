@@ -43,7 +43,7 @@ const form = () =>
     music: document.querySelector(".ann-form .fixed-music")?.textContent ?? null,
     musicOptions: [...document.querySelectorAll(".ann-form select.ann-music option")].map((o) => o.value),
     musicChoice: document.querySelector(".ann-form select.ann-music")?.value ?? null,
-    musicOff: document.querySelector(".ann-form .fixed-music, .ann-form select.ann-music")?.parentElement.textContent.includes("off in Settings") ?? false,
+    musicOff: document.querySelector(".ann-form .fixed-music, .ann-form select.ann-music")?.parentElement.textContent.includes("Music is off for all anniversaries") ?? false,
     addMore: !!document.querySelector(".ann-form .add-more"),
   }));
 
@@ -122,7 +122,7 @@ check("anniv.add-list", "added ones are listed soonest first with their years an
   assert.deepEqual([leap.month, leap.day], [2, 29]);
 });
 
-check("anniv.music-form", "Music: Birthday fixed; Wedding three to pick; others by mood; “off in Settings”", async () => {
+check("anniv.music-form", "Music: Birthday fixed; Wedding three to pick; others by mood; “Music is off for all anniversaries · Turn on”", async () => {
   const app = await page();
   await chooseType("birthday");
   let f = await form();
@@ -165,9 +165,9 @@ check("anniv.music-form", "Music: Birthday fixed; Wedding three to pick; others 
   assert.equal(joined.music, "jasmine");
   await app.b.execute(() => [...document.querySelectorAll("li.ann")].find((li) => li.textContent.includes("Joined")).querySelector("button[title=Edit]").click());
   await app.until(() => document.querySelector(".ann-form select.ann-music")?.value === "jasmine");
-  // With music on in Settings, "off in Settings" goes.
-  await app.invoke("set_settings", { settings: { ...(await app.settings()), celebrate: { enabled: true, seconds: 15, music: true, musicVolume: 0.5 } } });
-  await app.tab("alarms");
-  await page();
+  // "Turn on" beside it turns the music on in Settings, and the warning goes.
+  await app.b.execute(() => document.querySelector(".ann-form .off-for-all .turn-on").click());
+  await app.b.waitUntil(async () => (await app.settings()).celebrate.music === true, { timeout: 5000 });
+  await app.until(() => !document.querySelector(".ann-form .off-for-all"));
   assert.equal((await form()).musicOff, false);
 });

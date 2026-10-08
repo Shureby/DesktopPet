@@ -587,7 +587,7 @@ impl Store {
             }
             let years = a.since.map(|y| today.year() - y).filter(|&n| n > 0);
             let effect = enabled && a.effect;
-            out.push(Celebration { anniversary: a, years, effect, seconds, peek: false });
+            out.push(Celebration { anniversary: a, years, effect, seconds, peek: false, preview: false });
         }
         // Several on one day are played one after another: remembrances first (quietly),
         // then the happy ones.
@@ -627,7 +627,7 @@ impl Store {
             created_at: now,
         };
         let years = a.since.map(|y| on.year() - y).filter(|&n| n > 0);
-        Ok(Celebration { anniversary, years, effect: enabled && a.effect, seconds, peek: false })
+        Ok(Celebration { anniversary, years, effect: enabled && a.effect, seconds, peek: false, preview: true })
     }
 
     /// The pet celebrated it today: not again until next year.

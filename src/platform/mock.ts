@@ -426,11 +426,13 @@ export const mockBackend: Backend = {
       effect: s.settings.celebrate.enabled && a.effect,
       seconds: s.settings.celebrate.seconds,
       peek: petHidden,
+      preview: true,
     });
   },
   async showCelebration() {
     // The browser draws the effect in the pet's page.
   },
+  async closeCelebration() {},
   async deleteAnniversary(id) {
     mutate((s) => (s.anniversaries = (s.anniversaries ?? []).filter((r) => r.id !== id)));
     fire("anniversaries-changed", null);

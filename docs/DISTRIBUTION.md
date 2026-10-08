@@ -16,8 +16,14 @@ hand with them ticked, or the pull request labelled `full-ci`).
 
 For testing only, CI can also build **ePet Test** (artifact `test-Windows`):
 `npx tauri build --config src-tauri/tauri.test.conf.json --features testbuild`. It has its
-own name and identifier (`com.ezyappco.epet.test`), so it installs beside ePet with its own
-data, and its tray has a 🧪 Test clock to set the app's clock ahead. Never ship it.
+own name, identifier (`com.ezyappco.epet.test`) and program (`epet-test.exe`), so it
+installs and runs beside ePet with its own data, and its tray has a 🧪 Test clock to set
+the app's clock ahead. Never ship it.
+
+The installers close a running copy of their own app quietly (as an upgrade does) instead
+of Tauri's "… is running! Click OK to kill it"; each looks only for its own program, so
+installing ePet Test leaves a running ePet alone (before 0.36.0 both were
+`desktoppet.exe`, and installing one asked to close the other).
 
 ## Renaming the product
 

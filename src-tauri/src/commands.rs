@@ -124,6 +124,13 @@ pub async fn show_celebration(app: AppHandle, celebration: Celebration) -> CmdRe
     Ok(())
 }
 
+/// A preview stopped ("■ Stop"): its effect goes at once.
+#[tauri::command]
+pub async fn close_celebration(app: AppHandle) -> CmdResult<()> {
+    app_windows::close_celebration(&app);
+    Ok(())
+}
+
 #[tauri::command]
 pub fn delete_anniversary(app: AppHandle, state: State<AppState>, id: i64) -> CmdResult<()> {
     state.store().delete_anniversary(id).map_err(err)?;

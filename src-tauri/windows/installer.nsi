@@ -667,7 +667,14 @@ Section Install
     !insertmacro NSIS_HOOK_PREINSTALL
   !endif
 
+  ; ePet changes: a running ePet (it lives in the tray, so it almost always is) is closed
+  ; quietly, as for an upgrade, instead of asking "… is running! Click OK to kill it":
+  ; nothing is lost, and the question looked like an error. Only this build's own program
+  ; is looked for (MAINBINARYNAME: "epet-test" for ePet Test, so ePet is left alone).
+  Push $PassiveMode
+  StrCpy $PassiveMode 1
   !insertmacro CheckIfAppIsRunning "${MAINBINARYNAME}.exe" "${PRODUCTNAME}"
+  Pop $PassiveMode
 
   ; Copy main executable
   File "${MAINBINARYSRCPATH}"
@@ -804,7 +811,14 @@ Section Uninstall
     !insertmacro NSIS_HOOK_PREUNINSTALL
   !endif
 
+  ; ePet changes: a running ePet (it lives in the tray, so it almost always is) is closed
+  ; quietly, as for an upgrade, instead of asking "… is running! Click OK to kill it":
+  ; nothing is lost, and the question looked like an error. Only this build's own program
+  ; is looked for (MAINBINARYNAME: "epet-test" for ePet Test, so ePet is left alone).
+  Push $PassiveMode
+  StrCpy $PassiveMode 1
   !insertmacro CheckIfAppIsRunning "${MAINBINARYNAME}.exe" "${PRODUCTNAME}"
+  Pop $PassiveMode
 
   ; Delete the app directory and its content from disk
   ; Copy main executable

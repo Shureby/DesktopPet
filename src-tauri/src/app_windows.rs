@@ -118,7 +118,19 @@ pub fn open_game<R: Runtime>(app: &AppHandle<R>, game: &str) -> tauri::Result<()
 /// An anniversary's fireworks (or candle and flowers): a transparent, click-through window
 /// over the whole monitor the pet is on, closed after the celebration's length.
 /// celebrate.html reads what to play from its URL hash (hex-encoded JSON, so no escaping).
+/// Which celebration window is the latest: one closing after its time leaves a newer one be.
+static CELEBRATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// Closes the celebration's window now (a preview stopped).
+pub fn close_celebration<R: Runtime>(app: &AppHandle<R>) {
+    CELEBRATION.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    if let Some(w) = app.get_webview_window(CELEBRATE) {
+        let _ = w.destroy();
+    }
+}
+
 pub fn open_celebration<R: Runtime>(app: &AppHandle<R>, c: &desktoppet_core::Celebration) -> tauri::Result<()> {
+    let this = CELEBRATION.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
     if let Some(w) = app.get_webview_window(CELEBRATE) {
         w.destroy()?;
     }
@@ -177,6 +189,9 @@ pub fn open_celebration<R: Runtime>(app: &AppHandle<R>, c: &desktoppet_core::Cel
     let seconds = c.seconds as u64 + 1;
     std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_secs(seconds));
+        if CELEBRATION.load(std::sync::atomic::Ordering::SeqCst) != this {
+            return;
+        }
         if let Some(w) = handle.get_webview_window(CELEBRATE) {
             let _ = w.destroy();
         }
