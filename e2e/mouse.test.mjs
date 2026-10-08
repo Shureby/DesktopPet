@@ -410,7 +410,10 @@ if (process.platform === "win32") {
 
   check("pet.rooster-glide", "Rooster dropped from high glides: it falls much slower than the cat", async () => {
     const app = ctx.app;
-    /** Drops the pet from near the top; how long it takes to land, and the states seen. */
+    /**
+     * Drops the pet from near the top; how long it takes to land, the states seen and its
+     * median fall speed in the air (a slow frame stretches the time, not the speed).
+     */
     const fall = async () => {
       const hand = await grab();
       const p = await app.pet();
@@ -419,16 +422,20 @@ if (process.platform === "win32") {
       await drop(high);
       const start = Date.now();
       const states = new Set();
+      const vy = [];
       await app.b.waitUntil(
         async () => {
           const s = await app.pet();
           states.add(s.state);
+          if (!s.grounded && s.vy > 0) vy.push(s.vy);
           return s.grounded;
         },
         { timeout: 15_000, interval: 50 },
       );
-      return { ms: Date.now() - start, states };
+      vy.sort((a, b) => a - b);
+      return { ms: Date.now() - start, states, vy: Math.round(vy[Math.floor(vy.length / 2)] ?? 0) };
     };
+    const says = (f) => `${f.ms} ms, ${f.vy} px/s, ${[...f.states].join(" ")}`;
     const cat = await fall();
     await app.run("pet", "Switch character", "Rooster");
     await app.b.waitUntil(async () => (await app.pet()).character === "rooster", { timeout: 5000 });
@@ -436,7 +443,7 @@ if (process.platform === "win32") {
     try {
       const rooster = await fall();
       assert.ok(rooster.states.has("glide"), `glides: ${[...rooster.states].join(", ")}`);
-      assert.ok(rooster.ms > cat.ms * 1.5, `slower: cat ${cat.ms} ms, rooster ${rooster.ms} ms`);
+      assert.ok(rooster.vy < cat.vy * 0.6, `slower: cat ${says(cat)}; rooster ${says(rooster)}`);
     } finally {
       await app.run("pet", "Switch character", "Cat");
       await away();

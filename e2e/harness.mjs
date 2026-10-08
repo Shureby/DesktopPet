@@ -505,6 +505,18 @@ const results = [];
  * A test for checklist item `id` (docs/test-checklist.json). Several tests may share an
  * id; the item passes only if all of them do.
  */
+/**
+ * Waits, if need be, until local time is at least `minutes` from midnight either side: for a
+ * test whose times (a minute ago, in half an hour) must fall on the same day.
+ */
+export async function clearOfMidnight(minutes = 3) {
+  const now = new Date();
+  const sinceMidnight = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+  if (sinceMidnight >= minutes && sinceMidnight <= 24 * 60 - minutes) return;
+  const wait = sinceMidnight < minutes ? minutes - sinceMidnight : 24 * 60 - sinceMidnight + minutes;
+  await sleep(Math.ceil(wait * 60_000));
+}
+
 export function check(id, name, fn, { timeout = 90_000 } = {}) {
   test(`[${id}] ${name}`, { timeout }, async (t) => {
     const started = Date.now();

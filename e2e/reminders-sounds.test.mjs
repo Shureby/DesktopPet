@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { check, useApp } from "./harness.mjs";
+import { check, clearOfMidnight, useApp } from "./harness.mjs";
 
 const ctx = useApp(import.meta.filename);
 const MIN = 60_000;
@@ -55,6 +55,8 @@ check("todo.remind", "a to-do comes due: reminded once, with the to-do reminder'
 
 check("todo.day-remind", "to-dos without a time: one bubble “📅 Today: • … • …” at the day's time (late too); Later reminds again in 10 min, same day; one alone is a normal reminder", async () => {
   const app = ctx.app;
+  // A minute ago must be today.
+  await clearOfMidnight();
   await reset();
   const a = await app.invoke("add_todo", { todo: { title: "Bins", allDay: true, repeat: "none", dueAt: day(0) } });
   const b = await app.invoke("add_todo", { todo: { title: "Pay bills", allDay: true, repeat: "none", dueAt: day(0) } });
@@ -79,7 +81,7 @@ check("todo.day-remind", "to-dos without a time: one bubble “📅 Today: • �
   await app.waitBubble("Gym", 10_000);
   assert.deepEqual(await app.texts("#bubble .actions button"), ["✓ Done", "Later"]);
   await app.answer("✓ Done");
-});
+}, { timeout: 360_000 });
 
 check("todo.feedback", "adding a to-do in the panel: the pet confirms; ticking it: praise and more love", async () => {
   const app = ctx.app;
