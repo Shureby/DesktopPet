@@ -1,6 +1,7 @@
 use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 use std::sync::{Mutex, MutexGuard};
 
+use desktoppet_core::backup::Snapshot;
 use desktoppet_core::Store;
 
 use crate::storefront::Storefront;
@@ -18,6 +19,8 @@ pub struct AppState {
     pub pet_ready: AtomicBool,
     /// End-to-end tests: count as a mouse move on the next presence check (e2e_present).
     pub e2e_present: AtomicBool,
+    /// The backup opened in Settings → Backup, until it's restored or another is opened.
+    pub opened_backup: Mutex<Option<Snapshot>>,
     pub storefront: Box<dyn Storefront>,
 }
 
@@ -30,6 +33,7 @@ impl AppState {
             peeking: AtomicBool::new(false),
             pet_ready: AtomicBool::new(false),
             e2e_present: AtomicBool::new(false),
+            opened_backup: Mutex::new(None),
             storefront,
         }
     }

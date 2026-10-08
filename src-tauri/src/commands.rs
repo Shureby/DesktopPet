@@ -418,7 +418,7 @@ pub struct UserCharacterFile {
     json: String,
 }
 
-fn characters_dir(app: &AppHandle) -> CmdResult<std::path::PathBuf> {
+pub(crate) fn characters_dir(app: &AppHandle) -> CmdResult<std::path::PathBuf> {
     let dir = app.path().app_data_dir().map_err(err)?.join("characters");
     std::fs::create_dir_all(&dir).map_err(err)?;
     write_characters_guide(&dir);

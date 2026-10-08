@@ -72,6 +72,7 @@ import {
   draftFor,
   type AlarmDraft,
 } from "./alarmText";
+import { backupSection } from "./backup";
 import { dayPicker } from "./dayPicker";
 import { formatHm, parseHm, timeField } from "./timeField";
 import { formatDay, formatWhen, h } from "./dom";
@@ -1404,6 +1405,8 @@ async function renderSettings(): Promise<Node> {
         "Other sounds (petting, focus sessions)",
       ),
     ),
+    h("h3", {}, "Backup"),
+    backupSection(backend),
     h(
       "footer",
       {},

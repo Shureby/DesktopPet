@@ -342,6 +342,40 @@ export interface TestClock {
   inTray: boolean;
 }
 
+/** What a backup holds (Settings → Backup shows it before restoring). */
+export interface BackupSummary {
+  appVersion: string;
+  madeAt: number;
+  device: { name: string; os: string };
+  alarms: number;
+  timers: number;
+  todos: number;
+  anniversaries: number;
+  characters: number;
+}
+
+export interface BackupOpened {
+  status: "ok" | "cancelled" | "needsPassword" | "wrongPassword";
+  path: string | null;
+  summary: BackupSummary | null;
+}
+
+/** What to restore. Timers are never restored (they belong to the computer they were set on). */
+export interface RestoreParts {
+  schedule: boolean;
+  settings: boolean;
+  pet: boolean;
+  characters: boolean;
+}
+
+/** A backup ePet made itself: daily ("auto", the last 7) or before a restore. */
+export interface SavedBackup {
+  path: string;
+  kind: "auto" | "beforeRestore";
+  madeAt: number;
+  size: number;
+}
+
 export type PetActivity =
   | { type: "todoAdded"; title: string; dueAt: number | null; allDay?: boolean }
   | { type: "todoDone" }
@@ -412,6 +446,20 @@ export interface Backend {
   endPeek(): Promise<void>;
   /** A debug build started for the end-to-end tests: the windows offer test hooks (e2e/). */
   e2eEnabled(): Promise<boolean>;
+  /**
+   * "Export backup…": asks where to save it (end-to-end tests may pass `path`), encrypted if
+   * a password is given. Returns where it was saved, or null if cancelled.
+   */
+  backupExport(password: string | null, path?: string): Promise<string | null>;
+  /** Reads a backup to restore (asks which, unless `path`); kept until restored. */
+  backupOpen(path: string | null, password: string | null): Promise<BackupOpened>;
+  /**
+   * Restores the parts of the backup last opened, after backing this computer up; then ePet
+   * starts again (end-to-end tests pass `restart: false`).
+   */
+  backupRestore(parts: RestoreParts, mode: "merge" | "replace", restart?: boolean): Promise<void>;
+  /** The backups ePet made itself, newest first. */
+  backupListAuto(): Promise<SavedBackup[]>;
   /** End-to-end tests only: a tray item the app handles itself ("show", "hide", "quit"). */
   e2eTray(id: string): Promise<void>;
   /** The user saw a missed alarm (clicked its badge): the badge goes, the history keeps it. */

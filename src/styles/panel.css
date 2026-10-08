@@ -509,6 +509,22 @@ input.custom-timer {
   font-size: 12px;
   margin-bottom: 4px;
 }
+.backup-dialog input[type="password"] {
+  width: 100%;
+  box-sizing: border-box;
+}
+.backup-dialog .check {
+  text-align: left;
+}
+.backup-dialog .replace small {
+  color: var(--danger, #c0392b);
+}
+.backup-status {
+  word-break: break-all;
+}
+.backup-status:empty {
+  display: none;
+}
 .ask button.cancel {
   border-color: transparent;
   background: none;

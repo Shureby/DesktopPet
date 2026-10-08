@@ -16,7 +16,18 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-10-08
+
+### Added
+- **Backup and restore** (Settings → Backup): export everything ePet keeps to one file,
+  encrypted with a password if you like, and restore it here or on another computer. Merge
+  (nothing twice; where both changed something, the newer wins) or replace; choose what to
+  restore (schedule, settings, pet, your characters). Timers stay on their computer. A
+  backup of this computer is made before each restore, and one every day (the last 7 kept).
+
 ### Changed (development)
+- Alarms, to-dos and anniversaries carry an id of their own across computers and the time
+  they last changed; deleting one leaves a tombstone (kept 90 days). The ground for syncing.
 - CI on every push is only lint & test and the Windows installer, for quicker rounds. The
   end-to-end tests, the macOS build, the Steam depot and ePet Test run when asked (by
   hand, or with the `full-ci` label); the long run only by hand.

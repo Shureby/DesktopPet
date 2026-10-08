@@ -30,6 +30,8 @@ tauri = { version = "2", features = ["tray-icon", "protocol-asset", "macos-priva
 tauri-plugin-single-instance = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
+base64 = "0.22"
 log = "0.4"
 steamworks = { version = "0.12", optional = true }
 

@@ -15,6 +15,12 @@ pub fn spawn<R: Runtime>(app: AppHandle<R>) {
         .name("scheduler".into())
         .spawn(move || {
             let mut presence = Presence::default();
+            // Today's backup, once the app has settled (beside the loop, never delaying it).
+            let backup_app = app.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(Duration::from_secs(10));
+                crate::backup::auto_backup(&backup_app);
+            });
             loop {
                 std::thread::sleep(Duration::from_secs(1));
                 // Nothing is taken before the pet can show it (a slow start would lose it).

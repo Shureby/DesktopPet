@@ -3,6 +3,7 @@
 //! Everything here is plain Rust + SQLite so it can be unit tested without a
 //! GUI. The Tauri app (`src-tauri`) wraps it in commands and a timer loop.
 
+pub mod backup;
 pub mod model;
 pub mod pomodoro;
 pub mod schedule;

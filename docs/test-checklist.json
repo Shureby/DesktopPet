@@ -1154,6 +1154,55 @@
       ]
     },
     {
+      "id": "backup",
+      "title": "备份与恢复",
+      "items": [
+        {
+          "id": "backup.export",
+          "rev": "0.35.0",
+          "ci": "partial",
+          "mac": true,
+          "do": "设置 → Backup → Export backup…，先输两个不同的密码点 Export，再输相同的密码导出；另存为对话框里选桌面",
+          "expect": "两次密码不同时提示 The passwords don't match、不导出；保存后显示 Saved (encrypted): <路径>；文件名默认 ePet backup <今天日期>.epetbackup",
+          "human": "另存为对话框、默认文件名和保存后的提示"
+        },
+        {
+          "id": "backup.wrong-password",
+          "rev": "0.35.0",
+          "ci": "partial",
+          "mac": true,
+          "do": "Restore from backup… 选刚才的加密备份，先输错密码，再输对",
+          "expect": "先要求输入密码；输错显示 Wrong password.；输对后显示备份来自哪台电脑、什么时候，以及几个闹钟/待办/纪念日（不算计时器）",
+          "human": "打开文件对话框和密码框"
+        },
+        {
+          "id": "backup.restore-merge",
+          "rev": "0.35.0",
+          "ci": "partial",
+          "mac": true,
+          "do": "导出后删掉一个待办、新加一个待办、改一个闹钟的名字，再 Restore from backup…（全部勾选，Merge）",
+          "expect": "ePet 自动重启；删掉的待办回来了，新加的还在，没有重复；改过名字的闹钟保持新名字（这边改得更晚）；计时器不会被恢复；Automatic backups 列表里多了一份 before a restore",
+          "human": "重启后面板和宠物都正常，列表里的 before a restore"
+        },
+        {
+          "id": "backup.restore-replace",
+          "rev": "0.35.0",
+          "mac": true,
+          "do": "在另一台电脑（或清空后）用 Restore from backup… 选 Replace；可以只勾 Alarms, to-dos and anniversaries",
+          "expect": "这边原有的闹钟、待办、纪念日被备份里的取代（正在计时的计时器保留）；没勾 Settings 时这边的设置不变；勾了 Settings 时设置换成备份里的，但开机自启保持这台电脑自己的"
+        },
+        {
+          "id": "backup.auto",
+          "rev": "0.35.0",
+          "ci": "partial",
+          "mac": true,
+          "do": "启动 ePet 等十几秒，打开 设置 → Backup；隔天再启动一次",
+          "expect": "Automatic backups 下列出今天的一份（· daily），每天最多一份、最多保留 7 份；点 Restore… 可以直接从它恢复",
+          "human": "隔天新增一份、超过 7 份时最旧的被删掉"
+        }
+      ]
+    },
+    {
       "id": "stability",
       "title": "稳定性",
       "items": [

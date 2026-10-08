@@ -2,6 +2,7 @@
 //! Platform-independent logic lives in `crates/desktoppet-core`.
 
 mod app_windows;
+mod backup;
 mod commands;
 mod desktop;
 mod scheduler;
@@ -24,6 +25,7 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&dir)?;
@@ -104,6 +106,10 @@ pub fn run() {
             commands::open_panel,
             commands::open_game,
             commands::close_game,
+            backup::backup_export,
+            backup::backup_open,
+            backup::backup_restore,
+            backup::backup_list_auto,
         ])
         .run(tauri::generate_context!())
         .expect("error while running the desktop pet");

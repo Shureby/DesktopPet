@@ -509,7 +509,37 @@ panel.
   - Alarms & timers: ring (tone, preview, volume), Ring for / If nobody answers side by
     side, coming to the middle, the 🔔 look-ahead;
   - To-do reminders: ring, coming to the middle;
-  - General: start with the computer, other sounds.
+  - General: start with the computer, other sounds;
+  - Backup (since 0.35.0).
+
+## Backup and restore (since 0.35.0)
+
+Settings → Backup. A backup is one `.epetbackup` file with everything ePet keeps: alarms
+(and timers), to-dos, anniversaries, this computer's settings, the pet (each character's
+mood, game scores, achievements, focus history) and the user's own characters.
+
+- **Export backup…** asks where to save it (`ePet backup 2026-10-08.epetbackup`). A
+  password is optional; with one the file is encrypted, and without it the backup can't be
+  opened. The two password fields must match.
+- **Restore from backup…** asks for the file, then its password if it has one ("Wrong
+  password." if it isn't). Before anything changes it shows where and when the backup was
+  made and what it holds, and offers:
+  - what to restore: alarms, to-dos and anniversaries; settings; the pet; the characters
+    (each ticked; characters only if the backup has any);
+  - **Merge** (default): alongside what's here. Each alarm, to-do and anniversary has an id
+    of its own across computers, so nothing comes twice; where both sides changed one, the
+    one changed last wins. Something deleted here since the backup comes back (restoring is
+    asking for what's in it); something the backup had deleted goes, unless it changed
+    here after that.
+  - **Replace**: what's here goes and the backup's comes instead.
+  - Timers are never restored: they belong to the computer they were set on.
+  - Settings restored keep this computer's "Start with my computer".
+  - A character folder already here of the same name is kept beside as `<name>.bak`.
+- **Restoring** first saves a backup of this computer as it is (listed as "before a
+  restore", the last 3 kept), then restores and starts ePet again.
+- **Automatic backups:** a few seconds after ePet starts, once a day, a backup without a
+  password in the app's data folder (`backups/`), the last 7 kept. Each is listed with
+  "Restore…".
 
 ## Showing when things happened (since 0.13.0)
 

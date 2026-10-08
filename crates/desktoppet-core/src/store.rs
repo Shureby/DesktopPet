@@ -27,9 +27,9 @@ pub type Result<T> = std::result::Result<T, StoreError>;
 const LATE_TOLERANCE_MS: Millis = 60 * 1000;
 
 /// Timers are alarms whose label starts with this (see src/features/alarm/timers.ts).
-const TIMER_PREFIX: &str = "Timer: ";
+pub(crate) const TIMER_PREFIX: &str = "Timer: ";
 
-const MIGRATIONS: &[&str] = &[
+pub(crate) const MIGRATIONS: &[&str] = &[
     // v1
     "CREATE TABLE kv (key TEXT PRIMARY KEY, value TEXT NOT NULL);
      CREATE TABLE todos (
@@ -118,7 +118,60 @@ const MIGRATIONS: &[&str] = &[
        PRIMARY KEY (anniversary_id, prep, occurrence));",
     // v13: the music an anniversary plays on its day (none: its type's default).
     "ALTER TABLE anniversaries ADD COLUMN music TEXT;",
+    // v14: for backups (and syncing later): every alarm, to-do and anniversary gets an id of
+    // its own across computers (uid) and the time it last changed (updated_at, real time);
+    // deleting one leaves a tombstone. Triggers keep them, so no write has to remember to.
+    V14,
 ];
+
+/// Tables whose rows carry a uid, updated_at and a tombstone when deleted (see v14), with
+/// the kind their tombstones are filed under.
+pub(crate) const SYNCED: [(&str, &str); 3] = [("alarms", "alarm"), ("todos", "todo"), ("anniversaries", "anniversary")];
+
+/// Now in ms by the real clock, in SQL.
+const SQL_NOW: &str = "CAST(unixepoch('subsec') * 1000 AS INTEGER)";
+
+const V14: &str = "
+    ALTER TABLE alarms ADD COLUMN uid TEXT;
+    ALTER TABLE alarms ADD COLUMN updated_at INTEGER;
+    ALTER TABLE todos ADD COLUMN uid TEXT;
+    ALTER TABLE todos ADD COLUMN updated_at INTEGER;
+    ALTER TABLE anniversaries ADD COLUMN uid TEXT;
+    ALTER TABLE anniversaries ADD COLUMN updated_at INTEGER;
+    CREATE TABLE tombstones (kind TEXT NOT NULL, uid TEXT NOT NULL, deleted_at INTEGER NOT NULL, PRIMARY KEY (kind, uid));
+    @alarms|alarm@
+    @todos|todo@
+    @anniversaries|anniversary@";
+
+/// v14's part for one table (`@table|kind@` in V14).
+fn v14_table(table: &str, kind: &str) -> String {
+    format!(
+        "UPDATE {table} SET uid = lower(hex(randomblob(16))), updated_at = COALESCE(created_at, {SQL_NOW});
+         CREATE UNIQUE INDEX {table}_uid ON {table}(uid);
+         CREATE TRIGGER {table}_new AFTER INSERT ON {table} WHEN NEW.uid IS NULL OR NEW.updated_at IS NULL BEGIN
+           UPDATE {table} SET uid = COALESCE(NEW.uid, lower(hex(randomblob(16)))),
+             updated_at = COALESCE(NEW.updated_at, {SQL_NOW}) WHERE id = NEW.id;
+         END;
+         CREATE TRIGGER {table}_changed AFTER UPDATE ON {table} WHEN NEW.updated_at IS OLD.updated_at BEGIN
+           UPDATE {table} SET updated_at = {SQL_NOW} WHERE id = NEW.id;
+         END;
+         CREATE TRIGGER {table}_gone AFTER DELETE ON {table} BEGIN
+           INSERT OR REPLACE INTO tombstones (kind, uid, deleted_at) VALUES ('{kind}', OLD.uid, {SQL_NOW});
+         END;"
+    )
+}
+
+/// A migration's SQL, with v14's per-table parts filled in.
+fn migration_sql(sql: &str) -> String {
+    let mut out = sql.to_string();
+    for (table, kind) in SYNCED {
+        out = out.replace(&format!("@{table}|{kind}@"), &v14_table(table, kind));
+    }
+    out
+}
+
+/// Tombstones are kept this long (a computer away longer than that may bring a deleted one back).
+const TOMBSTONE_DAYS: i64 = 90;
 
 const ANNIVERSARY_COLUMNS: &str = "id, kind, icon, name, month, day, since, preps, effect, created_at, music";
 
@@ -137,7 +190,7 @@ const ALARM_COLUMNS: &str =
     "id, label, next_fire, time_hm, repeat, enabled, snoozes, missed_at, rang_at, created_at, missed_seen_at, skipped_fire, repeat_days, off_at";
 
 pub struct Store {
-    conn: Connection,
+    pub(crate) conn: Connection,
 }
 
 impl Store {
@@ -159,7 +212,11 @@ impl Store {
     fn migrate(&self) -> Result<()> {
         let version: usize = self.conn.pragma_query_value(None, "user_version", |r| r.get(0))?;
         for (i, sql) in MIGRATIONS.iter().enumerate().skip(version) {
-            self.conn.execute_batch(&format!("BEGIN; {sql}; PRAGMA user_version = {}; COMMIT;", i + 1))?;
+            self.conn.execute_batch(&format!(
+                "BEGIN; {}; PRAGMA user_version = {}; COMMIT;",
+                migration_sql(sql),
+                i + 1
+            ))?;
         }
         Ok(())
     }
@@ -786,6 +843,7 @@ impl Store {
         }
         self.clear_finished_alarms(now)?;
         self.clear_done_todos(start_of_today)?;
+        self.conn.execute("DELETE FROM tombstones WHERE deleted_at < ?1", [now - TOMBSTONE_DAYS * 24 * 3_600_000])?;
         self.set_kv("last_cleanup", day)?;
         Ok(true)
     }

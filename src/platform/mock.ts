@@ -84,6 +84,9 @@ if (typeof window !== "undefined") {
   window.addEventListener("pointermove", (e) => (cursor = { x: e.clientX, y: e.clientY }));
 }
 
+/** The backup opened in Settings → Backup (mock). */
+let openedBackup: MockState | null = null;
+
 function load(): MockState {
   try {
     const raw = localStorage.getItem(KEY);
@@ -555,6 +558,52 @@ export const mockBackend: Backend = {
     fire("alarms-changed", null);
   },
   async petReady() {},
+  // Backups in the browser: the mock's state as a JSON download, without a password.
+  async backupExport() {
+    const blob = new Blob([JSON.stringify({ epetMock: 1, madeAt: Date.now(), state: load() })], { type: "application/json" });
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: "ePet backup (browser).epetbackup" });
+    a.click();
+    URL.revokeObjectURL(a.href);
+    return a.download;
+  },
+  async backupOpen() {
+    const file = await new Promise<File | null>((resolve) => {
+      const input = Object.assign(document.createElement("input"), { type: "file", accept: ".epetbackup" });
+      input.onchange = () => resolve(input.files?.[0] ?? null);
+      input.oncancel = () => resolve(null);
+      input.click();
+    });
+    if (!file) return { status: "cancelled", path: null, summary: null };
+    const backup = JSON.parse(await file.text()) as { madeAt: number; state: MockState };
+    openedBackup = backup.state;
+    const st = backup.state;
+    return {
+      status: "ok",
+      path: file.name,
+      summary: {
+        appVersion: "browser",
+        madeAt: backup.madeAt,
+        device: { name: "This browser", os: "browser" },
+        alarms: st.alarms.filter((x) => !x.label.startsWith("Timer: ")).length,
+        timers: st.alarms.filter((x) => x.label.startsWith("Timer: ")).length,
+        todos: st.todos.filter((t) => !t.done).length,
+        anniversaries: st.anniversaries?.length ?? 0,
+        characters: 0,
+      },
+    };
+  },
+  async backupRestore(parts, _mode, restart) {
+    const b = openedBackup;
+    if (!b) throw new Error("open a backup first");
+    mutate((s) => {
+      if (parts.schedule) Object.assign(s, { todos: b.todos, alarms: b.alarms, anniversaries: b.anniversaries });
+      if (parts.settings) s.settings = { ...b.settings, autostart: s.settings.autostart };
+    });
+    if (restart !== false) location.reload();
+  },
+  async backupListAuto() {
+    return [];
+  },
   async testClock() {
     return null;
   },

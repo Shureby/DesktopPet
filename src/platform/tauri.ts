@@ -51,6 +51,10 @@ export const tauriBackend: Backend = {
   endPeek: () => invoke("end_peek"),
   e2eEnabled: () => invoke<boolean>("e2e_enabled").catch(() => false),
   e2eTray: (id) => invoke("e2e_tray", { id }),
+  backupExport: (password, path) => invoke("backup_export", { password, path: path ?? null }),
+  backupOpen: (path, password) => invoke("backup_open", { path, password }),
+  backupRestore: (parts, mode, restart) => invoke("backup_restore", { parts, mode, restart: restart ?? null }),
+  backupListAuto: () => invoke("backup_list_auto"),
   acknowledgeMissed: (id) => invoke("acknowledge_missed", { id }),
 
   pomodoroStart: () => invoke("pomodoro_start"),
