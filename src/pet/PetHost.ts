@@ -128,6 +128,8 @@ export class PetHost {
   private celebrating = false;
   /** The celebration playing now (null in the pause after one, or when none plays). */
   private playing: PlayingCelebration | null = null;
+  /** The pause after a celebration, before the next may play. */
+  private celebrationPause: ReturnType<typeof setTimeout> | undefined;
   /** Anniversaries that came while an alarm rang or another played: celebrated after it. */
   private celebrations: Celebration[] = [];
   /** A game asked for during a focus session while something was ringing (see playGame). */
@@ -1489,12 +1491,14 @@ export class PetHost {
   private onCelebrate(c: Celebration): void {
     if (c.peek) this.enterPeek();
     if (c.preview) {
-      // A preview replaces the one playing; it never waits behind a real one or a ring.
+      // A preview replaces the one playing and doesn't wait out the pause after one; it
+      // never waits behind a real one or a ring.
       if (this.playing?.preview) this.endCelebration();
-      else if (this.activeRing || this.celebrating) {
+      else if (this.activeRing || this.playing) {
         void this.backend.emit("preview-playing", false);
         return;
       }
+      clearTimeout(this.celebrationPause);
     } else if (this.activeRing || this.celebrating) {
       // One at a time: several on one day come in turn (remembrances first), and an alarm
       // ringing goes first.
@@ -1510,7 +1514,7 @@ export class PetHost {
         if (this.playing !== playing) return;
         this.playing = null;
         if (playing.preview) void this.backend.emit("preview-playing", false);
-        playing.timer = setTimeout(() => {
+        this.celebrationPause = setTimeout(() => {
           this.celebrating = false;
           this.nextQueued();
         }, CELEBRATION_GAP_MS);

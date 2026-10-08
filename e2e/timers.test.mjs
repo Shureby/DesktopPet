@@ -67,6 +67,8 @@ check("timer.cancel", "cancelling one: it leaves the badge and the panel togethe
   const app = ctx.app;
   await reset();
   for (const m of ["1 min", "5 min"]) await app.run("pet", "Set timer", m);
+  // The menu lists them once the pet has them.
+  await app.b.waitUntil(async () => sub(await app.menu("pet"), "Cancel timer")?.length === 2, { timeout: 5000 });
   await app.run("pet", "Cancel timer", "1 min");
   await app.b.waitUntil(async () => (await app.badges()).some((b) => /^⏱ 4:\d\d$/.test(b.text)), { timeout: 5000 });
   assert.deepEqual((await alarms()).map((a) => a.label), ["Timer: 5 min"]);
