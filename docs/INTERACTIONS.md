@@ -491,8 +491,8 @@ in the panel.
 
 - **A focus starting and a break starting sound different,** so they can be told apart
   without seeing the pet (it may be hidden or on another screen). Focus → "Sound: focus
-  starts" (default **Field phone**: a quick two-tone electronic ring, bi-bi-bu-do, twice;
-  an original in the style of an operations-room phone) and "Sound: break starts"
+  starts" (default **Field phone**: one ring, about a second, of the trilling electronic
+  office phone heard in operations-room dramas — three tones switched on and off 24 times) and "Sound: break starts"
   (default **Chime**), each with ▶ and Off; one Volume for both.
 - They play whether the pet is shown or hidden ("When hidden, it comes out for → Focus
   sessions" decides only whether the pet comes out).

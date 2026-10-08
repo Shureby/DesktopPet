@@ -36,6 +36,8 @@ interface Note {
   wave?: OscillatorType;
   /** Relative loudness 0..1. */
   gain?: number;
+  /** Full loudness for the whole note (a gated pulse), instead of dying away. */
+  hold?: boolean;
 }
 
 function play(notes: Note[], volume: number): void {
@@ -50,8 +52,15 @@ function play(notes: Note[], volume: number): void {
     if (n.to) osc.frequency.exponentialRampToValueAtTime(n.to, t0 + n.at + n.dur);
     const peak = 0.25 * volume * (n.gain ?? 1);
     g.gain.setValueAtTime(0, t0 + n.at);
-    g.gain.linearRampToValueAtTime(peak, t0 + n.at + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + n.at + n.dur);
+    if (n.hold) {
+      // 2 ms in and out: short enough to sound like a switched tone, long enough not to click.
+      g.gain.linearRampToValueAtTime(peak, t0 + n.at + 0.002);
+      g.gain.setValueAtTime(peak, t0 + n.at + n.dur - 0.002);
+      g.gain.linearRampToValueAtTime(0, t0 + n.at + n.dur);
+    } else {
+      g.gain.linearRampToValueAtTime(peak, t0 + n.at + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + n.at + n.dur);
+    }
     osc.connect(g).connect(a.destination);
     osc.start(t0 + n.at);
     osc.stop(t0 + n.at + n.dur + 0.05);
@@ -139,20 +148,22 @@ export function ringAlarm(id: RingtoneId, volume: number, maxSeconds = 60): () =
 }
 
 /**
- * "Field phone": a focus session starts. An original two-tone electronic ring in the
- * style of an operations-room phone (bi-bi-bu-do, twice), unlike any ringtone, so it can
- * be told from a break starting without seeing the pet.
+ * "Field phone": a focus session starts. One ring of the electronic office-phone ringer
+ * (AT&T Merlin style) heard in operations-room dramas: three sine tones together, switched
+ * on and off every 22 ms, 24 times (about a second), so it can be told from a break
+ * starting without seeing the pet.
  */
 const FIELD_PHONE: Ringtone = {
   name: "Field phone",
-  period: 1.6,
+  period: 3,
   notes: () =>
-    [0, 0.8].flatMap((t) => [
-      { f: 1568, at: t, dur: 0.07, wave: "square" as const, gain: 0.3 },
-      { f: 1568, at: t + 0.11, dur: 0.07, wave: "square" as const, gain: 0.3 },
-      { f: 1175, at: t + 0.24, dur: 0.12, wave: "triangle" as const, gain: 0.8 },
-      { f: 784, at: t + 0.4, dur: 0.24, wave: "triangle" as const, gain: 0.8 },
-    ]),
+    Array.from({ length: 24 }, (_, i) =>
+      [
+        { f: 755, gain: 0.6 },
+        { f: 2260, gain: 0.35 },
+        { f: 3800, gain: 0.2 },
+      ].map(({ f, gain }) => ({ f, at: i * 0.044, dur: 0.022, wave: "sine" as const, gain, hold: true })),
+    ).flat(),
 };
 
 /** The focus-session sounds' choices: Field phone first, then the ringtones. */

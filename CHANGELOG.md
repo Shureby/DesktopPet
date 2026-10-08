@@ -16,10 +16,19 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.36.1] - 2026-10-08
+
+## [0.36.1] - 2026-10-08
+
+### Changed
+- **Field phone** (the sound when a focus starts) now sounds like the trilling electronic
+  office phone of operations-room dramas, and rings once (about a second) instead of
+  twice.
+
 ## [0.36.0] - 2026-10-08
 
 ### Added
-- Focus sessions sound different when a focus starts (**Field phone**, a quick two-tone
+- Focus sessions sound different when a focus starts (**Field phone**, a quick electronic
   ring) and when a break starts (**Chime**), so you can tell them apart without seeing the
   pet: Focus → Sound: focus starts / break starts (each with ▶ and Off) and Volume. They
   play with the pet hidden too. "Other sounds" in Settings is now for petting only.
