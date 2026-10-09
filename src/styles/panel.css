@@ -59,6 +59,17 @@ nav button {
   cursor: pointer;
   white-space: nowrap;
 }
+/* Seven tabs (Modes since 0.37.1): all fit down to the panel's narrowest (380 px). */
+@media (max-width: 440px) {
+  nav {
+    gap: 0;
+    padding: 8px 4px 0;
+  }
+  nav button {
+    padding: 8px 3px;
+    font-size: 12px;
+  }
+}
 nav button.active {
   color: var(--fg);
   border-bottom-color: var(--accent);
