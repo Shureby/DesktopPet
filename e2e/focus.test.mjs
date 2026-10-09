@@ -137,11 +137,11 @@ check("focus.stop", "the menu says “Stop focus session (ends …)”; it stops
   await app.b.waitUntil(async () => !(await app.badges()).some((b) => b.text.startsWith("🍅")), { timeout: 5000 });
 });
 
-check("focus.work-hours", "Work hours: the days and times are the Work slots (Settings → Modes); it starts by itself at work time; stopped by hand it stays stopped", async () => {
+check("focus.work-hours", "Work hours: the days and times are the Work slots (the Modes tab); it starts by itself at work time; stopped by hand it stays stopped", async () => {
   const app = ctx.app;
   await reset();
   await app.panel("focus");
-  await app.waitText(".work-hours .work-span", "Settings → Modes");
+  await app.waitText(".work-hours .work-span", "the Work slots in the tab Modes");
   const toggle = () => app.b.execute(() => document.querySelector(".work-hours label.check input").click());
   await toggle();
   await app.b.waitUntil(async () => (await app.settings()).pomodoro.workHours.enabled, { timeout: 5000 });

@@ -1543,6 +1543,8 @@ export class PetHost {
         btn.addEventListener("click", (ev) => {
           ev.stopPropagation();
           this.activeRing = null;
+          // Answered: nothing left to protect from being talked over.
+          this.importantUntil = 0;
           a.run();
           this.hideBubble();
         });
