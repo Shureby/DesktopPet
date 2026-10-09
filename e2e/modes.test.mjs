@@ -163,14 +163,28 @@ check("modes.missed", "an anniversary put off all day is missed after midnight; 
     assert.ok(!(await app.badges()).some((b) => b.text.includes("Ann")));
     // At the computer, in Normal: told once.
     await app.setSettings((s) => ((s.modes.choice = "normal"), s));
-    await app.b.execute(() => window.__epet.activity());
-    assert.match(await app.waitBubble("You missed", 5000), /🎂 You missed Ann yesterday\./);
+    // (The new day may bring something more important first; the mouse keeps moving.)
+    let said = null;
+    await app.b
+      .waitUntil(
+        async () => {
+          await app.b.execute(() => window.__epet.activity());
+          said = await app.bubble();
+          return said?.includes("You missed");
+        },
+        { timeout: 40_000, interval: 1000 },
+      )
+      .catch(async () => {
+        const p = await app.pet();
+        throw new Error(`no "You missed": bubble ${JSON.stringify(said)}, missed ${JSON.stringify(p.missed)}, mode ${JSON.stringify(p.reminderMode)}`);
+      });
+    assert.match(said, /🎂 You missed Ann yesterday\./);
     await app.answer("OK");
     assert.deepEqual((await app.pet()).missed, []);
   } finally {
     await app.invoke("shift_clock", { ms: -24 * 60 * MIN });
   }
-}, { timeout: 60_000 });
+}, { timeout: 90_000 });
 
 check("modes.intro", "once, the pet says what modes are (not in Quiet); Show me opens the Modes tab", async () => {
   const app = ctx.app;
