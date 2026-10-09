@@ -353,7 +353,7 @@ export interface HiddenAlerts {
   anniversaries: boolean;
 }
 
-export type PanelTab = "todos" | "alarms" | "focus" | "characters" | "games" | "settings";
+export type PanelTab = "todos" | "alarms" | "focus" | "modes" | "characters" | "games" | "settings";
 
 export interface BackendEvents {
   reminder: ReminderEvent;

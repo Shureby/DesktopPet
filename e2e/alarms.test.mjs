@@ -143,8 +143,8 @@ check("ui.time-field", "drag, wheel, keys and typing in the time field; Quiet ho
   } else {
     assert.equal((await field()).period, null);
   }
-  // A time slot in Settings → Modes: changed, then kept after leaving the tab.
-  await app.tab("settings");
+  // A time slot in the Modes tab: changed, then kept after leaving the tab.
+  await app.tab("modes");
   const quiet = ".modes .time-field";
   const start = await app.b.execute(() => document.querySelector(".modes .time-field").value);
   await app.b.execute(() => {
@@ -154,7 +154,7 @@ check("ui.time-field", "drag, wheel, keys and typing in the time field; Quiet ho
   });
   await app.sleep(1200);
   await app.tab("alarms");
-  await app.tab("settings");
+  await app.tab("modes");
   const after = await app.b.execute(() => document.querySelector(".modes .time-field").value);
   assert.notEqual(after, start, quiet);
   assert.equal((await app.settings()).modes.workday[0].start, after);

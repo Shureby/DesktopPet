@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { mergeSettings } from "../../platform/types";
-import { DEFAULT_MODES, isDayOff, modeNow, modeSettings, rampVolume, scheduledMode, workSpan, type ModeSettings } from "./modes";
+import {
+  DEFAULT_MODES,
+  isDayOff,
+  modeNow,
+  modeSettings,
+  overrideUntil,
+  rampVolume,
+  scheduledMode,
+  tomorrowMorning,
+  workSpan,
+  type ModeSettings,
+} from "./modes";
 
 // 2026-10-05 is a Monday.
 const at = (day: number, h: number, m = 0) => new Date(2026, 9, day, h, m);
@@ -104,5 +115,22 @@ describe("reminder modes", () => {
     expect(rampVolume(0.8, 15)).toBeCloseTo(0.5);
     expect(rampVolume(0.8, 30)).toBeCloseTo(0.8);
     expect(rampVolume(0.8, 90)).toBeCloseTo(0.8);
+  });
+
+  it("a mode for a while goes over a mode picked for good too, and lasts until what's underneath changes", () => {
+    const until = at(5, 11).getTime();
+    expect(modeNow(modes({ choice: "work", override: { mode: "quiet", until } }), at(5, 10)).mode).toBe("quiet");
+    expect(modeNow(modes({ choice: "work", override: { mode: "quiet", until } }), at(5, 11, 1)).mode).toBe("work");
+    // On the schedule: until its next change; picked for good, or no change: midnight.
+    expect(overrideUntil(modes(), at(5, 10))).toBe(at(5, 17, 30).getTime());
+    expect(overrideUntil(modes({ choice: "lively" }), at(5, 10))).toBe(at(6, 0).getTime());
+  });
+
+  it("“until tomorrow morning” is when tomorrow's Quiet night ends (8:00 without one)", () => {
+    expect(tomorrowMorning(modes(), at(5, 23))).toBe(at(6, 7).getTime());
+    // Saturday morning is still Friday's night (a work day: 22–07); Sunday's is Saturday's (23–08).
+    expect(tomorrowMorning(modes(), at(9, 23))).toBe(at(10, 7).getTime());
+    expect(tomorrowMorning(modes(), at(10, 23))).toBe(at(11, 8).getTime());
+    expect(tomorrowMorning(modes({ workday: [], dayOff: [] }), at(5, 23))).toBe(at(6, 8).getTime());
   });
 });

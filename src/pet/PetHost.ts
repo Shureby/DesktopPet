@@ -43,7 +43,8 @@ import type { Alarm, Backend, Celebration, PetActivity, PomodoroStatus, Reminder
 import type { CareAction } from "../characters/schema";
 import { buildItems, buildTrayItems, nativeMenu, showPetMenu, type Item, type MenuContext, type PetMenuContext } from "./menu";
 import { CLOCK_STEPS, shiftLabel } from "../platform/testClock";
-import { dayKey, MODE_ICONS, MODE_NAMES, modeNow, presetOf, type ModeNow, type ModePreset } from "../features/modes/modes";
+import product from "../../product.config.json";
+import { baseMode, dayKey, MODE_ICONS, MODE_NAMES, modeNow, presetOf, type ModeNow, type ModePreset } from "../features/modes/modes";
 import { playFocusTone, playMusic, playRingtone, ringAlarm, sounds } from "./sound";
 
 const STEP = 1 / 30;
@@ -64,14 +65,26 @@ interface Postponed {
   c: Celebration;
 }
 const POSTPONED_KEY = "epet-postponed";
+/** Put off and never played on their day: told once, later (see tellMissedAnniversaries). */
+const MISSED_KEY = "epet-missed-anniversaries";
+/** A missed anniversary older than this isn't brought up any more. */
+const MISSED_DAYS = 7;
 
-/** Today's put-off anniversaries, kept over a restart. */
-function loadPostponed(): Postponed[] {
+/** Put-off anniversaries kept over a restart (today's, or missed ones from the last days). */
+function loadList(key: string): Postponed[] {
   try {
-    const list = JSON.parse(localStorage.getItem(POSTPONED_KEY) ?? "[]") as Postponed[];
-    return Array.isArray(list) ? list.filter((p) => p?.day === dayKey(new Date()) && p.c?.anniversary) : [];
+    const list = JSON.parse(localStorage.getItem(key) ?? "[]") as Postponed[];
+    return Array.isArray(list) ? list.filter((p) => typeof p?.day === "string" && p.c?.anniversary) : [];
   } catch {
     return [];
+  }
+}
+
+function saveList(key: string, list: Postponed[]): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(list));
+  } catch {
+    // Not kept over a restart; fine.
   }
 }
 
@@ -197,6 +210,15 @@ export class PetHost {
   private modeState: ModeNow = { mode: "normal", why: "schedule", until: null };
   /** Anniversaries the mode put off today (a 🎉 badge); offered when the mode allows. */
   private postponed: Postponed[] = [];
+  /** Anniversaries put off and not played on their day (told once, see tellMissedAnniversaries). */
+  private missed: Postponed[] = [];
+  /** The day the pet last asked at 23:59 (once a day). */
+  private askedLastMinute = "";
+  /** Where the cursor was (a move counts as you being here: see onUserActivity). */
+  private lastCursor: { x: number; y: number } | null = null;
+  /** The pet has been running a while (the "New: modes!" line waits for it). */
+  private settled = false;
+  private trayTooltip = "";
   /** Whether the mode allowed celebrations when last checked (null before the first check). */
   private celebrateAllowed: boolean | null = null;
   /** Celebrations asked for now (the 🎉 badge, "Celebrate"): played whatever the mode. */
@@ -291,7 +313,8 @@ export class PetHost {
     this.clockShift = clock?.shift ?? 0;
     await this.backend.on("clock-shift", (shift) => {
       this.clockShift = shift;
-      this.updateMode();
+      // After this window's Date has moved too (followTestClock hears the same event).
+      setTimeout(() => this.updateMode());
       this.scheduleTray();
       void this.refreshTimers();
     });
@@ -307,10 +330,14 @@ export class PetHost {
     // Mood is saved every minute and when leaving, not every tick.
     setInterval(() => void this.saveMood(), 60_000);
     window.addEventListener("beforeunload", () => void this.saveMood());
-    this.postponed = loadPostponed();
+    this.postponed = loadList(POSTPONED_KEY);
+    this.missed = loadList(MISSED_KEY);
     this.pomodoro = await this.backend.pomodoroStatus();
     this.updateMode();
-    setInterval(() => this.updateMode(), 30_000);
+    setInterval(() => {
+      this.settled = true;
+      this.updateMode();
+    }, 30_000);
     setInterval(() => void this.refreshWorld(), 500);
 
     this.pet.react({ type: "greet" });
@@ -376,13 +403,86 @@ export class PetHost {
     const preset = this.preset();
     this.pet.mode = this.hidden ? "hidden" : this.pomodoro.phase === "focus" ? "focus" : preset.calm ? "quiet" : "free";
     this.pet.chatty = preset.chatter;
-    // Put off on another day: gone (it was that day's).
-    if (this.postponed.length && this.postponed[0].day !== dayKey(new Date())) this.setPostponed([]);
+    const now = new Date();
+    const today = dayKey(now);
+    // Put off on an earlier day and never played: missed (told later, once).
+    const old = this.postponed.filter((p) => p.day !== today);
+    if (old.length) {
+      this.setPostponed(this.postponed.filter((p) => p.day === today));
+      this.setMissed([...this.missed, ...old]);
+    }
+    const oldest = dayKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() - MISSED_DAYS));
+    if (this.missed.some((p) => p.day < oldest)) this.setMissed(this.missed.filter((p) => p.day >= oldest));
     if (before !== this.modeState.mode) this.scheduleTray();
     // Asked once, when the mode starts allowing them (or at start), not every check.
     const allowed = preset.celebrate === "play";
     if (allowed && this.celebrateAllowed !== true) this.offerPostponed();
     this.celebrateAllowed = allowed;
+    // The last minute of the day: still not played, asked once (not in Quiet: likely asleep).
+    if (now.getHours() === 23 && now.getMinutes() === 59 && this.postponed.length && this.askedLastMinute !== today && this.modeState.mode !== "quiet") {
+      this.askedLastMinute = today;
+      this.offerPostponed(true);
+    }
+    this.introduceModes();
+  }
+
+  private setMissed(list: Postponed[]): void {
+    this.missed = list;
+    saveList(MISSED_KEY, list);
+  }
+
+  /**
+   * Once (Settings → Modes, `introduced`): "New: modes! I'm in 👔 Work until 5:30 PM." Not in
+   * Quiet, not right at start, and not over something more important.
+   */
+  private introduceModes(): void {
+    const m = this.settings.modes;
+    if (m.introduced || !this.settled || this.modeState.mode === "quiet" || !this.petVisible || this.activeRing || this.celebrating) return;
+    if (Date.now() < this.importantUntil || !this.bubble.hidden) return;
+    void this.backend.setSettings({ modes: { ...m, introduced: true } });
+    const n = this.modeState;
+    this.say(
+      [`New: modes! I'm in ${MODE_ICONS[n.mode]} ${MODE_NAMES[n.mode]}${n.until ? ` until ${clock(n.until)}` : ""}.`, "Quieter at night and at work, by a weekly schedule."],
+      30_000,
+      [
+        { label: "Show me", run: () => void this.backend.openPanel("modes") },
+        { label: "OK", run: () => {} },
+      ],
+      undefined,
+      true,
+    );
+  }
+
+  /**
+   * You're at the computer (the cursor moved): anniversaries put off and missed on their day
+   * are told now, once ("🎂 You missed Mum yesterday"), unless it's Quiet or something rings.
+   */
+  private onUserActivity(): void {
+    if (!this.missed.length || this.modeState.mode === "quiet" || !this.petVisible || this.activeRing || this.celebrating) return;
+    if (Date.now() < this.importantUntil) return;
+    const list = this.missed;
+    this.setMissed([]);
+    const yesterday = dayKey(new Date(Date.now() - 86_400_000));
+    const when = (day: string) => (day === yesterday ? "yesterday" : `on ${new Date(day + "T12:00").toLocaleDateString([], { weekday: "long" })}`);
+    this.say(
+      list.map((p) => `${p.c.anniversary.icon} You missed ${p.c.anniversary.name} ${when(p.day)}.`),
+      30_000,
+      [
+        {
+          label: "Celebrate now",
+          run: () =>
+            setTimeout(() => {
+              for (const p of list) {
+                this.celebrateAnyway.add(p.c);
+                this.onCelebrate(p.c);
+              }
+            }),
+        },
+        { label: "OK", run: () => {} },
+      ],
+      undefined,
+      true,
+    );
   }
 
   /** An anniversary in Work or Quiet: kept for today with a 🎉 badge (click it: celebrate now). */
@@ -393,19 +493,15 @@ export class PetHost {
 
   private setPostponed(list: Postponed[]): void {
     this.postponed = list;
-    try {
-      localStorage.setItem(POSTPONED_KEY, JSON.stringify(list));
-    } catch {
-      // Not kept over a restart; fine.
-    }
+    saveList(POSTPONED_KEY, list);
   }
 
   /** The mode allows celebrations again: "🎉 Today: … Celebrate now?" (the badge stays if not answered). */
-  private offerPostponed(): void {
+  private offerPostponed(lastMinute = false): void {
     if (!this.postponed.length || this.activeRing || this.celebrating || !this.petVisible) return;
     const names = this.postponed.map((p) => `${p.c.anniversary.icon} ${p.c.anniversary.name}`);
     this.say(
-      [`🎉 Today: ${names.join(", ")}`, "Celebrate now?"],
+      [`🎉 Today: ${names.join(", ")}`, lastMinute ? "Celebrate before the day ends?" : "Celebrate now?"],
       60_000,
       [
         // After the click has closed this bubble (the celebration's words come next).
@@ -425,6 +521,17 @@ export class PetHost {
       this.celebrateAnyway.add(p.c);
       this.onCelebrate(p.c);
     }
+  }
+
+  /** " · until 5:30 PM, then Auto", " · picked in Modes"… for the mode's icon. */
+  private modeWhy(): string {
+    const m = this.modeState;
+    if (m.why === "manual") return " · picked in Modes";
+    if (m.why === "override") {
+      const after = baseMode(this.settings.modes, new Date());
+      return ` · until ${clock(m.until!)}, then ${after.why === "manual" ? MODE_NAMES[after.mode] : "Auto"}`;
+    }
+    return m.until ? ` · until ${clock(m.until)}` : "";
   }
 
   /** What the current mode changes (Normal: nothing). Works it out afresh. */
@@ -658,7 +765,7 @@ export class PetHost {
     if (this.postponed.length) {
       const first = this.postponed[0].c.anniversary;
       rows.push({
-        text: `🎉 ${first.name}${more(this.postponed.length)}`,
+        text: `${first.icon} ${first.name}${more(this.postponed.length)}`,
         title: info(
           this.postponed.map((p) => `${p.c.anniversary.icon} ${p.c.anniversary.name} · put off (${MODE_NAMES[this.modeState.mode]} mode)`),
           "Celebrate now",
@@ -666,31 +773,40 @@ export class PetHost {
         onClick: () => this.celebratePostponed(),
       });
     }
-    // Work and Quiet show; Normal and Lively are just the pet.
+    // The mode, as a small icon before the first badge (none: nothing to say it about).
+    // Normal shows nothing.
     const m = this.modeState;
-    if (m.mode === "work" || m.mode === "quiet") {
-      const why = m.why === "manual" ? "picked by hand" : m.until ? `until ${clock(m.until)}` : "";
-      rows.push({
-        text: `${MODE_ICONS[m.mode]} ${MODE_NAMES[m.mode]}`,
-        cls: "quiet mode",
-        title: info([`${MODE_NAMES[m.mode]} mode${why ? ` · ${why}` : ""}`], "Open Settings → Modes"),
-        onClick: () => void this.backend.openPanel("settings"),
-      });
-    }
-    const key = rows.map((r) => (r.live ? `live:${r.text.split(" ")[0]}` : r.text)).join("\n");
+    const mark =
+      rows.length && m.mode !== "normal"
+        ? {
+            text: MODE_ICONS[m.mode],
+            title: info([`${MODE_NAMES[m.mode]} mode${this.modeWhy()}`], "Open Modes"),
+          }
+        : null;
+    const key = (mark ? `${mark.text}|${mark.title}\n` : "") + rows.map((r) => (r.live ? `live:${r.text.split(" ")[0]}` : r.text)).join("\n");
     if (this.badges.dataset.text === key) {
       rows.forEach((r, i) => {
         const el = this.badges.children[i];
-        if (!r.live || !(el instanceof HTMLElement)) return;
-        if (el.textContent !== r.text) el.textContent = r.text;
+        const text = el?.querySelector(".text");
+        if (!r.live || !(el instanceof HTMLElement) || !text) return;
+        if (text.textContent !== r.text) text.textContent = r.text;
         if (r.title !== undefined && el.dataset.info !== r.title) el.dataset.info = r.title;
       });
     } else {
       this.badges.dataset.text = key;
       this.badges.replaceChildren(
-        ...rows.map((r) => {
+        ...rows.map((r, i) => {
           const el = document.createElement("div");
-          el.textContent = r.text;
+          if (i === 0 && mark) {
+            const icon = Object.assign(document.createElement("span"), { className: "mode-mark clickable", textContent: mark.text });
+            icon.dataset.info = mark.title;
+            icon.addEventListener("click", (e) => {
+              e.stopPropagation();
+              void this.backend.openPanel("modes");
+            });
+            el.append(icon);
+          }
+          el.append(Object.assign(document.createElement("span"), { className: "text", textContent: r.text }));
           if (r.cls) el.className = r.cls;
           // Shown by updateBadgeInfo on hover (not `title`: see .badge-info in pet.css).
           if (r.title) el.dataset.info = r.title;
@@ -738,6 +854,9 @@ export class PetHost {
         this.ignoringCursor,
       );
       if (cursor) {
+        const last = this.lastCursor;
+        if (last && Math.abs(cursor.x - last.x) + Math.abs(cursor.y - last.y) > 2) this.onUserActivity();
+        this.lastCursor = { x: cursor.x, y: cursor.y };
         this.pet.cursor = this.windowed ? cursor : { x: cursor.x * this.dpr, y: cursor.y * this.dpr };
         const overPet = this.isOverPet(cursor.x, cursor.y, winX, winY);
         if (overPet && !this.hovering) this.welcomeBack();
@@ -781,6 +900,9 @@ export class PetHost {
     } else if (!this.badges.hidden && !this.hidden) {
       for (const el of this.badges.children) {
         if (el instanceof HTMLElement && el.dataset.info && under(el)) target = el;
+        // The mode's icon before the first badge has its own box.
+        const mark = el.querySelector<HTMLElement>(".mode-mark");
+        if (mark && under(mark)) target = mark;
       }
     }
     const now = performance.now();
@@ -1038,6 +1160,8 @@ export class PetHost {
         this.pet.target = { x };
         this.pet.fsm.set("walkTo", true);
       },
+      /** As if the mouse moved (you're at the computer): see onUserActivity. */
+      activity: () => this.onUserActivity(),
       /** Sets mood fields (affection, fullness, petWindow) as if time had passed. */
       setMood: (m: Partial<Mood>) => {
         Object.assign(this.pet.mood, m);
@@ -1051,6 +1175,8 @@ export class PetHost {
         mode: this.pet.mode,
         reminderMode: this.modeState,
         postponed: this.postponed.map((p) => p.c.anniversary.name),
+        missed: this.missed.map((p) => p.c.anniversary.name),
+        trayTooltip: this.trayTooltip,
         target: this.pet.target,
         x: this.pet.body.x,
         y: this.pet.body.y,
@@ -1110,11 +1236,19 @@ export class PetHost {
       }, "sep");
     }
     const outline = JSON.stringify(items, (k, v) => (k === "action" ? undefined : v));
-    if (outline === this.trayOutline) return;
+    // "ePet · 👔 Work until 5:30 PM": the mode even with the pet hidden.
+    const m = this.modeState;
+    const tooltip = `${product.productName} · ${MODE_ICONS[m.mode]} ${MODE_NAMES[m.mode]}${m.until ? ` until ${clock(m.until)}` : ""}`;
+    if (outline === this.trayOutline && tooltip === this.trayTooltip) return;
     try {
       const { TrayIcon } = await import("@tauri-apps/api/tray");
       const tray = await TrayIcon.getById("main");
       if (!tray) return;
+      if (tooltip !== this.trayTooltip) {
+        await tray.setTooltip(tooltip);
+        this.trayTooltip = tooltip;
+      }
+      if (outline === this.trayOutline) return;
       const menu = await nativeMenu(items);
       await tray.setMenu(menu);
       this.trayOutline = outline;

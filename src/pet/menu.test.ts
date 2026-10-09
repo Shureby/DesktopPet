@@ -204,27 +204,35 @@ describe("the tray's game while the pet is hidden", () => {
 });
 
 describe("mode menu", () => {
-  it("[modes.menu] switches mode: Auto or one by hand, Quiet for 1 hour, Today is a day off", () => {
+  it("[modes.menu] switches mode: Auto, a mode for a while (until the schedule next changes), Quiet for…, Today is a day off", () => {
     let saved: Partial<typeof DEFAULT_SETTINGS> | null = null;
     const backend = { setSettings: async (p: Partial<typeof DEFAULT_SETTINGS>) => void (saved = p) } as unknown as PetMenuContext["backend"];
-    const settings = { ...DEFAULT_SETTINGS, modes: { ...DEFAULT_SETTINGS.modes, choice: "work" as const } };
+    // No slots: Normal all day, so a mode picked here lasts until midnight.
+    const modes = { ...DEFAULT_SETTINGS.modes, workday: [], dayOff: [] };
+    const settings = { ...DEFAULT_SETTINGS, modes };
     const item = buildItems(ctx({ backend, settings })).find((i): i is Item => i !== "sep" && i.text.startsWith("Switch mode"))!;
-    expect(item.text).toBe("Switch mode (now: 👔 Work)");
+    expect(item.text).toBe("Switch mode (now: 🙂 Normal)");
+    const midnight = new Date();
+    midnight.setHours(24, 0, 0, 0);
+    const until = clock(midnight.getTime());
+    const morning = new Date(midnight.getTime() + 8 * 3_600_000);
     expect(outline(item.items!)).toEqual([
-      "Auto (Settings → Modes)",
-      "🙂 Normal",
-      "🎉 Lively",
-      "✓ 👔 Work",
-      "🌙 Quiet",
+      "✓ Auto (schedule)",
+      `🙂 Normal until ${until}`,
+      `✨ Lively until ${until}`,
+      `👔 Work until ${until}`,
+      `🌙 Quiet until ${until}`,
       "—",
-      "Quiet for 1 hour",
+      ["Quiet for…", ["30 minutes", "1 hour", "2 hours", `Until tomorrow ${clock(morning.getTime())}`]],
       "Today is a day off",
     ]);
-    (item.items![6] as Item).action!();
-    const modes = (saved as unknown as typeof settings).modes;
-    expect(modes.choice).toBe("auto");
-    expect(modes.override?.mode).toBe("quiet");
-    expect(modes.override!.until - Date.now()).toBeGreaterThan(3_590_000);
+    (item.items![3] as Item).action!();
+    expect((saved as unknown as typeof settings).modes.override).toEqual({ mode: "work", until: midnight.getTime() });
+    const quietFor = item.items![6] as Item;
+    (quietFor.items![1] as Item).action!();
+    const o = (saved as unknown as typeof settings).modes.override!;
+    expect(o.mode).toBe("quiet");
+    expect(o.until - Date.now()).toBeGreaterThan(3_590_000);
     // Both menus have it, above Open panel….
     for (const items of [buildItems(ctx()), buildTrayItems(trayCtx())]) {
       const texts = items.map((i) => (i === "sep" ? "—" : i.text));

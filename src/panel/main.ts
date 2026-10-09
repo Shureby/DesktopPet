@@ -88,6 +88,7 @@ const TABS: { id: PanelTab; label: string }[] = [
   { id: "todos", label: "To-dos" },
   { id: "alarms", label: "Alarms" },
   { id: "focus", label: "Focus" },
+  { id: "modes", label: "Modes" },
   { id: "characters", label: "Characters" },
   { id: "games", label: "Games" },
   { id: "settings", label: "Settings" },
@@ -151,6 +152,7 @@ async function render() {
     todos: renderTodos,
     alarms: renderAlarms,
     focus: renderFocus,
+    modes: renderModes,
     characters: renderCharacters,
     games: renderGames,
     settings: renderSettings,
@@ -1339,8 +1341,8 @@ function workHoursSection(): Node {
       h(
         "p",
         { class: "hint work-span" },
-        span ? `${days || "No work days"} · ${hmText(span.start)}–${hmText(span.end)} (the Work slots in ` : "No Work slots yet (add one in ",
-        h("a", { href: "#", onclick: (e: Event) => (e.preventDefault(), select("settings")) }, "Settings → Modes"),
+        span ? `${days || "No work days"} · ${hmText(span.start)}–${hmText(span.end)} (the Work slots in the tab ` : "No Work slots yet (add one in the tab ",
+        h("a", { href: "#", onclick: (e: Event) => (e.preventDefault(), select("modes")) }, "Modes"),
         ").",
         w.enabled ? " Starts once a day when work starts (stopped by hand, it stays stopped). No new focus after work ends." : "",
       ),
@@ -1450,6 +1452,11 @@ async function renderGames(): Promise<Node> {
 
 // --- Settings ---------------------------------------------------------------
 
+/** Modes (docs/INTERACTIONS.md, "Modes"): src/panel/modes.ts. */
+async function renderModes(): Promise<Node> {
+  return h("section", { class: "modes-page" }, h("h3", {}, "Modes"), modesSection(() => settings, save));
+}
+
 async function renderSettings(): Promise<Node> {
   const slider = (key: "size" | "speed") => {
     const out = h("output", {}, `${settings[key].toFixed(2)}×`);
@@ -1481,9 +1488,14 @@ async function renderSettings(): Promise<Node> {
       slider("speed"),
       h("hr"),
       ...hiddenAlertsRows(),
+      h(
+        "p",
+        { class: "hint" },
+        "Quiet hours are now in ",
+        h("a", { href: "#", class: "to-modes", onclick: (e: Event) => (e.preventDefault(), select("modes")) }, "Modes"),
+        ": quieter at night and at work, by a weekly schedule.",
+      ),
     ),
-    h("h3", {}, "Modes"),
-    modesSection(() => settings, save),
     h("h3", {}, "Alarms & timers"),
     alertBox("alarm"),
     h("h3", {}, "To-do reminders"),
@@ -1779,7 +1791,7 @@ async function main() {
     // Not while a time field or day picker is being used: rebuilding would drop the drag or
     // what's being typed. (Just having the focus, as when the tab opens, doesn't count.)
     if (document.activeElement?.closest(".time-field, .day-picker") && Date.now() - fieldUsedAt < 1500) return;
-    if (["characters", "focus", "settings", "alarms"].includes(current)) void render();
+    if (["characters", "focus", "modes", "settings", "alarms"].includes(current)) void render();
   });
   await backend.on("panel-tab", (tab) => select(tab));
   await backend.on("mood", () => current === "characters" && void render());

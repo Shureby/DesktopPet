@@ -323,3 +323,9 @@ body.demo .demo-help a {
     translate: 0 -36px;
   }
 }
+/* The mode (✨ 👔 🌙) before the first badge; hovering it says which and until when. */
+.badges > div .mode-mark {
+  margin-right: 4px;
+  padding-right: 4px;
+  border-right: 1px solid rgb(0 0 0 / 0.15);
+}

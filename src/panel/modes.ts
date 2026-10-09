@@ -22,6 +22,7 @@ import {
 import type { Settings } from "../platform/types";
 import { dayPicker, WEEK } from "./dayPicker";
 import { h } from "./dom";
+import { dateField } from "./dateField";
 import { timeField } from "./timeField";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -32,6 +33,12 @@ function debounce<T>(f: (v: T) => void, ms = 400): (v: T) => void {
     clearTimeout(t);
     t = setTimeout(() => f(v), ms);
   };
+}
+
+/** "HH:MM" an hour later (23:30 → 00:30). */
+export function addHour(hm: string): string {
+  const [hh, mm] = hm.split(":").map(Number);
+  return `${String((hh + 1) % 24).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }
 
 /** "9:00 AM" for "09:00" (the system's 12/24-hour setting). */
@@ -186,6 +193,8 @@ export function modesSection(get: () => Settings, save: (patch: Partial<Settings
     else renderTop();
   };
   let timeEdits = Promise.resolve();
+  /** A short note under a table ("A slot needs an end after its start…"). */
+  let notice: { which: "workday" | "dayOff"; text: string } | null = null;
 
   const slotRows = (which: "workday" | "dayOff") => {
     const list = get().modes[which];
@@ -196,7 +205,21 @@ export function modesSection(get: () => Settings, save: (patch: Partial<Settings
       ...list.map((slot, i) => {
         // Read afresh: an earlier edit may not have redrawn the list. Edits are saved in turn.
         const change = (patch: Partial<ModeSlot>, redraw = true) => {
-          timeEdits = timeEdits.then(() => update({ [which]: get().modes[which].map((x, j) => (j === i ? { ...x, ...patch } : x)) }, redraw));
+          timeEdits = timeEdits.then(() => {
+            const slots = get().modes[which].map((x, j) => (j === i ? { ...x, ...patch } : x));
+            // From 9:00 to 9:00 would be all day without saying so: it ends an hour later.
+            const s = slots[i];
+            if (s && s.start === s.end) {
+              slots[i] = { ...s, end: addHour(s.start) };
+              notice = { which, text: "A slot needs an end after its start: it ends an hour later." };
+              setTimeout(() => {
+                notice = null;
+                render();
+              }, 5000);
+              redraw = true;
+            }
+            return update({ [which]: slots }, redraw);
+          });
         };
         const laterStart = debounce((start: string) => change({ start }, false));
         const laterEnd = debounce((end: string) => change({ end }, false));
@@ -216,9 +239,18 @@ export function modesSection(get: () => Settings, save: (patch: Partial<Settings
       }),
       h(
         "button",
-        { class: "link add-slot", onclick: () => set([...get().modes[which], { start: "12:00", end: "13:00", mode: which === "workday" ? "work" : "quiet" }]) },
+        {
+          class: "link add-slot",
+          // After the last slot, an hour long (12:00–13:00 in an empty table).
+          onclick: () => {
+            const slots = get().modes[which];
+            const start = slots.at(-1)?.end ?? "12:00";
+            set([...slots, { start, end: addHour(start), mode: which === "workday" ? "work" : "quiet" }]);
+          },
+        },
         "+ Add a time slot",
       ),
+      ...(notice?.which === which ? [h("p", { class: "warning slot-notice" }, notice.text)] : []),
     );
   };
 
@@ -269,7 +301,14 @@ export function modesSection(get: () => Settings, save: (patch: Partial<Settings
     const m = get().modes;
     const now = new Date();
     const n = modeNow(m, now);
-    const why = n.why === "manual" ? "picked by hand" : n.why === "override" ? `for a while, until ${clock(n.until!)}` : n.until ? `schedule, until ${clock(n.until)}` : "schedule";
+    const why =
+      n.why === "manual"
+        ? "picked here"
+        : n.why === "override"
+          ? `for a while, until ${clock(n.until!)}`
+          : n.until
+            ? `schedule, until ${clock(n.until)}`
+            : "schedule";
     top.replaceChildren(
       h(
         "div",
@@ -287,6 +326,23 @@ export function modesSection(get: () => Settings, save: (patch: Partial<Settings
     );
   };
 
+  /** "Days off until [date] ✕": a holiday, every day up to that one uses the days-off table. */
+  const holidayRow = () => {
+    const until = get().modes.holidayUntil;
+    const today = dayKey(new Date());
+    if (!until || until < today) {
+      const inAWeek = dayKey(new Date(Date.now() + 7 * 86_400_000));
+      return h("button", { class: "link holiday-add", onclick: () => void update({ holidayUntil: inAWeek }) }, "+ Days off until…");
+    }
+    return h(
+      "div",
+      { class: "row holiday" },
+      h("span", { class: "label" }, "Days off until"),
+      dateField(until, debounce((holidayUntil: string) => void update({ holidayUntil }, false)), "Days off until"),
+      h("button", { class: "mini remove", title: "No more days off", onclick: () => void update({ holidayUntil: null }) }, "✕"),
+    );
+  };
+
   const render = () => {
     const m = get().modes;
     const today = dayKey(new Date());
@@ -301,6 +357,7 @@ export function modesSection(get: () => Settings, save: (patch: Partial<Settings
         h("input", { type: "checkbox", class: "day-off-today", checked: m.dayOffOn === today, onchange: () => void update({ dayOffOn: m.dayOffOn === today ? null : today }) }),
         "Today is a day off",
       ),
+      holidayRow(),
       h("div", { class: "subhead" }, "On work days"),
       slotRows("workday"),
       h("div", { class: "subhead" }, "On days off"),

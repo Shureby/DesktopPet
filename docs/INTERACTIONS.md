@@ -508,11 +508,11 @@ in the panel.
 
 Code: `src/features/modes/modes.ts` (pure: the mode now, the schedule, presets, settings from
 before), `updateMode` / `preset()` in `PetHost`, `modeItem` in `src/pet/menu.ts`,
-`src/panel/modes.ts` (Settings → Modes).
+`src/panel/modes.ts` (the Modes tab; in Settings in 0.37.0).
 
 - **Four modes, each changing a few things** (every one can be changed in Settings → Modes →
   "What each mode changes"; Reset to defaults puts them back):
-  - 🎉 **Lively**: like Normal, and anniversaries play their music even when it's off.
+  - ✨ **Lively**: like Normal, and anniversaries play their music even when it's off.
   - 🙂 **Normal**: your settings as they are (shown, not editable, in the table).
   - 👔 **Work**: rings at half volume, alarms ring 15 s at most; the pet perks up where it
     is instead of coming to the middle; anniversaries wait; it doesn't talk on its own;
@@ -521,8 +521,15 @@ before), `updateMode` / `preset()` in `PetHost`, `modeItem` in `src/pet/menu.ts`
     on its own; to-dos don't ring (the bubble only); anniversaries wait; no petting or
     focus sounds. **Alarms and timers still ring**, starting at a quarter of their volume
     and rising to it over 30 seconds, and the pet doesn't run.
-- **Which mode: Auto (the default) or one picked by hand.** In Auto: "Quiet for 1 hour"
-  first (until it runs out), then the weekly schedule; time not in a slot is Normal.
+- **Which mode:** a mode for a while (from the menus) first, until it runs out; then the
+  mode picked in the Modes tab: Auto (the default, the weekly schedule; time not in a slot
+  is Normal) or one mode for good.
+  - **A mode picked from a menu is for a while** (since 0.37.1): until what's underneath
+    next changes (the schedule's next slot), or midnight if nothing changes; the menu says
+    so ("👔 Work until 5:30 PM"). Then it's back to Auto, or the mode picked for good.
+  - **Quiet for…**: 30 minutes, 1 hour, 2 hours, or until tomorrow morning (when the
+    schedule's Quiet night ends tomorrow; 8:00 without one).
+  - Auto in the menu ends a mode for a while at once.
 - **The weekly schedule:** which days are work days (Mon–Fri by default), and a table of
   time slots for work days and one for days off, each "from – until → mode".
   - A slot that ends at or before its start runs past midnight and belongs to the day it
@@ -530,23 +537,43 @@ before), `updateMode` / `preset()` in `PetHost`, `modeItem` in `src/pet/menu.ts`
   - Where slots overlap, the quieter mode wins (Quiet, Work, Lively, Normal).
   - **Defaults:** work days 22:00–07:00 Quiet and 09:00–17:30 Work; days off 23:00–08:00
     Quiet.
-  - "Today is a day off" (menu or Settings) uses the days-off table today. (`holidayUntil`,
-    days off up to a date, is in the settings for later; there's no field for it yet.)
+  - "Today is a day off" (menu or the Modes tab) uses the days-off table today.
+  - "Days off until [date]" (the Modes tab, since 0.37.1): every day up to and including it
+    uses the days-off table (a holiday). "+ Days off until…" starts it a week ahead; ✕ ends it.
+  - Editing slots (since 0.37.1): a new slot starts where the last one in its table ends,
+    an hour long (12:00–13:00 in an empty table); an end set to the start moves an hour
+    later, with a short note, so a slot never silently covers the whole day.
 - **Settings from before 0.37.0:** Quiet hours that were on become a Quiet slot in both
   tables; Focus work hours that were on become a Work slot on their days (and those are
   the work days). With neither on, the default schedule. The mode is Auto.
 - **Where it shows:**
-  - A badge by the pet in Work ("👔 Work") and Quiet ("🌙 Quiet"); hovering says why
-    ("until 5:30 PM", "picked by hand"); clicking opens Settings. Lively and Normal show
-    nothing.
-  - Both menus: "Switch mode (now: 👔 Work until 5:30 PM)" above Open panel…: Auto, the four
-    modes (the one picked is ticked), Quiet for 1 hour, Today is a day off.
-  - Settings → Modes: the mode now and why, Auto or a mode, the week (seven bars coloured
-    by mode, a line at the time now), the work days, both tables, and what each mode
-    changes.
-- **Anniversaries that wait** (Work, Quiet): nothing plays; a "🎉 Mum" badge by the pet
-  (click: celebrate now). When the mode next allows celebrations the pet asks once
-  "🎉 Today: 🎂 Mum Celebrate now?" [Celebrate] [Skip]. Only that day; kept over a restart.
+  - **The mode's icon before the first badge by the pet** (since 0.37.1): "👔 🍅 24:13",
+    "🌙 ⏱ 4:59". No badges, no icon: with nothing to remind you of, the mode makes no
+    difference you'd see. Normal shows none. Hovering the icon says which mode and why
+    ("until 5:30 PM, then Auto"); clicking it opens the Modes tab. (0.37.0 had a badge of
+    its own.)
+  - The tray icon's tooltip: "ePet · 👔 Work until 5:30 PM" (since 0.37.1), so the mode
+    shows with the pet hidden too.
+  - Both menus: "Switch mode (now: 👔 Work until 5:30 PM)" above Open panel…: Auto
+    (schedule), the four modes for a while, Quiet for…, Today is a day off.
+  - The Modes tab (between Focus and Characters since 0.37.1): the mode now and why, Auto or
+    a mode for good, the week (seven bars coloured by mode, a line at the time now), the
+    work days, days off until, both tables, and what each mode changes, every row and
+    mode with an ⓘ saying what it does. Settings → Pet has a line linking to it ("Quiet
+    hours are now in Modes").
+  - **Once, the pet says what modes are** (since 0.37.1): "New: modes! I'm in 👔 Work until
+    5:30 PM. Quieter at night and at work, by a weekly schedule." [Show me] [OK] (Show me
+    opens the Modes tab). Not in Quiet, not in the first half minute after start, not over
+    something ringing. `modes.introduced` remembers it.
+- **Anniversaries that wait** (Work, Quiet): nothing plays; a badge with the anniversary's
+  own icon by the pet ("🎂 Mum"; click: celebrate now). When the mode next allows
+  celebrations the pet asks once "🎉 Today: 🎂 Mum Celebrate now?" [Celebrate] [Skip].
+  Kept over a restart.
+  - **At 23:59, still waiting:** the pet asks once more, "Celebrate before the day ends?",
+    unless it's Quiet (you're likely asleep).
+  - **After midnight it's missed.** The next time you're at the computer (the cursor moves)
+    and it isn't Quiet, the pet says so once: "🎂 You missed Mum yesterday." [Celebrate now]
+    [OK]. Missed ones older than a week aren't brought up.
 - The pet works the mode out every 30 seconds and whenever the settings or the clock
   change, so a slot starts within half a minute.
 - Modes are this computer's own settings (not synced); a backup restores them with the

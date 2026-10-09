@@ -16,6 +16,29 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.37.1] - 2026-10-09
+
+## [0.37.1] - 2026-10-09
+
+### Added
+- Modes has a tab of its own (between Focus and Characters); Settings → Pet links to it.
+- Every effect and mode in "What each mode changes" has an ⓘ saying what it does.
+- **Quiet for…** 30 minutes, 1 hour, 2 hours or until tomorrow morning.
+- **Days off until** a date (a holiday).
+- The tray icon's tooltip says the mode ("ePet · 👔 Work until 5:30 PM").
+- Once, the pet says what modes are ("New: modes! …" [Show me] [OK]).
+- An anniversary still waiting at 23:59 is offered once more; one missed by midnight is
+  told the next time you're at the computer ("🎂 You missed Mum yesterday." [Celebrate now]).
+
+### Changed
+- A mode picked from the menu lasts until the schedule next changes ("👔 Work until 5:30 PM"),
+  then it's Auto again; a mode picked in the Modes tab stays.
+- The mode shows as a small icon before the first badge by the pet (none without badges)
+  instead of a badge of its own. Lively's icon is ✨; a waiting anniversary's badge shows its
+  own icon ("🎂 Mum").
+- Modes are listed Normal, Lively, Work, Quiet everywhere.
+- A new time slot starts where the last one ends; a slot can't end when it starts.
+
 ## [0.37.0] - 2026-10-09
 
 ## [0.37.0] - 2026-10-09

@@ -14,7 +14,7 @@ export type ModeChoice = "auto" | ModeId;
 export const MODE_IDS: ModeId[] = ["normal", "lively", "work", "quiet"];
 
 export const MODE_NAMES: Record<ModeId, string> = { lively: "Lively", normal: "Normal", work: "Work", quiet: "Quiet" };
-export const MODE_ICONS: Record<ModeId, string> = { lively: "🎉", normal: "🙂", work: "👔", quiet: "🌙" };
+export const MODE_ICONS: Record<ModeId, string> = { lively: "✨", normal: "🙂", work: "👔", quiet: "🌙" };
 
 /** "HH:MM" to "HH:MM" (an end at or before the start is the next day) in one mode. */
 export interface ModeSlot {
@@ -60,6 +60,8 @@ export interface ModeSettings {
   /** "YYYY-MM-DD": every day up to and including it is a day off (a holiday). */
   holidayUntil: string | null;
   presets: Record<ModeId, ModePreset>;
+  /** The pet has said once what modes are ("New: modes!…"). */
+  introduced: boolean;
 }
 
 const PLAIN: ModePreset = {
@@ -97,6 +99,7 @@ export const DEFAULT_MODES: ModeSettings = {
   dayOffOn: null,
   holidayUntil: null,
   presets: DEFAULT_PRESETS,
+  introduced: false,
 };
 
 const HM = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -146,6 +149,7 @@ export function modeSettings(stored: unknown, legacy: Legacy = {}): ModeSettings
     dayOffOn: typeof s.dayOffOn === "string" && DATE.test(s.dayOffOn) ? s.dayOffOn : null,
     holidayUntil: typeof s.holidayUntil === "string" && DATE.test(s.holidayUntil) ? s.holidayUntil : null,
     presets,
+    introduced: s.introduced === true,
   };
 }
 
@@ -223,10 +227,37 @@ export interface ModeNow {
 
 /** The mode now and why: a mode picked by hand, then one for a while, then the schedule. */
 export function modeNow(m: ModeSettings, now: Date): ModeNow {
-  if (m.choice !== "auto") return { mode: m.choice, why: "manual", until: null };
+  // A mode for a while (from the menu) goes over both the schedule and a mode picked for good.
   if (m.override && m.override.until > now.getTime()) return { mode: m.override.mode, why: "override", until: m.override.until };
+  if (m.choice !== "auto") return { mode: m.choice, why: "manual", until: null };
   const mode = scheduledMode(m, now);
   return { mode, why: "schedule", until: nextChange(m, now, mode) };
+}
+
+/** What comes after a mode for a while runs out: Auto (the schedule) or the mode picked for good. */
+export function baseMode(m: ModeSettings, now: Date): ModeNow {
+  return modeNow({ ...m, override: null }, now);
+}
+
+/**
+ * Until when a mode picked from the menu lasts: until what's underneath next changes (the
+ * schedule's next slot), or the end of the day if nothing changes by itself.
+ */
+export function overrideUntil(m: ModeSettings, now: Date): number {
+  return baseMode(m, now).until ?? new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime();
+}
+
+/**
+ * "Quiet until tomorrow morning": when tomorrow's night ends on the schedule (the first
+ * quarter hour after midnight that isn't Quiet), or 8:00 if the night isn't Quiet.
+ */
+export function tomorrowMorning(m: ModeSettings, now: Date): number {
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  for (let q = 0; q < 16 * 4; q++) {
+    const t = new Date(midnight.getFullYear(), midnight.getMonth(), midnight.getDate(), 0, q * 15);
+    if (scheduledMode(m, t) !== "quiet") return q === 0 ? midnight.getTime() + 8 * 3_600_000 : t.getTime();
+  }
+  return midnight.getTime() + 8 * 3_600_000;
 }
 
 /** The next slot boundary (within two days) where the schedule's mode differs from `mode`. */
