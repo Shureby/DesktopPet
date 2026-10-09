@@ -16,6 +16,22 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.36.2] - 2026-10-09
+
+## [0.36.2] - 2026-10-09
+
+### Added
+- Focus → Timing: **Reset to defaults** (25 / 5 / 15 / 4).
+
+### Changed
+- A break starting now sounds **Office trill** by default (was Chime); a focus starting
+  stays **Field phone**. (Settings saved before keep their choice.)
+
+### Fixed
+- Focus → Timing: each length is a whole number, at least 1 (0, a negative number or an
+  empty box was saved as typed); changing several quickly no longer loses all but the last;
+  the idle clock follows the Focus length.
+
 ## [0.36.1] - 2026-10-08
 
 ## [0.36.1] - 2026-10-08

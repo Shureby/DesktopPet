@@ -88,6 +88,32 @@ check("focus.cycle", "a focus ends in a break; every N rounds a long break (leng
   await app.invoke("pomodoro_stop");
 });
 
+check("focus.timing", "the Focus tab's lengths are whole minutes, at least 1; Reset to defaults sets 25 / 5 / 15 / 4", async () => {
+  const app = ctx.app;
+  await reset({ focusMin: 30, shortBreakMin: 10, longBreakMin: 20, roundsBeforeLong: 3 });
+  await app.panel("focus");
+  await app.b.waitUntil(async () => (await app.b.$$(".timing:not(.focus-sounds) input")).length === 4, { timeout: 5000 });
+  // Typed in: 0, nothing, 2.6 and -3.
+  const shown = await app.b.execute(() => {
+    const inputs = [...document.querySelectorAll(".timing:not(.focus-sounds) input")];
+    ["0", "", "2.6", "-3"].forEach((v, i) => {
+      inputs[i].value = v;
+      inputs[i].dispatchEvent(new Event("change"));
+    });
+    return inputs.map((i) => i.value);
+  });
+  assert.deepEqual(shown, ["1", "10", "3", "1"]);
+  const lengths = async () => {
+    const p = (await app.settings()).pomodoro;
+    return [p.focusMin, p.shortBreakMin, p.longBreakMin, p.roundsBeforeLong];
+  };
+  await app.b.waitUntil(async () => JSON.stringify(await lengths()) === "[1,10,3,1]", { timeout: 5000 });
+  await app.b.execute(() => document.querySelector("button.reset-timing").click());
+  await app.b.waitUntil(async () => JSON.stringify(await lengths()) === "[25,5,15,4]", { timeout: 5000 });
+  assert.deepEqual(await app.b.execute(() => [...document.querySelectorAll(".timing:not(.focus-sounds) input")].map((i) => i.value)), ["25", "5", "15", "4"]);
+  assert.equal(await app.b.execute(() => document.querySelector(".now-clock").textContent), "25:00");
+});
+
 check("focus.stats", "the Focus tab's Last 7 days counts finished sessions", async () => {
   const app = ctx.app;
   // (focus.cycle finished two.)
@@ -174,7 +200,7 @@ check("focus.games-held", "during focus the game asks first (Cancel / Play anywa
   await app.invoke("pomodoro_stop");
 });
 
-check("focus.sounds", "a focus starting and a break starting have sounds of their own (Field phone, Chime by default), each can be off, and they play with the pet hidden too", async () => {
+check("focus.sounds", "a focus starting and a break starting have sounds of their own (Field phone, Office trill by default), each can be off, and they play with the pet hidden too", async () => {
   const app = ctx.app;
   await reset({ focusMin: 0.05, shortBreakMin: 0.05, sounds: { focus: "fieldPhone", break: "chime", volume: 0.5 } });
   const tones = async (since) => (await app.sounds(since)).filter((s) => s.kind === "focus-tone").map((s) => `${s.what}:${s.id}`);

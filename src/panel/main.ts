@@ -38,6 +38,7 @@ import { GAMES } from "../features/games/catalog";
 import {
   backend,
   clampUpcomingMinutes,
+  DEFAULT_SETTINGS,
   WEEKDAYS,
   type Alarm,
   type AlertSettings,
@@ -1161,26 +1162,42 @@ async function renderFocus(): Promise<Node> {
   const label = h("div", { class: "now-phase" });
   const names = { idle: "Ready when you are", focus: "Focus", short_break: "Short break", long_break: "Long break" };
   const tickClock = () => {
-    label.textContent = `${names[status.phase]}${status.phase !== "idle" ? ` · round ${status.round + (status.phase === "focus" ? 1 : 0)}/${c.roundsBeforeLong}` : ""}`;
-    clock.textContent = status.endsAt ? formatRemaining(status.endsAt - Date.now()) : `${c.focusMin}:00`;
+    label.textContent = `${names[status.phase]}${status.phase !== "idle" ? ` · round ${status.round + (status.phase === "focus" ? 1 : 0)}/${settings.pomodoro.roundsBeforeLong}` : ""}`;
+    clock.textContent = status.endsAt ? formatRemaining(status.endsAt - Date.now()) : `${settings.pomodoro.focusMin}:00`;
   };
   tickClock();
   const id = setInterval(tickClock, 500);
   cleanup.push(() => clearInterval(id));
 
-  const num = (key: keyof typeof c, text: string, min: number, max: number) =>
-    h(
-      "label",
-      {},
-      text,
-      h("input", {
-        type: "number",
-        min,
-        max,
-        value: c[key] as number,
-        onchange: (e: Event) => void save({ pomodoro: { ...settings.pomodoro, [key]: Number((e.target as HTMLInputElement).value) } }),
-      }),
-    );
+  type TimingKey = "focusMin" | "shortBreakMin" | "longBreakMin" | "roundsBeforeLong";
+  const timingInputs = new Map<TimingKey, HTMLInputElement>();
+  // Whole numbers, at least 1 (0 or empty would make a session end at once).
+  const num = (key: TimingKey, text: string, min: number, max: number) => {
+    const input = h("input", {
+      type: "number",
+      min,
+      max,
+      step: 1,
+      value: c[key],
+      onchange: () => {
+        const n = Math.round(Number(input.value));
+        const value = input.value.trim() !== "" && Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : settings.pomodoro[key];
+        input.value = String(value);
+        // Kept here at once too: a second change before this one is saved builds on it.
+        settings = { ...settings, pomodoro: { ...settings.pomodoro, [key]: value } };
+        void save({ pomodoro: settings.pomodoro });
+      },
+    }) as HTMLInputElement;
+    timingInputs.set(key, input);
+    return h("label", {}, text, input);
+  };
+  const d = DEFAULT_SETTINGS.pomodoro;
+  const defaultTiming = `Focus ${d.focusMin} · Short break ${d.shortBreakMin} · Long break ${d.longBreakMin} · Long every ${d.roundsBeforeLong}`;
+  const resetTiming = async () => {
+    const timing = { focusMin: d.focusMin, shortBreakMin: d.shortBreakMin, longBreakMin: d.longBreakMin, roundsBeforeLong: d.roundsBeforeLong };
+    await save({ pomodoro: { ...settings.pomodoro, ...timing } });
+    for (const [key, input] of timingInputs) input.value = String(timing[key]);
+  };
   const check = (key: "autoContinue" | "holdGames", text: string) =>
     h(
       "label",
@@ -1222,7 +1239,12 @@ async function renderFocus(): Promise<Node> {
         ),
       ),
     ),
-    h("h3", {}, "Timing (minutes)"),
+    h(
+      "h3",
+      { class: "split" },
+      "Timing (minutes)",
+      h("button", { class: "link reset-timing", title: defaultTiming, onclick: () => void resetTiming() }, "Reset to defaults"),
+    ),
     h(
       "div",
       { class: "timing" },

@@ -493,7 +493,7 @@ in the panel.
   without seeing the pet (it may be hidden or on another screen). Focus → "Sound: focus
   starts" (default **Field phone**: one ring, about 1.3 s, of the chirping operations-room
   desk phone — two pairs of chirps, then a fast trill) and "Sound: break starts"
-  (default **Chime**), each with ▶ and Off; one Volume for both.
+  (default **Office trill**), each with ▶ and Off; one Volume for both.
 - They play whether the pet is shown or hidden ("When hidden, it comes out for → Focus
   sessions" decides only whether the pet comes out).
 - Before 0.36.0 both were the same chime, under Settings → "Other sounds"; that is now

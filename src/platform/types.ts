@@ -105,7 +105,7 @@ export const DEFAULT_SETTINGS: Settings = {
     autoContinue: true,
     workHours: { enabled: false, days: WEEKDAYS, start: "09:00", end: "17:30" },
     holdGames: true,
-    sounds: { focus: "fieldPhone", break: "chime", volume: 0.5 },
+    sounds: { focus: "fieldPhone", break: "trill", volume: 0.5 },
   },
   autostart: false,
 };

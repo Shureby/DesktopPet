@@ -843,7 +843,7 @@ dependencies = [
 
 [[package]]
 name = "desktoppet"
-version = "0.36.1"
+version = "0.36.2"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -865,7 +865,7 @@ dependencies = [
 
 [[package]]
 name = "desktoppet-core"
-version = "0.36.1"
+version = "0.36.2"
 dependencies = [
  "argon2",
  "chacha20poly1305",
