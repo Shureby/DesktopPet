@@ -534,7 +534,13 @@ before), `updateMode` / `preset()` in `PetHost`, `modeItem` in `src/pet/menu.ts`
   time slots for work days and one for days off, each "from – until → mode".
   - A slot that ends at or before its start runs past midnight and belongs to the day it
     starts on (Monday 22:00–07:00 is Monday night).
-  - Where slots overlap, the quieter mode wins (Quiet, Work, Lively, Normal).
+  - Where slots overlap, the quieter mode wins (Quiet, Work, Lively, Normal), minute by
+    minute: Work until 10:01 PM and Quiet from 10:00 PM is Quiet from 10:00. The Modes tab
+    says so under the slot that gives way (since 0.37.2): "Overlaps Quiet 10:00 PM–8:30 AM:
+    Quiet wins 10:00 PM–10:01 PM". Only within one table. The week's bars are drawn by
+    quarter hours, so a minute's overlap doesn't show there.
+  - A slot past midnight says "(next day)" after its end (since 0.37.2), so 8:30 AM and
+    8:30 PM can't be mixed up unnoticed.
   - **Defaults:** work days 22:00–07:00 Quiet and 09:00–17:30 Work; days off 23:00–08:00
     Quiet.
   - "Today is a day off" (menu or the Modes tab) uses the days-off table today.
@@ -543,6 +549,9 @@ before), `updateMode` / `preset()` in `PetHost`, `modeItem` in `src/pet/menu.ts`
   - Editing slots (since 0.37.1): a new slot starts where the last one in its table ends,
     an hour long (12:00–13:00 in an empty table); an end set to the start moves an hour
     later, with a short note, so a slot never silently covers the whole day.
+- **Saving:** every change to the modes (the tab, the menus, the pet's own "introduced")
+  starts from the settings as stored, not from what that window last heard, so windows
+  don't undo each other (since 0.37.2).
 - **Settings from before 0.37.0:** Quiet hours that were on become a Quiet slot in both
   tables; Focus work hours that were on become a Work slot on their days (and those are
   the work days). With neither on, the default schedule. The mode is Auto.

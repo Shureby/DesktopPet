@@ -191,7 +191,7 @@ export function isDayOff(m: ModeSettings, day: Date): boolean {
 }
 
 /** When several slots overlap, the quieter one wins. */
-const RANK: Record<ModeId, number> = { quiet: 3, work: 2, lively: 1, normal: 0 };
+export const RANK: Record<ModeId, number> = { quiet: 3, work: 2, lively: 1, normal: 0 };
 
 /** The schedule's mode at `now` (Normal where no slot covers it). */
 export function scheduledMode(m: ModeSettings, now: Date): ModeId {
@@ -301,4 +301,41 @@ export function workSpan(m: ModeSettings): { days: DayMask; start: string; end: 
 /** Volume at `t` seconds into a ring that ramps up: a quarter, rising to full at 30 s. */
 export function rampVolume(volume: number, t: number): number {
   return volume * Math.min(1, 0.25 + (0.75 * Math.max(0, t)) / 30);
+}
+
+/** Two slots of one table covering the same time: `loser` gives way to `winner` from…to (minutes of the day). */
+export interface SlotOverlap {
+  loser: number;
+  winner: number;
+  from: number;
+  to: number;
+}
+
+/**
+ * Where slots of one table overlap with different modes (the quieter wins there), for the
+ * Modes tab to say so. Slots past midnight count into the next day.
+ */
+export function slotOverlaps(slots: ModeSlot[]): SlotOverlap[] {
+  const span = (s: ModeSlot): [number, number] => {
+    const a = minutes(s.start);
+    const b = minutes(s.end);
+    return [a, b > a ? b : b + 1440];
+  };
+  const out: SlotOverlap[] = [];
+  slots.forEach((s, i) => {
+    slots.forEach((t, j) => {
+      if (j <= i || s.mode === t.mode) return;
+      const [a1, b1] = span(s);
+      for (const shift of [-1440, 0, 1440]) {
+        const [a2, b2] = span(t).map((x) => x + shift);
+        const from = Math.max(a1, a2);
+        const to = Math.min(b1, b2);
+        if (to <= from) continue;
+        const [winner, loser] = RANK[s.mode] > RANK[t.mode] ? [i, j] : [j, i];
+        out.push({ loser, winner, from: ((from % 1440) + 1440) % 1440, to: ((to % 1440) + 1440) % 1440 });
+        break;
+      }
+    });
+  });
+  return out;
 }

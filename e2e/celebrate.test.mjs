@@ -90,17 +90,17 @@ check("anniv.preview-stop", "▶ Preview turns into ■ Stop while it plays, and
   await app.panel("todos");
   await app.click(".subtabs button", "Anniversaries");
   await app.until(() => document.querySelector(".ann-form"));
-  const formButton = () => app.b.execute(() => document.querySelector(".ann-form button.preview")?.textContent);
+  const formButton = () => app.b.execute(() => document.querySelector(".ann-form button.preview")?.textContent.trim());
   let since = Date.now();
   await app.click(".ann-form button.preview", "Preview");
-  await app.until(() => document.querySelector(".ann-form button.preview")?.textContent === "■ Stop", [], 5000);
+  await app.until(() => document.querySelector(".ann-form button.preview")?.textContent.trim() === "Stop", [], 5000);
   await app.toPet();
   await app.waitBubble("Happy birthday", 5000);
   await app.b.waitUntil(async () => !!(await effect()), { timeout: 10_000 });
   // ■ Stop: all of it goes now.
   await app.toWindow("panel.html");
   await app.click(".ann-form button.preview", "Stop");
-  await app.until(() => document.querySelector(".ann-form button.preview")?.textContent === "▶ Preview", [], 5000);
+  await app.until(() => document.querySelector(".ann-form button.preview")?.textContent.trim() === "Preview", [], 5000);
   await app.toPet();
   await app.until(() => document.getElementById("bubble").hidden, [], 3000);
   await app.b.waitUntil(async () => !(await effect()), { timeout: 3000 });
@@ -122,7 +122,7 @@ check("anniv.preview-stop", "▶ Preview turns into ■ Stop while it plays, and
   });
   await app.sleep(300);
   await app.click(".ann-form button.preview", "Preview");
-  await app.until(() => document.querySelector(".ann-form button.preview")?.textContent === "■ Stop", [], 5000);
+  await app.until(() => document.querySelector(".ann-form button.preview")?.textContent.trim() === "Stop", [], 5000);
   since = Date.now();
   await app.b.execute(() => {
     const s = document.querySelector(".ann-form select.ann-music");
@@ -132,9 +132,9 @@ check("anniv.preview-stop", "▶ Preview turns into ■ Stop while it plays, and
   await app.toPet();
   await app.b.waitUntil(async () => (await app.sounds(since)).some((s) => s.kind === "music" && s.piece === "wagner"), { timeout: 5000 });
   await app.toWindow("panel.html");
-  assert.equal(await formButton(), "■ Stop");
+  assert.equal(await formButton(), "Stop");
   await app.click(".ann-form button.preview", "Stop");
-  await app.until(() => document.querySelector(".ann-form button.preview")?.textContent === "▶ Preview", [], 5000);
+  await app.until(() => document.querySelector(".ann-form button.preview")?.textContent.trim() === "Preview", [], 5000);
 }, { timeout: 120_000 });
 
 check("anniv.fireworks", "a birthday's fireworks: “🎉 Happy 36th birthday, …!”, the effect (fireworks, 🎂🎁, balloons) for the set time; on the day it plays once", async () => {

@@ -75,6 +75,7 @@ import {
   draftFor,
   type AlarmDraft,
 } from "./alarmText";
+import { icon } from "../ui/icons";
 import { backupSection } from "./backup";
 import { hmText, modesSection } from "./modes";
 import { dayPicker, WEEK } from "./dayPicker";
@@ -261,7 +262,7 @@ async function renderTodos(): Promise<Node> {
     paintWhen();
     showHint();
   };
-  const mini = (label: string, onclick: () => void) => h("button", { class: "mini", title: label, onclick }, "✕");
+  const mini = (label: string, onclick: () => void) => h("button", { class: "mini", title: label, onclick }, icon("close"));
   /** 📅 date (or "+ Date"), time (or "+ Time"), repeat. */
   const paintWhen = () => {
     const parts: Node[] = [];
@@ -357,7 +358,7 @@ async function renderTodos(): Promise<Node> {
         : null,
       t.done && t.doneAt ? h("span", { class: "when" }, `Done · ${formatWhen(t.doneAt)}`) : null,
       t.done ? null : h("button", { class: "icon edit", title: "Edit", onclick: () => startEdit(t) }, "✎"),
-      h("button", { class: "icon delete", title: "Delete", onclick: () => void backend.deleteTodo(t.id) }, "✕"),
+      h("button", { class: "icon delete", title: "Delete", onclick: () => void backend.deleteTodo(t.id) }, icon("close")),
     );
   };
 
@@ -407,8 +408,8 @@ let annDraft: AnniversaryDraft | null = null;
 /** Which ▶ started the preview playing ("form" or "ann-<id>"); null when none plays. */
 let previewing: string | null = null;
 
-/** ▶ that turns into ■ Stop while its preview plays; `play` starts it. */
-function previewButton(key: string, cls: string, title: string, idle: string, play: () => void): HTMLButtonElement {
+/** ▶ (with `label`, e.g. "Preview") that turns into ■ (Stop) while its preview plays; `play` starts it. */
+function previewButton(key: string, cls: string, title: string, label: string, play: () => void): HTMLButtonElement {
   const btn = h("button", {
     class: cls,
     title,
@@ -423,15 +424,15 @@ function previewButton(key: string, cls: string, title: string, idle: string, pl
       play();
     },
   });
-  btn.dataset.idle = idle;
+  btn.dataset.label = label;
   paintPreviewButton(btn);
   return btn;
 }
 
 function paintPreviewButton(btn: HTMLElement): void {
   const on = previewing === btn.dataset.preview;
-  const icon = btn.dataset.idle === "▶";
-  btn.textContent = on ? (icon ? "■" : "■ Stop") : (btn.dataset.idle ?? "");
+  const label = btn.dataset.label ? (on ? "Stop" : btn.dataset.label) : "";
+  btn.replaceChildren(icon(on ? "stop" : "play"), ...(label ? [label] : []));
   btn.classList.toggle("stop", on);
 }
 
@@ -554,7 +555,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
             redraw();
           },
         },
-        "✕",
+        icon("close"),
       ),
     ),
   );
@@ -687,9 +688,9 @@ function renderAnniversaries(list: Anniversary[]): Node {
           ? h("span", { class: "preps" }, a.preps.map((p) => `${leadLabel(p.lead)} before: ${p.label}`).join(" · "))
           : null,
       ),
-      previewButton(`ann-${a.id}`, "icon edit", "Preview its day's celebration", "▶", () => void backend.previewCelebration(a)),
+      previewButton(`ann-${a.id}`, "icon edit", "Preview its day's celebration", "", () => void backend.previewCelebration(a)),
       h("button", { class: "icon edit", title: "Edit", onclick: () => startEdit(a) }, "✎"),
-      h("button", { class: "icon delete", title: "Delete (its to-dos stay)", onclick: () => void backend.deleteAnniversary(a.id) }, "✕"),
+      h("button", { class: "icon delete", title: "Delete (its to-dos stay)", onclick: () => void backend.deleteAnniversary(a.id) }, icon("close")),
     );
   };
 
@@ -733,7 +734,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
       h(
         "div",
         { class: "row end" },
-        previewButton("form", "preview", "Play its day's celebration now", "▶ Preview", preview),
+        previewButton("form", "preview", "Play its day's celebration now", "Preview", preview),
         h("button", { class: "primary", onclick: () => void save() }, editingAnn ? "Save" : "Add"),
       ),
     ),
@@ -868,7 +869,7 @@ async function renderAlarms(): Promise<Node> {
           title: "Forget this one",
           onclick: () => void save({ recentTimers: forgetCustomTimer(settings.recentTimers, m) }),
         },
-        "✕",
+        icon("close"),
       ),
     );
   const customInput = h("input", { type: "text", placeholder: "Custom: 20 · 1:30 · 90s", class: "custom-timer" });
@@ -957,7 +958,7 @@ async function renderAlarms(): Promise<Node> {
           : null,
       ),
       h("button", { class: "icon edit", title: "Edit", onclick: () => startEdit(a) }, "✎"),
-      h("button", { class: "icon delete", title: "Delete", onclick: () => void backend.deleteAlarm(a.id) }, "✕"),
+      h("button", { class: "icon delete", title: "Delete", onclick: () => void backend.deleteAlarm(a.id) }, icon("close")),
       toggle(a.enabled, a.label, (input) => {
         // Switching off a repeating alarm asks, like a phone: skip just the next ring, or all?
         if (a.enabled && a.repeat !== "none") {
@@ -979,7 +980,7 @@ async function renderAlarms(): Promise<Node> {
         h("span", { class: "title" }, isTimer(a) ? `${timerName(a)} timer` : a.label),
         h("span", { class: `sub ${a.missedAt ? "missed" : ""}` }, finishedStatus(a)),
       ),
-      h("button", { class: "icon", title: "Delete", onclick: () => void backend.deleteAlarm(a.id) }, "✕"),
+      h("button", { class: "icon", title: "Delete", onclick: () => void backend.deleteAlarm(a.id) }, icon("close")),
     );
 
   const section = h(
@@ -1283,7 +1284,7 @@ function focusSoundsRow(): Node {
       "label",
       {},
       text,
-      h("span", { class: "row" }, select, h("button", { class: "mini", title: "Preview", onclick: (e: Event) => (e.preventDefault(), play()) }, "▶")),
+      h("span", { class: "row" }, select, h("button", { class: "mini", title: "Preview", onclick: (e: Event) => (e.preventDefault(), play()) }, icon("play"))),
     );
   };
   return h(
@@ -1454,7 +1455,7 @@ async function renderGames(): Promise<Node> {
 
 /** Modes (docs/INTERACTIONS.md, "Modes"): src/panel/modes.ts. */
 async function renderModes(): Promise<Node> {
-  return h("section", { class: "modes-page" }, h("h3", {}, "Modes"), modesSection(() => settings, save));
+  return h("section", { class: "modes-page" }, h("h3", {}, "Modes"), modesSection(() => settings, save, () => backend.getSettings()));
 }
 
 async function renderSettings(): Promise<Node> {
@@ -1591,7 +1592,7 @@ function alertBox(kind: "alarm" | "todo"): Node {
       { class: "row" },
       h("label", { class: "check" }, h("input", { type: "checkbox", checked: a.ring, onchange: () => void update({ ring: !a.ring }) }), "Ring"),
       tone,
-      h("button", { title: "Preview", onclick: () => playRingtone(tone.value as RingtoneId, Number(volume.value)) }, "▶"),
+      h("button", { title: "Preview", onclick: () => playRingtone(tone.value as RingtoneId, Number(volume.value)) }, icon("play")),
       h("span", { class: "hint" }, "🔈"),
       volume,
     ),

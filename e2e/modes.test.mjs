@@ -181,7 +181,7 @@ check("modes.intro", "once, the pet says what modes are (not in Quiet); Show me 
   assert.equal(await app.panelTab(), "modes");
 }, { timeout: 60_000 });
 
-check("modes.panel", "the Modes tab: the mode now, the week, a mode picked there; a Work slot added sets the Focus tab's work hours; a new slot follows the last; a slot can't end when it starts; days off until a date", async () => {
+check("modes.panel", "the Modes tab: the mode now, the week, a mode picked there; a Work slot added sets the Focus tab's work hours; a new slot follows the last; a slot can't end when it starts; days off until a date; “(next day)” and overlaps shown", async () => {
   const app = ctx.app;
   await reset({ choice: "auto" });
   await app.panel("modes");
@@ -206,8 +206,6 @@ check("modes.panel", "the Modes tab: the mode now, the week, a mode picked there
   const s = await app.settings();
   assert.deepEqual(s.modes.workday, [{ start: "12:00", end: "13:00", mode: "work" }]);
   assert.deepEqual([s.pomodoro.workHours.start, s.pomodoro.workHours.end], ["12:00", "13:00"]);
-  const noon = new Date();
-  noon.setHours(12, 0, 0, 0);
   // The next one starts where it ends.
   await app.tab("modes");
   await app.click(".modes .slots.workday .add-slot", "Add a time slot");
@@ -226,6 +224,28 @@ check("modes.panel", "the Modes tab: the mode now, the week, a mode picked there
   await app.b.waitUntil(async () => !!(await app.settings()).modes.holidayUntil, { timeout: 5000 });
   await app.click(".modes .holiday .remove");
   await app.b.waitUntil(async () => (await app.settings()).modes.holidayUntil === null, { timeout: 5000 });
+  // Past midnight says "(next day)"; an overlap says which wins.
+  await app.setSettings((s) => {
+    s.modes.workday = [
+      { start: "18:00", end: "22:01", mode: "work" },
+      { start: "22:00", end: "08:30", mode: "quiet" },
+    ];
+    return s;
+  });
+  await app.toWindow("panel.html");
+  await app.until(() => document.querySelectorAll(".modes .slots.workday .slot").length === 2);
+  const notes = await app.b.execute(() =>
+    [...document.querySelectorAll(".modes .slots.workday .slot")].map((s) => ({
+      nextDay: s.querySelector(".next-day").classList.contains("on"),
+      overlap: s.querySelector(".overlap").hidden ? "" : s.querySelector(".overlap").textContent.trim(),
+    })),
+  );
+  assert.deepEqual(
+    notes.map((n) => n.nextDay),
+    [false, true],
+  );
+  assert.match(notes[0].overlap, /^Overlaps Quiet .+: Quiet wins .+–.+$/);
+  assert.equal(notes[1].overlap, "");
   await app.tab("focus");
-  await app.waitText(".work-hours .work-span", await app.clock(noon.getTime()));
+  await app.waitText(".work-hours .work-span", "the Work slots");
 });

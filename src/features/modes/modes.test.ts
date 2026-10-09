@@ -8,6 +8,7 @@ import {
   overrideUntil,
   rampVolume,
   scheduledMode,
+  slotOverlaps,
   tomorrowMorning,
   workSpan,
   type ModeSettings,
@@ -132,5 +133,24 @@ describe("reminder modes", () => {
     expect(tomorrowMorning(modes(), at(9, 23))).toBe(at(10, 7).getTime());
     expect(tomorrowMorning(modes(), at(10, 23))).toBe(at(11, 8).getTime());
     expect(tomorrowMorning(modes({ workday: [], dayOff: [] }), at(5, 23))).toBe(at(6, 8).getTime());
+  });
+
+  it("finds where slots of one table overlap with different modes, and which wins there", () => {
+    expect(
+      slotOverlaps([
+        { start: "18:00", end: "22:01", mode: "work" },
+        { start: "22:00", end: "08:30", mode: "quiet" },
+      ]),
+    ).toEqual([{ loser: 0, winner: 1, from: 22 * 60, to: 22 * 60 + 1 }]);
+    // Past midnight: Quiet till 08:30 against Lively from 08:00.
+    expect(
+      slotOverlaps([
+        { start: "22:00", end: "08:30", mode: "quiet" },
+        { start: "08:00", end: "22:00", mode: "lively" },
+      ]),
+    ).toEqual([{ loser: 1, winner: 0, from: 8 * 60, to: 8 * 60 + 30 }]);
+    // Touching, or the same mode: nothing to say.
+    expect(slotOverlaps(DEFAULT_MODES.workday)).toEqual([]);
+    expect(slotOverlaps([{ start: "09:00", end: "12:00", mode: "work" }, { start: "11:00", end: "13:00", mode: "work" }])).toEqual([]);
   });
 });

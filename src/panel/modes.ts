@@ -12,6 +12,7 @@ import {
   MODE_NAMES,
   modeNow,
   scheduledMode,
+  slotOverlaps,
   workSpan,
   type ModeChoice,
   type ModeId,
@@ -24,6 +25,7 @@ import { dayPicker, WEEK } from "./dayPicker";
 import { h } from "./dom";
 import { dateField } from "./dateField";
 import { timeField } from "./timeField";
+import { icon } from "../ui/icons";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -34,6 +36,13 @@ function debounce<T>(f: (v: T) => void, ms = 400): (v: T) => void {
     t = setTimeout(() => f(v), ms);
   };
 }
+
+const minutes = (v: string) => {
+  const [hh, mm] = v.split(":").map(Number);
+  return hh * 60 + mm;
+};
+/** "HH:MM" for minutes of the day. */
+const hm = (min: number) => `${String(Math.floor(min / 60) % 24).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
 
 /** "HH:MM" an hour later (23:30 → 00:30). */
 export function addHour(hm: string): string {
@@ -155,7 +164,7 @@ const MODE_INFO: Record<ModeId, string> = {
 let tipBox: HTMLElement | null = null;
 /** "ⓘ": what the thing beside it does, on hover, focus or click. */
 export function infoTip(text: string): HTMLElement {
-  const b = h("button", { type: "button", class: "info", "aria-label": text }, "ⓘ");
+  const b = h("button", { type: "button", class: "info", "aria-label": text }, icon("info"));
   const show = () => {
     tipBox ??= document.body.appendChild(h("div", { class: "info-tip", role: "tooltip" }));
     tipBox.textContent = text;
@@ -182,71 +191,126 @@ export function infoTip(text: string): HTMLElement {
   return b;
 }
 
-export function modesSection(get: () => Settings, save: (patch: Partial<Settings>) => Promise<void>): Node {
+/**
+ * `load` reads the settings as stored: every change starts from them, not from what this page
+ * last saw (another window may have saved since, and a late "settings" event could be older).
+ */
+export function modesSection(get: () => Settings, save: (patch: Partial<Settings>) => Promise<void>, load: () => Promise<Settings>): Node {
   const root = h("div", { class: "box modes" });
   const top = h("div", { class: "modes-top" });
   /** Saves; `redraw: false` (a time being edited) refreshes only the mode now and the week. */
-  const update = async (patch: Partial<ModeSettings>, redraw = true) => {
-    const s = get();
-    await save(modesPatch(s, { ...s.modes, ...patch }));
-    if (redraw) render();
-    else renderTop();
+  /** Changes saved one after another; one failing doesn't stop the next (it says so). */
+  let saving = Promise.resolve();
+  let failed = "";
+  /**
+   * Saves a change made to the modes as stored now. `redraw: false` (a time being edited)
+   * refreshes only the mode now, the week and the slots' notes.
+   */
+  const update = (patch: Partial<ModeSettings> | ((m: ModeSettings) => Partial<ModeSettings>), redraw = true) => {
+    saving = saving
+      .then(async () => {
+        const s = await load();
+        const change = typeof patch === "function" ? patch(s.modes) : patch;
+        await save(modesPatch(s, { ...s.modes, ...change }));
+        failed = "";
+      })
+      .catch((e) => {
+        failed = `Couldn't save: ${e instanceof Error ? e.message : String(e)}`;
+        redraw = true;
+      })
+      .then(() => {
+        if (redraw) render();
+        else {
+          renderTop();
+          paintNotes();
+        }
+      });
+    return saving;
   };
-  let timeEdits = Promise.resolve();
+  /** Each slot's "(next day)" and overlap line, painted from the slots as saved (paintNotes). */
+  let notes: { which: "workday" | "dayOff"; i: number; nextDay: HTMLElement; overlap: HTMLElement }[] = [];
+  const paintNotes = () => {
+    const m = get().modes;
+    const lose = { workday: slotOverlaps(m.workday), dayOff: slotOverlaps(m.dayOff) };
+    const range = (a: number, b: number) => `${hmText(hm(a))}–${hmText(hm(b))}`;
+    for (const n of notes) {
+      const slot = m[n.which][n.i];
+      if (!slot) continue;
+      // Kept in place when off, so the rows' mode menus line up.
+      n.nextDay.classList.toggle("on", minutes(slot.end) <= minutes(slot.start));
+      const o = lose[n.which].find((x) => x.loser === n.i);
+      n.overlap.hidden = !o;
+      if (o) {
+        const w = m[n.which][o.winner];
+        n.overlap.replaceChildren(
+          icon("warning"),
+          ` Overlaps ${MODE_NAMES[w.mode]} ${hmText(w.start)}–${hmText(w.end)}: ${MODE_NAMES[w.mode]} wins ${range(o.from, o.to)}`,
+        );
+      }
+    }
+  };
   /** A short note under a table ("A slot needs an end after its start…"). */
   let notice: { which: "workday" | "dayOff"; text: string } | null = null;
 
   const slotRows = (which: "workday" | "dayOff") => {
     const list = get().modes[which];
-    const set = (slots: ModeSlot[], redraw = true) => void update({ [which]: slots }, redraw);
     return h(
       "div",
       { class: `slots ${which}` },
       ...list.map((slot, i) => {
-        // Read afresh: an earlier edit may not have redrawn the list. Edits are saved in turn.
+        // On the slots as stored (an earlier edit may not have redrawn the list).
         const change = (patch: Partial<ModeSlot>, redraw = true) => {
-          timeEdits = timeEdits.then(() => {
-            const slots = get().modes[which].map((x, j) => (j === i ? { ...x, ...patch } : x));
+          let fixed = false;
+          void update((m) => {
+            const slots = m[which].map((x, j) => (j === i ? { ...x, ...patch } : x));
             // From 9:00 to 9:00 would be all day without saying so: it ends an hour later.
             const s = slots[i];
             if (s && s.start === s.end) {
               slots[i] = { ...s, end: addHour(s.start) };
-              notice = { which, text: "A slot needs an end after its start: it ends an hour later." };
-              setTimeout(() => {
-                notice = null;
-                render();
-              }, 5000);
-              redraw = true;
+              fixed = true;
             }
-            return update({ [which]: slots }, redraw);
+            return { [which]: slots };
+          }, redraw).then(() => {
+            if (!fixed) return;
+            notice = { which, text: "A slot needs an end after its start: it ends an hour later." };
+            render();
+            setTimeout(() => {
+              notice = null;
+              render();
+            }, 5000);
           });
         };
         const laterStart = debounce((start: string) => change({ start }, false));
         const laterEnd = debounce((end: string) => change({ end }, false));
-        return h(
+        const nextDay = h("span", { class: "hint next-day" }, "(next day)");
+        const overlap = h("p", { class: "warning overlap" });
+        notes.push({ which, i, nextDay, overlap });
+        const row = h(
           "div",
           { class: "row slot-row" },
           timeField(slot.start, laterStart, "From"),
           "–",
           timeField(slot.end, laterEnd, "Until"),
+          nextDay,
           h(
             "select",
             { class: "slot-mode", onchange: (e: Event) => change({ mode: (e.target as HTMLSelectElement).value as ModeId }) },
             ...MODE_IDS.map((id) => h("option", { value: id, selected: id === slot.mode }, `${MODE_ICONS[id]} ${MODE_NAMES[id]}`)),
           ),
-          h("button", { class: "mini remove", title: "Remove", onclick: () => set(get().modes[which].filter((_, j) => j !== i)) }, "✕"),
+          h("button", { class: "mini remove", title: "Remove", onclick: () => void update((m) => ({ [which]: m[which].filter((_, j) => j !== i) })) }, icon("close")),
         );
+        return h("div", { class: "slot" }, row, overlap);
       }),
       h(
         "button",
         {
           class: "link add-slot",
           // After the last slot, an hour long (12:00–13:00 in an empty table).
-          onclick: () => {
-            const slots = get().modes[which];
-            const start = slots.at(-1)?.end ?? "12:00";
-            set([...slots, { start, end: addHour(start), mode: which === "workday" ? "work" : "quiet" }]);
-          },
+          onclick: () =>
+            void update((m) => {
+              const start = m[which].at(-1)?.end ?? "12:00";
+              return { [which]: [...m[which], { start, end: addHour(start), mode: which === "workday" ? "work" : "quiet" }] };
+            }),
         },
         "+ Add a time slot",
       ),
@@ -257,7 +321,7 @@ export function modesSection(get: () => Settings, save: (patch: Partial<Settings
   const presetTable = () => {
     const m = get().modes;
     const setPreset = (id: ModeId, key: keyof ModePreset, value: unknown) =>
-      void update({ presets: { ...m.presets, [id]: { ...m.presets[id], [key]: value } } });
+      void update((fresh) => ({ presets: { ...fresh.presets, [id]: { ...fresh.presets[id], [key]: value } } }));
     return h(
       "table",
       { class: "presets" },
@@ -339,11 +403,12 @@ export function modesSection(get: () => Settings, save: (patch: Partial<Settings
       { class: "row holiday" },
       h("span", { class: "label" }, "Days off until"),
       dateField(until, debounce((holidayUntil: string) => void update({ holidayUntil }, false)), "Days off until"),
-      h("button", { class: "mini remove", title: "No more days off", onclick: () => void update({ holidayUntil: null }) }, "✕"),
+      h("button", { class: "mini remove", title: "No more days off", onclick: () => void update({ holidayUntil: null }) }, icon("close")),
     );
   };
 
   const render = () => {
+    notes = [];
     const m = get().modes;
     const today = dayKey(new Date());
     renderTop();
@@ -372,6 +437,8 @@ export function modesSection(get: () => Settings, save: (patch: Partial<Settings
       ),
       presetTable(),
     );
+    if (failed) root.prepend(h("p", { class: "warning save-failed" }, failed));
+    paintNotes();
   };
   render();
   return root;

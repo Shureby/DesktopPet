@@ -860,12 +860,12 @@
         },
         {
           "id": "anniv.preview-stop",
-          "rev": "0.36.0",
+          "rev": "0.37.2",
           "mac": true,
           "ci": "partial",
           "human": "你只看按钮的样子，以及点 Stop 后是不是立刻安静（何时变、停没停、放的哪首由 CI 测）",
           "do": "设置里打开音乐；在纪念日表单点 ▶ Preview，播放中再点它（现在写 ■ Stop）；连点 Preview 三次；Type 选 Wedding 点 Preview，播放中在 Music 里换成 Bridal Chorus；列表里某一行的 ▶ 也试一次",
-          "expect": "播放时按钮变成 “■ Stop”（列表那一行变成 ■）；点了立刻停：音乐、烟火或蜡烛、宠物的话一起消失，守蜡烛的宠物起身走开，按钮变回 “▶ Preview”；播完自己也变回；连点只放一遍，不会一遍接一遍；播放中换曲子立刻改放新曲子"
+          "expect": "播放时按钮变成 “■ Stop（线条图标）”（列表那一行变成 ■）；点了立刻停：音乐、烟火或蜡烛、宠物的话一起消失，守蜡烛的宠物起身走开，按钮变回 “▶ Preview”；播完自己也变回；连点只放一遍，不会一遍接一遍；播放中换曲子立刻改放新曲子"
         },
         {
           "id": "anniv.music-form",
@@ -1103,12 +1103,12 @@
       "items": [
         {
           "id": "modes.panel",
-          "rev": "0.37.1",
+          "rev": "0.37.2",
           "mac": true,
           "ci": "partial",
-          "human": "你看看这一页好不好懂、ⓘ 说明是否清楚、一周彩条对不对（CI 测选模式、加时段、时间不能相同、休假）",
-          "do": "打开面板的 Modes 页签：看顶部 “Now: …”、一周七行彩条、工作日勾选、两张时段表、每种模式效果表（每项和每列表头都有 ⓘ 说明）；改一下模式下拉框；点两次 “+ Add a time slot”；把一个时段的结束时间改成和开始一样；点 “+ Days off until…” 再点 ✕；在效果表里改几项再点 Reset to defaults",
-          "expect": "Modes 是单独的页签（Focus 和 Characters 之间），设置页的 Pet 卡片里有一行 “Quiet hours are now in Modes” 链接过去；顶部写着现在的模式和原因；彩条按时段着色、今天那行有当前时间线；新时段接在上一个时段结束之后、长 1 小时；结束改成和开始一样时自动变成晚 1 小时，并短暂提示 “A slot needs an end after its start…”；Days off until 默认一周后，点 ✕ 取消；鼠标移到 ⓘ 上显示说明；Normal 那一列是灰的；Reset to defaults 恢复各模式效果"
+          "human": "你看看这一页好不好懂、ⓘ 说明是否清楚、图标是否顺眼、一周彩条对不对（CI 测选模式、加时段、时间不能相同、休假、next day、重叠提示）",
+          "do": "打开面板的 Modes 页签：看顶部 “Now: …”、一周七行彩条、工作日勾选、两张时段表、每种模式效果表（每项和每列表头都有 ⓘ 说明）；改一下模式下拉框；点两次 “+ Add a time slot”；把一个时段的结束时间改成和开始一样；点 “+ Days off until…” 再点 ✕；在效果表里改几项再点 Reset to defaults；把一个时段设成和另一个重叠（例如 Work 6:00 PM–10:01 PM 和 Quiet 10:00 PM–8:30 AM）",
+          "expect": "Modes 是单独的页签（Focus 和 Characters 之间），设置页的 Pet 卡片里有一行 “Quiet hours are now in Modes” 链接过去；顶部写着现在的模式和原因；彩条按时段着色、今天那行有当前时间线；新时段接在上一个时段结束之后、长 1 小时；结束改成和开始一样时自动变成晚 1 小时，并短暂提示 “A slot needs an end after its start…”；Days off until 默认一周后，点 ✕ 取消；鼠标移到 ⓘ 上显示说明；Normal 那一列是灰的；Reset to defaults 恢复各模式效果；跨午夜的时段在结束时间后写 “(next day)”；重叠时被盖住的那一行下面出现警告 “Overlaps Quiet 10:00 PM–8:30 AM: Quiet wins 10:00 PM–10:01 PM”；ⓘ、✕、▶ 都是细线图标（不是字体里的符号），各系统看起来一样"
         },
         {
           "id": "modes.quiet",

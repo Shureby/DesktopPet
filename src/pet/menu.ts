@@ -168,7 +168,9 @@ export function modeItem(c: MenuContext): Item {
   const now = new Date();
   const n = modeNow(m, now);
   const today = dayKey(now);
-  const set = (patch: Partial<ModeSettings>) => void c.backend.setSettings({ modes: { ...m, ...patch } });
+  // On the modes as stored, not as this menu was built (another window may have saved since).
+  const set = (patch: Partial<ModeSettings>) =>
+    void c.backend.getSettings().then((s) => c.backend.setSettings({ modes: { ...s.modes, ...patch } }));
   const forAWhile = (mode: ModeId, until: number) => set({ override: { mode, until } });
   const until = overrideUntil(m, now);
   const morning = tomorrowMorning(m, now);

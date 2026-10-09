@@ -44,6 +44,7 @@ import type { CareAction } from "../characters/schema";
 import { buildItems, buildTrayItems, nativeMenu, showPetMenu, type Item, type MenuContext, type PetMenuContext } from "./menu";
 import { CLOCK_STEPS, shiftLabel } from "../platform/testClock";
 import product from "../../product.config.json";
+import { icon } from "../ui/icons";
 import { baseMode, dayKey, MODE_ICONS, MODE_NAMES, modeNow, presetOf, type ModeNow, type ModePreset } from "../features/modes/modes";
 import { playFocusTone, playMusic, playRingtone, ringAlarm, sounds } from "./sound";
 
@@ -439,7 +440,8 @@ export class PetHost {
     const m = this.settings.modes;
     if (m.introduced || !this.settled || this.modeState.mode === "quiet" || !this.petVisible || this.activeRing || this.celebrating) return;
     if (Date.now() < this.importantUntil || !this.bubble.hidden) return;
-    void this.backend.setSettings({ modes: { ...m, introduced: true } });
+    // On the modes as stored (the panel may have saved since this window last heard).
+    void this.backend.getSettings().then((s) => this.backend.setSettings({ modes: { ...s.modes, introduced: true } }));
     const n = this.modeState;
     this.say(
       [`New: modes! I'm in ${MODE_ICONS[n.mode]} ${MODE_NAMES[n.mode]}${n.until ? ` until ${clock(n.until)}` : ""}.`, "Quieter at night and at work, by a weekly schedule."],
@@ -1361,9 +1363,9 @@ export class PetHost {
       this.prompting = false;
       this.hideBubble();
     };
-    const button = (text: string, title: string, onClick: () => void) => {
+    const button = (text: string | Node, title: string, onClick: () => void) => {
       const b = document.createElement("button");
-      b.textContent = text;
+      b.append(text);
       b.title = title;
       b.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -1422,7 +1424,7 @@ export class PetHost {
               input.focus();
               input.select();
             }),
-            button("✕", "Forget this one", () => {
+            button(icon("close"), "Forget this one", () => {
               if (editing === m) editing = undefined;
               const recentTimers = forgetCustomTimer(this.settings.recentTimers, m);
               this.settings = { ...this.settings, recentTimers };
@@ -1442,7 +1444,7 @@ export class PetHost {
     title.textContent = "How long?";
     const row = document.createElement("div");
     row.className = "actions";
-    row.append(input, button("Start", "Start the timer", submit), button("✕", "Cancel", close));
+    row.append(input, button("Start", "Start the timer", submit), button(icon("close"), "Cancel", close));
     this.bubble.replaceChildren(title, row, hint, saved);
     this.bubble.hidden = false;
     // Give up quietly if left alone.

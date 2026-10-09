@@ -16,6 +16,21 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.37.2] - 2026-10-09
+
+## [0.37.2] - 2026-10-09
+
+### Changed
+- The ⓘ, ✕ and ▶ / ■ buttons are thin line icons drawn by ePet (they were font characters,
+  heavy and round on Windows), the same on every system.
+- Modes tab: a slot past midnight says "(next day)"; where two slots overlap, the one that
+  gives way says so ("Overlaps Quiet 10:00 PM–8:30 AM: Quiet wins 10:00 PM–10:01 PM").
+
+### Fixed
+- Changes to modes (the Modes tab, the menus, the pet) start from the settings as stored,
+  so one window can't put back what another just changed; a change that can't be saved
+  says so instead of stopping the ones after it.
+
 ## [0.37.1] - 2026-10-09
 
 ## [0.37.1] - 2026-10-09

@@ -204,9 +204,12 @@ describe("the tray's game while the pet is hidden", () => {
 });
 
 describe("mode menu", () => {
-  it("[modes.menu] switches mode: Auto, a mode for a while (until the schedule next changes), Quiet for…, Today is a day off", () => {
+  it("[modes.menu] switches mode: Auto, a mode for a while (until the schedule next changes), Quiet for…, Today is a day off", async () => {
     let saved: Partial<typeof DEFAULT_SETTINGS> | null = null;
-    const backend = { setSettings: async (p: Partial<typeof DEFAULT_SETTINGS>) => void (saved = p) } as unknown as PetMenuContext["backend"];
+    const backend = {
+      getSettings: async () => settings,
+      setSettings: async (p: Partial<typeof DEFAULT_SETTINGS>) => void (saved = p),
+    } as unknown as PetMenuContext["backend"];
     // No slots: Normal all day, so a mode picked here lasts until midnight.
     const modes = { ...DEFAULT_SETTINGS.modes, workday: [], dayOff: [] };
     const settings = { ...DEFAULT_SETTINGS, modes };
@@ -227,9 +230,11 @@ describe("mode menu", () => {
       "Today is a day off",
     ]);
     (item.items![3] as Item).action!();
+    await new Promise((r) => setTimeout(r));
     expect((saved as unknown as typeof settings).modes.override).toEqual({ mode: "work", until: midnight.getTime() });
     const quietFor = item.items![6] as Item;
     (quietFor.items![1] as Item).action!();
+    await new Promise((r) => setTimeout(r));
     const o = (saved as unknown as typeof settings).modes.override!;
     expect(o.mode).toBe("quiet");
     expect(o.until - Date.now()).toBeGreaterThan(3_590_000);

@@ -329,3 +329,7 @@ body.demo .demo-help a {
   padding-right: 4px;
   border-right: 1px solid rgb(0 0 0 / 0.15);
 }
+/* Line icons (src/ui/icons.ts) in the bubble's buttons. */
+svg.ic {
+  vertical-align: -0.15em;
+}

@@ -1239,3 +1239,31 @@ button.info:focus-visible {
   box-shadow: 0 4px 14px rgb(0 0 0 / 0.15);
   pointer-events: none;
 }
+/* Line icons (src/ui/icons.ts): sit on the text's baseline, take its colour. */
+svg.ic {
+  vertical-align: -0.15em;
+  flex-shrink: 0;
+}
+button.preview .ic {
+  margin-right: 5px;
+}
+.slot {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.slot .next-day {
+  font-size: 11px;
+  white-space: nowrap;
+  visibility: hidden;
+}
+.slot .next-day.on {
+  visibility: visible;
+}
+.slot .overlap {
+  margin: 0 0 2px 2px;
+  font-size: 11px;
+}
+.slot .overlap .ic {
+  vertical-align: -0.1em;
+}
