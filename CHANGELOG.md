@@ -16,6 +16,29 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.37.0] - 2026-10-09
+
+## [0.37.0] - 2026-10-09
+
+### Added
+- **Reminder modes**: 🎉 Lively, 🙂 Normal, 👔 Work and 🌙 Quiet, each changing how the pet
+  reminds you (volume, ring length, coming to the middle, to-dos ringing, anniversaries
+  now or later, talking on its own, sounds, keeping calm). Every mode's effects can be
+  changed in Settings → Modes.
+- **A weekly schedule (Auto, the default):** work days, and time slots for work days and
+  for days off (by default: Quiet at night, Work 9:00–17:30 on work days). Settings → Modes
+  shows the week at a glance.
+- **Switch mode** in the pet's and the tray's menus: Auto, a mode by hand, Quiet for 1 hour,
+  Today is a day off. A 👔 / 🌙 badge by the pet shows Work and Quiet.
+- In Quiet, alarms and timers still ring: softly at first, getting louder over 30 seconds.
+- In Work and Quiet anniversaries wait (a 🎉 badge); when the mode allows, the pet asks
+  "Celebrate now?".
+
+### Changed
+- Quiet hours (Settings → Pet) became Quiet slots in the schedule, and the Focus tab's work
+  days and hours are the Work slots now (one place to set them). Settings from before are
+  carried over.
+
 ## [0.36.2] - 2026-10-09
 
 ## [0.36.2] - 2026-10-09

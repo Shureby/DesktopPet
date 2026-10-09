@@ -43,7 +43,7 @@ import type { Alarm, Backend, Celebration, PetActivity, PomodoroStatus, Reminder
 import type { CareAction } from "../characters/schema";
 import { buildItems, buildTrayItems, nativeMenu, showPetMenu, type Item, type MenuContext, type PetMenuContext } from "./menu";
 import { CLOCK_STEPS, shiftLabel } from "../platform/testClock";
-import { inQuietHours } from "./quietHours";
+import { dayKey, MODE_ICONS, MODE_NAMES, modeNow, presetOf, type ModeNow, type ModePreset } from "../features/modes/modes";
 import { playFocusTone, playMusic, playRingtone, ringAlarm, sounds } from "./sound";
 
 const STEP = 1 / 30;
@@ -57,6 +57,23 @@ const BADGE_INFO_GRACE_MS = 400;
 const BADGE_FLIP_SLACK = 40;
 
 export const PET_WINDOW = { w: 340, h: 240 };
+
+/** An anniversary put off by the mode, and the day (it's offered only on that day). */
+interface Postponed {
+  day: string;
+  c: Celebration;
+}
+const POSTPONED_KEY = "epet-postponed";
+
+/** Today's put-off anniversaries, kept over a restart. */
+function loadPostponed(): Postponed[] {
+  try {
+    const list = JSON.parse(localStorage.getItem(POSTPONED_KEY) ?? "[]") as Postponed[];
+    return Array.isArray(list) ? list.filter((p) => p?.day === dayKey(new Date()) && p.c?.anniversary) : [];
+  } catch {
+    return [];
+  }
+}
 
 interface BubbleAction {
   label: string;
@@ -176,6 +193,14 @@ export class PetHost {
   private clockInTray = false;
   private clockShift = 0;
   private trayTimer: ReturnType<typeof setTimeout> | undefined;
+  /** The reminder mode as last worked out (Settings → Modes); see updateMode. */
+  private modeState: ModeNow = { mode: "normal", why: "schedule", until: null };
+  /** Anniversaries the mode put off today (a 🎉 badge); offered when the mode allows. */
+  private postponed: Postponed[] = [];
+  /** Whether the mode allowed celebrations when last checked (null before the first check). */
+  private celebrateAllowed: boolean | null = null;
+  /** Celebrations asked for now (the 🎉 badge, "Celebrate"): played whatever the mode. */
+  private readonly celebrateAnyway = new WeakSet<Celebration>();
 
   constructor(
     private readonly backend: Backend,
@@ -230,6 +255,7 @@ export class PetHost {
       this.pet.react({ type: "pomodoro", phase: p.phase });
       // Told apart by ear: the pet may be hidden or on another screen (Focus → Sounds).
       const tones = this.settings.pomodoro.sounds;
+      if (!this.preset().sounds) return;
       if (p.phase === "focus") playFocusTone(tones.focus, tones.volume, "focus");
       else if (p.phase !== "idle") playFocusTone(tones.break, tones.volume, "break");
     });
@@ -265,6 +291,7 @@ export class PetHost {
     this.clockShift = clock?.shift ?? 0;
     await this.backend.on("clock-shift", (shift) => {
       this.clockShift = shift;
+      this.updateMode();
       this.scheduleTray();
       void this.refreshTimers();
     });
@@ -280,6 +307,7 @@ export class PetHost {
     // Mood is saved every minute and when leaving, not every tick.
     setInterval(() => void this.saveMood(), 60_000);
     window.addEventListener("beforeunload", () => void this.saveMood());
+    this.postponed = loadPostponed();
     this.pomodoro = await this.backend.pomodoroStatus();
     this.updateMode();
     setInterval(() => this.updateMode(), 30_000);
@@ -336,16 +364,73 @@ export class PetHost {
     this.updateMode();
   }
 
+  /**
+   * The reminder mode now (Settings → Modes) and what it changes: the pet keeps calm and
+   * quiet in Quiet, doesn't chatter at work; when the mode allows celebrations again, the
+   * ones it put off are offered. Run every 30 s, and when the settings or the clock change.
+   */
   private updateMode(): void {
     if (!this.pet) return;
-    const q = this.settings.quietHours;
-    this.pet.mode = this.hidden
-      ? "hidden"
-      : this.pomodoro.phase === "focus"
-        ? "focus"
-        : q.enabled && inQuietHours(new Date(), q.start, q.end)
-          ? "quiet"
-          : "free";
+    const before = this.modeState.mode;
+    this.modeState = modeNow(this.settings.modes, new Date());
+    const preset = this.preset();
+    this.pet.mode = this.hidden ? "hidden" : this.pomodoro.phase === "focus" ? "focus" : preset.calm ? "quiet" : "free";
+    this.pet.chatty = preset.chatter;
+    // Put off on another day: gone (it was that day's).
+    if (this.postponed.length && this.postponed[0].day !== dayKey(new Date())) this.setPostponed([]);
+    if (before !== this.modeState.mode) this.scheduleTray();
+    // Asked once, when the mode starts allowing them (or at start), not every check.
+    const allowed = preset.celebrate === "play";
+    if (allowed && this.celebrateAllowed !== true) this.offerPostponed();
+    this.celebrateAllowed = allowed;
+  }
+
+  /** An anniversary in Work or Quiet: kept for today with a 🎉 badge (click it: celebrate now). */
+  private postpone(c: Celebration): void {
+    if (this.postponed.some((p) => p.c.anniversary.id === c.anniversary.id)) return;
+    this.setPostponed([...this.postponed, { day: dayKey(new Date()), c }]);
+  }
+
+  private setPostponed(list: Postponed[]): void {
+    this.postponed = list;
+    try {
+      localStorage.setItem(POSTPONED_KEY, JSON.stringify(list));
+    } catch {
+      // Not kept over a restart; fine.
+    }
+  }
+
+  /** The mode allows celebrations again: "🎉 Today: … Celebrate now?" (the badge stays if not answered). */
+  private offerPostponed(): void {
+    if (!this.postponed.length || this.activeRing || this.celebrating || !this.petVisible) return;
+    const names = this.postponed.map((p) => `${p.c.anniversary.icon} ${p.c.anniversary.name}`);
+    this.say(
+      [`🎉 Today: ${names.join(", ")}`, "Celebrate now?"],
+      60_000,
+      [
+        // After the click has closed this bubble (the celebration's words come next).
+        { label: "Celebrate", run: () => setTimeout(() => this.celebratePostponed()) },
+        { label: "Skip", run: () => this.setPostponed([]) },
+      ],
+      undefined,
+      true,
+    );
+  }
+
+  /** Plays what was put off, now, whatever the mode (you asked for it). */
+  private celebratePostponed(): void {
+    const list = this.postponed;
+    this.setPostponed([]);
+    for (const p of list) {
+      this.celebrateAnyway.add(p.c);
+      this.onCelebrate(p.c);
+    }
+  }
+
+  /** What the current mode changes (Normal: nothing). Works it out afresh. */
+  private preset(): ModePreset {
+    this.modeState = modeNow(this.settings.modes, new Date());
+    return presetOf(this.settings.modes, this.modeState.mode);
   }
 
   private setHidden(hidden: boolean): void {
@@ -568,6 +653,28 @@ export class PetHost {
           "Dismiss",
         ),
         onClick: () => (this.doneTimers = []),
+      });
+    }
+    if (this.postponed.length) {
+      const first = this.postponed[0].c.anniversary;
+      rows.push({
+        text: `🎉 ${first.name}${more(this.postponed.length)}`,
+        title: info(
+          this.postponed.map((p) => `${p.c.anniversary.icon} ${p.c.anniversary.name} · put off (${MODE_NAMES[this.modeState.mode]} mode)`),
+          "Celebrate now",
+        ),
+        onClick: () => this.celebratePostponed(),
+      });
+    }
+    // Work and Quiet show; Normal and Lively are just the pet.
+    const m = this.modeState;
+    if (m.mode === "work" || m.mode === "quiet") {
+      const why = m.why === "manual" ? "picked by hand" : m.until ? `until ${clock(m.until)}` : "";
+      rows.push({
+        text: `${MODE_ICONS[m.mode]} ${MODE_NAMES[m.mode]}`,
+        cls: "quiet mode",
+        title: info([`${MODE_NAMES[m.mode]} mode${why ? ` · ${why}` : ""}`], "Open Settings → Modes"),
+        onClick: () => void this.backend.openPanel("settings"),
       });
     }
     const key = rows.map((r) => (r.live ? `live:${r.text.split(" ")[0]}` : r.text)).join("\n");
@@ -942,6 +1049,8 @@ export class PetHost {
         state: this.pet.state,
         frames: this.frames,
         mode: this.pet.mode,
+        reminderMode: this.modeState,
+        postponed: this.postponed.map((p) => p.c.anniversary.name),
         target: this.pet.target,
         x: this.pet.body.x,
         y: this.pet.body.y,
@@ -1028,7 +1137,7 @@ export class PetHost {
     } else {
       const result = applyMoodEvent(this.pet.mood, "pet") === "capped" ? "capped" : "ok";
       this.pet.react({ type: "petted", result });
-      if (this.settings.sound) sounds.pop();
+      if (this.settings.sound && this.preset().sounds) sounds.pop();
     }
     this.showGain(before.affection, before.fullness);
     this.renderMoodMeter();
@@ -1346,9 +1455,10 @@ export class PetHost {
     const joining = this.activeRing !== null && this.ringing.length > 0;
     if (!this.ringing.includes(r.id)) this.ringing.push(r.id);
     const alert = this.settings.alerts.alarm;
+    const mode = this.preset();
     if (!joining) {
       // During a focus session the pet stays at its "desk" so the session isn't disrupted.
-      const run = alert.petRuns && this.pomodoro.phase !== "focus";
+      const run = alert.petRuns && mode.petRuns && this.pomodoro.phase !== "focus";
       const known = this.timers.find((a) => a.id === r.id);
       this.pet.react({ type: "reminder", kind: "alarm", title: known ? alarmName(known) : r.title, run });
       // The pet's own line ("MEOW! Alarm 9:40 PM") heads a single alarm's bubble.
@@ -1356,12 +1466,19 @@ export class PetHost {
     }
     // (Re)start the sound: a joining alarm rings for the full time too, like the bubble.
     this.stopRinging?.();
-    this.stopRinging = alert.ring ? ringAlarm(alert.ringtone, alert.volume, alert.ringSeconds) : null;
+    this.stopRinging = alert.ring ? ringAlarm(alert.ringtone, alert.volume * mode.volume, this.ringSeconds(), mode.rampUp) : null;
     this.showRing();
     // The cached list may predate this ring (snooze count, first ring time): refresh and redraw.
     void this.refreshTimers().then(() => {
       if (this.activeRing && this.ringing.includes(r.id)) this.showRing(false);
     });
+  }
+
+  /** How long alarms ring: as set, or less in a mode that rings shorter (Work). */
+  private ringSeconds(): number {
+    const set = this.settings.alerts.alarm.ringSeconds;
+    const cap = this.preset().ringSeconds;
+    return cap > 0 ? Math.min(set, cap) : set;
   }
 
   /** What is ringing, as bubble lines: one item says what it is; several are listed. */
@@ -1421,7 +1538,7 @@ export class PetHost {
         },
       },
     ];
-    const ms = restart ? alert.ringSeconds * 1000 : Math.max(1000, this.ringEndsAt - Date.now());
+    const ms = restart ? this.ringSeconds() * 1000 : Math.max(1000, this.ringEndsAt - Date.now());
     if (restart) this.ringEndsAt = Date.now() + ms;
     this.say(this.ringLines(), ms, actions, () => {
       for (const id of ids()) void this.unanswered(id);
@@ -1446,7 +1563,8 @@ export class PetHost {
 
   private remindDayTodos(list: ReminderEvent[]): void {
     const alert = this.settings.alerts.todo;
-    const run = alert.petRuns && this.pomodoro.phase !== "focus";
+    const mode = this.preset();
+    const run = alert.petRuns && mode.petRuns && this.pomodoro.phase !== "focus";
     this.pet.react({ type: "reminder", kind: "todo", title: list.map((r) => r.title).join(", "), run });
     const actions: BubbleAction[] = [
       { label: "Open To-dos", run: () => void this.backend.openPanel("todos") },
@@ -1454,7 +1572,7 @@ export class PetHost {
     ];
     const lines = ["📅 Today:", ...list.map((r) => `• ${r.title}`)];
     this.say(lines, 60_000, actions, this.peek ? () => list.forEach((r) => void this.unansweredWhileHidden(r)) : undefined);
-    if (alert.ring) playRingtone(alert.ringtone, alert.volume);
+    if (alert.ring && mode.todoRing) playRingtone(alert.ringtone, alert.volume * mode.volume);
   }
 
   /** "Later": a to-do with a time moves 10 minutes on; one on a day keeps its day and reminds again. */
@@ -1465,7 +1583,8 @@ export class PetHost {
 
   private remindTodo(r: ReminderEvent): void {
     const alert = this.settings.alerts.todo;
-    const run = alert.petRuns && this.pomodoro.phase !== "focus";
+    const mode = this.preset();
+    const run = alert.petRuns && mode.petRuns && this.pomodoro.phase !== "focus";
     this.pet.react({ type: "reminder", kind: "todo", title: r.title, run });
     const text = this.bubble.firstElementChild?.textContent || r.title;
     const actions: BubbleAction[] = [
@@ -1480,7 +1599,7 @@ export class PetHost {
     ];
     // Out of hiding for it, an unanswered reminder is recorded for when you show the pet.
     this.say(text, 60_000, actions, this.peek ? () => void this.unansweredWhileHidden(r) : undefined);
-    if (alert.ring) playRingtone(alert.ringtone, alert.volume);
+    if (alert.ring && mode.todoRing) playRingtone(alert.ringtone, alert.volume * mode.volume);
   }
 
   /**
@@ -1489,6 +1608,11 @@ export class PetHost {
    * in the browser mock they're drawn over this page. A ringing alarm goes first.
    */
   private onCelebrate(c: Celebration): void {
+    // Work or Quiet: it waits (a 🎉 badge) until the mode allows it, or you ask for it.
+    if (!c.preview && !this.celebrateAnyway.has(c) && this.preset().celebrate === "postpone") {
+      this.postpone(c);
+      return;
+    }
     if (c.peek) this.enterPeek();
     if (c.preview) {
       // A preview replaces the one playing and doesn't wait out the pause after one; it
@@ -1532,7 +1656,7 @@ export class PetHost {
     else this.pet.react({ type: "praise" });
     this.say(sub ? [line, sub] : line, c.seconds * 1000, [], undefined, true);
     const music = this.settings.celebrate;
-    if (music.music) {
+    if (music.music || this.preset().music) {
       this.stopMusic?.();
       const stop = playMusic(musicFor(c.anniversary), c.seconds, music.musicVolume);
       this.stopMusic = stop;

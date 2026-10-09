@@ -511,10 +511,10 @@
         },
         {
           "id": "ui.time-field",
-          "rev": "0.20.0",
+          "rev": "0.37.0",
           "ci": "auto",
-          "do": "在 New alarm 的时间框里：按住小时往上/往下拖；在分钟上滚滚轮；点小时直接打 7、3、0；点 AM/PM；用 ↑/↓ 键；在 Settings → Quiet hours 里也试一下",
-          "expect": "往上拖变大、往下拖变小，拖得越远变得越多；滚轮、↑/↓ 每次一格；打 7 3 0 变成 7:30；点 AM/PM 切换；分钟 59 再加变 00（小时不变）；12 小时制时 12 再加变 1（AM/PM 不变）；24 小时制系统下没有 AM/PM 格；Quiet hours 的时间改完后保存（切页再回来还在）"
+          "do": "在 New alarm 的时间框里：按住小时往上/往下拖；在分钟上滚滚轮；点小时直接打 7、3、0；点 AM/PM；用 ↑/↓ 键；在 设置 → Modes 的时间段里也试一下",
+          "expect": "往上拖变大、往下拖变小，拖得越远变得越多；滚轮、↑/↓ 每次一格；打 7 3 0 变成 7:30；点 AM/PM 切换；分钟 59 再加变 00（小时不变）；12 小时制时 12 再加变 1（AM/PM 不变）；24 小时制系统下没有 AM/PM 格；Modes 时间段的时间改完后保存（切页再回来还在）"
         },
         {
           "id": "alarm.repeat",
@@ -988,10 +988,10 @@
         },
         {
           "id": "focus.work-hours",
-          "rev": "0.20.0",
+          "rev": "0.37.0",
           "ci": "auto",
-          "do": "Focus 页打开 Work hours，保持周一到周五，把开始时间设成 1–2 分钟后、结束时间设成再过 30 分钟；等它自动开始；然后手动 Stop；再把结束时间改到 1 分钟后，手动 Start 看它到点后的表现；最后晚上（下班后）手动 Start",
-          "expect": "打开后出现星期几和上下班时间，关闭后隐藏；到开始时间番茄钟自己开始（宠物旁出现 🍅）；手动停掉后当天不会再自动开始；过了结束时间，正在专注的番茄结束后不进入休息直接停，正在休息的休息完不再开始新番茄；下班后手动开始会一直循环（直到下一个工作日的结束时间）；关闭 Work hours 时和以前一样一直跑、不会自动开始"
+          "do": "Focus 页勾上 “Focus on work days…”，看下面那行说明；到 设置 → Modes 把工作日的 Work 时段改成 1–2 分钟后开始、再过 30 分钟结束；等它自动开始；然后手动 Stop；最后晚上（下班后）手动 Start",
+          "expect": "Focus 页不再有星期和时间框，而是一行字写明工作日和 Work 时段（例如 “Mon Tue Wed Thu Fri · 9:00 AM–5:30 PM”），并有链接到 设置 → Modes；到开始时间番茄钟自己开始（宠物旁出现 🍅）；手动停掉后当天不会再自动开始；过了结束时间不再开始新的番茄；下班后手动开始会一直循环；不勾时不会自动开始"
         }
       ]
     },
@@ -1089,19 +1089,79 @@
           "expect": "按设置执行（响铃时长、贪睡次数或直接标记 missed）"
         },
         {
-          "id": "settings.quiet-hours",
-          "rev": "0.22.1",
-          "ci": "auto",
-          "do": "Quiet hours 设成包含当前时间",
-          "expect": "宠物安静，但闹钟照常响"
-        },
-        {
           "id": "settings.other-sounds",
           "rev": "0.36.0",
           "ci": "partial",
           "human": "你只听确实没声音、有声音（是否发声由 CI 测）",
           "do": "设置 → General 关掉 “Other sounds (petting)”，摸一下宠物；开始一个专注；再打开它，摸一下宠物",
           "expect": "关掉时摸宠物没有声音，但开始专注时照样响专注提示音（它在 Focus 页单独设）；打开后摸宠物有声音"
+        }
+      ]
+    },
+    {
+      "title": "提醒模式",
+      "items": [
+        {
+          "id": "modes.panel",
+          "rev": "0.37.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你看看这一区好不好懂、一周的彩条对不对、各项改了是否生效（CI 测选模式和加时段）",
+          "do": "打开 设置 → Modes：看顶部 “Now: …”、一周七行彩条、工作日勾选、两张时段表、每种模式效果表；改一下模式下拉框；加一个时段、改时间、删掉；勾 “Today is a day off”；在效果表里改几项再点 Reset to defaults",
+          "expect": "顶部写着现在的模式和原因（例如 “👔 Work · schedule, until 5:30 PM”）；彩条按时段着色、今天那行有一条当前时间线；新用户默认：工作日 22:00–07:00 Quiet、9:00–17:30 Work，休息日 23:00–08:00 Quiet；改完立即生效，宠物旁的标记跟着变；Normal 那一列是灰的（就是你现在的设置）；Reset to defaults 恢复各模式效果"
+        },
+        {
+          "id": "modes.quiet",
+          "rev": "0.37.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你听一下闹钟是不是先小声、半分钟内变大（CI 测音量设置和不响的部分）",
+          "do": "右键 → Switch mode → 🌙 Quiet；设一个 1 分钟后的闹钟，别理它；再设一个 1 分钟后的待办",
+          "expect": "宠物旁出现 “🌙 Quiet”，宠物安静（坐着、睡觉，不乱跑、不自己说话）；闹钟照常响，开始很小声，约 30 秒内逐渐变到正常音量，宠物原地提醒不跑到中间；待办只出气泡、不响铃"
+        },
+        {
+          "id": "modes.work",
+          "rev": "0.37.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "右键 → Switch mode → 👔 Work；设一个 1 分钟后的闹钟，别理它；再设一个 1 分钟后的待办",
+          "expect": "宠物旁出现 “👔 Work”；闹钟用一半音量响、最多响 15 秒，宠物原地提醒不跑到中间；待办用一半音量响；宠物不自己说话，摸它没有音效"
+        },
+        {
+          "id": "modes.schedule",
+          "rev": "0.37.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "模式选 Auto；在 设置 → Modes 加一个包含现在时间的 Quiet 时段；然后右键 → Switch mode 里分别点 “Today is a day off” 和 “Quiet for 1 hour”，最后点 Auto",
+          "expect": "Auto 时按时段切换，宠物旁标记的悬停提示写着 “until …”，菜单写 “Switch mode (now: 🌙 Quiet until …)”；勾 Today is a day off 后今天按休息日的时段表；Quiet for 1 hour 一小时后自动回到时段表；点 Auto 立即回到时段表"
+        },
+        {
+          "id": "modes.postpone",
+          "rev": "0.37.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "在 Work 或 Quiet 模式下，让一个今天的纪念日开始（建一个今天的生日，动一下鼠标）；之后切回 Normal",
+          "expect": "Work/Quiet 时不放烟火，只在宠物旁出现 “🎉 名字” 标记（点它马上放）；切回 Normal 或 Lively 时宠物问 “🎉 Today: … Celebrate now?”，点 Celebrate 播放，点 Skip 不放；过了当天就不再提"
+        },
+        {
+          "id": "modes.menu",
+          "rev": "0.37.0",
+          "ci": "auto",
+          "do": "右键宠物和托盘菜单，看 Switch mode",
+          "expect": "两个菜单都有 “Switch mode (now: …)”，在 Open panel… 上面；子菜单：Auto、🎉 Lively、🙂 Normal、👔 Work、🌙 Quiet（当前的打勾），分隔线，Quiet for 1 hour、Today is a day off"
+        },
+        {
+          "id": "modes.lively",
+          "rev": "0.37.0",
+          "mac": true,
+          "do": "设置 里纪念日音乐关着，模式选 🎉 Lively，点一个纪念日的 ▶ Preview",
+          "expect": "Lively 下纪念日音乐照样播放；其余和 Normal 一样"
+        },
+        {
+          "id": "modes.upgrade",
+          "rev": "0.37.0",
+          "do": "在旧版（0.36）里打开 Quiet hours（例如 22:00–07:00）和 Focus 的 Work hours（例如周一到周五 9:00–17:00），然后装 0.37 升级",
+          "expect": "设置 → Modes 里：两张表都有 22:00–07:00 Quiet，工作日表多一个 9:00–17:00 Work，工作日是周一到周五，模式是 Auto；原来都没开的，用默认时段"
         }
       ]
     },

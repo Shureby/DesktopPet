@@ -202,3 +202,33 @@ describe("the tray's game while the pet is hidden", () => {
     expect(buildTrayItems(trayCtx({ petVisible: false, pomodoro: focusing })).some((i) => i !== "sep" && i.text === "Switch character")).toBe(true);
   });
 });
+
+describe("mode menu", () => {
+  it("[modes.menu] switches mode: Auto or one by hand, Quiet for 1 hour, Today is a day off", () => {
+    let saved: Partial<typeof DEFAULT_SETTINGS> | null = null;
+    const backend = { setSettings: async (p: Partial<typeof DEFAULT_SETTINGS>) => void (saved = p) } as unknown as PetMenuContext["backend"];
+    const settings = { ...DEFAULT_SETTINGS, modes: { ...DEFAULT_SETTINGS.modes, choice: "work" as const } };
+    const item = buildItems(ctx({ backend, settings })).find((i): i is Item => i !== "sep" && i.text.startsWith("Switch mode"))!;
+    expect(item.text).toBe("Switch mode (now: 👔 Work)");
+    expect(outline(item.items!)).toEqual([
+      "Auto (Settings → Modes)",
+      "🎉 Lively",
+      "🙂 Normal",
+      "✓ 👔 Work",
+      "🌙 Quiet",
+      "—",
+      "Quiet for 1 hour",
+      "Today is a day off",
+    ]);
+    (item.items![6] as Item).action!();
+    const modes = (saved as unknown as typeof settings).modes;
+    expect(modes.choice).toBe("auto");
+    expect(modes.override?.mode).toBe("quiet");
+    expect(modes.override!.until - Date.now()).toBeGreaterThan(3_590_000);
+    // Both menus have it, above Open panel….
+    for (const items of [buildItems(ctx()), buildTrayItems(trayCtx())]) {
+      const texts = items.map((i) => (i === "sep" ? "—" : i.text));
+      expect(texts[texts.indexOf("Open panel…") - 1]).toMatch(/^Switch mode \(now: /);
+    }
+  });
+});

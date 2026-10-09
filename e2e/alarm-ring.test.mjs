@@ -23,7 +23,7 @@ async function reset(alarm = {}, extra = (s) => s) {
   await app.closeWindow("panel");
   await app.setSettings((s) => {
     s.alerts.alarm = { ...s.alerts.alarm, ring: true, ringtone: "classic", volume: 0.7, petRuns: false, ringSeconds: 30, snoozeMinutes: 5, autoSnoozeMax: 3, ...alarm };
-    s.quietHours = { ...s.quietHours, enabled: false };
+    s.modes = { ...s.modes, choice: "normal", override: null };
     s.upcomingAlarms = { show: true, minutes: 60 };
     s.sound = true;
     return extra(s);
@@ -263,17 +263,3 @@ check("settings.alerts", "Ring off: silent; ringtone and volume as set; the ▶ 
   }
   assert.ok(ran, `came to the middle in 12 tries (target − middle each try: ${JSON.stringify(seen)})`);
 });
-
-check("settings.quiet-hours", "in quiet hours the pet is quiet, but alarms still ring", async () => {
-  const app = ctx.app;
-  const hm = (ms) => {
-    const d = new Date(Date.now() + ms);
-    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-  };
-  await reset({}, (s) => ((s.quietHours = { enabled: true, start: hm(-30 * MIN), end: hm(30 * MIN) }), s));
-  await app.b.waitUntil(async () => (await app.pet()).mode === "quiet", { timeout: 35_000 });
-  await addAlarm(1500);
-  await app.waitBubble("Alarm", 10_000);
-  await app.answer("Done");
-  await app.setSettings((s) => ((s.quietHours.enabled = false), s));
-}, { timeout: 90_000 });

@@ -76,7 +76,9 @@ import {
   type AlarmDraft,
 } from "./alarmText";
 import { backupSection } from "./backup";
-import { dayPicker } from "./dayPicker";
+import { hmText, modesSection } from "./modes";
+import { dayPicker, WEEK } from "./dayPicker";
+import { workSpan } from "../features/modes/modes";
 import { formatHm, parseHm, timeField } from "./timeField";
 import { formatDay, formatWhen, h } from "./dom";
 import { dateField, ymdOf, ymdToMs } from "./dateField";
@@ -1309,12 +1311,18 @@ function formatHoursMinutes(minutes: number): string {
   return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`;
 }
 
-/** Focus → Work hours: work days and times; hidden while off (docs/INTERACTIONS.md). */
+/**
+ * Focus → Work hours: focus starts by itself on work days. The days and hours are the Work
+ * slots in Settings → Modes (one place to set them); this says what they are.
+ */
 function workHoursSection(): Node {
   const w = settings.pomodoro.workHours;
+  const span = workSpan(settings.modes);
+  const days = WEEK.filter((d) => (settings.modes.workDays >> d) & 1)
+    .map((d) => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d])
+    .join(" ");
   const update = (patch: Partial<WorkHours>) =>
     save({ pomodoro: { ...settings.pomodoro, workHours: { ...settings.pomodoro.workHours, ...patch } } });
-  const later = debounced(update);
   return h(
     "div",
     { class: "work-hours" },
@@ -1328,23 +1336,14 @@ function workHoursSection(): Node {
         h("input", { type: "checkbox", checked: w.enabled, onchange: () => void update({ enabled: !w.enabled }) }),
         "Focus on work days: start by itself, stop after work",
       ),
-      w.enabled
-        ? h(
-            "div",
-            { class: "row spread" },
-            dayPicker(w.days, (days) => later({ days })),
-            h(
-              "span",
-              { class: "row" },
-              timeField(w.start, (start) => later({ start }), "Work starts"),
-              "–",
-              timeField(w.end, (end) => later({ end }), "Work ends"),
-            ),
-          )
-        : null,
-      w.enabled
-        ? h("p", { class: "hint" }, "Starts once a day when work starts (stopped by hand, it stays stopped). No new focus after work ends.")
-        : null,
+      h(
+        "p",
+        { class: "hint work-span" },
+        span ? `${days || "No work days"} · ${hmText(span.start)}–${hmText(span.end)} (the Work slots in ` : "No Work slots yet (add one in ",
+        h("a", { href: "#", onclick: (e: Event) => (e.preventDefault(), select("settings")) }, "Settings → Modes"),
+        ").",
+        w.enabled ? " Starts once a day when work starts (stopped by hand, it stays stopped). No new focus after work ends." : "",
+      ),
     ),
   );
 }
@@ -1470,7 +1469,6 @@ async function renderSettings(): Promise<Node> {
       out,
     );
   };
-  const q = settings.quietHours;
   // Grouped by what they're about: the pet, alarms & timers, to-dos, then the rest.
   return h(
     "section",
@@ -1482,27 +1480,10 @@ async function renderSettings(): Promise<Node> {
       slider("size"),
       slider("speed"),
       h("hr"),
-      h(
-        "div",
-        { class: "row spread" },
-        h(
-          "label",
-          { class: "check" },
-          h("input", { type: "checkbox", checked: q.enabled, onchange: () => void save({ quietHours: { ...q, enabled: !q.enabled } }) }),
-          "Quiet hours",
-        ),
-        h(
-          "span",
-          { class: "row" },
-          timeField(q.start, debounced((start: string) => void save({ quietHours: { ...settings.quietHours, start } })), "Quiet from"),
-          "–",
-          timeField(q.end, debounced((end: string) => void save({ quietHours: { ...settings.quietHours, end } })), "Quiet until"),
-        ),
-      ),
-      h("p", { class: "hint" }, "The pet stays calm: no running around. Reminders still come through."),
-      h("hr"),
       ...hiddenAlertsRows(),
     ),
+    h("h3", {}, "Modes"),
+    modesSection(() => settings, save),
     h("h3", {}, "Alarms & timers"),
     alertBox("alarm"),
     h("h3", {}, "To-do reminders"),

@@ -1057,3 +1057,145 @@ details.upcoming summary > :first-child {
 button.reload {
   font-size: 13px;
 }
+
+/* Settings → Modes: the week, the time slots, what each mode changes. */
+:root {
+  --mode-lively: #f2b84b;
+  --mode-normal: #e9e2da;
+  --mode-work: #6f9bd1;
+  --mode-quiet: #7a6aa8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --mode-normal: #3a3430;
+  }
+}
+.modes .mode-now small {
+  font-weight: 400;
+}
+.modes-top {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.week {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.week-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.week-row.today .week-day {
+  color: var(--accent);
+  font-weight: 700;
+}
+.week-day {
+  width: 28px;
+}
+.week-bar {
+  position: relative;
+  flex: 1;
+  height: 12px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--mode-normal);
+}
+.week-bar .slot,
+.week-bar .now-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.week-bar .now-line {
+  width: 2px;
+  background: var(--fg);
+}
+.slot.lively,
+.key.lively::before {
+  background: var(--mode-lively);
+}
+.slot.normal,
+.key.normal::before {
+  background: var(--mode-normal);
+}
+.slot.work,
+.key.work::before {
+  background: var(--mode-work);
+}
+.slot.quiet,
+.key.quiet::before {
+  background: var(--mode-quiet);
+}
+.week-legend {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 2px 0 0 34px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.week-legend .key::before {
+  content: "";
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  margin-right: 4px;
+  border: 1px solid var(--border);
+}
+.slots {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: flex-start;
+}
+.slot-row {
+  gap: 5px;
+}
+.slot-row .remove {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.modes button.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 12px;
+  align-self: flex-start;
+}
+table.presets {
+  border-collapse: collapse;
+  font-size: 12px;
+  width: 100%;
+}
+table.presets th {
+  font-weight: 600;
+  text-align: center;
+  padding: 2px;
+  white-space: nowrap;
+}
+table.presets td {
+  padding: 2px;
+  text-align: center;
+}
+table.presets td:first-child {
+  text-align: left;
+  color: var(--muted);
+}
+table.presets select {
+  font-size: 11px;
+  max-width: 78px;
+}
+.modes .nowrap {
+  white-space: nowrap;
+}

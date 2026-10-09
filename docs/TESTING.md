@@ -2,7 +2,7 @@
 
 <!-- Generated from test-checklist.json by `npm run test-checklist`. Edit the JSON, not this file. -->
 
-当前版本 `0.36.2`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
+当前版本 `0.37.0`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
 标 🤖 的项目由 CI 自动测（Windows），不用手动测；标 🤖+👀 的项目逻辑由 CI 测，你只看 👀 后面写的部分；标 🌙 的每晚测一次（太久，不在每次推送时测）。
 macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码，在 Windows 上测过就行。
 在线勾选页面（保存结果，自动标出需要重测的项目）：https://claude.ai/artifact/XQVzPKq4w2MThVnTLYCGy1
@@ -11,7 +11,7 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 
 - [ ] 1.1 🍎 安装包安装 → **开始菜单/启动台里有应用，图标和名字正常**
 - [ ] 1.2 🍎 🤖+👀 首次启动 → **宠物从屏幕上方掉下来，落在任务栏/Dock 上方** 👀 你只看掉落的样子（窗口出现、宠物落在任务栏上方由 CI 测）
-- [ ] 1.3 🤖 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.36.2 · …`，与安装包版本一致**
+- [ ] 1.3 🤖 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.37.0 · …`，与安装包版本一致**
 - [ ] 1.4 🍎 🤖 已经运行时再启动一次 → **不会出现第二只宠物（只打开面板）**
 - [ ] 1.5 🤖 装着旧版本、ePet 正在运行时，双击新版本的安装包，一路点 Next / Install / Finish → **不再出现“已安装（Already Installed）/ 是否先卸载”那一页，也不提示 ePet 正在运行（会自动关掉它）；旧版被安静地卸载后装上新版；之前的待办、闹钟、纪念日、设置、心情值都还在。重装同一版本或装更旧的版本时仍会询问**
 - [ ] 1.6 正式版 ePet 开着时安装 ePet Test；装好后两个都开着，再重装一次 ePet Test；最后在 ePet 开着时重装正式版 → **装 ePet Test 时不弹 “is running”、不关正式版，装完两个可以同时运行（任务管理器里是 desktoppet.exe 和 epet-test.exe）；重装哪一个都不弹框，正在运行的那一个被悄悄关掉、装完重新打开即可，另一个不受影响**
@@ -90,7 +90,7 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 - [ ] 7.1 🤖 面板 Alarms：新建一个 2 分钟后的 Once 闹钟 → **出现在 Alarms 列表：大字时间 + “Once · Today”，右侧开关为开；打开 Alarms 页时时间框默认是当前时间**
 - [ ] 7.2 🤖+👀 按乱序设几个闹钟（今天晚些、明天早上、一个重复的工作日闹钟），让其中一个响起后 Snooze，再关掉一个 → **Alarms 列表按下一次响铃时间排，最快响的在最上面；贪睡中的闹钟按贪睡后的时间排（通常排第一），和宠物旁 🔔 角标的顺序一致；关掉的闹钟排在最下面，按一天中的时间排** 👀 你只看宠物旁 🔔 角标的顺序和列表一致（列表排序由 CI 测）
 - [ ] 7.3 🤖 打开 Alarms 页，改时间和填标签，改到一半时让一个计时器到点（或开始一个新计时器）；再切到别的页回来 → **时间框一开始是当前时间；计时器到点页面刷新后，改了一半的时间和标签都还在；切走再回来时时间重新变成当前时间**
-- [ ] 7.4 🤖 在 New alarm 的时间框里：按住小时往上/往下拖；在分钟上滚滚轮；点小时直接打 7、3、0；点 AM/PM；用 ↑/↓ 键；在 Settings → Quiet hours 里也试一下 → **往上拖变大、往下拖变小，拖得越远变得越多；滚轮、↑/↓ 每次一格；打 7 3 0 变成 7:30；点 AM/PM 切换；分钟 59 再加变 00（小时不变）；12 小时制时 12 再加变 1（AM/PM 不变）；24 小时制系统下没有 AM/PM 格；Quiet hours 的时间改完后保存（切页再回来还在）**
+- [ ] 7.4 🤖 **【新】** 在 New alarm 的时间框里：按住小时往上/往下拖；在分钟上滚滚轮；点小时直接打 7、3、0；点 AM/PM；用 ↑/↓ 键；在 设置 → Modes 的时间段里也试一下 → **往上拖变大、往下拖变小，拖得越远变得越多；滚轮、↑/↓ 每次一格；打 7 3 0 变成 7:30；点 AM/PM 切换；分钟 59 再加变 00（小时不变）；12 小时制时 12 再加变 1（AM/PM 不变）；24 小时制系统下没有 AM/PM 格；Modes 时间段的时间改完后保存（切页再回来还在）**
 - [ ] 7.5 🤖 新建 Every day 和 Weekdays 闹钟 → **下一次时间说明正确（周五设 Weekdays 显示下周一）**
 - [ ] 7.6 🤖 New alarm 依次选 Once、Every day、Weekdays、Weekends、Custom days；在 Weekdays 下点掉周一、再点回来、再加周六；手动点成只有周六周日；Custom days 下全部取消；分别添加一个 Once、一个 Weekends 和一个一三五的闹钟，并在周五响过之后看一三五那个的下一次 → **Once 和 Every day 不显示星期选择器；Weekdays 显示并选中周一到五，Weekends 选中周六周日；在 Weekdays 下点掉周一，下拉框自动变 Custom days，点回来又变回 Weekdays，加上周六变 Custom days；手动点成周六周日时变 Weekends；从 Once 选 Custom days 时默认选中今天星期几；一天都没选时 Add 是灰的；Once 添加后是单次闹钟（写 Once · 今天/明天）；Weekends 那行写 “Weekends”；一三五那行写 “Mon, Wed, Fri”，周五响后下一次是周一**
 - [ ] 7.7 🤖 关掉开关，再打开 → **关闭时变灰（不划线）；打开后恢复，时间不变**
@@ -162,11 +162,11 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 - [ ] 12.1 🤖 右键 → Start focus session 🍅 → **角标显示专注倒计时（在计时器角标上方）**
 - [ ] 12.2 🤖 专注中让一个计时器响 → **宠物不离开原位**
 - [ ] 12.3 🤖 让专注时段结束 → **提示休息；每 N 轮进入长休息（按 Focus 页设置）**
-- [ ] 12.4 🍎 🤖 **【新】** Focus 页 Timing 四个格子分别输入 0、清空、2.6、-3，再点右上角 “Reset to defaults” → **输入 0 或负数变成 1，小数取整，清空则保留原值；点 Reset to defaults 后变回 25 / 5 / 15 / 4，上方空闲时钟显示 25:00**
+- [ ] 12.4 🍎 🤖 Focus 页 Timing 四个格子分别输入 0、清空、2.6、-3，再点右上角 “Reset to defaults” → **输入 0 或负数变成 1，小数取整，清空则保留原值；点 Reset to defaults 后变回 25 / 5 / 15 / 4，上方空闲时钟显示 25:00**
 - [ ] 12.5 🤖 右键 → Stop focus session → **菜单显示 “Stop focus session (ends 4:10 PM)”；点后停止**
-- [ ] 12.6 🍎 🤖+👀 **【新】** Focus 页把 Focus 设为 1 分钟、Short break 1 分钟；在 “Sound: focus starts / break starts” 各点 ▶ 试听，调一下 Volume；开始专注等它转入休息，再等休息结束；把 break starts 选 Off 再来一次；最后隐藏宠物再来一次 → **开始专注响 “Field phone”（像《24 小时》CTU 办公室电话那样先两对“啾啾”、再一串急促颤音的电子铃声，只响一次，约 1.3 秒），开始休息响 Office trill，不看宠物也分得清；音量跟着滑块；选 Off 的那个不响；宠物隐藏时照样响；下拉框里有 Field phone、7 个铃声和 Off** 👀 你只听两个声音好不好听、分不分得清（何时响、响哪个、关掉不响由 CI 测）
+- [ ] 12.6 🍎 🤖+👀 Focus 页把 Focus 设为 1 分钟、Short break 1 分钟；在 “Sound: focus starts / break starts” 各点 ▶ 试听，调一下 Volume；开始专注等它转入休息，再等休息结束；把 break starts 选 Off 再来一次；最后隐藏宠物再来一次 → **开始专注响 “Field phone”（像《24 小时》CTU 办公室电话那样先两对“啾啾”、再一串急促颤音的电子铃声，只响一次，约 1.3 秒），开始休息响 Office trill，不看宠物也分得清；音量跟着滑块；选 Off 的那个不响；宠物隐藏时照样响；下拉框里有 Field phone、7 个铃声和 Off** 👀 你只听两个声音好不好听、分不分得清（何时响、响哪个、关掉不响由 CI 测）
 - [ ] 12.7 🤖 Focus 页看 Last 7 days → **有统计记录**
-- [ ] 12.8 🤖 Focus 页打开 Work hours，保持周一到周五，把开始时间设成 1–2 分钟后、结束时间设成再过 30 分钟；等它自动开始；然后手动 Stop；再把结束时间改到 1 分钟后，手动 Start 看它到点后的表现；最后晚上（下班后）手动 Start → **打开后出现星期几和上下班时间，关闭后隐藏；到开始时间番茄钟自己开始（宠物旁出现 🍅）；手动停掉后当天不会再自动开始；过了结束时间，正在专注的番茄结束后不进入休息直接停，正在休息的休息完不再开始新番茄；下班后手动开始会一直循环（直到下一个工作日的结束时间）；关闭 Work hours 时和以前一样一直跑、不会自动开始**
+- [ ] 12.8 🤖 **【新】** Focus 页勾上 “Focus on work days…”，看下面那行说明；到 设置 → Modes 把工作日的 Work 时段改成 1–2 分钟后开始、再过 30 分钟结束；等它自动开始；然后手动 Stop；最后晚上（下班后）手动 Start → **Focus 页不再有星期和时间框，而是一行字写明工作日和 Work 时段（例如 “Mon Tue Wed Thu Fri · 9:00 AM–5:30 PM”），并有链接到 设置 → Modes；到开始时间番茄钟自己开始（宠物旁出现 🍅）；手动停掉后当天不会再自动开始；过了结束时间不再开始新的番茄；下班后手动开始会一直循环；不勾时不会自动开始**
 
 ## 13. 心情与照顾
 
@@ -184,34 +184,44 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 - [ ] 14.3 🤖+👀 设置 → Alarms & timers 和 To-do reminders 两张卡片里，分别切换 “Pet comes to the middle of the screen”、Ring、铃声、音量 → **▶ 试听有声音；实际提醒按设置执行** 👀 你只听试听和铃声（响不响、用哪个铃声和音量、跑不跑由 CI 测）
 - [ ] 14.4 🍎 🤖+👀 逐个试听 7 种铃声 → **classic / chime / digital / gentle rise / marimba / rooster crow / office trill 都能播** 👀 你只听 7 种铃声是否都好听（都能播放由 CI 测）
 - [ ] 14.5 🤖 改 Ring for 和 If nobody answers → **按设置执行（响铃时长、贪睡次数或直接标记 missed）**
-- [ ] 14.6 🤖 Quiet hours 设成包含当前时间 → **宠物安静，但闹钟照常响**
-- [ ] 14.7 🤖+👀 设置 → General 关掉 “Other sounds (petting)”，摸一下宠物；开始一个专注；再打开它，摸一下宠物 → **关掉时摸宠物没有声音，但开始专注时照样响专注提示音（它在 Focus 页单独设）；打开后摸宠物有声音** 👀 你只听确实没声音、有声音（是否发声由 CI 测）
+- [ ] 14.6 🤖+👀 设置 → General 关掉 “Other sounds (petting)”，摸一下宠物；开始一个专注；再打开它，摸一下宠物 → **关掉时摸宠物没有声音，但开始专注时照样响专注提示音（它在 Focus 页单独设）；打开后摸宠物有声音** 👀 你只听确实没声音、有声音（是否发声由 CI 测）
 
-## 15. 角色
+## 15. 提醒模式
 
-- [ ] 15.1 🤖+👀 右键 → Switch character → Rooster，再切回 Cat → **换成公鸡，菜单打勾正确；切回后 Cat 的心情值还在** 👀 你只看右键菜单 Switch character 的打勾（切换和心情保留由 CI 测）
-- [ ] 15.2 🍎 🤖 Characters 页点 “your characters folder”；删掉里面的 README.txt 再点一次；把 README.txt 改几个字再点一次 → **打开用户角色文件夹，里面有 README.txt（英文说明）、character.schema.json 和 example-cat/character.json.example（id 是 example-cat）；example-cat 不会出现在 Characters 页；删掉的 README 会重新生成，改过的 README 不会被覆盖**
-- [ ] 15.3 🤖 Characters 页在 Cat 卡片下点 “⧉ Make a copy”；再点一次；在 “Cat (copy)” 下也点一次 → **文件夹里出现 cat-copy 文件夹并自动打开，里面有 character.json（id 是 cat-copy，名字 “Cat (copy)”）；面板马上多出 “Cat (copy) (custom)”，不用重启；第二次得到 cat-copy-2，名字 “Cat (copy 2)”，复制 copy 也得到下一个不重复的 id 和名字**
-- [ ] 15.4 🤖 选用 Cat (copy)；用记事本把它 character.json 里 palette 的 "o" 改成 "#9e9e9e"、"d" 改成 "#6d6d6d"，把 greet 台词改成自己的话，保存；点 “⟳ Reload characters”；再故意删掉一个逗号保存后 Reload → **不重启，桌面上的宠物立刻变成灰猫，心情值还在，打招呼说的是新台词；JSON 写错时 Characters 页展开显示 “1 character(s) could not be loaded” 和出错的文件、原因，其他角色照常可用**
+- [ ] 15.1 🍎 🤖+👀 **【新】** 打开 设置 → Modes：看顶部 “Now: …”、一周七行彩条、工作日勾选、两张时段表、每种模式效果表；改一下模式下拉框；加一个时段、改时间、删掉；勾 “Today is a day off”；在效果表里改几项再点 Reset to defaults → **顶部写着现在的模式和原因（例如 “👔 Work · schedule, until 5:30 PM”）；彩条按时段着色、今天那行有一条当前时间线；新用户默认：工作日 22:00–07:00 Quiet、9:00–17:30 Work，休息日 23:00–08:00 Quiet；改完立即生效，宠物旁的标记跟着变；Normal 那一列是灰的（就是你现在的设置）；Reset to defaults 恢复各模式效果** 👀 你看看这一区好不好懂、一周的彩条对不对、各项改了是否生效（CI 测选模式和加时段）
+- [ ] 15.2 🍎 🤖+👀 **【新】** 右键 → Switch mode → 🌙 Quiet；设一个 1 分钟后的闹钟，别理它；再设一个 1 分钟后的待办 → **宠物旁出现 “🌙 Quiet”，宠物安静（坐着、睡觉，不乱跑、不自己说话）；闹钟照常响，开始很小声，约 30 秒内逐渐变到正常音量，宠物原地提醒不跑到中间；待办只出气泡、不响铃** 👀 你听一下闹钟是不是先小声、半分钟内变大（CI 测音量设置和不响的部分）
+- [ ] 15.3 🍎 🤖 **【新】** 右键 → Switch mode → 👔 Work；设一个 1 分钟后的闹钟，别理它；再设一个 1 分钟后的待办 → **宠物旁出现 “👔 Work”；闹钟用一半音量响、最多响 15 秒，宠物原地提醒不跑到中间；待办用一半音量响；宠物不自己说话，摸它没有音效**
+- [ ] 15.4 🍎 🤖 **【新】** 模式选 Auto；在 设置 → Modes 加一个包含现在时间的 Quiet 时段；然后右键 → Switch mode 里分别点 “Today is a day off” 和 “Quiet for 1 hour”，最后点 Auto → **Auto 时按时段切换，宠物旁标记的悬停提示写着 “until …”，菜单写 “Switch mode (now: 🌙 Quiet until …)”；勾 Today is a day off 后今天按休息日的时段表；Quiet for 1 hour 一小时后自动回到时段表；点 Auto 立即回到时段表**
+- [ ] 15.5 🍎 🤖 **【新】** 在 Work 或 Quiet 模式下，让一个今天的纪念日开始（建一个今天的生日，动一下鼠标）；之后切回 Normal → **Work/Quiet 时不放烟火，只在宠物旁出现 “🎉 名字” 标记（点它马上放）；切回 Normal 或 Lively 时宠物问 “🎉 Today: … Celebrate now?”，点 Celebrate 播放，点 Skip 不放；过了当天就不再提**
+- [ ] 15.6 🤖 **【新】** 右键宠物和托盘菜单，看 Switch mode → **两个菜单都有 “Switch mode (now: …)”，在 Open panel… 上面；子菜单：Auto、🎉 Lively、🙂 Normal、👔 Work、🌙 Quiet（当前的打勾），分隔线，Quiet for 1 hour、Today is a day off**
+- [ ] 15.7 🍎 **【新】** 设置 里纪念日音乐关着，模式选 🎉 Lively，点一个纪念日的 ▶ Preview → **Lively 下纪念日音乐照样播放；其余和 Normal 一样**
+- [ ] 15.8 **【新】** 在旧版（0.36）里打开 Quiet hours（例如 22:00–07:00）和 Focus 的 Work hours（例如周一到周五 9:00–17:00），然后装 0.37 升级 → **设置 → Modes 里：两张表都有 22:00–07:00 Quiet，工作日表多一个 9:00–17:00 Work，工作日是周一到周五，模式是 Auto；原来都没开的，用默认时段**
 
-## 16. 小游戏 Safe Landing
+## 16. 角色
 
-- [ ] 16.1 🍎 🤖 右键 → Play Safe Landing → **游戏窗口打开，宠物主窗口仍正常**
-- [ ] 16.2 🤖 开始专注后：右键宠物和托盘里看 Play Safe Landing；点它，分别选 Cancel 和 Play anyway；隐藏宠物后看托盘；让一个计时器响铃时从托盘点游戏；在面板 Games 页点 Play；到休息时间再点；最后在 Focus 页关掉 “Ask before games during a focus session” → **专注中菜单写 “Play Safe Landing (focusing)”；宠物气泡先问 “We're focusing until … Play anyway?”，回答前不打开任何界面，Cancel 不开游戏，Play anyway 才打开；宠物隐藏时托盘里没有 Play Safe Landing（专注结束或显示宠物后重新出现）；响铃时点游戏，响铃结束后宠物再问；面板 Games 页点 Play 先弹框询问；休息时和关掉选项后不再询问，菜单也没有 (focusing)**
-- [ ] 16.3 🍎 🤖 ← → / A D 移动；Space 或 Enter 开始 → **操作正常**
-- [ ] 16.4 🤖+👀 分别用 Cat 和 Rooster 玩 → **Cat 抓 ☂ 减速；Rooster 按住 Space 滑翔，提示文字对应** 👀 你只看玩起来的手感：猫抓伞减速、公鸡按住空格滑翔（提示文字由 CI 测）
-- [ ] 16.5 🤖 结束后按 R 重来，再关闭窗口 → **可以重来；关闭后回到桌面，宠物爱心增加**
+- [ ] 16.1 🤖+👀 右键 → Switch character → Rooster，再切回 Cat → **换成公鸡，菜单打勾正确；切回后 Cat 的心情值还在** 👀 你只看右键菜单 Switch character 的打勾（切换和心情保留由 CI 测）
+- [ ] 16.2 🍎 🤖 Characters 页点 “your characters folder”；删掉里面的 README.txt 再点一次；把 README.txt 改几个字再点一次 → **打开用户角色文件夹，里面有 README.txt（英文说明）、character.schema.json 和 example-cat/character.json.example（id 是 example-cat）；example-cat 不会出现在 Characters 页；删掉的 README 会重新生成，改过的 README 不会被覆盖**
+- [ ] 16.3 🤖 Characters 页在 Cat 卡片下点 “⧉ Make a copy”；再点一次；在 “Cat (copy)” 下也点一次 → **文件夹里出现 cat-copy 文件夹并自动打开，里面有 character.json（id 是 cat-copy，名字 “Cat (copy)”）；面板马上多出 “Cat (copy) (custom)”，不用重启；第二次得到 cat-copy-2，名字 “Cat (copy 2)”，复制 copy 也得到下一个不重复的 id 和名字**
+- [ ] 16.4 🤖 选用 Cat (copy)；用记事本把它 character.json 里 palette 的 "o" 改成 "#9e9e9e"、"d" 改成 "#6d6d6d"，把 greet 台词改成自己的话，保存；点 “⟳ Reload characters”；再故意删掉一个逗号保存后 Reload → **不重启，桌面上的宠物立刻变成灰猫，心情值还在，打招呼说的是新台词；JSON 写错时 Characters 页展开显示 “1 character(s) could not be loaded” 和出错的文件、原因，其他角色照常可用**
 
-## 17. 备份与恢复
+## 17. 小游戏 Safe Landing
 
-- [ ] 17.1 🍎 🤖+👀 设置 → Backup → Export backup…，先输两个不同的密码点 Export，再输相同的密码导出；另存为对话框里选桌面 → **两次密码不同时提示 The passwords don't match、不导出；保存后显示 Saved (encrypted): <路径>；文件名默认 ePet backup <今天日期>.epetbackup** 👀 另存为对话框、默认文件名和保存后的提示
-- [ ] 17.2 🍎 🤖+👀 Restore from backup… 选刚才的加密备份，先输错密码，再输对 → **先要求输入密码；输错显示 Wrong password.；输对后显示备份来自哪台电脑、什么时候，以及几个闹钟/待办/纪念日（不算计时器）** 👀 打开文件对话框和密码框
-- [ ] 17.3 🍎 🤖+👀 导出后删掉一个待办、新加一个待办、改一个闹钟的名字，再 Restore from backup…（全部勾选，Merge） → **ePet 自动重启；删掉的待办回来了，新加的还在，没有重复；改过名字的闹钟保持新名字（这边改得更晚）；计时器不会被恢复；Automatic backups 列表里多了一份 before a restore** 👀 重启后面板和宠物都正常，列表里的 before a restore
-- [ ] 17.4 🍎 在另一台电脑（或清空后）用 Restore from backup… 选 Replace；可以只勾 Alarms, to-dos and anniversaries → **这边原有的闹钟、待办、纪念日被备份里的取代（正在计时的计时器保留）；没勾 Settings 时这边的设置不变；勾了 Settings 时设置换成备份里的，但开机自启保持这台电脑自己的**
-- [ ] 17.5 🍎 🤖+👀 启动 ePet 等十几秒，打开 设置 → Backup；隔天再启动一次 → **Automatic backups 下列出今天的一份（· daily），每天最多一份、最多保留 7 份；点 Restore… 可以直接从它恢复** 👀 隔天新增一份、超过 7 份时最旧的被删掉
+- [ ] 17.1 🍎 🤖 右键 → Play Safe Landing → **游戏窗口打开，宠物主窗口仍正常**
+- [ ] 17.2 🤖 开始专注后：右键宠物和托盘里看 Play Safe Landing；点它，分别选 Cancel 和 Play anyway；隐藏宠物后看托盘；让一个计时器响铃时从托盘点游戏；在面板 Games 页点 Play；到休息时间再点；最后在 Focus 页关掉 “Ask before games during a focus session” → **专注中菜单写 “Play Safe Landing (focusing)”；宠物气泡先问 “We're focusing until … Play anyway?”，回答前不打开任何界面，Cancel 不开游戏，Play anyway 才打开；宠物隐藏时托盘里没有 Play Safe Landing（专注结束或显示宠物后重新出现）；响铃时点游戏，响铃结束后宠物再问；面板 Games 页点 Play 先弹框询问；休息时和关掉选项后不再询问，菜单也没有 (focusing)**
+- [ ] 17.3 🍎 🤖 ← → / A D 移动；Space 或 Enter 开始 → **操作正常**
+- [ ] 17.4 🤖+👀 分别用 Cat 和 Rooster 玩 → **Cat 抓 ☂ 减速；Rooster 按住 Space 滑翔，提示文字对应** 👀 你只看玩起来的手感：猫抓伞减速、公鸡按住空格滑翔（提示文字由 CI 测）
+- [ ] 17.5 🤖 结束后按 R 重来，再关闭窗口 → **可以重来；关闭后回到桌面，宠物爱心增加**
 
-## 18. 稳定性
+## 18. 备份与恢复
 
-- [ ] 18.1 🤖 连续打开/关闭面板和游戏窗口 10 次 → **不卡死、没有黑窗、任务栏不消失**
-- [ ] 18.2 🍎 电脑睡眠后唤醒 → **宠物正常；错过的闹钟按贪睡/Missed 规则处理**
-- [ ] 18.3 🍎 🤖🌙 运行 1 小时以上，看任务管理器/活动监视器 → **CPU、内存占用稳定，不持续上涨**
+- [ ] 18.1 🍎 🤖+👀 设置 → Backup → Export backup…，先输两个不同的密码点 Export，再输相同的密码导出；另存为对话框里选桌面 → **两次密码不同时提示 The passwords don't match、不导出；保存后显示 Saved (encrypted): <路径>；文件名默认 ePet backup <今天日期>.epetbackup** 👀 另存为对话框、默认文件名和保存后的提示
+- [ ] 18.2 🍎 🤖+👀 Restore from backup… 选刚才的加密备份，先输错密码，再输对 → **先要求输入密码；输错显示 Wrong password.；输对后显示备份来自哪台电脑、什么时候，以及几个闹钟/待办/纪念日（不算计时器）** 👀 打开文件对话框和密码框
+- [ ] 18.3 🍎 🤖+👀 导出后删掉一个待办、新加一个待办、改一个闹钟的名字，再 Restore from backup…（全部勾选，Merge） → **ePet 自动重启；删掉的待办回来了，新加的还在，没有重复；改过名字的闹钟保持新名字（这边改得更晚）；计时器不会被恢复；Automatic backups 列表里多了一份 before a restore** 👀 重启后面板和宠物都正常，列表里的 before a restore
+- [ ] 18.4 🍎 在另一台电脑（或清空后）用 Restore from backup… 选 Replace；可以只勾 Alarms, to-dos and anniversaries → **这边原有的闹钟、待办、纪念日被备份里的取代（正在计时的计时器保留）；没勾 Settings 时这边的设置不变；勾了 Settings 时设置换成备份里的，但开机自启保持这台电脑自己的**
+- [ ] 18.5 🍎 🤖+👀 启动 ePet 等十几秒，打开 设置 → Backup；隔天再启动一次 → **Automatic backups 下列出今天的一份（· daily），每天最多一份、最多保留 7 份；点 Restore… 可以直接从它恢复** 👀 隔天新增一份、超过 7 份时最旧的被删掉
+
+## 19. 稳定性
+
+- [ ] 19.1 🤖 连续打开/关闭面板和游戏窗口 10 次 → **不卡死、没有黑窗、任务栏不消失**
+- [ ] 19.2 🍎 电脑睡眠后唤醒 → **宠物正常；错过的闹钟按贪睡/Missed 规则处理**
+- [ ] 19.3 🍎 🤖🌙 运行 1 小时以上，看任务管理器/活动监视器 → **CPU、内存占用稳定，不持续上涨**

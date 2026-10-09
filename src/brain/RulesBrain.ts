@@ -32,7 +32,7 @@ export class RulesBrain implements Brain {
     else if (ACTIVE.has(pet.state)) n.energy = Math.max(0, n.energy - dt / 240);
     n.boredom = Math.min(1, n.boredom + dt / 600);
     decayMood(pet.mood, dt);
-    if (pet.mode !== "free") return;
+    if (pet.mode !== "free" || !pet.chatty) return;
 
     if (n.boredom >= 1) {
       pet.say("bored");

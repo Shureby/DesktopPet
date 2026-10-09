@@ -38,6 +38,8 @@ export class Pet {
   world: World = { areas: [], windows: [] };
   facing: 1 | -1 = 1;
   mode: PetMode = "free";
+  /** Talks on its own now and then (bored, hungry…); off in the Work and Quiet modes. */
+  chatty = true;
   /** Last known cursor position in physical px (null when unknown). */
   cursor: { x: number; y: number } | null = null;
   /** The mouse is resting on the pet and it has stopped for you (`attend` state). */

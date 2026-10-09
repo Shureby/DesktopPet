@@ -143,21 +143,21 @@ check("ui.time-field", "drag, wheel, keys and typing in the time field; Quiet ho
   } else {
     assert.equal((await field()).period, null);
   }
-  // Quiet hours: changed, then kept after leaving the tab.
+  // A time slot in Settings → Modes: changed, then kept after leaving the tab.
   await app.tab("settings");
-  const quiet = ".time-field[aria-label='Quiet from'], .time-field";
-  const start = await app.b.execute(() => [...document.querySelectorAll(".time-field")].find((f) => f.closest("main")).value);
+  const quiet = ".modes .time-field";
+  const start = await app.b.execute(() => document.querySelector(".modes .time-field").value);
   await app.b.execute(() => {
-    const el = [...document.querySelectorAll(".time-field")][0].querySelector(".part.minute");
+    const el = document.querySelector(".modes .time-field .part.minute");
     el.focus();
     el.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
   });
   await app.sleep(1200);
   await app.tab("alarms");
   await app.tab("settings");
-  const after = await app.b.execute(() => [...document.querySelectorAll(".time-field")][0].value);
+  const after = await app.b.execute(() => document.querySelector(".modes .time-field").value);
   assert.notEqual(after, start, quiet);
-  assert.equal((await app.settings()).quietHours.start, after);
+  assert.equal((await app.settings()).modes.workday[0].start, after);
 });
 
 check("alarm.repeat", "Every day and Weekdays alarms say so, and the next ring is on a right day", async () => {

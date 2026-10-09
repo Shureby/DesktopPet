@@ -239,8 +239,8 @@ Code: `renderAlarms` in `src/panel/main.ts`, `src/panel/timeField.ts`, `src/pane
   - Parts wrap without carrying (59 → 00 keeps the hour; 12-hour clocks go 12 → 1 keeping
     AM/PM).
   - This replaces the system time field, which only took the wheel.
-  - It follows the system's 12/24-hour setting. The same field is used for Quiet hours and
-    work hours.
+  - It follows the system's 12/24-hour setting. The same field is used for the time slots
+    in Settings → Modes (Quiet hours before 0.37.0).
 - **Repeat:** Once, Every day, Weekdays, Weekends (since 0.21.0) or Custom days.
   - **The day picker (M T W T F S S) shows only for Weekdays, Weekends and Custom days.**
     Once and Every day have no days to pick. Before 0.21.0 it also showed under Once,
@@ -474,6 +474,10 @@ in the panel.
 - **Off (the default), the tomato clock runs until you stop it,** as before.
 - **On (Focus → Work hours):** work days (Mon–Fri by default) and hours (09:00–17:30 by
   default). An end at or before the start is the next morning (a night shift).
+  - **Since 0.37.0 the days and hours are the Work slots in Settings → Modes** (the work
+    days, and the earliest Work start to the latest Work end on them). The Focus tab says
+    what they are, with a link; the panel copies them into `pomodoro.workHours` whenever
+    the schedule is saved, which is what the clock below reads.
   - **It starts by itself** when work starts on a work day, if it isn't running.
     - This happens once per work period. If you stop it, it stays stopped until the next
       work day. A period that begins with it already running counts as started too.
@@ -499,6 +503,54 @@ in the panel.
 - Before 0.36.0 both were the same chime, under Settings → "Other sounds"; that is now
   "Other sounds (petting)". Settings from before with Other sounds off start with both
   focus sounds Off.
+
+## Modes (since 0.37.0)
+
+Code: `src/features/modes/modes.ts` (pure: the mode now, the schedule, presets, settings from
+before), `updateMode` / `preset()` in `PetHost`, `modeItem` in `src/pet/menu.ts`,
+`src/panel/modes.ts` (Settings → Modes).
+
+- **Four modes, each changing a few things** (every one can be changed in Settings → Modes →
+  "What each mode changes"; Reset to defaults puts them back):
+  - 🎉 **Lively**: like Normal, and anniversaries play their music even when it's off.
+  - 🙂 **Normal**: your settings as they are (shown, not editable, in the table).
+  - 👔 **Work**: rings at half volume, alarms ring 15 s at most; the pet perks up where it
+    is instead of coming to the middle; anniversaries wait; it doesn't talk on its own;
+    no petting or focus sounds.
+  - 🌙 **Quiet**: the pet keeps calm (sits, sleeps; what Quiet hours did) and doesn't talk
+    on its own; to-dos don't ring (the bubble only); anniversaries wait; no petting or
+    focus sounds. **Alarms and timers still ring**, starting at a quarter of their volume
+    and rising to it over 30 seconds, and the pet doesn't run.
+- **Which mode: Auto (the default) or one picked by hand.** In Auto: "Quiet for 1 hour"
+  first (until it runs out), then the weekly schedule; time not in a slot is Normal.
+- **The weekly schedule:** which days are work days (Mon–Fri by default), and a table of
+  time slots for work days and one for days off, each "from – until → mode".
+  - A slot that ends at or before its start runs past midnight and belongs to the day it
+    starts on (Monday 22:00–07:00 is Monday night).
+  - Where slots overlap, the quieter mode wins (Quiet, Work, Lively, Normal).
+  - **Defaults:** work days 22:00–07:00 Quiet and 09:00–17:30 Work; days off 23:00–08:00
+    Quiet.
+  - "Today is a day off" (menu or Settings) uses the days-off table today. (`holidayUntil`,
+    days off up to a date, is in the settings for later; there's no field for it yet.)
+- **Settings from before 0.37.0:** Quiet hours that were on become a Quiet slot in both
+  tables; Focus work hours that were on become a Work slot on their days (and those are
+  the work days). With neither on, the default schedule. The mode is Auto.
+- **Where it shows:**
+  - A badge by the pet in Work ("👔 Work") and Quiet ("🌙 Quiet"); hovering says why
+    ("until 5:30 PM", "picked by hand"); clicking opens Settings. Lively and Normal show
+    nothing.
+  - Both menus: "Switch mode (now: 👔 Work until 5:30 PM)" above Open panel…: Auto, the four
+    modes (the one picked is ticked), Quiet for 1 hour, Today is a day off.
+  - Settings → Modes: the mode now and why, Auto or a mode, the week (seven bars coloured
+    by mode, a line at the time now), the work days, both tables, and what each mode
+    changes.
+- **Anniversaries that wait** (Work, Quiet): nothing plays; a "🎉 Mum" badge by the pet
+  (click: celebrate now). When the mode next allows celebrations the pet asks once
+  "🎉 Today: 🎂 Mum Celebrate now?" [Celebrate] [Skip]. Only that day; kept over a restart.
+- The pet works the mode out every 30 seconds and whenever the settings or the clock
+  change, so a slot starts within half a minute.
+- Modes are this computer's own settings (not synced); a backup restores them with the
+  rest of the settings.
 
 ## Games during a focus session (since 0.20.0)
 
@@ -526,9 +578,12 @@ panel.
   are grouped in cards, and a hint is one short line under what it explains.
 - **Focus fits without scrolling:** the session (phase, countdown, Start or Skip/Stop) in
   one card at the top; the last 7 days with totals ("12 sessions · 5 h 0 min"); the four
-  lengths in one row; the two options; work hours (days and times on one line).
+  lengths in one row; the two options; work hours (one line: the days and hours, from
+  Settings → Modes since 0.37.0).
 - **Settings is grouped by what it's about:**
-  - Pet: size, speed, Quiet hours, and "When hidden, it comes out for" (with its warning);
+  - Pet: size, speed, and "When hidden, it comes out for" (with its warning); Quiet hours
+    before 0.37.0;
+  - Modes (since 0.37.0, see "Modes");
   - Alarms & timers: ring (tone, preview, volume), Ring for / If nobody answers side by
     side, coming to the middle, the 🔔 look-ahead;
   - To-do reminders: ring, coming to the middle;

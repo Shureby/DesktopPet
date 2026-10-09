@@ -1,6 +1,7 @@
 import product from "../../product.config.json";
 import type { Rect, WindowRect } from "../engine/geometry";
 import type { RingtoneId } from "../pet/sound";
+import { DEFAULT_MODES, modeSettings, type ModeSettings } from "../features/modes/modes";
 
 export interface PomodoroConfig {
   focusMin: number;
@@ -67,7 +68,10 @@ export interface Settings {
   alerts: { alarm: AlertSettings; todo: AlertSettings };
   /** Custom timer lengths in minutes, most recent first (at most three). */
   recentTimers: number[];
+  /** Before 0.37.0; now Quiet slots in `modes` (kept only to read old settings). */
   quietHours: { enabled: boolean; start: string; end: string };
+  /** Reminder modes and their weekly schedule (src/features/modes/modes.ts). */
+  modes: ModeSettings;
   hiddenAlerts: HiddenAlerts;
   /** A 🔔 badge by the pet for alarms ringing within `minutes` (1–120). */
   upcomingAlarms: { show: boolean; minutes: number };
@@ -93,6 +97,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   recentTimers: [],
   quietHours: { enabled: false, start: "22:00", end: "08:00" },
+  modes: DEFAULT_MODES,
   hiddenAlerts: { alarms: true, timers: true, todos: true, focus: false, anniversaries: true },
   upcomingAlarms: { show: true, minutes: 60 },
   todoDayTime: "09:00",
@@ -143,6 +148,7 @@ export function mergeSettings(stored: Partial<Settings> | null | undefined): Set
     ...d,
     ...s,
     quietHours: { ...d.quietHours, ...s.quietHours },
+    modes: modeSettings(s.modes, s),
     hiddenAlerts: { ...d.hiddenAlerts, ...s.hiddenAlerts },
     recentTimers: Array.isArray(s.recentTimers) ? s.recentTimers.filter((m) => typeof m === "number" && m > 0).slice(0, 3) : [],
     upcomingAlarms: (() => {

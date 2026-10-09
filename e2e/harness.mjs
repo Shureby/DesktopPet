@@ -57,6 +57,9 @@ export class App {
     app.hooks = hooks;
     try {
       await app.start();
+      // Normal, whatever the time of day on the test machine (the default schedule would make
+      // it Quiet at night and Work by day); the mode tests set the modes they need.
+      if (hooks && !keepData) await app.setSettings((s) => ({ ...s, modes: { ...s.modes, choice: "normal" } }));
     } catch (e) {
       // Nothing left behind for the next file (a leftover would hold single-instance).
       await app.quit();

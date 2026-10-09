@@ -3,6 +3,7 @@
  * Characters or skins can ship recorded sounds later.
  */
 import { playPiece, type Piece } from "../celebrate/music";
+import { rampVolume } from "../features/modes/modes";
 import type { FocusTone } from "../platform/types";
 
 let ctx: AudioContext | null = null;
@@ -176,12 +177,16 @@ export function playRingtone(id: RingtoneId, volume: number): void {
   play((RINGTONES[id] ?? RINGTONES.classic).notes(0), volume);
 }
 
-/** Rings until stopped (or for at most `maxSeconds`). Returns the stop function. */
-export function ringAlarm(id: RingtoneId, volume: number, maxSeconds = 60): () => void {
+/**
+ * Rings until stopped (or for at most `maxSeconds`). `rampUp` (Quiet mode): it starts at a
+ * quarter of `volume` and rises to it over 30 seconds. Returns the stop function.
+ */
+export function ringAlarm(id: RingtoneId, volume: number, maxSeconds = 60, rampUp = false): () => void {
   const tone: Ringtone = RINGTONES[id] ?? RINGTONES.classic;
-  logSound({ kind: "ring", id, volume });
+  logSound({ kind: "ring", id, volume, rampUp });
   let rep = 0;
-  const ring = () => play(tone.notes(rep++), volume);
+  const started = Date.now();
+  const ring = () => play(tone.notes(rep++), rampUp ? rampVolume(volume, (Date.now() - started) / 1000) : volume);
   ring();
   const timer = setInterval(ring, tone.period * 1000);
   const timeout = setTimeout(() => clearInterval(timer), maxSeconds * 1000);

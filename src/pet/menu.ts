@@ -4,6 +4,7 @@ import { pick, type Rng } from "../engine/random";
 import { formatDuration, PRESET_MINUTES, timerName } from "../features/alarm/timers";
 import { alarmName, clock } from "../features/alarm/ringing";
 import { gameHeld } from "../features/pomodoro/logic";
+import { dayKey, MODE_ICONS, MODE_IDS, MODE_NAMES, modeNow, type ModeSettings } from "../features/modes/modes";
 import type { Alarm, Backend, PanelTab, PomodoroStatus, Settings } from "../platform";
 
 /** What both menus (the pet's right-click menu and the tray menu) need. */
@@ -147,6 +148,31 @@ export function playItems(c: MenuContext): (Item | "sep")[] {
   ];
 }
 
+/**
+ * "Switch mode (now: 👔 Work until 5:30 PM)": Auto (the schedule) or a mode by hand, "Quiet for 1 hour"
+ * and "Today is a day off" (docs/INTERACTIONS.md, "Modes"). Shared by both menus.
+ */
+export function modeItem(c: MenuContext): Item {
+  const m = c.settings.modes;
+  const now = modeNow(m, new Date());
+  const today = dayKey(new Date());
+  const set = (patch: Partial<ModeSettings>) => void c.backend.setSettings({ modes: { ...m, ...patch } });
+  return {
+    text: `Switch mode (now: ${MODE_ICONS[now.mode]} ${MODE_NAMES[now.mode]}${now.until ? ` until ${clock(now.until)}` : ""})`,
+    items: [
+      { text: "Auto (Settings → Modes)", checked: m.choice === "auto", action: () => set({ choice: "auto", override: null }) },
+      ...MODE_IDS.map((id) => ({
+        text: `${MODE_ICONS[id]} ${MODE_NAMES[id]}`,
+        checked: m.choice === id,
+        action: () => set({ choice: id, override: null }),
+      })),
+      "sep",
+      { text: "Quiet for 1 hour", action: () => set({ choice: "auto", override: { mode: "quiet", until: Date.now() + 3_600_000 } }) },
+      { text: "Today is a day off", checked: m.dayOffOn === today, action: () => set({ dayOffOn: m.dayOffOn === today ? null : today }) },
+    ],
+  };
+}
+
 /** The pet's right-click menu: a care action on top, then the shared sections. */
 export function buildItems(c: PetMenuContext): (Item | "sep")[] {
   const care = pickCare(c.character, c.hungry, c.rng);
@@ -157,6 +183,7 @@ export function buildItems(c: PetMenuContext): (Item | "sep")[] {
     "sep",
     ...playItems(c),
     "sep",
+    modeItem(c),
     { text: "Open panel…", action: () => void c.backend.openPanel(panelTabFor(c)) },
     { text: "Hide pet", action: c.hide },
   ];
@@ -177,6 +204,7 @@ export function buildTrayItems(c: TrayMenuContext): (Item | "sep")[] {
     // is no pet to ask "Play anyway?", so the game is left out until the focus ends.
     ...playItems(c).filter((i) => c.petVisible || !gameHeld(c.settings.pomodoro, c.pomodoro) || i === "sep" || !i.text.startsWith("Play")),
     "sep",
+    modeItem(c),
     { text: "Open panel…", action: () => void c.backend.openPanel(panelTabFor(c)) },
     "sep",
     { id: "quit", text: "Quit" },

@@ -137,17 +137,17 @@ check("focus.stop", "the menu says “Stop focus session (ends …)”; it stops
   await app.b.waitUntil(async () => !(await app.badges()).some((b) => b.text.startsWith("🍅")), { timeout: 5000 });
 });
 
-check("focus.work-hours", "Work hours: days and times show when on; it starts by itself at work time; stopped by hand it stays stopped", async () => {
+check("focus.work-hours", "Work hours: the days and times are the Work slots (Settings → Modes); it starts by itself at work time; stopped by hand it stays stopped", async () => {
   const app = ctx.app;
   await reset();
   await app.panel("focus");
-  const toggle = () =>
-    app.b.execute(() => [...document.querySelectorAll(".work-hours label.check")][0].querySelector("input").click());
-  assert.equal(await app.b.execute(() => document.querySelector(".work-hours .day-picker")), null);
+  await app.waitText(".work-hours .work-span", "Settings → Modes");
+  const toggle = () => app.b.execute(() => document.querySelector(".work-hours label.check input").click());
   await toggle();
-  await app.until(() => document.querySelector(".work-hours .day-picker") && document.querySelectorAll(".work-hours .time-field").length === 2);
+  await app.b.waitUntil(async () => (await app.settings()).pomodoro.workHours.enabled, { timeout: 5000 });
+  await app.waitText(".work-hours .work-span", "Starts once a day");
   await toggle();
-  await app.until(() => !document.querySelector(".work-hours .day-picker"));
+  await app.b.waitUntil(async () => !(await app.settings()).pomodoro.workHours.enabled, { timeout: 5000 });
   // Work started a minute ago and ends in half an hour, every day: it starts by itself.
   await app.setSettings((s) => ((s.pomodoro.workHours = { enabled: true, days: 0b111_1111, start: hm(-MIN), end: hm(30 * MIN) }), s));
   await app.b.waitUntil(async () => (await status()).phase === "focus", { timeout: 10_000 });
