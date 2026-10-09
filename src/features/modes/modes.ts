@@ -10,7 +10,8 @@ import type { DayMask } from "../../platform/types";
 
 export type ModeId = "lively" | "normal" | "work" | "quiet";
 export type ModeChoice = "auto" | ModeId;
-export const MODE_IDS: ModeId[] = ["lively", "normal", "work", "quiet"];
+/** In this order everywhere (menus, lists, the table): from your settings as they are to the quietest. */
+export const MODE_IDS: ModeId[] = ["normal", "lively", "work", "quiet"];
 
 export const MODE_NAMES: Record<ModeId, string> = { lively: "Lively", normal: "Normal", work: "Work", quiet: "Quiet" };
 export const MODE_ICONS: Record<ModeId, string> = { lively: "🎉", normal: "🙂", work: "👔", quiet: "🌙" };

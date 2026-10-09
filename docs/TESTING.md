@@ -193,7 +193,7 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 - [ ] 15.3 🍎 🤖 **【新】** 右键 → Switch mode → 👔 Work；设一个 1 分钟后的闹钟，别理它；再设一个 1 分钟后的待办 → **宠物旁出现 “👔 Work”；闹钟用一半音量响、最多响 15 秒，宠物原地提醒不跑到中间；待办用一半音量响；宠物不自己说话，摸它没有音效**
 - [ ] 15.4 🍎 🤖 **【新】** 模式选 Auto；在 设置 → Modes 加一个包含现在时间的 Quiet 时段；然后右键 → Switch mode 里分别点 “Today is a day off” 和 “Quiet for 1 hour”，最后点 Auto → **Auto 时按时段切换，宠物旁标记的悬停提示写着 “until …”，菜单写 “Switch mode (now: 🌙 Quiet until …)”；勾 Today is a day off 后今天按休息日的时段表；Quiet for 1 hour 一小时后自动回到时段表；点 Auto 立即回到时段表**
 - [ ] 15.5 🍎 🤖 **【新】** 在 Work 或 Quiet 模式下，让一个今天的纪念日开始（建一个今天的生日，动一下鼠标）；之后切回 Normal → **Work/Quiet 时不放烟火，只在宠物旁出现 “🎉 名字” 标记（点它马上放）；切回 Normal 或 Lively 时宠物问 “🎉 Today: … Celebrate now?”，点 Celebrate 播放，点 Skip 不放；过了当天就不再提**
-- [ ] 15.6 🤖 **【新】** 右键宠物和托盘菜单，看 Switch mode → **两个菜单都有 “Switch mode (now: …)”，在 Open panel… 上面；子菜单：Auto、🎉 Lively、🙂 Normal、👔 Work、🌙 Quiet（当前的打勾），分隔线，Quiet for 1 hour、Today is a day off**
+- [ ] 15.6 🤖 **【新】** 右键宠物和托盘菜单，看 Switch mode → **两个菜单都有 “Switch mode (now: …)”，在 Open panel… 上面；子菜单：Auto、🙂 Normal、🎉 Lively、👔 Work、🌙 Quiet（当前的打勾），分隔线，Quiet for 1 hour、Today is a day off**
 - [ ] 15.7 🍎 **【新】** 设置 里纪念日音乐关着，模式选 🎉 Lively，点一个纪念日的 ▶ Preview → **Lively 下纪念日音乐照样播放；其余和 Normal 一样**
 - [ ] 15.8 **【新】** 在旧版（0.36）里打开 Quiet hours（例如 22:00–07:00）和 Focus 的 Work hours（例如周一到周五 9:00–17:00），然后装 0.37 升级 → **设置 → Modes 里：两张表都有 22:00–07:00 Quiet，工作日表多一个 9:00–17:00 Work，工作日是周一到周五，模式是 Auto；原来都没开的，用默认时段**
 

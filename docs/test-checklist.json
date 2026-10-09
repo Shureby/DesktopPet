@@ -1148,7 +1148,7 @@
           "rev": "0.37.0",
           "ci": "auto",
           "do": "右键宠物和托盘菜单，看 Switch mode",
-          "expect": "两个菜单都有 “Switch mode (now: …)”，在 Open panel… 上面；子菜单：Auto、🎉 Lively、🙂 Normal、👔 Work、🌙 Quiet（当前的打勾），分隔线，Quiet for 1 hour、Today is a day off"
+          "expect": "两个菜单都有 “Switch mode (now: …)”，在 Open panel… 上面；子菜单：Auto、🙂 Normal、🎉 Lively、👔 Work、🌙 Quiet（当前的打勾），分隔线，Quiet for 1 hour、Today is a day off"
         },
         {
           "id": "modes.lively",

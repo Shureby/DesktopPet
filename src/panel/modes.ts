@@ -91,19 +91,89 @@ function weekBars(m: ModeSettings, now: Date): Node {
   );
 }
 
-type PresetRow = { label: string; key: keyof ModePreset; options?: [string, ModePreset[keyof ModePreset]][] };
+type PresetRow = { label: string; key: keyof ModePreset; info: string; options?: [string, ModePreset[keyof ModePreset]][] };
 const PRESET_ROWS: PresetRow[] = [
-  { label: "Ring volume", key: "volume", options: [["100%", 1], ["50%", 0.5], ["25%", 0.25]] },
-  { label: "Start soft, get louder", key: "rampUp" },
-  { label: "Alarms ring for", key: "ringSeconds", options: [["As set", 0], ["15 s", 15], ["30 s", 30], ["1 min", 60]] },
-  { label: "Comes to the middle", key: "petRuns" },
-  { label: "To-dos ring", key: "todoRing" },
-  { label: "Anniversaries", key: "celebrate", options: [["Now", "play"], ["Later", "postpone"]] },
-  { label: "Anniversary music", key: "music", options: [["As set", false], ["On", true]] },
-  { label: "Talks on its own", key: "chatter" },
-  { label: "Petting & focus sounds", key: "sounds" },
-  { label: "Keeps calm", key: "calm" },
+  {
+    label: "Ring volume",
+    key: "volume",
+    info: "How loud alarms, timers and to-do reminders ring in this mode, as a share of the volume set under Alarms & timers / To-do reminders.",
+    options: [["100%", 1], ["50%", 0.5], ["25%", 0.25]],
+  },
+  {
+    label: "Start soft, get louder",
+    key: "rampUp",
+    info: "Alarms and timers start at a quarter of their volume and get louder over 30 seconds, up to the Ring volume.",
+  },
+  {
+    label: "Alarms ring for",
+    key: "ringSeconds",
+    info: "How long an alarm or timer rings before it counts as unanswered. “As set” uses Ring for under Alarms & timers; a shorter time here wins.",
+    options: [["As set", 0], ["15 s", 15], ["30 s", 30], ["1 min", 60]],
+  },
+  {
+    label: "Comes to the middle",
+    key: "petRuns",
+    info: "When something rings, the pet runs to the middle of the screen (if that's on for alarms or to-dos). Off: it perks up where it is.",
+  },
+  { label: "To-dos ring", key: "todoRing", info: "To-do reminders play their ringtone. Off: just the bubble. Alarms and timers always ring." },
+  {
+    label: "Anniversaries",
+    key: "celebrate",
+    info: "Now: fireworks or the candle play on the day. Later: they wait with a 🎉 badge by the pet; when a mode with “Now” begins, the pet asks whether to celebrate.",
+    options: [["Now", "play"], ["Later", "postpone"]],
+  },
+  {
+    label: "Anniversary music",
+    key: "music",
+    info: "On: anniversaries play their music even if music is off under To-do reminders. “As set”: as set there.",
+    options: [["As set", false], ["On", true]],
+  },
+  {
+    label: "Talks on its own",
+    key: "chatter",
+    info: "The pet says things now and then without being asked: bored, hungry, happy to see you. Reminders and replies to petting still show.",
+  },
+  { label: "Petting & focus sounds", key: "sounds", info: "The little sound when you pet it, and the sounds when a focus or a break starts." },
+  { label: "Keeps calm", key: "calm", info: "The pet stays calm: it sits, naps and walks slowly instead of running, climbing and jumping." },
 ];
+
+const MODE_INFO: Record<ModeId, string> = {
+  normal: "Your settings as they are, so nothing here to change. To change them, use the cards below (Alarms & timers, To-do reminders…).",
+  lively: "Like Normal, with anniversary music on.",
+  work: "For work hours: softer, shorter rings; the pet stays put and quiet; anniversaries wait.",
+  quiet: "For nights and meetings: the pet keeps calm, to-dos don't ring, anniversaries wait. Alarms and timers still ring, softly at first.",
+};
+
+/** One box for every ⓘ: shown beside the one hovered or focused (a click focuses it). */
+let tipBox: HTMLElement | null = null;
+/** "ⓘ": what the thing beside it does, on hover, focus or click. */
+export function infoTip(text: string): HTMLElement {
+  const b = h("button", { type: "button", class: "info", "aria-label": text }, "ⓘ");
+  const show = () => {
+    tipBox ??= document.body.appendChild(h("div", { class: "info-tip", role: "tooltip" }));
+    tipBox.textContent = text;
+    tipBox.hidden = false;
+    const r = b.getBoundingClientRect();
+    const w = Math.min(260, window.innerWidth - 16);
+    tipBox.style.width = `${w}px`;
+    tipBox.style.left = `${Math.max(8, Math.min(r.left + r.width / 2 - w / 2, window.innerWidth - w - 8))}px`;
+    const below = r.bottom + 6;
+    tipBox.style.top = `${below + tipBox.offsetHeight > window.innerHeight - 8 ? r.top - tipBox.offsetHeight - 6 : below}px`;
+  };
+  const hide = () => {
+    if (tipBox && document.activeElement !== b) tipBox.hidden = true;
+  };
+  b.addEventListener("mouseenter", show);
+  b.addEventListener("mouseleave", hide);
+  b.addEventListener("focus", show);
+  b.addEventListener("blur", () => tipBox && (tipBox.hidden = true));
+  b.addEventListener("click", (e) => {
+    e.preventDefault();
+    b.focus();
+    show();
+  });
+  return b;
+}
 
 export function modesSection(get: () => Settings, save: (patch: Partial<Settings>) => Promise<void>): Node {
   const root = h("div", { class: "box modes" });
@@ -159,12 +229,12 @@ export function modesSection(get: () => Settings, save: (patch: Partial<Settings
     return h(
       "table",
       { class: "presets" },
-      h("tr", {}, h("th", {}), ...MODE_IDS.map((id) => h("th", {}, `${MODE_ICONS[id]} ${MODE_NAMES[id]}`))),
+      h("tr", {}, h("th", {}), ...MODE_IDS.map((id) => h("th", {}, `${MODE_ICONS[id]} ${MODE_NAMES[id]}`, infoTip(MODE_INFO[id])))),
       ...PRESET_ROWS.map((row) =>
         h(
           "tr",
           {},
-          h("td", {}, row.label),
+          h("td", {}, row.label, infoTip(row.info)),
           ...MODE_IDS.map((id) => {
             const value = m.presets[id][row.key];
             // Normal is your settings as they are: shown, not changed here.
@@ -244,7 +314,6 @@ export function modesSection(get: () => Settings, save: (patch: Partial<Settings
         h("button", { class: "link reset-presets", onclick: () => void update({ presets: structuredClone(DEFAULT_PRESETS) }) }, "Reset to defaults"),
       ),
       presetTable(),
-      h("p", { class: "hint" }, "Normal is your settings as they are. Alarms and timers always ring; Quiet starts them soft and gets louder."),
     );
   };
   render();

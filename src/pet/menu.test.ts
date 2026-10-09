@@ -212,8 +212,8 @@ describe("mode menu", () => {
     expect(item.text).toBe("Switch mode (now: 👔 Work)");
     expect(outline(item.items!)).toEqual([
       "Auto (Settings → Modes)",
-      "🎉 Lively",
       "🙂 Normal",
+      "🎉 Lively",
       "✓ 👔 Work",
       "🌙 Quiet",
       "—",

@@ -1199,3 +1199,32 @@ table.presets select {
 .modes .nowrap {
   white-space: nowrap;
 }
+button.info {
+  border: 0;
+  background: none;
+  padding: 0 0 0 3px;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: help;
+  vertical-align: baseline;
+}
+button.info:hover,
+button.info:focus-visible {
+  color: var(--accent);
+}
+.info-tip {
+  position: fixed;
+  z-index: 50;
+  padding: 7px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 400;
+  text-align: left;
+  text-transform: none;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.15);
+  pointer-events: none;
+}
