@@ -1308,6 +1308,14 @@
           "expect": "闹钟会响（从小声开始），宠物不出来；没人理就记下来；宠物回来时告诉你错过了它"
         },
         {
+          "id": "avoid.tray",
+          "rev": "0.38.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "Pretend → In a call（或真的开会）时打开托盘菜单",
+          "expect": "第一项是 Show pet；Switch mode 下面有一行灰色、不能点的 “Stepped aside: in a call”；不在避让时没有这一行"
+        },
+        {
           "id": "avoid.show-anyway",
           "rev": "0.38.0",
           "mac": true,

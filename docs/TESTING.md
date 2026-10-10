@@ -217,8 +217,9 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 - [ ] 16.7 🍎 🤖 （ePet Test 里用 🧪 Pretend → In a call 代替真的通话）设一个 1 分钟后的普通闹钟，等它到时；然后选 Nothing (look for real) → **宠物离开；闹钟不响、宠物不出来；约 10 秒后宠物回来，说 “While you were busy you missed:”，列出那个闹钟，点 Done 清掉**
 - [ ] 16.8 🍎 🤖 Pretend → In a call 时，让一个勾了 Important 的闹钟响；之后模式换成 🌙 Quiet，再让一个 Important 闹钟和一个普通闹钟各响一次 → **通话中 Important 闹钟照常响，宠物出来提醒，点 Done 后宠物又离开；Quiet 模式下 Important 闹钟一开始就是正常音量，普通闹钟从小声开始**
 - [ ] 16.9 🍎 🤖 Pretend → Full screen 时，让一个普通闹钟响，别理它；然后选 Nothing → **闹钟会响（从小声开始），宠物不出来；没人理就记下来；宠物回来时告诉你错过了它**
-- [ ] 16.10 🍎 🤖 Pretend → In a call 后，点托盘 Show pet → **宠物马上回来，托盘第一项变回 Hide pet，这次通话期间不再离开；下一次通话又会离开**
-- [ ] 16.11 🍎 🤖+👀 打开面板 Modes 页签，拉到最下面的 “Step aside automatically”；取消勾选 Video calls，然后 Pretend → In a call；再勾上 Always hide ePet from screenshots and recordings，截一张图 → **四个选项各带 ⓘ 说明，默认前三个勾上、最后一个不勾；取消 Video calls 后通话时宠物不走；勾 Always hide 后截图里没有宠物（你自己照样看得见）；宠物离开时这一节下面写 “Now: stepped aside (…)”** 👀 你看看这一节的文字和 ⓘ 说明好不好懂
+- [ ] 16.10 🍎 🤖 Pretend → In a call（或真的开会）时打开托盘菜单 → **第一项是 Show pet；Switch mode 下面有一行灰色、不能点的 “Stepped aside: in a call”；不在避让时没有这一行**
+- [ ] 16.11 🍎 🤖 Pretend → In a call 后，点托盘 Show pet → **宠物马上回来，托盘第一项变回 Hide pet，这次通话期间不再离开；下一次通话又会离开**
+- [ ] 16.12 🍎 🤖+👀 打开面板 Modes 页签，拉到最下面的 “Step aside automatically”；取消勾选 Video calls，然后 Pretend → In a call；再勾上 Always hide ePet from screenshots and recordings，截一张图 → **四个选项各带 ⓘ 说明，默认前三个勾上、最后一个不勾；取消 Video calls 后通话时宠物不走；勾 Always hide 后截图里没有宠物（你自己照样看得见）；宠物离开时这一节下面写 “Now: stepped aside (…)”** 👀 你看看这一节的文字和 ⓘ 说明好不好懂
 
 ## 17. 角色
 
