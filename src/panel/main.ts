@@ -77,7 +77,8 @@ import {
 } from "./alarmText";
 import { icon } from "../ui/icons";
 import { backupSection } from "./backup";
-import { hmText, modesSection } from "./modes";
+import { hmText, infoTip, modesSection } from "./modes";
+import { avoidSection } from "./avoid";
 import { dayPicker, WEEK } from "./dayPicker";
 import { workSpan } from "../features/modes/modes";
 import { formatHm, parseHm, timeField } from "./timeField";
@@ -750,7 +751,7 @@ async function renderAlarms(): Promise<Node> {
   const alarms = await backend.listAlarms();
   // The alarm being edited was deleted (here or by the pet): back to a new one.
   if (alarmDraft?.editing != null && !alarms.some((a) => a.id === alarmDraft?.editing)) alarmDraft = null;
-  alarmDraft ??= { time: nowHm(), choice: "none", days: WEEKDAYS, label: "", editing: null };
+  alarmDraft ??= { time: nowHm(), choice: "none", days: WEEKDAYS, label: "", important: false, editing: null };
   const draft = alarmDraft;
   const editingAlarm = alarms.find((a) => a.id === draft.editing) ?? null;
   // ✎ fills the form; Save sets the alarm again, Cancel goes back to a new alarm.
@@ -811,6 +812,21 @@ async function renderAlarms(): Promise<Node> {
     ).map(([v, text]) => h("option", { value: v, selected: draft.choice === v }, text)),
   );
   refresh();
+  const important = h("input", {
+    type: "checkbox",
+    class: "important",
+    checked: draft.important,
+    onchange: (e: Event) => (draft.important = (e.target as HTMLInputElement).checked),
+  });
+  const importantRow = h(
+    "label",
+    { class: "check important-row" },
+    important,
+    "Important",
+    infoTip(
+      "Rings in full whatever the mode (no softer start in Quiet), and even when the pet has stepped aside for a call or a slide show: the pet comes out for it.",
+    ),
+  );
   const add = async () => {
     const [hh, mm] = time.value.split(":").map(Number);
     const d = new Date();
@@ -822,13 +838,17 @@ async function renderAlarms(): Promise<Node> {
     const name = label.value.trim() || DEFAULT_ALARM_LABEL;
     if (editingAlarm) {
       // Set again: it switches on, and its old snooze or skipped ring is forgotten.
-      await backend.updateAlarm(editingAlarm.id, name, d.getTime(), r.repeat, r.days);
+      await backend.updateAlarm(editingAlarm.id, name, d.getTime(), r.repeat, r.days, draft.important);
       stopEdit();
       return;
     }
-    await backend.addAlarm(name, d.getTime(), r.repeat, r.days);
+    // Cleared first: the list redraws the form as soon as the alarm is added.
+    const isImportant = draft.important;
     draft.label = "";
+    draft.important = false;
+    await backend.addAlarm(name, d.getTime(), r.repeat, r.days, isImportant);
     label.value = "";
+    important.checked = false;
   };
   // Custom length, with a live preview of how it's understood. `editing` is the saved
   // custom length being changed with ✎; starting a timer then replaces it in place.
@@ -939,7 +959,7 @@ async function renderAlarms(): Promise<Node> {
       h(
         "div",
         { class: "info" },
-        h("span", { class: "title" }, a.label),
+        h("span", { class: "title" }, a.label, a.important ? h("span", { class: "chip important", title: "Rings even during calls and slide shows" }, "Important") : null),
         h("span", { class: "sub" }, alarmSubtitle(a)),
         a.enabled && a.snoozes > 0 && a.nextFire
           ? h(
@@ -1004,6 +1024,7 @@ async function renderAlarms(): Promise<Node> {
       : h("h3", {}, "New alarm"),
     h("div", { class: "row" }, time, repeat, label, addButton),
     daysRow,
+    importantRow,
     timers.length ? h("h3", {}, "Timers") : null,
     timers.length ? h("ul", { class: "list clocks" }, ...timers.map(timerRow)) : null,
     h("h3", {}, "Alarms"),
@@ -1455,7 +1476,13 @@ async function renderGames(): Promise<Node> {
 
 /** Modes (docs/INTERACTIONS.md, "Modes"): src/panel/modes.ts. */
 async function renderModes(): Promise<Node> {
-  return h("section", { class: "modes-page" }, h("h3", {}, "Modes"), modesSection(() => settings, save, () => backend.getSettings()));
+  return h(
+    "section",
+    { class: "modes-page" },
+    h("h3", {}, "Modes"),
+    modesSection(() => settings, save, () => backend.getSettings()),
+    avoidSection(backend, () => settings, save, () => backend.getSettings()),
+  );
 }
 
 async function renderSettings(): Promise<Node> {

@@ -143,6 +143,14 @@ describe("tray menu", () => {
     expect(texts(buildItems(ctx()))).not.toContain("Quit");
   });
 
+  it("[avoid.tray] stepped aside: Show pet brings it back, and a greyed line says why", () => {
+    const items = buildTrayItems(trayCtx({ away: "call" }));
+    expect(outline(items)[0]).toBe("Show pet");
+    const line = items.find((i) => i !== "sep" && i.text === "Stepped aside: in a call") as Item;
+    expect(line.disabled).toBe(true);
+    expect(outline(buildTrayItems(trayCtx())).join()).not.toContain("Stepped aside");
+  });
+
   it("never shows a countdown, which a menu built ahead of time can't keep current", () => {
     const all = JSON.stringify(outline(buildTrayItems(trayCtx(busy))));
     expect(all).not.toContain("left");

@@ -4,6 +4,7 @@ import { pick, type Rng } from "../engine/random";
 import { formatDuration, PRESET_MINUTES, timerName } from "../features/alarm/timers";
 import { alarmName, clock } from "../features/alarm/ringing";
 import { gameHeld } from "../features/pomodoro/logic";
+import { AVOID_LABELS, type AvoidReason } from "../features/avoid/avoid";
 import {
   dayKey,
   MODE_ICONS,
@@ -48,6 +49,8 @@ export interface PetMenuContext extends MenuContext {
 /** The tray menu adds show/hide (the way back to a hidden pet) and Quit. */
 export interface TrayMenuContext extends MenuContext {
   petVisible: boolean;
+  /** The pet stepped aside (why): "Show pet" brings it back anyway. */
+  away?: AvoidReason | null;
 }
 
 export interface Item {
@@ -56,6 +59,8 @@ export interface Item {
   text: string;
   action?: () => void;
   checked?: boolean;
+  /** Shown greyed out: a line of information, not something to click. */
+  disabled?: boolean;
   items?: (Item | "sep")[];
 }
 
@@ -221,7 +226,7 @@ export function buildItems(c: PetMenuContext): (Item | "sep")[] {
  */
 export function buildTrayItems(c: TrayMenuContext): (Item | "sep")[] {
   return [
-    c.petVisible ? { id: "hide", text: "Hide pet" } : { id: "show", text: "Show pet" },
+    c.petVisible && !c.away ? { id: "hide", text: "Hide pet" } : { id: "show", text: "Show pet" },
     "sep",
     ...taskItems(c),
     "sep",
@@ -230,6 +235,7 @@ export function buildTrayItems(c: TrayMenuContext): (Item | "sep")[] {
     ...playItems(c).filter((i) => c.petVisible || !gameHeld(c.settings.pomodoro, c.pomodoro) || i === "sep" || !i.text.startsWith("Play")),
     "sep",
     modeItem(c),
+    ...(c.away ? [{ text: `Stepped aside: ${AVOID_LABELS[c.away]}`, disabled: true }] : []),
     { text: "Open panel…", action: () => void c.backend.openPanel(panelTabFor(c)) },
     "sep",
     { id: "quit", text: "Quit" },
@@ -243,7 +249,7 @@ export async function nativeMenu(items: (Item | "sep")[]) {
     if (i === "sep") return PredefinedMenuItem.new({ item: "Separator" });
     if (i.items) return Submenu.new({ text: i.text, items: (await Promise.all(i.items.map(toNative))) as never });
     if (i.checked !== undefined) return CheckMenuItem.new({ text: i.text, checked: i.checked, action: i.action });
-    return MenuItem.new({ id: i.id, text: i.text, action: i.action });
+    return MenuItem.new({ id: i.id, text: i.text, action: i.action, enabled: !i.disabled });
   };
   return Menu.new({ items: (await Promise.all(items.map(toNative))) as never });
 }
@@ -271,6 +277,7 @@ function htmlMenu(x: number, y: number, items: (Item | "sep")[]): void {
       } else {
         li.textContent = (i.checked ? "✓ " : "") + i.text + (i.items ? " ▸" : "");
         if (i.items) li.append(render(i.items));
+        else if (i.disabled) li.className = "disabled";
         else
           li.addEventListener("click", () => {
             i.action?.();

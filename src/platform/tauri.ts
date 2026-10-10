@@ -1,6 +1,6 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
-import { mergeSettings, type Backend, type BackendEvents, type PanelTab, type Settings, type TestClock } from "./types";
+import { mergeSettings, type Backend, type BackendEvents, type PanelTab, type Settings, type TestClock, type AvoidStatus } from "./types";
 
 /** Settings are owned by the UI: Rust stores the JSON blob and reads only what it needs. */
 async function getSettings(): Promise<Settings> {
@@ -32,12 +32,13 @@ export const tauriBackend: Backend = {
   closeCelebration: () => invoke("close_celebration"),
 
   listAlarms: () => invoke("list_alarms"),
-  addAlarm: (label, at, repeat, days) => invoke("add_alarm", { label, at, repeat, days: days ?? null }),
+  addAlarm: (label, at, repeat, days, important) =>
+    invoke("add_alarm", { label, at, repeat, days: days ?? null, important: important ?? null }),
   setAlarmEnabled: (id, enabled) => invoke("set_alarm_enabled", { id, enabled }),
   skipAlarmOnce: (id) => invoke("skip_alarm_once", { id }),
   unskipAlarm: (id) => invoke("unskip_alarm", { id }),
-  updateAlarm: (id, label, at, repeat, days) =>
-    invoke("update_alarm", { id, label, at, repeat, days: days ?? null }),
+  updateAlarm: (id, label, at, repeat, days, important) =>
+    invoke("update_alarm", { id, label, at, repeat, days: days ?? null, important: important ?? null }),
   deleteAlarm: (id) => invoke("delete_alarm", { id }),
   clearFinishedAlarms: () => invoke("clear_finished_alarms"),
   snoozeAlarm: (id, minutes) => invoke("snooze_alarm", { id, minutes }),
@@ -50,6 +51,8 @@ export const tauriBackend: Backend = {
   testClock: () => invoke<TestClock | null>("test_clock"),
   shiftClock: (ms) => invoke<number>("shift_clock", { ms }),
   endPeek: () => invoke("end_peek"),
+  avoidStatus: () => invoke<AvoidStatus>("avoid_status"),
+  pretendBusy: (busy) => invoke("pretend_busy", { busy }),
   e2eEnabled: () => invoke<boolean>("e2e_enabled").catch(() => false),
   e2eTray: (id) => invoke("e2e_tray", { id }),
   backupExport: (password, path) => invoke("backup_export", { password, path: path ?? null }),

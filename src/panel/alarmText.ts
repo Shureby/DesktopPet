@@ -108,6 +108,8 @@ export interface AlarmDraft {
   choice: RepeatChoice;
   days: DayMask;
   label: string;
+  /** Rings in full even when the pet has stepped aside, and in Quiet (`Alarm.important`). */
+  important: boolean;
   editing: number | null;
 }
 
@@ -117,7 +119,7 @@ export function draftFor(a: Alarm, now = Date.now()): AlarmDraft {
   const time = `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
   const choice: RepeatChoice = a.repeat === "days" ? choiceForDays(a.repeatDays) : a.repeat;
   const days = a.repeat === "days" ? a.repeatDays : WEEKDAYS;
-  return { time, choice, days, label: a.label === DEFAULT_ALARM_LABEL ? "" : a.label, editing: a.id };
+  return { time, choice, days, label: a.label === DEFAULT_ALARM_LABEL ? "" : a.label, important: a.important === true, editing: a.id };
 }
 
 /**

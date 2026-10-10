@@ -2,6 +2,7 @@
 //! Platform-independent logic lives in `crates/desktoppet-core`.
 
 mod app_windows;
+mod avoid;
 mod backup;
 mod commands;
 mod desktop;
@@ -41,6 +42,7 @@ pub fn run() {
             app_windows::create_pet(app.handle())?;
             tray::create(app.handle())?;
             scheduler::spawn(app.handle().clone());
+            avoid::spawn(app.handle().clone());
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -107,6 +109,8 @@ pub fn run() {
             commands::open_panel,
             commands::open_game,
             commands::close_game,
+            avoid::avoid_status,
+            avoid::pretend_busy,
             backup::backup_export,
             backup::backup_open,
             backup::backup_restore,

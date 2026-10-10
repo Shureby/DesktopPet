@@ -1267,3 +1267,10 @@ button.preview .ic {
 .slot .overlap .ic {
   vertical-align: -0.1em;
 }
+.clock-row .title .chip.important {
+  margin-left: 6px;
+  vertical-align: 1px;
+}
+.important-row {
+  margin-top: 6px;
+}

@@ -631,6 +631,14 @@
           "ci": "auto",
           "do": "设一个 3 分钟后的一次性闹钟、一个 3 分钟后的计时器、一个 3 分钟后提醒的待办，然后退出 ePet，等 10 分钟后再打开；另设一个 2 分钟后的闹钟（贪睡 5 分钟 × 3 次），退出后等约 12 分钟再打开",
           "expect": "第一组都不响：闹钟和计时器在 Finished 里写 “Didn't ring · … · ePet wasn't running”，没有 Missed 角标，也不在 “While I was hidden” 清单里；待办显示红色 “Overdue · …”；第二个闹钟打开后立刻补响，气泡写 “Snoozed 2× · first rang …”，不理的话再贪睡一次后被标记为错过；如果超过 15 分钟才打开则不响"
+        },
+        {
+          "id": "alarm.important",
+          "rev": "0.38.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "面板 Alarms 页签新建闹钟时勾上 Important（旁边 ⓘ 有说明），点 Add；再点 ✎ 编辑它，点 Save",
+          "expect": "列表里这个闹钟名字后面有一个 “Important” 小标签；编辑时 Important 仍然勾着，保存后还是 Important"
         }
       ]
     },
@@ -1186,6 +1194,95 @@
           "rev": "0.37.0",
           "do": "在旧版（0.36）里打开 Quiet hours（例如 22:00–07:00）和 Focus 的 Work hours（例如周一到周五 9:00–17:00），然后装 0.37 升级",
           "expect": "设置 → Modes 里：两张表都有 22:00–07:00 Quiet，工作日表多一个 9:00–17:00 Work，工作日是周一到周五，模式是 Auto；原来都没开的，用默认时段"
+        }
+      ]
+    },
+    {
+      "id": "avoid",
+      "title": "自动避让",
+      "items": [
+        {
+          "id": "avoid.real-fullscreen",
+          "rev": "0.38.0",
+          "mac": true,
+          "do": "在宠物所在的屏幕上把一个视频（例如 YouTube）切到全屏；退出全屏；再把一个普通窗口最大化（带标题栏）；有两块屏幕的话，在另一块屏幕上全屏放视频",
+          "expect": "全屏后约 1 秒内宠物离开，托盘第一项变成 Show pet，托盘里有灰色的一行 “Stepped aside: full screen”，托盘图标悬停提示末尾是 “· Stepped aside: full screen”；退出全屏约 10 秒后宠物回来；最大化的普通窗口不算全屏，宠物不走；另一块屏幕全屏时，这块屏幕上的宠物不走"
+        },
+        {
+          "id": "avoid.real-game",
+          "rev": "0.38.0",
+          "do": "打开一个全屏游戏玩一会儿；期间设一个 1 分钟的计时器（可以先设好再进游戏）；不理它；退出游戏",
+          "expect": "游戏时宠物不出现、不挡画面；计时器到时会响，开始小声、慢慢变大，宠物不出来；退出游戏约 10 秒后宠物回来，说 “While you were busy you missed:” 并列出那个计时器"
+        },
+        {
+          "id": "avoid.real-slides",
+          "rev": "0.38.0",
+          "mac": true,
+          "do": "Windows：PowerPoint 按 F5 放映；Mac：Keynote 播放（或 PowerPoint 放映）。放映时让一个普通闹钟和一个勾了 Important 的闹钟先后响；结束放映",
+          "expect": "放映一开始宠物就离开，托盘写 “Stepped aside: presenting”；普通闹钟不响、宠物不出来；Important 闹钟照常全音量响，宠物出来提醒，点 Done 后宠物又离开；结束放映约 10 秒后宠物回来，告诉你错过了那个普通闹钟"
+        },
+        {
+          "id": "avoid.real-call",
+          "rev": "0.38.0",
+          "mac": true,
+          "do": "打开 Teams、Zoom、微信视频或系统的相机 App，开摄像头；之后只开麦克风（关摄像头）再试一次；最后关掉",
+          "expect": "开摄像头时宠物离开，托盘写 “Stepped aside: in a call”；只开麦克风也算；关掉后约 10 秒宠物回来；如果某个程序一直占着麦克风（例如语音聊天挂着），宠物会一直不出来，可以在 Modes 页签取消勾选 Video calls"
+        },
+        {
+          "id": "avoid.share-hidden",
+          "rev": "0.38.0",
+          "mac": true,
+          "human": "需要第二个人或第二台设备看共享画面",
+          "do": "在会议里共享整个屏幕，让对方看；这时按托盘 Show pet 把宠物叫回来；再截一张图（Windows：Win+Shift+S；Mac：Cmd+Shift+3）；会议结束后再截一张",
+          "expect": "会议中你自己看得到宠物，对方看不到（共享画面里没有宠物、没有黑块）；会议中的截图里也没有宠物；会议结束后的截图里有宠物。Mac 新系统的部分录屏方式可能仍拍得到，记下实际情况"
+        },
+        {
+          "id": "avoid.pretend",
+          "rev": "0.38.0",
+          "mac": true,
+          "do": "用 ePet Test：托盘 → 🧪 Pretend → In a call；再选 Full screen、Presenting；最后选 Nothing (look for real)",
+          "expect": "每选一项宠物都离开，托盘写对应原因（in a call / full screen / presenting），当前选项打勾；选 Nothing 后约 10 秒宠物回来。正式版没有这个菜单"
+        },
+        {
+          "id": "avoid.call",
+          "rev": "0.38.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "（ePet Test 里用 🧪 Pretend → In a call 代替真的通话）设一个 1 分钟后的普通闹钟，等它到时；然后选 Nothing (look for real)",
+          "expect": "宠物离开；闹钟不响、宠物不出来；约 10 秒后宠物回来，说 “While you were busy you missed:”，列出那个闹钟，点 Done 清掉"
+        },
+        {
+          "id": "avoid.important",
+          "rev": "0.38.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "Pretend → In a call 时，让一个勾了 Important 的闹钟响；之后模式换成 🌙 Quiet，再让一个 Important 闹钟和一个普通闹钟各响一次",
+          "expect": "通话中 Important 闹钟照常响，宠物出来提醒，点 Done 后宠物又离开；Quiet 模式下 Important 闹钟一开始就是正常音量，普通闹钟从小声开始"
+        },
+        {
+          "id": "avoid.fullscreen",
+          "rev": "0.38.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "Pretend → Full screen 时，让一个普通闹钟响，别理它；然后选 Nothing",
+          "expect": "闹钟会响（从小声开始），宠物不出来；没人理就记下来；宠物回来时告诉你错过了它"
+        },
+        {
+          "id": "avoid.show-anyway",
+          "rev": "0.38.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "Pretend → In a call 后，点托盘 Show pet",
+          "expect": "宠物马上回来，托盘第一项变回 Hide pet，这次通话期间不再离开；下一次通话又会离开"
+        },
+        {
+          "id": "avoid.settings",
+          "rev": "0.38.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你看看这一节的文字和 ⓘ 说明好不好懂",
+          "do": "打开面板 Modes 页签，拉到最下面的 “Step aside automatically”；取消勾选 Video calls，然后 Pretend → In a call；再勾上 Always hide ePet from screenshots and recordings，截一张图",
+          "expect": "四个选项各带 ⓘ 说明，默认前三个勾上、最后一个不勾；取消 Video calls 后通话时宠物不走；勾 Always hide 后截图里没有宠物（你自己照样看得见）；宠物离开时这一节下面写 “Now: stepped aside (…)”"
         }
       ]
     },

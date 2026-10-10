@@ -146,6 +146,7 @@ pub fn list_alarms(state: State<AppState>) -> CmdResult<Vec<Alarm>> {
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub fn add_alarm(
     app: AppHandle,
     state: State<AppState>,
@@ -153,14 +154,21 @@ pub fn add_alarm(
     at: i64,
     repeat: Repeat,
     days: Option<u8>,
+    important: Option<bool>,
 ) -> CmdResult<Alarm> {
-    let alarm = state.store().add_alarm(&Local, &label, at, repeat, days.unwrap_or(0), now_ms()).map_err(err)?;
+    let store = state.store();
+    let mut alarm = store.add_alarm(&Local, &label, at, repeat, days.unwrap_or(0), now_ms()).map_err(err)?;
+    if important == Some(true) {
+        store.set_alarm_important(alarm.id, true).map_err(err)?;
+        alarm.important = true;
+    }
     let _ = app.emit("alarms-changed", ());
     Ok(alarm)
 }
 
 /// Editing an alarm from the panel (✎): set again with a new label, time and repeat.
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub fn update_alarm(
     app: AppHandle,
     state: State<AppState>,
@@ -169,8 +177,14 @@ pub fn update_alarm(
     at: i64,
     repeat: Repeat,
     days: Option<u8>,
+    important: Option<bool>,
 ) -> CmdResult<Alarm> {
-    let alarm = state.store().update_alarm(&Local, id, &label, at, repeat, days.unwrap_or(0)).map_err(err)?;
+    let store = state.store();
+    let mut alarm = store.update_alarm(&Local, id, &label, at, repeat, days.unwrap_or(0)).map_err(err)?;
+    if let Some(important) = important {
+        store.set_alarm_important(id, important).map_err(err)?;
+        alarm.important = important;
+    }
     let _ = app.emit("alarms-changed", ());
     Ok(alarm)
 }

@@ -151,11 +151,11 @@ const UNSEEN_ICON: Record<Unseen["kind"], string> = { alarm: "⏰", timer: "⏱"
  * "While I was hidden you missed:" and one line per item, oldest first, each with its own
  * date ("Fri, Sep 26 8:55 PM"): the list may wait days for the pet to be shown.
  */
-export function unseenLines(list: Unseen[], now = Date.now(), max = 5): string[] {
+export function unseenLines(list: Unseen[], now = Date.now(), max = 5, heading = "While I was hidden you missed:"): string[] {
   const sorted = [...list].sort((a, b) => a.at - b.at || a.id - b.id);
   const lines = sorted
     .slice(0, max)
     .map((u) => `• ${UNSEEN_ICON[u.kind]} ${u.title} · ${formatWhen(u.at, now)}${u.snoozes ? ` (snoozed ${u.snoozes}×)` : ""}`);
   if (sorted.length > max) lines.push(`…and ${sorted.length - max} more`);
-  return ["While I was hidden you missed:", ...lines];
+  return [heading, ...lines];
 }

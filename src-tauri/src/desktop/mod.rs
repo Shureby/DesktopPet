@@ -70,3 +70,35 @@ fn list_windows(_areas: &[Area]) -> Vec<WindowRect> {
     #[allow(unreachable_code)]
     Vec::new()
 }
+
+/// What you're doing that the pet steps aside for (see avoid.rs).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, serde::Deserialize)]
+pub struct Busy {
+    /// An app covers the pet's whole screen (a game, a video, a browser on F11).
+    pub fullscreen: bool,
+    /// A slide show.
+    pub presenting: bool,
+    /// A camera or the microphone is in use (a video call).
+    pub call: bool,
+}
+
+/// What you're doing on the screen the pet is on.
+pub fn busy<R: Runtime>(pet: &WebviewWindow<R>) -> Busy {
+    let Ok(pos) = pet.outer_position() else {
+        return Busy::default();
+    };
+    let size = pet.outer_size().unwrap_or_default();
+    let (x, y) = (pos.x as f64 + size.width as f64 / 2.0, pos.y as f64 + size.height as f64 / 2.0);
+    #[cfg(windows)]
+    return windows::busy(std::process::id(), (x as i32, y as i32));
+    #[cfg(target_os = "macos")]
+    {
+        let scale = pet.scale_factor().unwrap_or(1.0);
+        return macos::busy(std::process::id(), (x / scale, y / scale));
+    }
+    #[allow(unreachable_code)]
+    {
+        let _ = (x, y);
+        Busy::default()
+    }
+}

@@ -4,6 +4,7 @@ use std::sync::{Mutex, MutexGuard};
 use desktoppet_core::backup::Snapshot;
 use desktoppet_core::Store;
 
+use crate::avoid::Avoid;
 use crate::storefront::Storefront;
 
 pub struct AppState {
@@ -21,6 +22,8 @@ pub struct AppState {
     pub e2e_present: AtomicBool,
     /// The backup opened in Settings → Backup, until it's restored or another is opened.
     pub opened_backup: Mutex<Option<Snapshot>>,
+    /// The pet stepped aside (avoid.rs).
+    avoid: Mutex<Avoid>,
     pub storefront: Box<dyn Storefront>,
 }
 
@@ -34,6 +37,7 @@ impl AppState {
             pet_ready: AtomicBool::new(false),
             e2e_present: AtomicBool::new(false),
             opened_backup: Mutex::new(None),
+            avoid: Mutex::new(Avoid::default()),
             storefront,
         }
     }
@@ -41,6 +45,10 @@ impl AppState {
     pub fn store(&self) -> MutexGuard<'_, Store> {
         // A panic while holding the lock leaves SQLite consistent, so recover the guard.
         self.store.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    pub fn avoid(&self) -> MutexGuard<'_, Avoid> {
+        self.avoid.lock().unwrap_or_else(|e| e.into_inner())
     }
 }
 

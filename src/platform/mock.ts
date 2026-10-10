@@ -2,6 +2,7 @@ import { nextPhase, startFocus, tick } from "../features/pomodoro/logic";
 import { currentWorkPeriod, runCutoff } from "../features/pomodoro/workHours";
 import { endOfDay, nextAfterTick, todoRemindsAt } from "../features/todo/repeat";
 import { nextAnniversary, prepDay } from "../features/anniversary/templates";
+import { NOT_BUSY, othersPresent, type AvoidReason, type Busy } from "../features/avoid/avoid";
 import {
   DEFAULT_SETTINGS,
   EVERY_DAY,
@@ -57,6 +58,9 @@ interface MockState {
 
 /** Like the app's AppState: the user hid the pet (it may still come out for a reminder). */
 let petHidden = false;
+/** Stepped aside (src/features/avoid/avoid.ts): the browser can only pretend (pretendBusy). */
+let away: AvoidReason | null = null;
+let pretend: Busy | null = null;
 /** Like the Rust store's take_due (LATE_TOLERANCE_MS). */
 const LATE_TOLERANCE = 60_000;
 
@@ -182,9 +186,10 @@ export function startMockScheduler(): () => void {
     mutate((s) => {
       // The same rules as take_due in the Rust store: what came due while ePet wasn't running
       // doesn't ring late, except an alarm still within its snooze time.
-      const ring = (kind: "todo" | "alarm", id: number, title: string, allDay = false) => {
-        const peek = petHidden && comesOut(s, kind, title);
-        events.push(["reminder", { kind, id, title, peek, allDay }]);
+      const ring = (kind: "todo" | "alarm", id: number, title: string, allDay = false, important = false) => {
+        // Stepped aside: only an important alarm brings the pet out.
+        const peek = away ? kind === "alarm" && important : petHidden && comesOut(s, kind, title);
+        events.push(["reminder", { kind, id, title, peek, allDay, important }]);
       };
       s.notified ??= [];
       for (const t of s.todos) {
@@ -207,7 +212,7 @@ export function startMockScheduler(): () => void {
           const next = a.repeat !== "none" && a.timeHm ? nextOccurrence(a.timeHm, daysOf(a), now) : null;
           a.skippedFire = null;
           if (onTime || (snoozesItself && now - cycleStart <= snoozeMs * alert.autoSnoozeMax)) {
-            ring("alarm", a.id, a.label);
+            ring("alarm", a.id, a.label, false, a.important === true);
             if (a.snoozes === 0) {
               a.missedAt = null;
               a.missedSeenAt = null;
@@ -259,7 +264,7 @@ export function startMockScheduler(): () => void {
           });
           madeTodo = true;
         }
-        const hiddenWaits = petHidden && !s.settings.hiddenAlerts.anniversaries;
+        const hiddenWaits = (petHidden && !s.settings.hiddenAlerts.anniversaries) || away !== null;
         if (on.getTime() === today.getTime() && a.celebratedOn !== ymd(today) && !hiddenWaits) {
           a.celebratedOn = ymd(today);
           const { changedAt: _c, celebratedOn: _d, ...anniversary } = a;
@@ -454,7 +459,7 @@ export const mockBackend: Backend = {
   async listAlarms() {
     return load().alarms;
   },
-  async addAlarm(label, at, repeat, days = 0) {
+  async addAlarm(label, at, repeat, days = 0, important = false) {
     const t = alarmTimes(at, repeat, days);
     const alarm = mutate((s) => {
       const a: Alarm = {
@@ -469,6 +474,7 @@ export const mockBackend: Backend = {
         skippedFire: null,
         rangAt: null,
         createdAt: Date.now(),
+        important,
       };
       s.alarms.push(a);
       return a;
@@ -476,12 +482,13 @@ export const mockBackend: Backend = {
     fire("alarms-changed", null);
     return alarm;
   },
-  async updateAlarm(id, label, at, repeat, days = 0) {
+  async updateAlarm(id, label, at, repeat, days = 0, important) {
     const t = alarmTimes(at, repeat, days);
     const alarm = mutate((s) => {
       const a = s.alarms.find((x) => x.id === id);
       if (!a) return null;
       Object.assign(a, { label: label.trim(), ...t, repeat, enabled: true, snoozes: 0, rangAt: null, skippedFire: null, offAt: null });
+      if (important !== undefined) a.important = important;
       return { ...a };
     });
     if (!alarm) throw new Error("that alarm no longer exists");
@@ -613,6 +620,20 @@ export const mockBackend: Backend = {
     throw new Error("no test clock in the browser mock");
   },
   async endPeek() {},
+  async avoidStatus() {
+    const reason = away;
+    return { reason, protected: !!reason && othersPresent(reason), pretend };
+  },
+  async pretendBusy(busy) {
+    pretend = busy;
+    const a = load().settings.avoid;
+    const b = busy ?? NOT_BUSY;
+    const reason: AvoidReason | null =
+      b.presenting && a.presenting ? "presenting" : b.call && a.calls ? "call" : b.fullscreen && a.fullscreen ? "fullscreen" : null;
+    if (reason === away) return;
+    away = reason;
+    fire("avoid", reason);
+  },
   async e2eEnabled() {
     return false;
   },

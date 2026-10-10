@@ -165,6 +165,7 @@ pub fn open_celebration<R: Runtime>(app: &AppHandle<R>, c: &desktoppet_core::Cel
         .resizable(false)
         .shadow(false)
         .focused(false)
+        .content_protected(app.state::<AppState>().avoid().protected)
         // Shown only once clicks pass through it: it must never catch the mouse.
         .visible(false)
         .position(mx / s, my / s)
@@ -214,6 +215,10 @@ pub fn set_pet_visible<R: Runtime>(app: &AppHandle<R>, visible: bool) -> tauri::
     state.pet_hidden.store(!visible, Ordering::Relaxed);
     // Shown while out for a reminder: it stays out.
     state.peeking.store(false, Ordering::Relaxed);
+    // Shown while it stepped aside: it stays out until that's over.
+    if visible {
+        crate::avoid::dismiss(app);
+    }
     if let Some(w) = app.get_webview_window(PET) {
         if visible {
             w.show()?;
@@ -226,12 +231,13 @@ pub fn set_pet_visible<R: Runtime>(app: &AppHandle<R>, visible: bool) -> tauri::
     Ok(())
 }
 
-/// The hidden pet comes out for a reminder: the window is shown natively (the hidden
-/// window's script may be throttled), without announcing a visibility change, so the tray
-/// still offers "Show pet". Returns whether the pet is hidden (and so now peeking).
+/// The hidden pet (or one that stepped aside) comes out for a reminder: the window is
+/// shown natively (the hidden window's script may be throttled), without announcing a
+/// visibility change, so the tray still offers "Show pet". Returns whether the pet is out of
+/// sight (and so now peeking).
 pub fn peek<R: Runtime>(app: &AppHandle<R>) -> bool {
     let state = app.state::<AppState>();
-    if !state.pet_hidden.load(Ordering::Relaxed) {
+    if !out_of_sight(app) {
         return false;
     }
     if !state.peeking.swap(true, Ordering::Relaxed) {
@@ -244,11 +250,16 @@ pub fn peek<R: Runtime>(app: &AppHandle<R>) -> bool {
     true
 }
 
+/// Hidden by the user, or stepped aside (avoid.rs).
+fn out_of_sight<R: Runtime>(app: &AppHandle<R>) -> bool {
+    app.state::<AppState>().pet_hidden.load(Ordering::Relaxed) || crate::avoid::away(app).is_some()
+}
+
 /// The reminder is answered and the pet has walked off: hide it again, unless the user
-/// showed it meanwhile.
+/// showed it meanwhile (or what it stepped aside for is over).
 pub fn end_peek<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let state = app.state::<AppState>();
-    if state.peeking.swap(false, Ordering::Relaxed) && state.pet_hidden.load(Ordering::Relaxed) {
+    if state.peeking.swap(false, Ordering::Relaxed) && out_of_sight(app) {
         if let Some(w) = app.get_webview_window(PET) {
             w.hide()?;
         }

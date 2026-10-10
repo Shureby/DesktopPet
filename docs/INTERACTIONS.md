@@ -588,6 +588,54 @@ before), `updateMode` / `preset()` in `PetHost`, `modeItem` in `src/pet/menu.ts`
 - Modes are this computer's own settings (not synced); a backup restores them with the
   rest of the settings.
 
+## Stepping aside (since 0.38.0)
+
+Code: `src-tauri/src/avoid.rs` (watching, every second; coming back; screen-capture
+protection), `busy` in `src-tauri/src/desktop/{windows,macos}.rs` (what you're doing),
+`src/features/avoid/avoid.ts` (pure: what rings meanwhile), `onAvoid` in `PetHost`,
+`src/panel/avoid.ts` (Modes tab → Step aside automatically).
+
+- **What it steps aside for** (each can be unticked in the Modes tab):
+  - **Full screen**: the window in front covers the whole of the pet's screen, taskbar or
+    menu bar too (a game, a video, a browser on F11). A maximized window with a title bar
+    doesn't count (an auto-hiding taskbar would make every one "full screen"). On Windows a
+    full-screen Direct3D game counts wherever it is. Only the pet's screen counts: a video
+    full screen on the other one leaves the pet where it is.
+  - **Presenting**: a PowerPoint slide show (Windows: its window, or Windows' presentation
+    mode), Keynote or PowerPoint full screen (macOS).
+  - **A call**: any app is using a camera or the microphone. Windows: Settings → Privacy's
+    record of who uses them (an app using one has no stop time yet). macOS: the camera or the
+    default microphone "running somewhere" (what the green and orange dots show).
+  - The strictest counts: presenting, then a call, then full screen.
+- **It goes at once and comes back about 10 s after** that's over (a video leaving full
+  screen for a moment doesn't bring it out and send it off again). The window is hidden
+  natively, as when you hide it, but the tray says why ("Stepped aside: in a call", and in
+  the tooltip) and offers **Show pet**: it comes back and stays until that call or game is
+  over (the next one sends it off again).
+- **Meanwhile:**
+  - **Important alarms** (the alarm form's Important tick) bring the pet out, as when it's
+    hidden, and ring in full.
+  - During a **game or video**, other alarms and timers ring without the pet, softly at
+    first (as in Quiet); unanswered, they snooze or go on the list as usual.
+  - During a **call or slide show** nothing else rings: alarms are missed at once and timers
+    done, as for a hidden pet that isn't coming out for them; whatever was ringing when it
+    started goes quiet.
+  - To-do reminders go on the list in both cases. Focus and break sounds play during a game
+    or video, not in a call. Anniversaries wait until the pet is back (and you move the
+    mouse); the pet doesn't talk or wander.
+- **Back:** "While you were busy you missed:" and the list (as after hiding).
+- **Screen sharing:** during a call or a slide show ePet's pet and effect windows are left out
+  of screen sharing, recordings and screenshots (Windows 10 2004 and later:
+  `WDA_EXCLUDEFROMCAPTURE`; macOS: not shared). You still see them. "Always hide ePet from
+  screenshots and recordings" keeps them out all the time. Some newer macOS capture may
+  ignore it.
+- **Focus sessions** don't make it step aside: the pet stays with you (it already sits
+  quietly and keeps to its desk then).
+- **Important alarms** also ring in full in every mode: as loud as set, no softer start, for
+  their whole ring time.
+- **Testing:** ePet Test's tray has 🧪 Pretend (full screen, presenting, in a call); the
+  end-to-end tests pretend the same way (`pretend_busy`) and never look at the real screen.
+
 ## Games during a focus session (since 0.20.0)
 
 Code: `gameHeld` in `src/features/pomodoro/logic.ts`, `PetHost.playGame`, `playGame` in the

@@ -235,6 +235,11 @@ body.demo .demo-help a {
 .pet-menu li:hover {
   background: #eef3ff;
 }
+.pet-menu li.disabled,
+.pet-menu li.disabled:hover {
+  color: #999;
+  background: none;
+}
 .pet-menu li.sep {
   height: 1px;
   padding: 0;

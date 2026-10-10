@@ -2,6 +2,7 @@ import product from "../../product.config.json";
 import type { Rect, WindowRect } from "../engine/geometry";
 import type { RingtoneId } from "../pet/sound";
 import { DEFAULT_MODES, modeSettings, type ModeSettings } from "../features/modes/modes";
+import { avoidSettings, DEFAULT_AVOID, type AvoidReason, type AvoidSettings, type Busy } from "../features/avoid/avoid";
 
 export interface PomodoroConfig {
   focusMin: number;
@@ -72,6 +73,8 @@ export interface Settings {
   quietHours: { enabled: boolean; start: string; end: string };
   /** Reminder modes and their weekly schedule (src/features/modes/modes.ts). */
   modes: ModeSettings;
+  /** What the pet steps aside for (src/features/avoid/avoid.ts). */
+  avoid: AvoidSettings;
   hiddenAlerts: HiddenAlerts;
   /** A 🔔 badge by the pet for alarms ringing within `minutes` (1–120). */
   upcomingAlarms: { show: boolean; minutes: number };
@@ -98,6 +101,7 @@ export const DEFAULT_SETTINGS: Settings = {
   recentTimers: [],
   quietHours: { enabled: false, start: "22:00", end: "08:00" },
   modes: DEFAULT_MODES,
+  avoid: DEFAULT_AVOID,
   hiddenAlerts: { alarms: true, timers: true, todos: true, focus: false, anniversaries: true },
   upcomingAlarms: { show: true, minutes: 60 },
   todoDayTime: "09:00",
@@ -149,6 +153,7 @@ export function mergeSettings(stored: Partial<Settings> | null | undefined): Set
     ...s,
     quietHours: { ...d.quietHours, ...s.quietHours },
     modes: modeSettings(s.modes, s),
+    avoid: avoidSettings(s.avoid),
     hiddenAlerts: { ...d.hiddenAlerts, ...s.hiddenAlerts },
     recentTimers: Array.isArray(s.recentTimers) ? s.recentTimers.filter((m) => typeof m === "number" && m > 0).slice(0, 3) : [],
     upcomingAlarms: (() => {
@@ -247,6 +252,8 @@ export interface Alarm {
   repeatDays: DayMask;
   /** It came due while ePet wasn't running and didn't ring (the time it was due). Not missed. */
   offAt?: number | null;
+  /** Rings in full even when the pet has stepped aside for a call or a slide show, and in Quiet. */
+  important?: boolean;
 }
 
 export type PomodoroPhase = "idle" | "focus" | "short_break" | "long_break";
@@ -288,6 +295,8 @@ export interface ReminderEvent {
   peek?: boolean;
   /** A to-do without a time ("Today: …"); several are told in one bubble. */
   allDay?: boolean;
+  /** An important alarm (`Alarm.important`). */
+  important?: boolean;
 }
 
 /** A day to remember every year (docs/INTERACTIONS.md, "Anniversaries"). */
@@ -383,6 +392,17 @@ export interface BackendEvents {
   "preview-playing": boolean;
   /** "■ Stop": the pet ends the preview now. */
   "preview-stop": null;
+  /** The pet stepped aside (why), or came back (null). */
+  avoid: AvoidReason | null;
+}
+
+/** Stepping aside, as the app sees it now. */
+export interface AvoidStatus {
+  reason: AvoidReason | null;
+  /** ePet's windows are left out of screen sharing and recordings. */
+  protected: boolean;
+  /** What a test build pretends you're doing (null: what you really are). */
+  pretend: Busy | null;
 }
 
 /** The test clock (src/platform/testClock.ts): how far ahead, and whether the tray offers it. */
@@ -463,9 +483,9 @@ export interface Backend {
 
   listAlarms(): Promise<Alarm[]>;
   /** `days` is for repeat "days". */
-  addAlarm(label: string, at: number, repeat: Repeat, days?: DayMask): Promise<Alarm>;
+  addAlarm(label: string, at: number, repeat: Repeat, days?: DayMask, important?: boolean): Promise<Alarm>;
   /** Editing (✎): set again with a new label, time and repeat; it switches on. */
-  updateAlarm(id: number, label: string, at: number, repeat: Repeat, days?: DayMask): Promise<Alarm>;
+  updateAlarm(id: number, label: string, at: number, repeat: Repeat, days?: DayMask, important?: boolean): Promise<Alarm>;
   setAlarmEnabled(id: number, enabled: boolean): Promise<void>;
   /** Repeating alarms: skip the next ring (or the rest of today's snoozes). */
   skipAlarmOnce(id: number): Promise<void>;
@@ -495,6 +515,10 @@ export interface Backend {
   shiftClock(ms: number): Promise<number>;
   /** The hidden pet has answered its reminder and walked off: hide it again. */
   endPeek(): Promise<void>;
+  /** Whether the pet stepped aside, and why. */
+  avoidStatus(): Promise<AvoidStatus>;
+  /** Test builds: pretend you're doing this (null: look at what you really are). */
+  pretendBusy(busy: Busy | null): Promise<void>;
   /** A debug build started for the end-to-end tests: the windows offer test hooks (e2e/). */
   e2eEnabled(): Promise<boolean>;
   /**

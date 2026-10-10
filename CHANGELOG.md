@@ -16,6 +16,26 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.38.0] - 2026-10-10
+
+### Added
+- **Stepping aside**: the pet leaves the screen while an app covers it (a game, a video, a
+  browser on F11), during a slide show (PowerPoint, Keynote) and while a camera or the
+  microphone is in use (a video call), and comes back about 10 seconds after. Back, it tells
+  you what you missed ("While you were busy you missed: …").
+  - During a game or a video, alarms and timers still ring, softly at first; to-dos wait.
+  - During a call or a slide show nothing rings, and ePet is left out of screen sharing,
+    recordings and screenshots (you still see it).
+  - Modes tab → **Step aside automatically**: each of the three can be turned off, and
+    **Always hide ePet from screenshots and recordings** keeps it out of them all the time.
+  - The tray says so ("Stepped aside: in a call"); **Show pet** brings it back for the rest
+    of that call or game.
+- **Important** alarms (a tick in the alarm form, a chip in the list): they ring in full
+  whatever the mode (no softer start in Quiet) and bring the pet out even during a call or
+  a slide show.
+- ePet Test: tray → 🧪 **Pretend**: full screen, presenting or in a call, to try stepping
+  aside without one.
+
 ## [0.37.2] - 2026-10-09
 
 ## [0.37.2] - 2026-10-09

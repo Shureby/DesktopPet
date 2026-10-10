@@ -122,6 +122,9 @@ pub(crate) const MIGRATIONS: &[&str] = &[
     // its own across computers (uid) and the time it last changed (updated_at, real time);
     // deleting one leaves a tombstone. Triggers keep them, so no write has to remember to.
     V14,
+    // v15: an important alarm rings in full even when the pet steps aside for a call or a
+    // presentation, and in Quiet.
+    "ALTER TABLE alarms ADD COLUMN important INTEGER NOT NULL DEFAULT 0;",
 ];
 
 /// Tables whose rows carry a uid, updated_at and a tombstone when deleted (see v14), with
@@ -187,7 +190,7 @@ const DEFAULT_TODO_DAY_TIME: &str = "09:00";
 const AUTO_PERIOD_KEY: &str = "pomodoro_auto_period";
 
 const ALARM_COLUMNS: &str =
-    "id, label, next_fire, time_hm, repeat, enabled, snoozes, missed_at, rang_at, created_at, missed_seen_at, skipped_fire, repeat_days, off_at";
+    "id, label, next_fire, time_hm, repeat, enabled, snoozes, missed_at, rang_at, created_at, missed_seen_at, skipped_fire, repeat_days, off_at, important";
 
 pub struct Store {
     pub(crate) conn: Connection,
@@ -659,6 +662,7 @@ impl Store {
             skipped_fire: r.get(11)?,
             repeat_days: r.get(12)?,
             off_at: r.get(13)?,
+            important: r.get(14)?,
         })
     }
 
@@ -757,7 +761,14 @@ impl Store {
             skipped_fire: None,
             repeat_days,
             off_at: None,
+            important: false,
         })
+    }
+
+    /// Marks an alarm important (or not): it rings in full when the pet has stepped aside.
+    pub fn set_alarm_important(&self, id: i64, important: bool) -> Result<()> {
+        self.conn.execute("UPDATE alarms SET important = ?2 WHERE id = ?1", params![id, important])?;
+        Ok(())
     }
 
     pub fn set_alarm_enabled<Tz: TimeZone>(&self, tz: &Tz, id: i64, enabled: bool, now: Millis) -> Result<()> {
@@ -952,7 +963,7 @@ impl Store {
                 now - at <= LATE_TOLERANCE_MS
             };
             if ring {
-                out.push(Reminder { kind: ReminderKind::Todo, id, title, peek: false, all_day });
+                out.push(Reminder { kind: ReminderKind::Todo, id, title, peek: false, all_day, important: false });
             }
             self.conn.execute("UPDATE todos SET notified_at = ?2, remind_at = NULL WHERE id = ?1", params![id, now])?;
         }
@@ -985,6 +996,7 @@ impl Store {
                     title: a.label.clone(),
                     peek: false,
                     all_day: false,
+                    important: a.important,
                 });
                 // Rung alarms and timers stay (disabled) so the user can still snooze them, and
                 // finished ones stay in the history until the daily clean-up.
@@ -1206,6 +1218,20 @@ mod tests {
     }
 
     #[test]
+    fn an_important_alarm_says_so_when_it_rings() {
+        let s = Store::open_in_memory().unwrap();
+        let a = s.add_alarm(&London, "Pick up kids", at(15, 0), Repeat::None, 0, at(9, 0)).unwrap();
+        assert!(!a.important);
+        s.set_alarm_important(a.id, true).unwrap();
+        assert!(s.list_alarms().unwrap()[0].important);
+        let due = s.take_due(&London, at(15, 0)).unwrap();
+        assert!(due[0].important);
+        // Editing keeps it important.
+        s.update_alarm(&London, a.id, "Pick up kids", at(16, 0), Repeat::None, 0).unwrap();
+        assert!(s.list_alarms().unwrap()[0].important);
+    }
+
+    #[test]
     fn todo_reminders_fire_once_and_rearm_on_new_due_time() {
         let s = Store::open_in_memory().unwrap();
         let t = s.add_todo(&todo("  call mom ", Some(at(15, 0))), at(9, 0)).unwrap();
@@ -1219,7 +1245,8 @@ mod tests {
                 id: t.id,
                 title: "call mom".into(),
                 peek: false,
-                all_day: false
+                all_day: false,
+                important: false
             }]
         );
         assert!(s.take_due(&London, at(15, 1)).unwrap().is_empty());

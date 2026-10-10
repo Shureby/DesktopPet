@@ -168,6 +168,8 @@ pub struct Alarm {
     /// It came due while ePet wasn't running and didn't ring (one-offs and timers; the time it
     /// was due). Not missed: there was no one to ring for.
     pub off_at: Option<Millis>,
+    /// Rings in full even when the pet has stepped aside for a call or a presentation.
+    pub important: bool,
 }
 
 impl Alarm {
@@ -276,6 +278,9 @@ pub struct Reminder {
     /// A to-do without a time ("Today: …"); the pet tells several of these in one bubble.
     #[serde(default)]
     pub all_day: bool,
+    /// An important alarm (see `Alarm::important`).
+    #[serde(default)]
+    pub important: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

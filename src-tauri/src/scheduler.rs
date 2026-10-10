@@ -64,8 +64,11 @@ fn tick<R: Runtime>(app: &AppHandle<R>) {
     let comes_out = state.store().settings().map(|s| HiddenAlerts::from(&s)).unwrap_or_default();
     match reminders {
         Ok(list) if !list.is_empty() => {
+            // Stepped aside (avoid.rs): only an important alarm brings the pet out.
+            let away = crate::avoid::away(app).is_some();
             for r in list {
-                let peeks = comes_out.covers(&r) && peek(app);
+                let comes = if away { r.important && r.kind == ReminderKind::Alarm } else { comes_out.covers(&r) };
+                let peeks = comes && peek(app);
                 let _ = app.emit("reminder", Reminder { peek: peeks, ..r });
             }
             let _ = app.emit("todos-changed", ());
@@ -77,7 +80,7 @@ fn tick<R: Runtime>(app: &AppHandle<R>) {
     match pomodoro {
         Ok(Some(status)) => {
             let _ = app.emit("pomodoro", status);
-            if comes_out.focus && peek(app) {
+            if comes_out.focus && crate::avoid::away(app).is_none() && peek(app) {
                 let _ = app.emit("pet-peek", "focus");
             }
         }
@@ -124,6 +127,11 @@ fn celebrate<R: Runtime>(app: &AppHandle<R>, presence: &mut Presence) {
             return;
         }
     };
+    // Stepped aside: it waits until the pet is back (and you move the mouse).
+    if crate::avoid::away(app).is_some() {
+        presence.cursor = None;
+        return;
+    }
     if !presence.moved(app) {
         return;
     }

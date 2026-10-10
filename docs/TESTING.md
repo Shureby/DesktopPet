@@ -2,7 +2,7 @@
 
 <!-- Generated from test-checklist.json by `npm run test-checklist`. Edit the JSON, not this file. -->
 
-当前版本 `0.37.2`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
+当前版本 `0.38.0`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
 标 🤖 的项目由 CI 自动测（Windows），不用手动测；标 🤖+👀 的项目逻辑由 CI 测，你只看 👀 后面写的部分；标 🌙 的每晚测一次（太久，不在每次推送时测）。
 macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码，在 Windows 上测过就行。
 在线勾选页面（保存结果，自动标出需要重测的项目）：https://claude.ai/artifact/XQVzPKq4w2MThVnTLYCGy1
@@ -11,7 +11,7 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 
 - [ ] 1.1 🍎 安装包安装 → **开始菜单/启动台里有应用，图标和名字正常**
 - [ ] 1.2 🍎 🤖+👀 首次启动 → **宠物从屏幕上方掉下来，落在任务栏/Dock 上方** 👀 你只看掉落的样子（窗口出现、宠物落在任务栏上方由 CI 测）
-- [ ] 1.3 🤖 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.37.2 · …`，与安装包版本一致**
+- [ ] 1.3 🤖 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.38.0 · …`，与安装包版本一致**
 - [ ] 1.4 🍎 🤖 已经运行时再启动一次 → **不会出现第二只宠物（只打开面板）**
 - [ ] 1.5 🤖 装着旧版本、ePet 正在运行时，双击新版本的安装包，一路点 Next / Install / Finish → **不再出现“已安装（Already Installed）/ 是否先卸载”那一页，也不提示 ePet 正在运行（会自动关掉它）；旧版被安静地卸载后装上新版；之前的待办、闹钟、纪念日、设置、心情值都还在。重装同一版本或装更旧的版本时仍会询问**
 - [ ] 1.6 正式版 ePet 开着时安装 ePet Test；装好后两个都开着，再重装一次 ePet Test；最后在 ePet 开着时重装正式版 → **装 ePet Test 时不弹 “is running”、不关正式版，装完两个可以同时运行（任务管理器里是 desktoppet.exe 和 epet-test.exe）；重装哪一个都不弹框，正在运行的那一个被悄悄关掉、装完重新打开即可，另一个不受影响**
@@ -107,6 +107,7 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 - [ ] 7.18 🤖 点掉 ⏰ Missed 角标后，看 Finished 区，再点 Clear → **错过的闹钟仍显示 “Missed · Today 9:40 PM · snoozed 3×”，左边大字 9:40 PM（不会变成 Rang 9:58）；按过 Done 的闹钟显示 “Rang · … · snoozed N×”；计时器显示 “Done · …”；最新的在最上面；Clear 后清空**
 - [ ] 7.19 🤖 跨天后（或改系统日期）打开面板 → **前一天已结束的项目被自动清理**
 - [ ] 7.20 🤖 设一个 3 分钟后的一次性闹钟、一个 3 分钟后的计时器、一个 3 分钟后提醒的待办，然后退出 ePet，等 10 分钟后再打开；另设一个 2 分钟后的闹钟（贪睡 5 分钟 × 3 次），退出后等约 12 分钟再打开 → **第一组都不响：闹钟和计时器在 Finished 里写 “Didn't ring · … · ePet wasn't running”，没有 Missed 角标，也不在 “While I was hidden” 清单里；待办显示红色 “Overdue · …”；第二个闹钟打开后立刻补响，气泡写 “Snoozed 2× · first rang …”，不理的话再贪睡一次后被标记为错过；如果超过 15 分钟才打开则不响**
+- [ ] 7.21 🍎 🤖 **【新】** 面板 Alarms 页签新建闹钟时勾上 Important（旁边 ⓘ 有说明），点 Add；再点 ✎ 编辑它，点 Save → **列表里这个闹钟名字后面有一个 “Important” 小标签；编辑时 Important 仍然勾着，保存后还是 Important**
 
 ## 8. 宠物隐藏时的提醒
 
@@ -147,7 +148,7 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 - [ ] 11.2 🤖 在 Anniversaries 子页依次选 Type：Birthday、Remembrance、Wedding anniversary；点图标按钮选一个别的图标；手动改一条提前提醒后再换 Type → **Birthday 自动填 🎂、1 week: Buy a gift、1 day: Order a cake，勾选 “Fireworks on the day 🎆”；Remembrance 变 🕯️、1 day: Buy flowers，勾选框文字变成 “Candle and flowers on the day 🕯️” 且默认不勾；图标网格 20 个可选，选中的有橙框；手动改过的图标、提醒、勾选在换 Type 时保留**
 - [ ] 11.3 🤖 添加三个：今天的生日（Since 1990）、明天的结婚纪念日（Since 2016）、40 天后的忌日（Since 2019）；日期框试拖动和滚轮，选 2 月 29 日；最多加 3 条提前提醒 → **日期只有日和月，可拖、滚、打字，能选 Feb 29；列表按日期排序：“… · Today 🎉 · 36th”、“… · Tomorrow · 10th”（7 天内橙色）、“… · in 40 days · 7 years”，下面列出提前提醒；+ Add another 到 3 条后消失**
 - [ ] 11.4 🤖+👀 不保存，直接在表单里点 ▶ Preview；保存后在列表那一行点 ▶；隐藏宠物后再点一次 ▶；关掉 Settings 里的 “Celebrate anniversaries on screen” 再预览；预览一个今天的纪念日后动鼠标 → **点预览后宠物马上说那句话、屏幕播放效果；播放期间和结束后，宠物所在屏幕上的所有窗口（包括 ePet 面板）都能正常点击，不会卡死；预览和当天的庆祝一模一样（说的话、第几年、效果、时长），没填名字时用模板名；预览不会保存纪念日、不会生成待办；隐藏时宠物出来，播完回去；总开关关掉时只说一句话；预览过的今天的纪念日，动鼠标后仍会真正庆祝一次** 👀 你只看效果的样子，以及播放中其他窗口都能正常点击（台词、不保存、隐藏时出来回去由 CI 测）
-- [ ] 11.5 🍎 🤖+👀 **【新】** 设置里打开音乐；在纪念日表单点 ▶ Preview，播放中再点它（现在写 ■ Stop）；连点 Preview 三次；Type 选 Wedding 点 Preview，播放中在 Music 里换成 Bridal Chorus；列表里某一行的 ▶ 也试一次 → **播放时按钮变成 “■ Stop（线条图标）”（列表那一行变成 ■）；点了立刻停：音乐、烟火或蜡烛、宠物的话一起消失，守蜡烛的宠物起身走开，按钮变回 “▶ Preview”；播完自己也变回；连点只放一遍，不会一遍接一遍；播放中换曲子立刻改放新曲子** 👀 你只看按钮的样子，以及点 Stop 后是不是立刻安静（何时变、停没停、放的哪首由 CI 测）
+- [ ] 11.5 🍎 🤖+👀 设置里打开音乐；在纪念日表单点 ▶ Preview，播放中再点它（现在写 ■ Stop）；连点 Preview 三次；Type 选 Wedding 点 Preview，播放中在 Music 里换成 Bridal Chorus；列表里某一行的 ▶ 也试一次 → **播放时按钮变成 “■ Stop（线条图标）”（列表那一行变成 ■）；点了立刻停：音乐、烟火或蜡烛、宠物的话一起消失，守蜡烛的宠物起身走开，按钮变回 “▶ Preview”；播完自己也变回；连点只放一遍，不会一遍接一遍；播放中换曲子立刻改放新曲子** 👀 你只看按钮的样子，以及点 Stop 后是不是立刻安静（何时变、停没停、放的哪首由 CI 测）
 - [ ] 11.6 🤖 Settings 里音乐先关着；在 Anniversaries 表单依次选 Type：Birthday、Pet's birthday、Wedding anniversary、Work anniversary、Remembrance；Work 时选 Jasmine Flower 后保存，再 ✎ 编辑它；把一个选了 Taps 的 Remembrance 改成 Custom → **Birthday 和 Pet's birthday 显示 “Music 🎵 Happy Birthday”，不能改；Wedding 是下拉框，只有 Canon in D (Pachelbel)、Wedding March (Mendelssohn)、Bridal Chorus (Wagner) 三首，默认卡农；其他喜庆类型是下拉框，有 8 首喜庆曲目（含两首婚礼曲），默认 Music-box waltz；在 Dating 里选 Wedding March 后换成 Wedding，保留 Wedding March，选 Waltz 后换成 Wedding 则回到卡农；Remembrance 只有 4 首哀乐，默认 Remembrance (original, Chinese style)；音乐关着时旁边写 “⚠ Music is off for all anniversaries · Turn on”，点 Turn on 就在设置里打开音乐、警告消失；编辑时保留选的曲目；喜庆和祭日之间换类型时回到新类型的默认曲目**
 - [ ] 11.7 🍎 🤖+👀 Settings → To-do reminders 勾上 “Play music with it”，音量调一半；分别 ▶ Preview 一个生日、三个结婚纪念日（分别选卡农、Wedding March、Bridal Chorus）、一个选了 Ode to Joy 的 Custom、一个默认的 Remembrance；把时长设成 60 秒再听一次；播放中设一个 1 分钟后的计时器让它响；最后把音量拉到最右、再关掉音乐预览一次 → **每次预览都和效果一起放对应的曲子（生日歌、卡农、门德尔松《婚礼进行曲》开头的小号号角、瓦格纳《婚礼合唱》“Here comes the bride”、欢乐颂、哀思）；不同曲目听起来音量差不多，没有爆音、咔哒声；伴奏不盖过主旋律；时长到了音乐在最后 2 秒淡出，和效果、那句话一起结束；60 秒时曲子循环衔接自然；计时器响时音乐停下；关掉 “Celebrate anniversaries on screen” 时音乐照样放；关掉音乐后预览没有声音** 👀 你只听：好不好听、音量是否平衡、结尾淡出、60 秒循环（每次放哪首、何时开始和停止由 CI 测）
 - [ ] 11.8 🤖 建一个明天的纪念日，提前提醒 1 day / Buy flowers 和 1 week / Book a restaurant；切到 To-dos 子页；关掉 ePet，第二天再开（或改系统日期）测一个昨天该生成的提醒 → **To-dos 的 Today 里出现 “💍 名字 - Buy flowers”（只有日期、没有时间，按待办提醒时间提醒），只出现一次；1 week 那条因为添加时已过期，不会生成；错过那天开机后补生成，显示 Overdue；删掉纪念日后已生成的待办保留**
@@ -188,7 +189,7 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 
 ## 15. 提醒模式
 
-- [ ] 15.1 🍎 🤖+👀 **【新】** 打开面板的 Modes 页签：看顶部 “Now: …”、一周七行彩条、工作日勾选、两张时段表、每种模式效果表（每项和每列表头都有 ⓘ 说明）；改一下模式下拉框；点两次 “+ Add a time slot”；把一个时段的结束时间改成和开始一样；点 “+ Days off until…” 再点 ✕；在效果表里改几项再点 Reset to defaults；把一个时段设成和另一个重叠（例如 Work 6:00 PM–10:01 PM 和 Quiet 10:00 PM–8:30 AM） → **Modes 是单独的页签（Focus 和 Characters 之间），设置页的 Pet 卡片里有一行 “Quiet hours are now in Modes” 链接过去；顶部写着现在的模式和原因；彩条按时段着色、今天那行有当前时间线；新时段接在上一个时段结束之后、长 1 小时；结束改成和开始一样时自动变成晚 1 小时，并短暂提示 “A slot needs an end after its start…”；Days off until 默认一周后，点 ✕ 取消；鼠标移到 ⓘ 上显示说明；Normal 那一列是灰的；Reset to defaults 恢复各模式效果；跨午夜的时段在结束时间后写 “(next day)”；重叠时被盖住的那一行下面出现警告 “Overlaps Quiet 10:00 PM–8:30 AM: Quiet wins 10:00 PM–10:01 PM”；ⓘ、✕、▶ 都是细线图标（不是字体里的符号），各系统看起来一样** 👀 你看看这一页好不好懂、ⓘ 说明是否清楚、图标是否顺眼、一周彩条对不对（CI 测选模式、加时段、时间不能相同、休假、next day、重叠提示）
+- [ ] 15.1 🍎 🤖+👀 打开面板的 Modes 页签：看顶部 “Now: …”、一周七行彩条、工作日勾选、两张时段表、每种模式效果表（每项和每列表头都有 ⓘ 说明）；改一下模式下拉框；点两次 “+ Add a time slot”；把一个时段的结束时间改成和开始一样；点 “+ Days off until…” 再点 ✕；在效果表里改几项再点 Reset to defaults；把一个时段设成和另一个重叠（例如 Work 6:00 PM–10:01 PM 和 Quiet 10:00 PM–8:30 AM） → **Modes 是单独的页签（Focus 和 Characters 之间），设置页的 Pet 卡片里有一行 “Quiet hours are now in Modes” 链接过去；顶部写着现在的模式和原因；彩条按时段着色、今天那行有当前时间线；新时段接在上一个时段结束之后、长 1 小时；结束改成和开始一样时自动变成晚 1 小时，并短暂提示 “A slot needs an end after its start…”；Days off until 默认一周后，点 ✕ 取消；鼠标移到 ⓘ 上显示说明；Normal 那一列是灰的；Reset to defaults 恢复各模式效果；跨午夜的时段在结束时间后写 “(next day)”；重叠时被盖住的那一行下面出现警告 “Overlaps Quiet 10:00 PM–8:30 AM: Quiet wins 10:00 PM–10:01 PM”；ⓘ、✕、▶ 都是细线图标（不是字体里的符号），各系统看起来一样** 👀 你看看这一页好不好懂、ⓘ 说明是否清楚、图标是否顺眼、一周彩条对不对（CI 测选模式、加时段、时间不能相同、休假、next day、重叠提示）
 - [ ] 15.2 🍎 🤖+👀 右键 → Switch mode → 🌙 Quiet until …；设一个 5 分钟的计时器，看宠物旁的标记；再设一个 1 分钟后的闹钟，别理它；再设一个 1 分钟后的待办 → **宠物安静（坐着、睡觉，不乱跑、不自己说话）；计时器标记前面多一个 🌙（没有任何标记时不显示模式），鼠标移上去写着 “Quiet mode · until …, then Auto”，点它打开 Modes 页签；闹钟照常响，开始很小声，约 30 秒内逐渐变到正常音量，宠物原地提醒不跑到中间；待办只出气泡、不响铃** 👀 你听一下闹钟是不是先小声、半分钟内变大（CI 测音量设置和不响的部分）
 - [ ] 15.3 🍎 🤖 右键 → Switch mode → 👔 Work；设一个 1 分钟后的闹钟，别理它；再设一个 1 分钟后的待办 → **宠物旁有标记时前面多一个 👔；闹钟用一半音量响、最多响 15 秒，宠物原地提醒不跑到中间；待办用一半音量响；宠物不自己说话，摸它没有音效**
 - [ ] 15.4 🍎 🤖 模式选 Auto；在 Modes 页签加一个包含现在时间的 Quiet 时段；设一个计时器；看托盘图标的鼠标悬停提示；右键 → Switch mode → Today is a day off，再点一次取消 → **Auto 时按时段切换；有标记时前面显示 🌙，悬停写 “until …”；菜单写 “Switch mode (now: 🌙 Quiet until …)”；托盘图标悬停显示 “ePet · 🌙 Quiet until …”（宠物藏起来也看得到）；勾 Today is a day off 后今天按休息日的时段表（🌙 消失）**
@@ -200,31 +201,45 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 - [ ] 15.10 🍎 纪念日音乐关着，右键 → Switch mode → ✨ Lively；点一个纪念日的 ▶ Preview → **Lively 下纪念日音乐照样播放；其余和 Normal 一样**
 - [ ] 15.11 在旧版（0.36）里打开 Quiet hours（例如 22:00–07:00）和 Focus 的 Work hours（例如周一到周五 9:00–17:00），然后装 0.37 升级 → **设置 → Modes 里：两张表都有 22:00–07:00 Quiet，工作日表多一个 9:00–17:00 Work，工作日是周一到周五，模式是 Auto；原来都没开的，用默认时段**
 
-## 16. 角色
+## 16. 自动避让
 
-- [ ] 16.1 🤖+👀 右键 → Switch character → Rooster，再切回 Cat → **换成公鸡，菜单打勾正确；切回后 Cat 的心情值还在** 👀 你只看右键菜单 Switch character 的打勾（切换和心情保留由 CI 测）
-- [ ] 16.2 🍎 🤖 Characters 页点 “your characters folder”；删掉里面的 README.txt 再点一次；把 README.txt 改几个字再点一次 → **打开用户角色文件夹，里面有 README.txt（英文说明）、character.schema.json 和 example-cat/character.json.example（id 是 example-cat）；example-cat 不会出现在 Characters 页；删掉的 README 会重新生成，改过的 README 不会被覆盖**
-- [ ] 16.3 🤖 Characters 页在 Cat 卡片下点 “⧉ Make a copy”；再点一次；在 “Cat (copy)” 下也点一次 → **文件夹里出现 cat-copy 文件夹并自动打开，里面有 character.json（id 是 cat-copy，名字 “Cat (copy)”）；面板马上多出 “Cat (copy) (custom)”，不用重启；第二次得到 cat-copy-2，名字 “Cat (copy 2)”，复制 copy 也得到下一个不重复的 id 和名字**
-- [ ] 16.4 🤖 选用 Cat (copy)；用记事本把它 character.json 里 palette 的 "o" 改成 "#9e9e9e"、"d" 改成 "#6d6d6d"，把 greet 台词改成自己的话，保存；点 “⟳ Reload characters”；再故意删掉一个逗号保存后 Reload → **不重启，桌面上的宠物立刻变成灰猫，心情值还在，打招呼说的是新台词；JSON 写错时 Characters 页展开显示 “1 character(s) could not be loaded” 和出错的文件、原因，其他角色照常可用**
+- [ ] 16.1 🍎 **【新】** 在宠物所在的屏幕上把一个视频（例如 YouTube）切到全屏；退出全屏；再把一个普通窗口最大化（带标题栏）；有两块屏幕的话，在另一块屏幕上全屏放视频 → **全屏后约 1 秒内宠物离开，托盘第一项变成 Show pet，托盘里有灰色的一行 “Stepped aside: full screen”，托盘图标悬停提示末尾是 “· Stepped aside: full screen”；退出全屏约 10 秒后宠物回来；最大化的普通窗口不算全屏，宠物不走；另一块屏幕全屏时，这块屏幕上的宠物不走**
+- [ ] 16.2 **【新】** 打开一个全屏游戏玩一会儿；期间设一个 1 分钟的计时器（可以先设好再进游戏）；不理它；退出游戏 → **游戏时宠物不出现、不挡画面；计时器到时会响，开始小声、慢慢变大，宠物不出来；退出游戏约 10 秒后宠物回来，说 “While you were busy you missed:” 并列出那个计时器**
+- [ ] 16.3 🍎 **【新】** Windows：PowerPoint 按 F5 放映；Mac：Keynote 播放（或 PowerPoint 放映）。放映时让一个普通闹钟和一个勾了 Important 的闹钟先后响；结束放映 → **放映一开始宠物就离开，托盘写 “Stepped aside: presenting”；普通闹钟不响、宠物不出来；Important 闹钟照常全音量响，宠物出来提醒，点 Done 后宠物又离开；结束放映约 10 秒后宠物回来，告诉你错过了那个普通闹钟**
+- [ ] 16.4 🍎 **【新】** 打开 Teams、Zoom、微信视频或系统的相机 App，开摄像头；之后只开麦克风（关摄像头）再试一次；最后关掉 → **开摄像头时宠物离开，托盘写 “Stepped aside: in a call”；只开麦克风也算；关掉后约 10 秒宠物回来；如果某个程序一直占着麦克风（例如语音聊天挂着），宠物会一直不出来，可以在 Modes 页签取消勾选 Video calls**
+- [ ] 16.5 🍎 **【新】** 在会议里共享整个屏幕，让对方看；这时按托盘 Show pet 把宠物叫回来；再截一张图（Windows：Win+Shift+S；Mac：Cmd+Shift+3）；会议结束后再截一张 → **会议中你自己看得到宠物，对方看不到（共享画面里没有宠物、没有黑块）；会议中的截图里也没有宠物；会议结束后的截图里有宠物。Mac 新系统的部分录屏方式可能仍拍得到，记下实际情况**
+- [ ] 16.6 🍎 **【新】** 用 ePet Test：托盘 → 🧪 Pretend → In a call；再选 Full screen、Presenting；最后选 Nothing (look for real) → **每选一项宠物都离开，托盘写对应原因（in a call / full screen / presenting），当前选项打勾；选 Nothing 后约 10 秒宠物回来。正式版没有这个菜单**
+- [ ] 16.7 🍎 🤖 **【新】** （ePet Test 里用 🧪 Pretend → In a call 代替真的通话）设一个 1 分钟后的普通闹钟，等它到时；然后选 Nothing (look for real) → **宠物离开；闹钟不响、宠物不出来；约 10 秒后宠物回来，说 “While you were busy you missed:”，列出那个闹钟，点 Done 清掉**
+- [ ] 16.8 🍎 🤖 **【新】** Pretend → In a call 时，让一个勾了 Important 的闹钟响；之后模式换成 🌙 Quiet，再让一个 Important 闹钟和一个普通闹钟各响一次 → **通话中 Important 闹钟照常响，宠物出来提醒，点 Done 后宠物又离开；Quiet 模式下 Important 闹钟一开始就是正常音量，普通闹钟从小声开始**
+- [ ] 16.9 🍎 🤖 **【新】** Pretend → Full screen 时，让一个普通闹钟响，别理它；然后选 Nothing → **闹钟会响（从小声开始），宠物不出来；没人理就记下来；宠物回来时告诉你错过了它**
+- [ ] 16.10 🍎 🤖 **【新】** Pretend → In a call 后，点托盘 Show pet → **宠物马上回来，托盘第一项变回 Hide pet，这次通话期间不再离开；下一次通话又会离开**
+- [ ] 16.11 🍎 🤖+👀 **【新】** 打开面板 Modes 页签，拉到最下面的 “Step aside automatically”；取消勾选 Video calls，然后 Pretend → In a call；再勾上 Always hide ePet from screenshots and recordings，截一张图 → **四个选项各带 ⓘ 说明，默认前三个勾上、最后一个不勾；取消 Video calls 后通话时宠物不走；勾 Always hide 后截图里没有宠物（你自己照样看得见）；宠物离开时这一节下面写 “Now: stepped aside (…)”** 👀 你看看这一节的文字和 ⓘ 说明好不好懂
 
-## 17. 小游戏 Safe Landing
+## 17. 角色
 
-- [ ] 17.1 🍎 🤖 右键 → Play Safe Landing → **游戏窗口打开，宠物主窗口仍正常**
-- [ ] 17.2 🤖 开始专注后：右键宠物和托盘里看 Play Safe Landing；点它，分别选 Cancel 和 Play anyway；隐藏宠物后看托盘；让一个计时器响铃时从托盘点游戏；在面板 Games 页点 Play；到休息时间再点；最后在 Focus 页关掉 “Ask before games during a focus session” → **专注中菜单写 “Play Safe Landing (focusing)”；宠物气泡先问 “We're focusing until … Play anyway?”，回答前不打开任何界面，Cancel 不开游戏，Play anyway 才打开；宠物隐藏时托盘里没有 Play Safe Landing（专注结束或显示宠物后重新出现）；响铃时点游戏，响铃结束后宠物再问；面板 Games 页点 Play 先弹框询问；休息时和关掉选项后不再询问，菜单也没有 (focusing)**
-- [ ] 17.3 🍎 🤖 ← → / A D 移动；Space 或 Enter 开始 → **操作正常**
-- [ ] 17.4 🤖+👀 分别用 Cat 和 Rooster 玩 → **Cat 抓 ☂ 减速；Rooster 按住 Space 滑翔，提示文字对应** 👀 你只看玩起来的手感：猫抓伞减速、公鸡按住空格滑翔（提示文字由 CI 测）
-- [ ] 17.5 🤖 结束后按 R 重来，再关闭窗口 → **可以重来；关闭后回到桌面，宠物爱心增加**
+- [ ] 17.1 🤖+👀 右键 → Switch character → Rooster，再切回 Cat → **换成公鸡，菜单打勾正确；切回后 Cat 的心情值还在** 👀 你只看右键菜单 Switch character 的打勾（切换和心情保留由 CI 测）
+- [ ] 17.2 🍎 🤖 Characters 页点 “your characters folder”；删掉里面的 README.txt 再点一次；把 README.txt 改几个字再点一次 → **打开用户角色文件夹，里面有 README.txt（英文说明）、character.schema.json 和 example-cat/character.json.example（id 是 example-cat）；example-cat 不会出现在 Characters 页；删掉的 README 会重新生成，改过的 README 不会被覆盖**
+- [ ] 17.3 🤖 Characters 页在 Cat 卡片下点 “⧉ Make a copy”；再点一次；在 “Cat (copy)” 下也点一次 → **文件夹里出现 cat-copy 文件夹并自动打开，里面有 character.json（id 是 cat-copy，名字 “Cat (copy)”）；面板马上多出 “Cat (copy) (custom)”，不用重启；第二次得到 cat-copy-2，名字 “Cat (copy 2)”，复制 copy 也得到下一个不重复的 id 和名字**
+- [ ] 17.4 🤖 选用 Cat (copy)；用记事本把它 character.json 里 palette 的 "o" 改成 "#9e9e9e"、"d" 改成 "#6d6d6d"，把 greet 台词改成自己的话，保存；点 “⟳ Reload characters”；再故意删掉一个逗号保存后 Reload → **不重启，桌面上的宠物立刻变成灰猫，心情值还在，打招呼说的是新台词；JSON 写错时 Characters 页展开显示 “1 character(s) could not be loaded” 和出错的文件、原因，其他角色照常可用**
 
-## 18. 备份与恢复
+## 18. 小游戏 Safe Landing
 
-- [ ] 18.1 🍎 🤖+👀 设置 → Backup → Export backup…，先输两个不同的密码点 Export，再输相同的密码导出；另存为对话框里选桌面 → **两次密码不同时提示 The passwords don't match、不导出；保存后显示 Saved (encrypted): <路径>；文件名默认 ePet backup <今天日期>.epetbackup** 👀 另存为对话框、默认文件名和保存后的提示
-- [ ] 18.2 🍎 🤖+👀 Restore from backup… 选刚才的加密备份，先输错密码，再输对 → **先要求输入密码；输错显示 Wrong password.；输对后显示备份来自哪台电脑、什么时候，以及几个闹钟/待办/纪念日（不算计时器）** 👀 打开文件对话框和密码框
-- [ ] 18.3 🍎 🤖+👀 导出后删掉一个待办、新加一个待办、改一个闹钟的名字，再 Restore from backup…（全部勾选，Merge） → **ePet 自动重启；删掉的待办回来了，新加的还在，没有重复；改过名字的闹钟保持新名字（这边改得更晚）；计时器不会被恢复；Automatic backups 列表里多了一份 before a restore** 👀 重启后面板和宠物都正常，列表里的 before a restore
-- [ ] 18.4 🍎 在另一台电脑（或清空后）用 Restore from backup… 选 Replace；可以只勾 Alarms, to-dos and anniversaries → **这边原有的闹钟、待办、纪念日被备份里的取代（正在计时的计时器保留）；没勾 Settings 时这边的设置不变；勾了 Settings 时设置换成备份里的，但开机自启保持这台电脑自己的**
-- [ ] 18.5 🍎 🤖+👀 启动 ePet 等十几秒，打开 设置 → Backup；隔天再启动一次 → **Automatic backups 下列出今天的一份（· daily），每天最多一份、最多保留 7 份；点 Restore… 可以直接从它恢复** 👀 隔天新增一份、超过 7 份时最旧的被删掉
+- [ ] 18.1 🍎 🤖 右键 → Play Safe Landing → **游戏窗口打开，宠物主窗口仍正常**
+- [ ] 18.2 🤖 开始专注后：右键宠物和托盘里看 Play Safe Landing；点它，分别选 Cancel 和 Play anyway；隐藏宠物后看托盘；让一个计时器响铃时从托盘点游戏；在面板 Games 页点 Play；到休息时间再点；最后在 Focus 页关掉 “Ask before games during a focus session” → **专注中菜单写 “Play Safe Landing (focusing)”；宠物气泡先问 “We're focusing until … Play anyway?”，回答前不打开任何界面，Cancel 不开游戏，Play anyway 才打开；宠物隐藏时托盘里没有 Play Safe Landing（专注结束或显示宠物后重新出现）；响铃时点游戏，响铃结束后宠物再问；面板 Games 页点 Play 先弹框询问；休息时和关掉选项后不再询问，菜单也没有 (focusing)**
+- [ ] 18.3 🍎 🤖 ← → / A D 移动；Space 或 Enter 开始 → **操作正常**
+- [ ] 18.4 🤖+👀 分别用 Cat 和 Rooster 玩 → **Cat 抓 ☂ 减速；Rooster 按住 Space 滑翔，提示文字对应** 👀 你只看玩起来的手感：猫抓伞减速、公鸡按住空格滑翔（提示文字由 CI 测）
+- [ ] 18.5 🤖 结束后按 R 重来，再关闭窗口 → **可以重来；关闭后回到桌面，宠物爱心增加**
 
-## 19. 稳定性
+## 19. 备份与恢复
 
-- [ ] 19.1 🤖 连续打开/关闭面板和游戏窗口 10 次 → **不卡死、没有黑窗、任务栏不消失**
-- [ ] 19.2 🍎 电脑睡眠后唤醒 → **宠物正常；错过的闹钟按贪睡/Missed 规则处理**
-- [ ] 19.3 🍎 🤖🌙 运行 1 小时以上，看任务管理器/活动监视器 → **CPU、内存占用稳定，不持续上涨**
+- [ ] 19.1 🍎 🤖+👀 设置 → Backup → Export backup…，先输两个不同的密码点 Export，再输相同的密码导出；另存为对话框里选桌面 → **两次密码不同时提示 The passwords don't match、不导出；保存后显示 Saved (encrypted): <路径>；文件名默认 ePet backup <今天日期>.epetbackup** 👀 另存为对话框、默认文件名和保存后的提示
+- [ ] 19.2 🍎 🤖+👀 Restore from backup… 选刚才的加密备份，先输错密码，再输对 → **先要求输入密码；输错显示 Wrong password.；输对后显示备份来自哪台电脑、什么时候，以及几个闹钟/待办/纪念日（不算计时器）** 👀 打开文件对话框和密码框
+- [ ] 19.3 🍎 🤖+👀 导出后删掉一个待办、新加一个待办、改一个闹钟的名字，再 Restore from backup…（全部勾选，Merge） → **ePet 自动重启；删掉的待办回来了，新加的还在，没有重复；改过名字的闹钟保持新名字（这边改得更晚）；计时器不会被恢复；Automatic backups 列表里多了一份 before a restore** 👀 重启后面板和宠物都正常，列表里的 before a restore
+- [ ] 19.4 🍎 在另一台电脑（或清空后）用 Restore from backup… 选 Replace；可以只勾 Alarms, to-dos and anniversaries → **这边原有的闹钟、待办、纪念日被备份里的取代（正在计时的计时器保留）；没勾 Settings 时这边的设置不变；勾了 Settings 时设置换成备份里的，但开机自启保持这台电脑自己的**
+- [ ] 19.5 🍎 🤖+👀 启动 ePet 等十几秒，打开 设置 → Backup；隔天再启动一次 → **Automatic backups 下列出今天的一份（· daily），每天最多一份、最多保留 7 份；点 Restore… 可以直接从它恢复** 👀 隔天新增一份、超过 7 份时最旧的被删掉
+
+## 20. 稳定性
+
+- [ ] 20.1 🤖 连续打开/关闭面板和游戏窗口 10 次 → **不卡死、没有黑窗、任务栏不消失**
+- [ ] 20.2 🍎 电脑睡眠后唤醒 → **宠物正常；错过的闹钟按贪睡/Missed 规则处理**
+- [ ] 20.3 🍎 🤖🌙 运行 1 小时以上，看任务管理器/活动监视器 → **CPU、内存占用稳定，不持续上涨**
