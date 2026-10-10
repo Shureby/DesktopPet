@@ -1,0 +1,1496 @@
+{
+  "$comment": "Source of truth for docs/TESTING.md and the online checklist. `rev` = the app version in which this item's expected behaviour last changed; results recorded on an older build show as 'needs retest'. Keep `id`s stable.",
+  "sections": [
+    {
+      "id": "install",
+      "title": "安装与启动",
+      "items": [
+        {
+          "id": "install.setup",
+          "rev": "0.1.0",
+          "mac": true,
+          "do": "安装包安装",
+          "expect": "开始菜单/启动台里有应用，图标和名字正常"
+        },
+        {
+          "id": "install.first-launch",
+          "rev": "0.1.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你只看掉落的样子（窗口出现、宠物落在任务栏上方由 CI 测）",
+          "do": "首次启动",
+          "expect": "宠物从屏幕上方掉下来，落在任务栏/Dock 上方"
+        },
+        {
+          "id": "install.version",
+          "rev": "0.8.0",
+          "ci": "auto",
+          "do": "右键宠物 → Open panel… → Settings，看页面底部",
+          "expect": "显示 `ePet {version} · …`，与安装包版本一致"
+        },
+        {
+          "id": "install.single-instance",
+          "rev": "0.1.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "已经运行时再启动一次",
+          "expect": "不会出现第二只宠物（只打开面板）"
+        },
+        {
+          "id": "install.upgrade",
+          "rev": "0.33.0",
+          "ci": "auto",
+          "do": "装着旧版本、ePet 正在运行时，双击新版本的安装包，一路点 Next / Install / Finish",
+          "expect": "不再出现“已安装（Already Installed）/ 是否先卸载”那一页，也不提示 ePet 正在运行（会自动关掉它）；旧版被安静地卸载后装上新版；之前的待办、闹钟、纪念日、设置、心情值都还在。重装同一版本或装更旧的版本时仍会询问"
+        },
+        {
+          "id": "install.running",
+          "rev": "0.36.0",
+          "do": "正式版 ePet 开着时安装 ePet Test；装好后两个都开着，再重装一次 ePet Test；最后在 ePet 开着时重装正式版",
+          "expect": "装 ePet Test 时不弹 “is running”、不关正式版，装完两个可以同时运行（任务管理器里是 desktoppet.exe 和 epet-test.exe）；重装哪一个都不弹框，正在运行的那一个被悄悄关掉、装完重新打开即可，另一个不受影响"
+        },
+        {
+          "id": "install.autostart",
+          "rev": "0.1.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你只看真的重启电脑后 ePet 会自己启动（写入和删除系统启动项由 CI 测）",
+          "do": "Settings → 勾选 Start with my computer，重启电脑；再取消并重启",
+          "expect": "勾选时自动启动，取消后不启动"
+        }
+      ]
+    },
+    {
+      "id": "pet",
+      "title": "宠物移动与交互",
+      "items": [
+        {
+          "id": "pet.idle",
+          "rev": "0.1.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你只看动作流畅、不卡（会自己换动作、没有脚本错误由 CI 测）",
+          "do": "放着不管 1–2 分钟",
+          "expect": "自己走、跑、坐、睡，动作流畅不卡"
+        },
+        {
+          "id": "pet.windows",
+          "rev": "0.1.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你只试把窗口拖走时宠物会掉下来（站在窗口顶边、最小化后掉下来由 CI 测）",
+          "do": "让宠物走到普通窗口的顶边",
+          "expect": "能站在标题栏上；窗口移走或最小化后会掉下来"
+        },
+        {
+          "id": "pet.drag-throw",
+          "rev": "0.1.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你只看手感：拖动是否跟手、飞出去的抛物线和撞墙反弹是否自然（跟手、甩出后继续飞再落地由 CI 测）",
+          "do": "拖起宠物，然后甩出去",
+          "expect": "拖动跟手；松手后按抛物线飞，撞墙反弹"
+        },
+        {
+          "id": "pet.multi-monitor",
+          "rev": "0.8.1",
+          "mac": true,
+          "do": "多显示器：把宠物甩到另一块屏幕",
+          "expect": "能跨屏，落在那块屏的底边"
+        },
+        {
+          "id": "pet.click-through",
+          "rev": "0.1.0",
+          "mac": true,
+          "do": "点击宠物身体以外的透明区域",
+          "expect": "点击穿透到下面的窗口，不挡桌面"
+        },
+        {
+          "id": "pet.hover-meter",
+          "rev": "0.4.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你只看爱心条的位置和样子（数值、不被气泡挡住由 CI 测）",
+          "do": "鼠标悬停在宠物上",
+          "expect": "左侧显示爱心和饱食度百分比，不被对话气泡挡住"
+        },
+        {
+          "id": "pet.cat-abilities",
+          "rev": "0.1.0",
+          "do": "用 Cat 观察一段时间",
+          "expect": "走到屏幕边缘会爬墙；偶尔扑向鼠标"
+        },
+        {
+          "id": "pet.rooster-glide",
+          "rev": "0.1.0",
+          "ci": "partial",
+          "human": "你只看滑翔的样子（会滑翔、比猫落得慢由 CI 测）",
+          "do": "用 Rooster 从高处甩下",
+          "expect": "会滑翔，下落变慢"
+        },
+        {
+          "id": "pet.hidpi",
+          "rev": "0.8.1",
+          "mac": true,
+          "do": "在 125%/150% 缩放的屏幕上使用",
+          "expect": "宠物大小正常，位置不偏"
+        },
+        {
+          "id": "pet.scale-change",
+          "rev": "0.8.1",
+          "do": "运行中把宠物所在屏幕的缩放改成 125%、150%，再改回 100%",
+          "expect": "每次改完宠物都完整显示、大小随缩放变化、能点击拖动；改回 100% 后恢复原样"
+        },
+        {
+          "id": "pet.mixed-dpi",
+          "rev": "0.8.1",
+          "mac": true,
+          "do": "两块屏幕缩放不同（如 100% 和 150%），把宠物甩过去再甩回来",
+          "expect": "跨屏后宠物完整显示、能点击；到 150% 屏上看起来按比例变大"
+        },
+        {
+          "id": "pet.hover-stop",
+          "rev": "0.12.0",
+          "ci": "partial",
+          "human": "你只看停下的动作是否自然，以及正在跳或爬墙时落地后才停（走动中停在鼠标下、转向鼠标由 CI 测）",
+          "do": "宠物在跑或走时，把鼠标停在它身上",
+          "expect": "宠物减速停下并转向鼠标，不再跑开；正在跳或爬墙时，落地后再停"
+        },
+        {
+          "id": "pet.hover-stop-run",
+          "rev": "0.32.1",
+          "ci": "partial",
+          "human": "你只试第一种：鼠标直接放到正在跑的宠物身上（停在路上、只是划过由 CI 测）",
+          "do": "把宠物拖到屏幕最左边，设一个 1 分钟后的计时器或待办提醒；宠物开始往屏幕中间跑时，把鼠标放到它身上停住；再试一次，这次只是快速把鼠标划过它；第三次把鼠标提前停在它要经过的路上",
+          "expect": "鼠标放上去停住：宠物马上原地停下，转身面向鼠标，就地响铃，不再跑去中间，气泡和按钮都在、能点；只是划过：宠物继续跑到中间；停在路上：宠物跑到鼠标下就停；鼠标在宠物身上待着时，提醒气泡不会被 “Yes? Can I help you?” 之类的话替换"
+        },
+        {
+          "id": "pet.hover-react",
+          "rev": "0.12.0",
+          "ci": "auto",
+          "do": "鼠标在宠物身上停 2 秒以上",
+          "expect": "宠物做一次反应（开心跳一下或说一句，如 “Mrrp?”），每次悬停只反应一次"
+        },
+        {
+          "id": "pet.hover-stroke",
+          "rev": "0.12.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "停满 2 秒后，在宠物身上来回移动鼠标几秒",
+          "expect": "算作抚摸：飘出 “+3 ♥”、爱心增加，约每 1.5 秒一次；达到每小时上限后说 “That's plenty for now”。不满 2 秒就移动不算"
+        },
+        {
+          "id": "pet.hover-release",
+          "rev": "0.12.0",
+          "ci": "auto",
+          "do": "鼠标停在宠物身上完全不动 8 秒以上",
+          "expect": "宠物说一句（如 “I'll be around.”）后继续自己的活动；鼠标不移开再移回，它不会再停下"
+        },
+        {
+          "id": "pet.hover-dodge",
+          "rev": "0.12.0",
+          "ci": "partial",
+          "human": "你只看走开的动作和心情差（grumpy）时的情况（饿时躲开、说原因、再停一次不躲由 CI 测）",
+          "do": "让宠物饿（饱食度低于 30%）或心情差（grumpy），再把鼠标停上去；10 秒内再停一次",
+          "expect": "第一次：慢慢走开约一个身位，停在附近，回头说原因（饿：“My tummy's flat…”；被冷落：“Oh, now you remember me?”）。第二次：不再躲，直接回应。2 分钟内不会再躲"
+        },
+        {
+          "id": "pet.hover-off",
+          "rev": "0.12.0",
+          "ci": "auto",
+          "do": "闹钟响铃时、专注时段中、拖动时，把鼠标停在宠物身上",
+          "expect": "不触发停下/回应/抚摸，响铃气泡的按钮照常可点"
+        },
+        {
+          "id": "pet.screen-edge",
+          "rev": "0.19.1",
+          "mac": true,
+          "do": "有计时器和闹钟角标时，把宠物拖到屏幕最右边，再慢慢往左拖一点；让它说话（点它）并把鼠标停在它身上；把鼠标停在角标上看信息框；最后拖到屏幕最左边重复一遍",
+          "expect": "最右边时角标移到宠物左侧，完整可见；往左拖一点角标不会马上跳回右侧（要空出约 40px 才回去），宠物在边上走动时角标不闪；鼠标停在角标或信息框上时角标不移动；爱心条在另一侧，放不下时显示在宠物头顶（有气泡时在气泡上方）；说话气泡和信息框都完整显示在屏幕内，气泡尖角仍指向宠物；最左边时角标仍在右侧，爱心条移到头顶"
+        }
+      ]
+    },
+    {
+      "id": "menu",
+      "title": "右键菜单",
+      "items": [
+        {
+          "id": "menu.items",
+          "rev": "0.7.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你只看右键菜单显示正常（每项的写法和顺序由 CI 测）",
+          "do": "右键宠物",
+          "expect": "菜单各项以动词开头：Set timer / 照顾动作 / Add to-do… / Set alarm… / Start focus session / Play Safe Landing / Switch character / Open panel… / Hide pet"
+        },
+        {
+          "id": "menu.care",
+          "rev": "0.3.0",
+          "ci": "auto",
+          "do": "多次打开菜单；等宠物饿了再打开",
+          "expect": "照顾动作文字随机变化（Cat：Scratch the Cat's chin 等；Rooster：Scatter some corn 等）；饿时喂食排第一"
+        },
+        {
+          "id": "menu.hide",
+          "rev": "0.9.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你只看真的点托盘图标能打开菜单（隐藏/显示和托盘第一项的文字由 CI 测）",
+          "do": "宠物右键 → Hide pet，再点托盘图标 → Show pet",
+          "expect": "宠物消失后重新出现；托盘第一项随状态在 Show pet / Hide pet 之间切换"
+        },
+        {
+          "id": "menu.add-todo",
+          "rev": "0.32.3",
+          "ci": "auto",
+          "do": "Add to-do…",
+          "expect": "面板打开到 To-dos；宠物继续正常动，不卡死"
+        },
+        {
+          "id": "menu.set-alarm",
+          "rev": "0.32.3",
+          "ci": "auto",
+          "do": "Set alarm…",
+          "expect": "面板打开到 Alarms，时间框已获得焦点，可以直接输入"
+        },
+        {
+          "id": "menu.open-panel-tab",
+          "rev": "0.11.0",
+          "ci": "auto",
+          "do": "同时开一个 5 分钟计时器和一个专注时段，分别从宠物菜单和托盘点 Open panel…；再只保留专注时段试一次；什么都不开再试一次",
+          "expect": "先结束的是计时器时打开 Alarms 页，先结束的是专注时打开 Focus 页；什么都没有时打开面板默认页"
+        }
+      ]
+    },
+    {
+      "id": "tray",
+      "title": "托盘",
+      "items": [
+        {
+          "id": "tray.items",
+          "rev": "0.9.0",
+          "ci": "auto",
+          "do": "分别打开宠物右键菜单和托盘菜单，对比两者",
+          "expect": "中间两组完全一样（Add to-do… / Set alarm… / Set timer ▸ / Start focus session；Play Safe Landing / Switch character ▸）；只有托盘第一项是 Show/Hide pet、最后是 Quit，宠物菜单第一项是照顾动作、最后是 Hide pet"
+        },
+        {
+          "id": "tray.actions",
+          "rev": "0.9.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你只看真的点托盘菜单项有反应（每项的效果由 CI 测）",
+          "do": "从托盘逐个使用：Add to-do…、Set alarm…、Set timer → 5 min、Switch character → Rooster、Play Safe Landing、Open panel…",
+          "expect": "每一项效果都和从宠物菜单点一样"
+        },
+        {
+          "id": "tray.live-state",
+          "rev": "0.10.0",
+          "ci": "auto",
+          "do": "开一个计时器和一个专注时段，然后打开托盘菜单",
+          "expect": "两个菜单都出现 “Cancel timer: 5 min (rings 3:52 PM)” 和 “Stop focus session (ends 4:10 PM)”，时刻正确且两边一致，不显示剩余时间；取消后再打开，这两项恢复原样"
+        },
+        {
+          "id": "tray.custom-hidden",
+          "rev": "0.9.0",
+          "ci": "auto",
+          "do": "隐藏宠物，托盘 → Set timer → Custom / Edit…",
+          "expect": "打开面板的 Alarms 页（宠物隐藏时没有气泡可用）"
+        },
+        {
+          "id": "tray.quit",
+          "rev": "0.1.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "托盘 → Quit",
+          "expect": "宠物和所有窗口关闭，进程退出"
+        }
+      ]
+    },
+    {
+      "id": "timer",
+      "title": "计时器",
+      "items": [
+        {
+          "id": "timer.presets",
+          "rev": "0.8.0",
+          "ci": "auto",
+          "do": "右键 → Set timer",
+          "expect": "1 min · 5 min · 10 min · 15 min · 30 min · 45 min · 1 hour，下面一条分隔线"
+        },
+        {
+          "id": "timer.confirm",
+          "rev": "0.3.0",
+          "ci": "auto",
+          "do": "选 1 min",
+          "expect": "宠物说 “1 min timer set, I'll ring at …”；旁边出现 ⏱ 倒计时角标"
+        },
+        {
+          "id": "timer.several",
+          "rev": "0.10.0",
+          "ci": "auto",
+          "do": "同时开 3 个计时器，再右键 → Cancel timer",
+          "expect": "角标显示最近的一个 + “+2”；子菜单列出全部，每个带响铃时刻（rings 3:52 PM）"
+        },
+        {
+          "id": "timer.cancel",
+          "rev": "0.3.0",
+          "ci": "auto",
+          "do": "取消其中一个",
+          "expect": "角标和面板里同时消失"
+        },
+        {
+          "id": "timer.ring",
+          "rev": "0.5.0",
+          "ci": "partial",
+          "human": "你只听铃声、看宠物跑到屏幕中间的样子（气泡、按钮和“不跑”的设置由 CI 测）",
+          "do": "等计时器到点",
+          "expect": "按 Settings → Alarms & timers 的设置响铃/跑到屏幕中间；气泡有 Snooze N min 和 Done"
+        },
+        {
+          "id": "timer.snooze",
+          "rev": "0.4.1",
+          "ci": "auto",
+          "do": "响铃时点 Snooze",
+          "expect": "宠物说 “Snoozed until …”；面板 Timers 和角标里能看到，右键可以取消"
+        },
+        {
+          "id": "timer.done",
+          "rev": "0.15.0",
+          "ci": "auto",
+          "do": "响铃时点 Done，再打开面板 Alarms → Finished",
+          "expect": "停止；这个计时器留在 Finished 里，显示 “Done · Today 12:42 PM”（不再被删除）"
+        },
+        {
+          "id": "timer.together",
+          "rev": "0.15.0",
+          "ci": "auto",
+          "do": "设两个几乎同时到点的计时器（如 1 min 和 1 min 30 s 或同一分钟内的两个），等第一个响铃时第二个也到点；然后按一次 Done",
+          "expect": "两个合进同一个气泡（“⏱ 2 timers are up: • … • …”），不会有一个被悄悄当作没人理；按一次 Done 后两个都进入 Finished，各自显示时间"
+        },
+        {
+          "id": "timer.unanswered",
+          "rev": "0.33.0",
+          "ci": "auto",
+          "do": "响铃时不理会，等响完",
+          "expect": "不会自动贪睡；出现灰色 “⏱ Done 14:05” 角标（时间是开始响的时间，和 Finished 里一致），点击或 1 小时后消失"
+        },
+        {
+          "id": "timer.badge-click",
+          "rev": "0.11.0",
+          "ci": "auto",
+          "do": "计时器和专注时段运行时，鼠标移到宠物旁的 ⏱ 和 🍅 角标上，分别点击",
+          "expect": "悬停时有下划线；点 ⏱ 打开 Alarms 页，点 🍅（或休息时的 ☕）打开 Focus 页；倒计时照常跳动，点击每次都有效"
+        },
+        {
+          "id": "timer.started",
+          "rev": "0.16.1",
+          "ci": "partial",
+          "human": "你只看鼠标停在 ⏱ 角标上时小框会出现（面板文字和小框内容由 CI 测）",
+          "do": "设几个计时器（包括两个相同时长的），打开面板 Alarms 页；再把鼠标停在宠物旁的 ⏱ 角标上",
+          "expect": "面板里每个计时器写着 “Started 4:29 PM · rings at 4:41 PM”（升级前设的也有）；悬停角标时上方出现小框，每个计时器一行，如 “12 min · 8:10 → 8:22 PM”；贪睡过的计时器多一段 💤，如 “1 min · 💤×1 · 9:38 → 9:45 PM”；最后一行 “Open the Alarms tab”"
+        },
+        {
+          "id": "timer.badge-info",
+          "rev": "0.19.0",
+          "ci": "partial",
+          "human": "你只看真实悬停：小框出现、能斜着移到小框上、离开约 0.4 秒消失、不出现爱心条（各角标小框的文字由 CI 测）",
+          "do": "有专注时段、贪睡中的闹钟、错过的闹钟、没人理的计时器时，分别把鼠标停在 🍅、🔔/💤、⏰、⏱ Done 角标上",
+          "expect": "每个都出现小框，格式一致：先写内容和时间（如 “Focus · 8:00 → 8:25 PM”、“Alarm 9:25 PM · 💤×1 · next 9:33 PM”），最后一行是蓝色下划线链接（“Open the … tab”、“Mark as seen”、“Dismiss”）；鼠标从角标移到小框上（包括斜着移过去）小框不消失，点小框或链接的效果和点角标一样；离开后小框约 0.4 秒内消失；停在角标或小框上时不出现宠物的爱心/饱食度条"
+        }
+      ]
+    },
+    {
+      "id": "custom-timer",
+      "title": "自定义计时器",
+      "items": [
+        {
+          "id": "custom.prompt",
+          "rev": "0.8.0",
+          "ci": "partial",
+          "human": "你只看在 Windows 上能直接打字（输入框出现并获得焦点由 CI 测）",
+          "do": "Set timer → Custom / Edit…",
+          "expect": "气泡出现 “How long?” 输入框，可以直接打字（Windows 上特别确认能拿到输入焦点）"
+        },
+        {
+          "id": "custom.formats",
+          "rev": "0.8.0",
+          "ci": "auto",
+          "do": "依次输入 20、1:30、90s、2.5h、1h30m",
+          "expect": "下方实时显示 = 20 min / = 1 h 30 min / = 1 min 30 s / = 2 h 30 min / = 1 h 30 min"
+        },
+        {
+          "id": "custom.invalid",
+          "rev": "0.8.0",
+          "ci": "auto",
+          "do": "输入 abc 回车",
+          "expect": "红字 “Try 20, 1:30 or 90s”，不启动"
+        },
+        {
+          "id": "custom.start",
+          "rev": "0.8.0",
+          "ci": "auto",
+          "do": "输入 1:30 回车",
+          "expect": "启动 1 h 30 min 计时器，宠物确认"
+        },
+        {
+          "id": "custom.listed",
+          "rev": "0.8.0",
+          "ci": "auto",
+          "do": "再打开 Set timer，点 “1 h 30 min (custom)”",
+          "expect": "分隔线下有这一项，点它直接启动"
+        },
+        {
+          "id": "custom.max-three",
+          "rev": "0.8.0",
+          "ci": "auto",
+          "do": "再设 3 个不同的自定义时长",
+          "expect": "最多保留 3 个，最新的在最上面，最早的被挤掉"
+        },
+        {
+          "id": "custom.preset-skip",
+          "rev": "0.8.0",
+          "ci": "auto",
+          "do": "自定义输入 30（与预设相同）",
+          "expect": "不会出现在 (custom) 列表里"
+        },
+        {
+          "id": "custom.edit",
+          "rev": "0.8.0",
+          "ci": "auto",
+          "do": "Custom / Edit… → 点中间那个的 ✎，改成 25 回车",
+          "expect": "输入框先填入原值，提示 “Change X → …”；启动后原位置变成 25 min，其他两个不动、顺序不变"
+        },
+        {
+          "id": "custom.forget",
+          "rev": "0.8.0",
+          "ci": "auto",
+          "do": "Custom / Edit… → 点某个的 ✕",
+          "expect": "立刻从气泡和 Set timer 菜单里消失"
+        },
+        {
+          "id": "custom.cancel",
+          "rev": "0.8.0",
+          "ci": "auto",
+          "do": "按 Esc 或 ✕；再试一次什么都不做等 45 秒",
+          "expect": "气泡关闭，不启动计时器"
+        },
+        {
+          "id": "custom.chatter",
+          "rev": "0.8.0",
+          "ci": "auto",
+          "do": "输入框打开时等一会儿",
+          "expect": "宠物的普通闲聊不会顶掉输入框"
+        }
+      ]
+    },
+    {
+      "id": "alarm",
+      "title": "闹钟",
+      "items": [
+        {
+          "id": "alarm.create",
+          "rev": "0.20.0",
+          "ci": "auto",
+          "do": "面板 Alarms：新建一个 2 分钟后的 Once 闹钟",
+          "expect": "出现在 Alarms 列表：大字时间 + “Once · Today”，右侧开关为开；打开 Alarms 页时时间框默认是当前时间"
+        },
+        {
+          "id": "alarm.list-order",
+          "rev": "0.22.3",
+          "ci": "partial",
+          "human": "你只看宠物旁 🔔 角标的顺序和列表一致（列表排序由 CI 测）",
+          "do": "按乱序设几个闹钟（今天晚些、明天早上、一个重复的工作日闹钟），让其中一个响起后 Snooze，再关掉一个",
+          "expect": "Alarms 列表按下一次响铃时间排，最快响的在最上面；贪睡中的闹钟按贪睡后的时间排（通常排第一），和宠物旁 🔔 角标的顺序一致；关掉的闹钟排在最下面，按一天中的时间排"
+        },
+        {
+          "id": "alarm.new-time-now",
+          "rev": "0.20.0",
+          "ci": "auto",
+          "do": "打开 Alarms 页，改时间和填标签，改到一半时让一个计时器到点（或开始一个新计时器）；再切到别的页回来",
+          "expect": "时间框一开始是当前时间；计时器到点页面刷新后，改了一半的时间和标签都还在；切走再回来时时间重新变成当前时间"
+        },
+        {
+          "id": "ui.time-field",
+          "rev": "0.37.1",
+          "ci": "auto",
+          "do": "在 New alarm 的时间框里：按住小时往上/往下拖；在分钟上滚滚轮；点小时直接打 7、3、0；点 AM/PM；用 ↑/↓ 键；在 Modes 页签的时间段里也试一下",
+          "expect": "往上拖变大、往下拖变小，拖得越远变得越多；滚轮、↑/↓ 每次一格；打 7 3 0 变成 7:30；点 AM/PM 切换；分钟 59 再加变 00（小时不变）；12 小时制时 12 再加变 1（AM/PM 不变）；24 小时制系统下没有 AM/PM 格；Modes 时间段的时间改完后保存（切页再回来还在）"
+        },
+        {
+          "id": "alarm.repeat",
+          "rev": "0.6.0",
+          "ci": "auto",
+          "do": "新建 Every day 和 Weekdays 闹钟",
+          "expect": "下一次时间说明正确（周五设 Weekdays 显示下周一）"
+        },
+        {
+          "id": "alarm.custom-days",
+          "rev": "0.21.0",
+          "ci": "auto",
+          "do": "New alarm 依次选 Once、Every day、Weekdays、Weekends、Custom days；在 Weekdays 下点掉周一、再点回来、再加周六；手动点成只有周六周日；Custom days 下全部取消；分别添加一个 Once、一个 Weekends 和一个一三五的闹钟，并在周五响过之后看一三五那个的下一次",
+          "expect": "Once 和 Every day 不显示星期选择器；Weekdays 显示并选中周一到五，Weekends 选中周六周日；在 Weekdays 下点掉周一，下拉框自动变 Custom days，点回来又变回 Weekdays，加上周六变 Custom days；手动点成周六周日时变 Weekends；从 Once 选 Custom days 时默认选中今天星期几；一天都没选时 Add 是灰的；Once 添加后是单次闹钟（写 Once · 今天/明天）；Weekends 那行写 “Weekends”；一三五那行写 “Mon, Wed, Fri”，周五响后下一次是周一"
+        },
+        {
+          "id": "alarm.switch",
+          "rev": "0.6.0",
+          "ci": "auto",
+          "do": "关掉开关，再打开",
+          "expect": "关闭时变灰（不划线）；打开后恢复，时间不变"
+        },
+        {
+          "id": "alarm.skip-once",
+          "rev": "0.18.0",
+          "ci": "auto",
+          "do": "设一个每天响的闹钟和一个工作日闹钟（周五晚上测最好），在 Alarms 页点它们的开关；分别试 Skip once、Undo、Turn off repeating alarm、Cancel/Esc；再点一个一次性闹钟的开关",
+          "expect": "重复闹钟弹框：闹钟名、重复方式，按钮 “Skip once · Sep 30 7:00 PM (Today)”（明天写 (Tomorrow)，更远写星期几，如周五跳工作日闹钟写 (Monday)），“Turn off repeating alarm”，“Cancel”；Cancel/Esc/点框外不改变任何东西，开关仍开着；Skip once 后开关仍开着，行里出现 “⏭ Skips … · Undo”，下次响铃变成再下一次，那一次不响，也不出现在 🔔 角标里；Undo 恢复；已跳过时再点开关只有 Turn off 和 Cancel；一次性闹钟直接关，不弹框"
+        },
+        {
+          "id": "alarm.delete",
+          "rev": "0.6.0",
+          "ci": "auto",
+          "do": "鼠标悬停一行，点 ✕",
+          "expect": "出现 ✕，点后删除"
+        },
+        {
+          "id": "alarm.edit",
+          "rev": "0.23.0",
+          "ci": "auto",
+          "do": "鼠标悬停一个 Custom days 闹钟（比如 Tue, Thu, Sat），点 ✎；把日期改成 Mon, Wed, Fri，改标签，点 Save。再对一个关着的、正在贪睡的或设了 Skip once 的重复闹钟点 ✎ → Save；再点一次 ✎，然后点标题右边的 Cancel；最后点 ✎ 后在列表里删掉这个闹钟",
+          "expect": "✎ 在 ✕ 左边，和 ✕ 一样只在悬停时出现；点 ✎ 后上面的表单标题变成 “Edit alarm · 名字”，时间、重复方式、日期、标签都已填好（没起名的闹钟标签为空），Add 变成 Save，列表里这一行有橙色边框；Save 后列表里只改了这一个闹钟（不会多出一个），标题回到 New alarm；关着的闹钟保存后自动打开，贪睡 💤 和 ⏭ Skips 提示消失，按新时间响；Cancel 不改任何东西；编辑中的闹钟被删掉时表单回到 New alarm"
+        },
+        {
+          "id": "alarm.ring",
+          "rev": "0.5.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你只听铃声、看宠物跑到中间的样子（气泡、按钮，按设置响或不响由 CI 测）",
+          "do": "等闹钟到点",
+          "expect": "宠物响铃/跑到中间（按设置），气泡有 Snooze 5 min / Done"
+        },
+        {
+          "id": "alarm.auto-snooze",
+          "rev": "0.15.0",
+          "ci": "auto",
+          "do": "新建一个不填标签的一次性闹钟，到点后不理会，等它响完；再等下一次（贪睡后）响铃",
+          "expect": "自动贪睡：宠物旁 “💤 …”，面板显示 (1/3)，右键菜单 “Cancel snooze: Alarm 9:40 PM (next ring 9:46 PM)”；贪睡后的响铃气泡仍写 “Alarm 9:40 PM”，并有小字 “Snoozed 1× · first rang 9:40 PM”；第 3 次贪睡的响铃还写 “last try before it's marked missed”；所有时间都是同一种格式（跟随系统 12/24 小时制）"
+        },
+        {
+          "id": "alarm.missed",
+          "rev": "0.22.0",
+          "ci": "partial",
+          "human": "你只看橙色角标完整显示、没被截断（出现时机、时间、点击消失由 CI 测）",
+          "do": "第 3 次贪睡后仍不理会",
+          "expect": "不再有系统通知；橙色 “⏰ Missed 9:40 PM” 角标（闹钟本来的时间，不是最后放弃的时间），完整显示不被截断，点击才消失"
+        },
+        {
+          "id": "alarm.welcome-back",
+          "rev": "0.22.0",
+          "ci": "partial",
+          "human": "你只看真实鼠标移到宠物上时它会说（只说一次、点击不替换由 CI 测）",
+          "do": "之后第一次把鼠标移到宠物上，并马上点一下宠物",
+          "expect": "宠物说 “You missed Alarm 9:40 PM (I tried 3 more times)…”，只说一次；点击不会把这句换成闲聊或抚摸台词（爱心照常增加）"
+        },
+        {
+          "id": "alarm.upcoming-badge",
+          "rev": "0.22.1",
+          "ci": "auto",
+          "do": "设两个 1 小时内响的闹钟和一个 1.5 小时后响的闹钟；悬停并点击 🔔 角标；再到 Settings → Alarms & timers 关掉/打开 “Show alarms due within … min by the pet”，把分钟数改成 30、0、500；再让其中一个闹钟响起后贪睡",
+          "expect": "宠物旁出现 “🔔 最近那个闹钟的时间 +1”，悬停小框逐行列出这两个闹钟（自定义名字的写成 “Login CMC · 10:05 PM”），1.5 小时后的不在内；点击打开 Alarms 页；贪睡中的闹钟和快到点的闹钟在同一个角标里，按响铃时间排序：最近的是贪睡时角标写 “💤 时间 +n”，小框里贪睡的那行写 “Alarm 11:25 AM · 💤×1 · next 11:33 AM”；关掉 Show upcoming alarms 后贪睡的仍然显示；关掉后 🔔 消失且分钟数变灰，打开后恢复；分钟数只接受 1–120（0 变 1，500 变 120），改小后超出范围的闹钟从 🔔 里消失"
+        },
+        {
+          "id": "alarm.done-ends",
+          "rev": "0.5.0",
+          "ci": "auto",
+          "do": "任意一次贪睡响铃时点 Done",
+          "expect": "整个贪睡周期结束，不再响"
+        },
+        {
+          "id": "alarm.repeat-missed",
+          "rev": "0.5.0",
+          "ci": "auto",
+          "do": "让 Every day 闹钟被错过",
+          "expect": "明天照常响"
+        },
+        {
+          "id": "alarm.finished",
+          "rev": "0.15.0",
+          "ci": "auto",
+          "do": "点掉 ⏰ Missed 角标后，看 Finished 区，再点 Clear",
+          "expect": "错过的闹钟仍显示 “Missed · Today 9:40 PM · snoozed 3×”，左边大字 9:40 PM（不会变成 Rang 9:58）；按过 Done 的闹钟显示 “Rang · … · snoozed N×”；计时器显示 “Done · …”；最新的在最上面；Clear 后清空"
+        },
+        {
+          "id": "alarm.daily-cleanup",
+          "rev": "0.4.0",
+          "ci": "auto",
+          "do": "跨天后（或改系统日期）打开面板",
+          "expect": "前一天已结束的项目被自动清理"
+        },
+        {
+          "id": "alarm.off-while-shut",
+          "rev": "0.33.0",
+          "ci": "auto",
+          "do": "设一个 3 分钟后的一次性闹钟、一个 3 分钟后的计时器、一个 3 分钟后提醒的待办，然后退出 ePet，等 10 分钟后再打开；另设一个 2 分钟后的闹钟（贪睡 5 分钟 × 3 次），退出后等约 12 分钟再打开",
+          "expect": "第一组都不响：闹钟和计时器在 Finished 里写 “Didn't ring · … · ePet wasn't running”，没有 Missed 角标，也不在 “While I was hidden” 清单里；待办显示红色 “Overdue · …”；第二个闹钟打开后立刻补响，气泡写 “Snoozed 2× · first rang …”，不理的话再贪睡一次后被标记为错过；如果超过 15 分钟才打开则不响"
+        },
+        {
+          "id": "alarm.important",
+          "rev": "0.38.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "面板 Alarms 页签新建闹钟时勾上 Important（旁边 ⓘ 有说明），点 Add；再点 ✎ 编辑它，点 Save",
+          "expect": "列表里这个闹钟名字后面有一个 “Important” 小标签；编辑时 Important 仍然勾着，保存后还是 Important"
+        }
+      ]
+    },
+    {
+      "id": "hidden",
+      "title": "宠物隐藏时的提醒",
+      "items": [
+        {
+          "id": "hidden.peek-alarm",
+          "rev": "0.22.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你只看宠物从屏幕边走出来、走回去的样子（出来、回去、托盘文字由 CI 测）",
+          "do": "隐藏宠物（托盘 Hide pet），设一个 2 分钟后的闹钟；到点后点 Done；再设一个，到点后点 Snooze；再设一个，到点时在托盘点 Show pet",
+          "expect": "到点时宠物从最近的屏幕边缘出来，走到屏幕中央响铃，托盘仍写 Show pet；不再弹出系统通知；Done 或 Snooze 后宠物走回边缘隐藏；Snooze 后下次响铃时又出来；响铃时点 Show pet，宠物留在外面不再隐藏"
+        },
+        {
+          "id": "hidden.peek-timer-todo",
+          "rev": "0.36.0",
+          "ci": "partial",
+          "human": "你只看宠物走出来、走回去的样子（何时出来、何时回去由 CI 测）",
+          "do": "Focus 页把专注设为 1 分钟。① 隐藏宠物（托盘 Hide pet），设一个 1 分钟计时器和一个 2 分钟后提醒的待办，都不理。② 设置 → Pet 卡片勾上 “When hidden, it comes out for” 里的 Focus sessions，隐藏宠物，开始一个专注。③ 取消勾选 Focus sessions，再隐藏宠物开始一个专注",
+          "expect": "①：计时器和待办到点时宠物从屏幕边出来响铃，没人理后走回边缘隐藏。②：1 分钟后宠物出来说一句（如 “Break! Stretch like me.”），气泡消失几秒后走回去；托盘一直写 Show pet。③：1 分钟后宠物不出来、屏幕上什么都没有，但专注提示音照样响（Focus 页 Sounds 里选的声音）；专注照常转入休息，也不会进 “While I was hidden you missed” 清单"
+        },
+        {
+          "id": "hidden.unseen-list",
+          "rev": "0.22.0",
+          "ci": "auto",
+          "do": "接上一项（或隐藏时让一个闹钟贪睡 3 次后被标记为错过），然后点 Show pet；先不点 Done，摸摸宠物、悬停；退出 ePet 再打开；最后点 Done",
+          "expect": "宠物出来后气泡写 “While I was hidden you missed:”，每条带日期（Today/Yesterday/具体日期）和类型图标，按时间先后，超过 5 条显示 “…and N more”；摸宠物或闲聊不会把它替换掉；重启后仍然出现；点 Done 后清单和 ⏰ Missed 角标消失（Finished 里仍写 Missed）；待办仍在列表里显示红色 Overdue"
+        },
+        {
+          "id": "hidden.settings-warning",
+          "rev": "0.22.0",
+          "ci": "auto",
+          "do": "Settings → Pet 找到 “When hidden, it comes out for”，逐个取消 Alarms、Timers、To-do reminders，再勾回来；取消 Timers 后隐藏宠物，让一个计时器到点",
+          "expect": "默认 Alarms、Timers、To-do reminders 勾选，Focus sessions 不勾；取消任一前三项时出现红色 ❗ “While your pet is hidden, … will not alert you.”，写出具体是哪几项，全部勾回后消失；取消 Timers 时计时器到点宠物不出来，也没有声音，显示宠物时出现在 “While I was hidden you missed” 清单里"
+        }
+      ]
+    },
+    {
+      "id": "quick-timer",
+      "title": "面板 Quick timer",
+      "items": [
+        {
+          "id": "quick.row",
+          "rev": "0.8.0",
+          "ci": "auto",
+          "do": "面板 → Alarms → Quick timer",
+          "expect": "1m 5m 10m 15m 30m 45m 1h + 虚线的自定义按钮（如 1h30m、25m）"
+        },
+        {
+          "id": "quick.edit",
+          "rev": "0.8.0",
+          "ci": "auto",
+          "do": "鼠标移到虚线按钮，点 ✎，改值回车",
+          "expect": "出现 ✎ ✕；输入框填入该值，提示 “25m → …”；回车后原位替换"
+        },
+        {
+          "id": "quick.forget",
+          "rev": "0.8.0",
+          "ci": "auto",
+          "do": "点虚线按钮的 ✕",
+          "expect": "按钮消失，宠物右键菜单里也同步消失"
+        },
+        {
+          "id": "quick.custom-input",
+          "rev": "0.10.0",
+          "ci": "auto",
+          "do": "看 Quick timer 按钮和 Custom 输入框之间，再在 Custom 输入框输入 2h 回车",
+          "expect": "按钮行和输入框之间有空隙；启动计时器，Timers 区出现大字倒计时 + Cancel"
+        }
+      ]
+    },
+    {
+      "id": "todo",
+      "title": "待办",
+      "items": [
+        {
+          "id": "todo.parse-time",
+          "rev": "0.1.0",
+          "ci": "auto",
+          "do": "输入 call mom at 3pm",
+          "expect": "标题 “call mom”，今天 15:00 提醒"
+        },
+        {
+          "id": "todo.parse-more",
+          "rev": "0.24.0",
+          "ci": "auto",
+          "do": "输入 standup tomorrow 9:30、stretch in 20m、pay rent fri 10am、just a note，看输入框下面那一行和提示",
+          "expect": "时间解析正确；最后一个没有提醒时间（没有日期、没有时间）"
+        },
+        {
+          "id": "todo.sections",
+          "rev": "0.25.0",
+          "ci": "auto",
+          "do": "建几个待办：一个昨天的、一个今天带时间的、一个今天不带时间的、一个没有日期的、两个以后的；打开 Upcoming，关掉面板再打开；第二天（或改系统日期）再看",
+          "expect": "上面是 “TODAY (n)”：昨天的红色 Overdue 在最前，然后今天带时间的、今天不带时间的、没有日期的；下面是收起的 “▸ Upcoming (2) · next …”（写出最近那条的日期），点开能看到，重新打开面板仍保持打开；到了那天，那条自动出现在 Today；Today 没有东西时写 “Nothing for today. Your pet approves.”"
+        },
+        {
+          "id": "todo.day-only",
+          "rev": "0.24.0",
+          "ci": "auto",
+          "do": "输入 buy milk today、dentist fri（都不写时间），看输入框下面那一行，再点 Add",
+          "expect": "输入时下面一行自动出现 📅 日期框（灰色星期几 + 日 月 年，顺序跟随系统，澳洲为 7 Oct 2026）和虚线 “+ Time”；提示写 “📅 Today — “buy milk” · reminds at 9:00 AM that day”；列表里只显示日期（Today / Fri, 9 Oct），没有时间"
+        },
+        {
+          "id": "todo.date-field",
+          "rev": "0.24.0",
+          "ci": "auto",
+          "do": "点 “+ Date”，在日期框的日、月、年上分别：按住上下拖、滚轮、按 ↑/↓、直接打数字（如月份打 12）；把日改成 31 再把月份换成 11 月；点日期框里的 ✕",
+          "expect": "和时间框一样可以拖、滚、按键、打字，星期几跟着变；31 日换到 11 月变成 30 日；日从 31 往上滚回到 1 而不改月份；✕ 后回到 “+ Date”，重复下拉框变灰不能选"
+        },
+        {
+          "id": "todo.time-toggle",
+          "rev": "0.24.0",
+          "ci": "auto",
+          "do": "有日期时点 “+ Time”，再点时间框里的 ✕；再输入 call mom tomorrow 3pm",
+          "expect": "“+ Time” 变成时间框（下一个整点），✕ 后变回 “+ Time”；打出时间时自动出现时间框；提示里 ⏰ 带时间，📅 不带时间"
+        },
+        {
+          "id": "todo.repeat-parse",
+          "rev": "0.24.0",
+          "ci": "auto",
+          "do": "依次输入 bins every tue、recycling every other thu、water plants daily、pay bills monthly 1st、review budget quarterly、car rego yearly on the 20th、bins every tue 7pm",
+          "expect": "重复下拉框自动选中 Weekly / Fortnightly / Daily / Monthly / Quarterly / Yearly；日期是下一个对应的日子（every tue 当天是周二时就是今天；monthly 1st 是下一个 1 号）；最后一个带 7:00 PM；标题里去掉了这些词；手动改过下面一行后，继续打字不会再覆盖它"
+        },
+        {
+          "id": "todo.repeat-tick",
+          "rev": "0.24.0",
+          "ci": "auto",
+          "do": "建一个 Weekly 的 bins（今天），勾选完成；再建一个日期在三周前的 Weekly 待办，勾选；再建一个 Monthly 31 号的待办，勾选几次",
+          "expect": "勾选后 Done 区多一条 “bins · Done · Today …”，bins 本身留在列表里，日期变成下周同一天，前面显示 🔁 Weekly；拖了三周的那个直接跳到今天之后最近的一次，不会冒出好几条；31 号的在 30 天的月份变成 30 号，下个月又回到 31 号"
+        },
+        {
+          "id": "todo.untick-undo",
+          "rev": "0.25.0",
+          "ci": "auto",
+          "do": "在 Upcoming 里提前勾掉一个 Fortnightly 待办（比如 Tue 6 Oct 的），再到 Done 区把它那条的勾去掉；再对一个今天的 Daily 待办做同样的事；最后勾掉一个重复待办后把它删掉，再去 Done 区取消勾选",
+          "expect": "勾掉后日期跳到两周后（20 Oct），Done 多一条；取消勾选后 Done 那条消失，待办回到 6 Oct，没有多出一条；今天的那条回到 Today，不会再为今天提醒一次；待办删掉后再取消勾选，那条记录变成普通的一次性待办"
+        },
+        {
+          "id": "todo.edit",
+          "rev": "0.24.0",
+          "ci": "auto",
+          "do": "鼠标悬停一条待办，点 ✎；改标题、日期、加时间、改重复方式，点 Save；再点一次 ✎ 后点标题右边的 Cancel；再点 ✎ 后把这条勾掉或删掉",
+          "expect": "✎ 只在悬停时出现（已完成的没有 ✎）；表单标题变成 “Edit to-do · 名字”，内容都已填好，Add 变成 Save，这一行橙色边框；Save 后只改这一条，不会多出一条；Cancel 不改任何东西；编辑中的那条被勾掉或删掉时表单回到新建状态"
+        },
+        {
+          "id": "todo.day-remind",
+          "rev": "0.24.0",
+          "ci": "auto",
+          "do": "Settings → To-do reminders 把 “To-dos without a time remind you at” 设成 1–2 分钟后；建两个今天的、不带时间的待办；到点后点 Later；另一次：把时间设在早上，晚点再打开 ePet",
+          "expect": "到点宠物出来，一个气泡同时列出两条：“📅 Today: • … • …”，按钮 Open To-dos 和 Later；Later 后 10 分钟再提醒一次，日期不变（不会变成带时间的待办）；时间过了才打开 ePet，当天打开时仍提醒一次；只有一条时和普通待办提醒一样，有 ✓ Done"
+        },
+        {
+          "id": "todo.day-overdue",
+          "rev": "0.24.0",
+          "ci": "auto",
+          "do": "建一个今天的不带时间的待办、一个今天早些时候带时间的待办，不勾；第二天（或改系统日期）再看",
+          "expect": "当天：不带时间的显示橙色 “Today”（不算 Overdue），带时间的过了时间就显示红色 “Overdue · Today …”；第二天不带时间的才变成红色 “Overdue · Yesterday”；第二天打开 ePet 不会为昨天的补提醒"
+        },
+        {
+          "id": "todo.feedback",
+          "rev": "0.3.0",
+          "ci": "auto",
+          "do": "面板添加待办，再勾选完成",
+          "expect": "添加时宠物确认一句；完成时宠物夸奖，爱心增加"
+        },
+        {
+          "id": "todo.remind",
+          "rev": "0.2.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你只听提示音（只提醒一次、用哪个铃声由 CI 测）",
+          "do": "设置 → To-do reminders 勾上 Ring，选一个好认的铃声、调好音量；加一个 2 分钟后提醒的待办，等它到点",
+          "expect": "宠物出来提醒，气泡里有 ✓ Done 和 Later；响的是选的铃声、音量合适；只响一遍，不会像闹钟那样过几分钟自己再响"
+        },
+        {
+          "id": "todo.clear",
+          "rev": "0.4.0",
+          "ci": "auto",
+          "do": "Done 区点 Clear",
+          "expect": "已完成的待办被清空"
+        },
+        {
+          "id": "todo.done-time",
+          "rev": "0.13.0",
+          "ci": "auto",
+          "do": "勾选完成几个待办，打开 Done 区",
+          "expect": "每个显示 “Done · Today 3:15 PM”，最近完成的在最上面；待办的提醒时间显示为 “Today 3:00 PM”（没有前导 0）"
+        }
+      ]
+    },
+    {
+      "id": "anniversary",
+      "title": "纪念日",
+      "items": [
+        {
+          "id": "anniv.subpages",
+          "rev": "0.26.0",
+          "ci": "auto",
+          "do": "打开 To-dos 页，点 🎂 Anniversaries，再切回 To-dos；切到别的页再回来",
+          "expect": "顶部有 [To-dos] [🎂 Anniversaries] 两个子页按钮，打开 To-dos 默认在 To-dos 子页；7 天内有纪念日时按钮上有数字"
+        },
+        {
+          "id": "anniv.form",
+          "rev": "0.39.0",
+          "ci": "auto",
+          "do": "在 Anniversaries 子页依次选 Type：Birthday、Remembrance、Wedding anniversary；点图标按钮选一个别的图标；手动改一条提前提醒后再换 Type",
+          "expect": "Birthday 自动填 🎂、1 week: Buy a gift、1 day: Order a cake，勾选 “Fireworks on the day 🎆”；Remembrance 变 🕯️、1 day: Buy flowers，勾选框文字变成 “Candle and flowers on the day 🕯️” 且默认不勾；图标网格 20 个可选，选中的有橙框；手动改过的图标、提醒、勾选在换 Type 时保留；Type 里有 🎉 Holiday（选它多一行 Holiday 下拉框）"
+        },
+        {
+          "id": "anniv.add-list",
+          "rev": "0.39.0",
+          "ci": "auto",
+          "do": "添加三个：今天的生日（Since 1990）、明天的结婚纪念日（Since 2016）、40 天后的忌日（Since 2019）；日期框试拖动和滚轮，选 2 月 29 日；最多加 3 条提前提醒",
+          "expect": "日期只有日和月，可拖、滚、打字，能选 Feb 29；列表按日期排序：“… · Today 🎉 · 36th”、“… · Tomorrow · 10th”（7 天内橙色）、“… · in 40 days · 7 years”，下面列出提前提醒；+ Add another 到 3 条后消失"
+        },
+        {
+          "id": "anniv.lunar",
+          "rev": "0.39.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "在 Anniversaries 表单把 Date 旁的下拉框选 Lunar date，选 8th month、15，名字填 Grandma，看下面的 “Next: …”，点 Add；再建一个勾了 Leap 的 4th month、8；点 Grandma 的 ✎",
+          "expect": "Next 写着今年或明年中秋那天（公历日期）；列表显示 “Lunar 8/15 · 星期, 月 日 · in … ”；勾 Leap 的那个显示 “Lunar leap 4/8”；✎ 后表单回到 Lunar date、8th month、15"
+        },
+        {
+          "id": "anniv.lunar-leap",
+          "rev": "0.39.0",
+          "mac": true,
+          "do": "建一个 Lunar date 6th month 10、勾 Leap 的纪念日，看 Next；再建一个 12th month 30 的，看 Next",
+          "expect": "闰六月的那个：今年没有闰六月时，Next 是普通六月初十（2025 年有闰六月，那年是闰六月初十）；腊月三十的那个：腊月只有 29 天的年份，Next 是腊月廿九，也就是除夕（例如 2027 年 2 月 5 日）"
+        },
+        {
+          "id": "anniv.weekday",
+          "rev": "0.39.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "Date 旁选 Day of the week，选 Last、Monday、of May，名字填 Memorial，点 Add",
+          "expect": "列表显示 “Last Monday of May · Mon, May 25 …”（5 月最后一个星期一）"
+        },
+        {
+          "id": "anniv.holidays",
+          "rev": "0.39.0",
+          "mac": true,
+          "ci": "auto",
+          "human": "你看看节日列表、图标和建议的提前提醒合不合适",
+          "do": "Type 选 🎉 Holiday，在 Holiday 下拉框依次选 Mid-Autumn Festival、Mother's Day、Lunar New Year's Eve、Thanksgiving (US)，各点 Add",
+          "expect": "选了节日会自动填好名字、图标（🥮 💐 🥟 🦃）、日期规则和提前提醒（Buy mooncakes / Buy flowers / Book the reunion dinner / Plan the dinner）；没有 Since；列表分别显示 “Lunar 8/15 …”、“2nd Sunday of May …”、“Lunar 12/30 …”、“4th Thursday of November …”；当天宠物说 “🥮 Happy Mid-Autumn Festival!” 这类话，放烟火"
+        },
+        {
+          "id": "anniv.lunar-celebrate",
+          "rev": "0.39.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "用 ePet Test：查好明天的农历日期（例如手机日历），建一个那天的农历生日（Lunar date），提前提醒 1 day / Order a cake；切到 To-dos 子页；然后托盘 → 🧪 Test clock → +1 day，动一下鼠标",
+          "expect": "今天就出现待办 “🎂 Mum - Order a cake”；拨到明天后宠物庆祝 “🎉 Happy birthday, Mum!”。测完点 Back to now"
+        },
+        {
+          "id": "anniv.preview",
+          "rev": "0.27.1",
+          "ci": "partial",
+          "human": "你只看效果的样子，以及播放中其他窗口都能正常点击（台词、不保存、隐藏时出来回去由 CI 测）",
+          "do": "不保存，直接在表单里点 ▶ Preview；保存后在列表那一行点 ▶；隐藏宠物后再点一次 ▶；关掉 Settings 里的 “Celebrate anniversaries on screen” 再预览；预览一个今天的纪念日后动鼠标",
+          "expect": "点预览后宠物马上说那句话、屏幕播放效果；播放期间和结束后，宠物所在屏幕上的所有窗口（包括 ePet 面板）都能正常点击，不会卡死；预览和当天的庆祝一模一样（说的话、第几年、效果、时长），没填名字时用模板名；预览不会保存纪念日、不会生成待办；隐藏时宠物出来，播完回去；总开关关掉时只说一句话；预览过的今天的纪念日，动鼠标后仍会真正庆祝一次"
+        },
+        {
+          "id": "anniv.preview-stop",
+          "rev": "0.37.2",
+          "mac": true,
+          "ci": "partial",
+          "human": "你只看按钮的样子，以及点 Stop 后是不是立刻安静（何时变、停没停、放的哪首由 CI 测）",
+          "do": "设置里打开音乐；在纪念日表单点 ▶ Preview，播放中再点它（现在写 ■ Stop）；连点 Preview 三次；Type 选 Wedding 点 Preview，播放中在 Music 里换成 Bridal Chorus；列表里某一行的 ▶ 也试一次",
+          "expect": "播放时按钮变成 “■ Stop（线条图标）”（列表那一行变成 ■）；点了立刻停：音乐、烟火或蜡烛、宠物的话一起消失，守蜡烛的宠物起身走开，按钮变回 “▶ Preview”；播完自己也变回；连点只放一遍，不会一遍接一遍；播放中换曲子立刻改放新曲子"
+        },
+        {
+          "id": "anniv.music-form",
+          "rev": "0.36.0",
+          "ci": "auto",
+          "do": "Settings 里音乐先关着；在 Anniversaries 表单依次选 Type：Birthday、Pet's birthday、Wedding anniversary、Work anniversary、Remembrance；Work 时选 Jasmine Flower 后保存，再 ✎ 编辑它；把一个选了 Taps 的 Remembrance 改成 Custom",
+          "expect": "Birthday 和 Pet's birthday 显示 “Music 🎵 Happy Birthday”，不能改；Wedding 是下拉框，只有 Canon in D (Pachelbel)、Wedding March (Mendelssohn)、Bridal Chorus (Wagner) 三首，默认卡农；其他喜庆类型是下拉框，有 8 首喜庆曲目（含两首婚礼曲），默认 Music-box waltz；在 Dating 里选 Wedding March 后换成 Wedding，保留 Wedding March，选 Waltz 后换成 Wedding 则回到卡农；Remembrance 只有 4 首哀乐，默认 Remembrance (original, Chinese style)；音乐关着时旁边写 “⚠ Music is off for all anniversaries · Turn on”，点 Turn on 就在设置里打开音乐、警告消失；编辑时保留选的曲目；喜庆和祭日之间换类型时回到新类型的默认曲目"
+        },
+        {
+          "id": "anniv.music-play",
+          "rev": "0.29.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你只听：好不好听、音量是否平衡、结尾淡出、60 秒循环（每次放哪首、何时开始和停止由 CI 测）",
+          "do": "Settings → To-do reminders 勾上 “Play music with it”，音量调一半；分别 ▶ Preview 一个生日、三个结婚纪念日（分别选卡农、Wedding March、Bridal Chorus）、一个选了 Ode to Joy 的 Custom、一个默认的 Remembrance；把时长设成 60 秒再听一次；播放中设一个 1 分钟后的计时器让它响；最后把音量拉到最右、再关掉音乐预览一次",
+          "expect": "每次预览都和效果一起放对应的曲子（生日歌、卡农、门德尔松《婚礼进行曲》开头的小号号角、瓦格纳《婚礼合唱》“Here comes the bride”、欢乐颂、哀思）；不同曲目听起来音量差不多，没有爆音、咔哒声；伴奏不盖过主旋律；时长到了音乐在最后 2 秒淡出，和效果、那句话一起结束；60 秒时曲子循环衔接自然；计时器响时音乐停下；关掉 “Celebrate anniversaries on screen” 时音乐照样放；关掉音乐后预览没有声音"
+        },
+        {
+          "id": "anniv.prep-todo",
+          "rev": "0.26.0",
+          "ci": "auto",
+          "do": "建一个明天的纪念日，提前提醒 1 day / Buy flowers 和 1 week / Book a restaurant；切到 To-dos 子页；关掉 ePet，第二天再开（或改系统日期）测一个昨天该生成的提醒",
+          "expect": "To-dos 的 Today 里出现 “💍 名字 - Buy flowers”（只有日期、没有时间，按待办提醒时间提醒），只出现一次；1 week 那条因为添加时已过期，不会生成；错过那天开机后补生成，显示 Overdue；删掉纪念日后已生成的待办保留"
+        },
+        {
+          "id": "anniv.fireworks",
+          "rev": "0.30.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你只看烟花和气球的样子，以及能点到后面的窗口（台词、时长、当天只一次由 CI 测）",
+          "do": "建一个生日（Since 1990），点表单里的 “▶ Preview”（或列表那一行悬停时的 ▶）；看完到 Settings 把时长改成 10 秒再预览；最后建一个今天的生日，动一下鼠标看真实的庆祝",
+          "expect": "预览立刻在宠物所在屏幕放烟花，同时飘落 🎂🎁，彩色气球（红、金、粉、橙、紫、嫩绿）从屏幕底部往上飘，约 3 成是猫、狗、熊脸气球，气球大小适中、不密；宠物说 “🎉 Happy 36th birthday, 名字!”；烟花在其他程序上面、宠物和气泡在烟花上面；烟花期间可以正常点击后面的窗口；时长到了烟花和这句话一起消失；真实那天：纪念日没有几点几分，当天第一次动鼠标时就庆祝，当天不会第二次"
+        },
+        {
+          "id": "anniv.hearts",
+          "rev": "0.30.0",
+          "do": "▶ Preview 一个结婚纪念日、一个恋爱纪念日，各看 15 秒；再 Preview 一个宠物生日和一个工作纪念日",
+          "expect": "结婚和恋爱：大约每 3 发烟花有 1 对并排的心形烟花，一红一粉或一红金，左右随机，心形清楚可辨、慢慢扩大下坠；宠物生日：气球从下往上飘，约 6 成是动物脸，🦴 往下落；工作纪念日：普通烟花，没有心形、没有气球"
+        },
+        {
+          "id": "anniv.same-day",
+          "rev": "0.32.0",
+          "ci": "partial",
+          "human": "你只看、听两段的样子和音乐（先后顺序、间隔、不重播由 CI 测）",
+          "do": "用 ePet Test：设置 → To-do reminders 勾上 “Play music with it”；建两个明天的纪念日：一个生日、一个勾了 “Candle and flowers” 的忌日；托盘 → 🧪 Test clock → +1 day，再动一下鼠标。（纪念日没有几点几分：当天第一次动鼠标时开始庆祝，所以要用明天的日期再拨时钟，两个才会同时到期。重测：删掉重建，或点 Back to now）",
+          "expect": "先播忌日：花烛、宠物坐在旁边、哀乐；结束后停约 2 秒，再播生日：烟花、气球、生日歌、宠物说生日那句；两个都完整播完，互不覆盖；之后当天不会再播"
+        },
+        {
+          "id": "anniv.candle",
+          "rev": "0.34.0",
+          "ci": "partial",
+          "human": "你只看花烛在横屏和竖屏上的位置和大小、宠物走过去坐下的样子（台词、走到哪一侧、朝向由 CI 测）",
+          "do": "Type 选 Remembrance、Since 2019，先不勾 “Candle and flowers on the day” 点 ▶ Preview；再勾上预览一次；勾上再预览一次，宠物走过去的路上把鼠标停在它身上或点它一下",
+          "expect": "不勾：没有屏幕效果，宠物安静地说 “🕯️ Remembering 名字 today.”，下面写 “7 years”，宠物不做开心的动作；勾上：屏幕变暗，屏幕底部正中一支白蜡烛在闪动，两边各一小束（3 朵）白菊花，横屏和竖屏都完整在屏幕内、不歪；宠物慢慢走到离它近的一侧（空间不够就去另一侧），气泡不碰到花，面朝蜡烛坐着；路上被鼠标停住、被点了跳一下，之后会接着走过去坐下；时间到效果消失，宠物留在原地，之后照常自由活动"
+        },
+        {
+          "id": "anniv.settings",
+          "rev": "0.26.0",
+          "ci": "auto",
+          "do": "Settings → To-do reminders 关掉 “Celebrate anniversaries on screen”，再测一个今天的生日；Pet 卡片取消 “Anniversaries” 后隐藏宠物，再测一个；最后勾回 Anniversaries 并隐藏宠物测一次",
+          "expect": "关掉后没有烟花，宠物只说一句；时长只能 10–60 秒；不勾 Anniversaries 时隐藏的宠物不出来，等你点 Show pet 后当天再庆祝；勾上时宠物从屏幕边出来庆祝，结束后回去隐藏"
+        }
+      ]
+    },
+    {
+      "id": "focus",
+      "title": "专注时段",
+      "items": [
+        {
+          "id": "focus.start",
+          "rev": "0.3.0",
+          "ci": "auto",
+          "do": "右键 → Start focus session 🍅",
+          "expect": "角标显示专注倒计时（在计时器角标上方）"
+        },
+        {
+          "id": "focus.timer-during",
+          "rev": "0.3.0",
+          "ci": "auto",
+          "do": "专注中让一个计时器响",
+          "expect": "宠物不离开原位"
+        },
+        {
+          "id": "focus.cycle",
+          "rev": "0.1.0",
+          "ci": "auto",
+          "do": "让专注时段结束",
+          "expect": "提示休息；每 N 轮进入长休息（按 Focus 页设置）"
+        },
+        {
+          "id": "focus.timing",
+          "rev": "0.36.2",
+          "mac": true,
+          "ci": "auto",
+          "do": "Focus 页 Timing 四个格子分别输入 0、清空、2.6、-3，再点右上角 “Reset to defaults”",
+          "expect": "输入 0 或负数变成 1，小数取整，清空则保留原值；点 Reset to defaults 后变回 25 / 5 / 15 / 4，上方空闲时钟显示 25:00"
+        },
+        {
+          "id": "focus.stop",
+          "rev": "0.10.0",
+          "ci": "auto",
+          "do": "右键 → Stop focus session",
+          "expect": "菜单显示 “Stop focus session (ends 4:10 PM)”；点后停止"
+        },
+        {
+          "id": "focus.sounds",
+          "rev": "0.36.2",
+          "mac": true,
+          "ci": "partial",
+          "human": "你只听两个声音好不好听、分不分得清（何时响、响哪个、关掉不响由 CI 测）",
+          "do": "Focus 页把 Focus 设为 1 分钟、Short break 1 分钟；在 “Sound: focus starts / break starts” 各点 ▶ 试听，调一下 Volume；开始专注等它转入休息，再等休息结束；把 break starts 选 Off 再来一次；最后隐藏宠物再来一次",
+          "expect": "开始专注响 “Field phone”（像《24 小时》CTU 办公室电话那样先两对“啾啾”、再一串急促颤音的电子铃声，只响一次，约 1.3 秒），开始休息响 Office trill，不看宠物也分得清；音量跟着滑块；选 Off 的那个不响；宠物隐藏时照样响；下拉框里有 Field phone、7 个铃声和 Off"
+        },
+        {
+          "id": "focus.stats",
+          "rev": "0.1.0",
+          "ci": "auto",
+          "do": "Focus 页看 Last 7 days",
+          "expect": "有统计记录"
+        },
+        {
+          "id": "focus.work-hours",
+          "rev": "0.37.1",
+          "ci": "auto",
+          "do": "Focus 页勾上 “Focus on work days…”，看下面那行说明；到 Modes 页签 把工作日的 Work 时段改成 1–2 分钟后开始、再过 30 分钟结束；等它自动开始；然后手动 Stop；最后晚上（下班后）手动 Start",
+          "expect": "Focus 页不再有星期和时间框，而是一行字写明工作日和 Work 时段（例如 “Mon Tue Wed Thu Fri · 9:00 AM–5:30 PM”），并有链接到 Modes 页签；到开始时间番茄钟自己开始（宠物旁出现 🍅）；手动停掉后当天不会再自动开始；过了结束时间不再开始新的番茄；下班后手动开始会一直循环；不勾时不会自动开始"
+        }
+      ]
+    },
+    {
+      "id": "mood",
+      "title": "心情与照顾",
+      "items": [
+        {
+          "id": "mood.start",
+          "rev": "0.4.0",
+          "ci": "auto",
+          "do": "新角色放着几分钟",
+          "expect": "心情为 content（约 60%），不会自己变 grumpy"
+        },
+        {
+          "id": "mood.care",
+          "rev": "0.4.0",
+          "ci": "auto",
+          "do": "抚摸/喂食，短时间内多次抚摸",
+          "expect": "飘出 “+3 ♥”；抚摸太多时说 “That's plenty for now”"
+        },
+        {
+          "id": "mood.carry",
+          "rev": "0.4.0",
+          "ci": "auto",
+          "do": "拖起来带着走；再用力甩出去砸地",
+          "expect": "带着走算玩耍，爱心增加；砸地轻微扣分"
+        },
+        {
+          "id": "mood.full",
+          "rev": "0.3.0",
+          "ci": "auto",
+          "do": "一直喂到饱",
+          "expect": "饱食度满，再喂有反应"
+        },
+        {
+          "id": "mood.cards",
+          "rev": "0.3.0",
+          "ci": "auto",
+          "do": "面板 → Characters",
+          "expect": "每个角色一张心情卡片"
+        },
+        {
+          "id": "mood.offline",
+          "rev": "0.3.0",
+          "ci": "auto",
+          "do": "关掉应用一段时间再打开",
+          "expect": "心情不会因为关着的时间而下降"
+        }
+      ]
+    },
+    {
+      "id": "settings",
+      "title": "设置",
+      "items": [
+        {
+          "id": "settings.layout",
+          "rev": "0.22.2",
+          "mac": true,
+          "ci": "partial",
+          "human": "你只看排版好不好看（四张卡片、Focus 页不出滚动条、改了能保存由 CI 测）",
+          "do": "打开面板，用默认窗口大小看 Focus 页（打开 Work hours）和 Settings 页；改几个设置（大小、Quiet hours 时间、铃声、Ring for、If nobody answers、隐藏时出来的勾选、开机启动）后切页再回来；把 “Show alarms due within” 改成 120，If nobody answers 选每一项，New alarm 的重复方式选 Custom days",
+          "expect": "Focus 页不用滚动就能看到全部内容：顶部一张卡片（阶段、倒计时、按钮）、7 天柱状图和总数、四个时长一行、两个勾选、Work hours 卡片（星期和时间一行、一行小字说明）；Settings 分为 Pet / Alarms & timers / To-do reminders / General 四张卡片，Quiet hours 和 “When hidden, it comes out for” 在 Pet 卡片里，Ring for 和 If nobody answers 并排；改过的设置切页回来都还在；所有输入框和下拉框的文字都完整显示（120 不会变成 12，“Mark as missed”、“Custom days”、“Label” 不被截断）"
+        },
+        {
+          "id": "settings.size-speed",
+          "rev": "0.1.0",
+          "ci": "partial",
+          "human": "你只看大小和速度看起来对不对（数值即时生效由 CI 测）",
+          "do": "拖动 Pet size / Pet speed 滑块",
+          "expect": "实时生效"
+        },
+        {
+          "id": "settings.alerts",
+          "rev": "0.2.0",
+          "ci": "partial",
+          "human": "你只听试听和铃声（响不响、用哪个铃声和音量、跑不跑由 CI 测）",
+          "do": "设置 → Alarms & timers 和 To-do reminders 两张卡片里，分别切换 “Pet comes to the middle of the screen”、Ring、铃声、音量",
+          "expect": "▶ 试听有声音；实际提醒按设置执行"
+        },
+        {
+          "id": "settings.ringtones",
+          "rev": "0.36.1",
+          "mac": true,
+          "ci": "partial",
+          "human": "你只听 7 种铃声是否都好听（都能播放由 CI 测）",
+          "do": "逐个试听 7 种铃声",
+          "expect": "classic / chime / digital / gentle rise / marimba / rooster crow / office trill 都能播"
+        },
+        {
+          "id": "settings.unanswered",
+          "rev": "0.5.0",
+          "ci": "auto",
+          "do": "改 Ring for 和 If nobody answers",
+          "expect": "按设置执行（响铃时长、贪睡次数或直接标记 missed）"
+        },
+        {
+          "id": "settings.other-sounds",
+          "rev": "0.36.0",
+          "ci": "partial",
+          "human": "你只听确实没声音、有声音（是否发声由 CI 测）",
+          "do": "设置 → General 关掉 “Other sounds (petting)”，摸一下宠物；开始一个专注；再打开它，摸一下宠物",
+          "expect": "关掉时摸宠物没有声音，但开始专注时照样响专注提示音（它在 Focus 页单独设）；打开后摸宠物有声音"
+        }
+      ]
+    },
+    {
+      "title": "提醒模式",
+      "items": [
+        {
+          "id": "modes.panel",
+          "rev": "0.37.2",
+          "mac": true,
+          "ci": "partial",
+          "human": "你看看这一页好不好懂、ⓘ 说明是否清楚、图标是否顺眼、一周彩条对不对（CI 测选模式、加时段、时间不能相同、休假、next day、重叠提示）",
+          "do": "打开面板的 Modes 页签：看顶部 “Now: …”、一周七行彩条、工作日勾选、两张时段表、每种模式效果表（每项和每列表头都有 ⓘ 说明）；改一下模式下拉框；点两次 “+ Add a time slot”；把一个时段的结束时间改成和开始一样；点 “+ Days off until…” 再点 ✕；在效果表里改几项再点 Reset to defaults；把一个时段设成和另一个重叠（例如 Work 6:00 PM–10:01 PM 和 Quiet 10:00 PM–8:30 AM）",
+          "expect": "Modes 是单独的页签（Focus 和 Characters 之间），设置页的 Pet 卡片里有一行 “Quiet hours are now in Modes” 链接过去；顶部写着现在的模式和原因；彩条按时段着色、今天那行有当前时间线；新时段接在上一个时段结束之后、长 1 小时；结束改成和开始一样时自动变成晚 1 小时，并短暂提示 “A slot needs an end after its start…”；Days off until 默认一周后，点 ✕ 取消；鼠标移到 ⓘ 上显示说明；Normal 那一列是灰的；Reset to defaults 恢复各模式效果；跨午夜的时段在结束时间后写 “(next day)”；重叠时被盖住的那一行下面出现警告 “Overlaps Quiet 10:00 PM–8:30 AM: Quiet wins 10:00 PM–10:01 PM”；ⓘ、✕、▶ 都是细线图标（不是字体里的符号），各系统看起来一样"
+        },
+        {
+          "id": "modes.quiet",
+          "rev": "0.37.1",
+          "mac": true,
+          "ci": "partial",
+          "human": "你听一下闹钟是不是先小声、半分钟内变大（CI 测音量设置和不响的部分）",
+          "do": "右键 → Switch mode → 🌙 Quiet until …；设一个 5 分钟的计时器，看宠物旁的标记；再设一个 1 分钟后的闹钟，别理它；再设一个 1 分钟后的待办",
+          "expect": "宠物安静（坐着、睡觉，不乱跑、不自己说话）；计时器标记前面多一个 🌙（没有任何标记时不显示模式），鼠标移上去写着 “Quiet mode · until …, then Auto”，点它打开 Modes 页签；闹钟照常响，开始很小声，约 30 秒内逐渐变到正常音量，宠物原地提醒不跑到中间；待办只出气泡、不响铃"
+        },
+        {
+          "id": "modes.work",
+          "rev": "0.37.1",
+          "mac": true,
+          "ci": "auto",
+          "do": "右键 → Switch mode → 👔 Work；设一个 1 分钟后的闹钟，别理它；再设一个 1 分钟后的待办",
+          "expect": "宠物旁有标记时前面多一个 👔；闹钟用一半音量响、最多响 15 秒，宠物原地提醒不跑到中间；待办用一半音量响；宠物不自己说话，摸它没有音效"
+        },
+        {
+          "id": "modes.schedule",
+          "rev": "0.37.1",
+          "mac": true,
+          "ci": "auto",
+          "do": "模式选 Auto；在 Modes 页签加一个包含现在时间的 Quiet 时段；设一个计时器；看托盘图标的鼠标悬停提示；右键 → Switch mode → Today is a day off，再点一次取消",
+          "expect": "Auto 时按时段切换；有标记时前面显示 🌙，悬停写 “until …”；菜单写 “Switch mode (now: 🌙 Quiet until …)”；托盘图标悬停显示 “ePet · 🌙 Quiet until …”（宠物藏起来也看得到）；勾 Today is a day off 后今天按休息日的时段表（🌙 消失）"
+        },
+        {
+          "id": "modes.postpone",
+          "rev": "0.37.1",
+          "mac": true,
+          "ci": "auto",
+          "do": "在 Work 或 Quiet 模式下，让一个今天的纪念日开始（建一个今天的生日，动一下鼠标）；之后切回 Normal",
+          "expect": "Work/Quiet 时不放烟火，宠物旁出现纪念日自己的标记（例如 “🎂 Mum”，点它马上放）；切回 Normal 或 Lively 时宠物问 “🎉 Today: … Celebrate now?”，点 Celebrate 播放，点 Skip 不放；到 23:59 还没放、而且不是 Quiet，宠物再问一次 “Celebrate before the day ends?”"
+        },
+        {
+          "id": "modes.menu",
+          "rev": "0.37.1",
+          "ci": "auto",
+          "do": "右键宠物和托盘菜单，看 Switch mode",
+          "expect": "两个菜单都有 “Switch mode (now: …)”，在 Open panel… 上面；子菜单：Auto (schedule)、🙂 Normal until …、✨ Lively until …、👔 Work until …、🌙 Quiet until …（当前的打勾），分隔线，Quiet for…（30 minutes / 1 hour / 2 hours / Until tomorrow …）、Today is a day off"
+        },
+        {
+          "id": "modes.menu-for-a-while",
+          "rev": "0.37.1",
+          "mac": true,
+          "ci": "auto",
+          "do": "Auto 时（例如工作时间的 👔 Work），右键 → Switch mode → ✨ Lively until …；之后试 Quiet for… → 30 minutes；最后点 Auto",
+          "expect": "菜单里选的模式只到时段表下一次变化为止（菜单写着 until 几点），之后自动回到 Auto；标记悬停写 “… then Auto”；Quiet for 30 minutes 半小时后回到时段表；在 Modes 页签的下拉框里选的才是一直有效；点 Auto 立刻回到时段表"
+        },
+        {
+          "id": "modes.missed",
+          "rev": "0.37.1",
+          "mac": true,
+          "ci": "auto",
+          "do": "ePet Test：在 Work 模式下让一个今天的纪念日开始（它被推迟）；托盘 → 🧪 Test clock → +1 day；切到 Normal，动一下鼠标",
+          "expect": "过了 24 点推迟的纪念日变成“错过”，标记消失；之后第一次在非 Quiet 时间动鼠标，宠物说 “🎂 You missed Ann yesterday.” [Celebrate now] [OK]，只说一次；7 天前的不再提"
+        },
+        {
+          "id": "modes.intro",
+          "rev": "0.37.1",
+          "mac": true,
+          "ci": "auto",
+          "do": "从 0.36 升级到这一版（或新装），开着等半分钟（不在 Quiet 时段）",
+          "expect": "宠物说一次 “New: modes! I'm in 👔 Work until 5:30 PM.” [Show me] [OK]；点 Show me 打开 Modes 页签；之后不再说；在 Quiet 时段不说，等到不是 Quiet 时再说"
+        },
+        {
+          "id": "modes.lively",
+          "rev": "0.37.1",
+          "mac": true,
+          "do": "纪念日音乐关着，右键 → Switch mode → ✨ Lively；点一个纪念日的 ▶ Preview",
+          "expect": "Lively 下纪念日音乐照样播放；其余和 Normal 一样"
+        },
+        {
+          "id": "modes.upgrade",
+          "rev": "0.37.0",
+          "do": "在旧版（0.36）里打开 Quiet hours（例如 22:00–07:00）和 Focus 的 Work hours（例如周一到周五 9:00–17:00），然后装 0.37 升级",
+          "expect": "设置 → Modes 里：两张表都有 22:00–07:00 Quiet，工作日表多一个 9:00–17:00 Work，工作日是周一到周五，模式是 Auto；原来都没开的，用默认时段"
+        }
+      ]
+    },
+    {
+      "id": "avoid",
+      "title": "自动避让",
+      "items": [
+        {
+          "id": "avoid.real-fullscreen",
+          "rev": "0.38.0",
+          "mac": true,
+          "do": "在宠物所在的屏幕上把一个视频（例如 YouTube）切到全屏；退出全屏；再把一个普通窗口最大化（带标题栏）；有两块屏幕的话，在另一块屏幕上全屏放视频",
+          "expect": "全屏后约 1 秒内宠物离开，托盘第一项变成 Show pet，托盘里有灰色的一行 “Stepped aside: full screen”，托盘图标悬停提示末尾是 “· Stepped aside: full screen”；退出全屏约 10 秒后宠物回来；最大化的普通窗口不算全屏，宠物不走；另一块屏幕全屏时，这块屏幕上的宠物不走"
+        },
+        {
+          "id": "avoid.real-game",
+          "rev": "0.38.0",
+          "do": "打开一个全屏游戏玩一会儿；期间设一个 1 分钟的计时器（可以先设好再进游戏）；不理它；退出游戏",
+          "expect": "游戏时宠物不出现、不挡画面；计时器到时会响，开始小声、慢慢变大，宠物不出来；退出游戏约 10 秒后宠物回来，说 “While you were busy you missed:” 并列出那个计时器"
+        },
+        {
+          "id": "avoid.real-slides",
+          "rev": "0.38.0",
+          "mac": true,
+          "do": "Windows：PowerPoint 按 F5 放映；Mac：Keynote 播放（或 PowerPoint 放映）。放映时让一个普通闹钟和一个勾了 Important 的闹钟先后响；结束放映",
+          "expect": "放映一开始宠物就离开，托盘写 “Stepped aside: presenting”；普通闹钟不响、宠物不出来；Important 闹钟照常全音量响，宠物出来提醒，点 Done 后宠物又离开；结束放映约 10 秒后宠物回来，告诉你错过了那个普通闹钟"
+        },
+        {
+          "id": "avoid.real-call",
+          "rev": "0.38.0",
+          "mac": true,
+          "do": "打开 Teams、Zoom、微信视频或系统的相机 App，开摄像头；之后只开麦克风（关摄像头）再试一次；最后关掉",
+          "expect": "开摄像头时宠物离开，托盘写 “Stepped aside: in a call”；只开麦克风也算；关掉后约 10 秒宠物回来；如果某个程序一直占着麦克风（例如语音聊天挂着），宠物会一直不出来，可以在 Modes 页签取消勾选 Video calls"
+        },
+        {
+          "id": "avoid.share-hidden",
+          "rev": "0.38.0",
+          "mac": true,
+          "human": "需要第二个人或第二台设备看共享画面",
+          "do": "在会议里共享整个屏幕，让对方看；这时按托盘 Show pet 把宠物叫回来；再截一张图（Windows：Win+Shift+S；Mac：Cmd+Shift+3）；会议结束后再截一张",
+          "expect": "会议中你自己看得到宠物，对方看不到（共享画面里没有宠物、没有黑块）；会议中的截图里也没有宠物；会议结束后的截图里有宠物。Mac 新系统的部分录屏方式可能仍拍得到，记下实际情况"
+        },
+        {
+          "id": "avoid.pretend",
+          "rev": "0.38.0",
+          "mac": true,
+          "do": "用 ePet Test：托盘 → 🧪 Pretend → In a call；再选 Full screen、Presenting；最后选 Nothing (look for real)",
+          "expect": "每选一项宠物都离开，托盘写对应原因（in a call / full screen / presenting），当前选项打勾；选 Nothing 后约 10 秒宠物回来。正式版没有这个菜单"
+        },
+        {
+          "id": "avoid.call",
+          "rev": "0.38.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "（ePet Test 里用 🧪 Pretend → In a call 代替真的通话）设一个 1 分钟后的普通闹钟，等它到时；然后选 Nothing (look for real)",
+          "expect": "宠物离开；闹钟不响、宠物不出来；约 10 秒后宠物回来，说 “While you were busy you missed:”，列出那个闹钟，点 Done 清掉"
+        },
+        {
+          "id": "avoid.important",
+          "rev": "0.38.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "Pretend → In a call 时，让一个勾了 Important 的闹钟响；之后模式换成 🌙 Quiet，再让一个 Important 闹钟和一个普通闹钟各响一次",
+          "expect": "通话中 Important 闹钟照常响，宠物出来提醒，点 Done 后宠物又离开；Quiet 模式下 Important 闹钟一开始就是正常音量，普通闹钟从小声开始"
+        },
+        {
+          "id": "avoid.fullscreen",
+          "rev": "0.38.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "Pretend → Full screen 时，让一个普通闹钟响，别理它；然后选 Nothing",
+          "expect": "闹钟会响（从小声开始），宠物不出来；没人理就记下来；宠物回来时告诉你错过了它"
+        },
+        {
+          "id": "avoid.tray",
+          "rev": "0.38.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "Pretend → In a call（或真的开会）时打开托盘菜单",
+          "expect": "第一项是 Show pet；Switch mode 下面有一行灰色、不能点的 “Stepped aside: in a call”；不在避让时没有这一行"
+        },
+        {
+          "id": "avoid.show-anyway",
+          "rev": "0.38.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "Pretend → In a call 后，点托盘 Show pet",
+          "expect": "宠物马上回来，托盘第一项变回 Hide pet，这次通话期间不再离开；下一次通话又会离开"
+        },
+        {
+          "id": "avoid.settings",
+          "rev": "0.38.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你看看这一节的文字和 ⓘ 说明好不好懂",
+          "do": "打开面板 Modes 页签，拉到最下面的 “Step aside automatically”；取消勾选 Video calls，然后 Pretend → In a call；再勾上 Always hide ePet from screenshots and recordings，截一张图",
+          "expect": "四个选项各带 ⓘ 说明，默认前三个勾上、最后一个不勾；取消 Video calls 后通话时宠物不走；勾 Always hide 后截图里没有宠物（你自己照样看得见）；宠物离开时这一节下面写 “Now: stepped aside (…)”"
+        }
+      ]
+    },
+    {
+      "id": "characters",
+      "title": "角色",
+      "items": [
+        {
+          "id": "characters.switch",
+          "rev": "0.3.0",
+          "ci": "partial",
+          "human": "你只看右键菜单 Switch character 的打勾（切换和心情保留由 CI 测）",
+          "do": "右键 → Switch character → Rooster，再切回 Cat",
+          "expect": "换成公鸡，菜单打勾正确；切回后 Cat 的心情值还在"
+        },
+        {
+          "id": "characters.folder",
+          "rev": "0.31.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "Characters 页点 “your characters folder”；删掉里面的 README.txt 再点一次；把 README.txt 改几个字再点一次",
+          "expect": "打开用户角色文件夹，里面有 README.txt（英文说明）、character.schema.json 和 example-cat/character.json.example（id 是 example-cat）；example-cat 不会出现在 Characters 页；删掉的 README 会重新生成，改过的 README 不会被覆盖"
+        },
+        {
+          "id": "characters.copy",
+          "rev": "0.32.2",
+          "ci": "auto",
+          "do": "Characters 页在 Cat 卡片下点 “⧉ Make a copy”；再点一次；在 “Cat (copy)” 下也点一次",
+          "expect": "文件夹里出现 cat-copy 文件夹并自动打开，里面有 character.json（id 是 cat-copy，名字 “Cat (copy)”）；面板马上多出 “Cat (copy) (custom)”，不用重启；第二次得到 cat-copy-2，名字 “Cat (copy 2)”，复制 copy 也得到下一个不重复的 id 和名字"
+        },
+        {
+          "id": "characters.reload",
+          "rev": "0.31.0",
+          "ci": "auto",
+          "do": "选用 Cat (copy)；用记事本把它 character.json 里 palette 的 \"o\" 改成 \"#9e9e9e\"、\"d\" 改成 \"#6d6d6d\"，把 greet 台词改成自己的话，保存；点 “⟳ Reload characters”；再故意删掉一个逗号保存后 Reload",
+          "expect": "不重启，桌面上的宠物立刻变成灰猫，心情值还在，打招呼说的是新台词；JSON 写错时 Characters 页展开显示 “1 character(s) could not be loaded” 和出错的文件、原因，其他角色照常可用"
+        }
+      ]
+    },
+    {
+      "id": "game",
+      "title": "小游戏 Safe Landing",
+      "items": [
+        {
+          "id": "game.open",
+          "rev": "0.2.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "右键 → Play Safe Landing",
+          "expect": "游戏窗口打开，宠物主窗口仍正常"
+        },
+        {
+          "id": "focus.games-held",
+          "rev": "0.20.1",
+          "ci": "auto",
+          "do": "开始专注后：右键宠物和托盘里看 Play Safe Landing；点它，分别选 Cancel 和 Play anyway；隐藏宠物后看托盘；让一个计时器响铃时从托盘点游戏；在面板 Games 页点 Play；到休息时间再点；最后在 Focus 页关掉 “Ask before games during a focus session”",
+          "expect": "专注中菜单写 “Play Safe Landing (focusing)”；宠物气泡先问 “We're focusing until … Play anyway?”，回答前不打开任何界面，Cancel 不开游戏，Play anyway 才打开；宠物隐藏时托盘里没有 Play Safe Landing（专注结束或显示宠物后重新出现）；响铃时点游戏，响铃结束后宠物再问；面板 Games 页点 Play 先弹框询问；休息时和关掉选项后不再询问，菜单也没有 (focusing)"
+        },
+        {
+          "id": "game.controls",
+          "rev": "0.1.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "← → / A D 移动；Space 或 Enter 开始",
+          "expect": "操作正常"
+        },
+        {
+          "id": "game.abilities",
+          "rev": "0.1.0",
+          "ci": "partial",
+          "human": "你只看玩起来的手感：猫抓伞减速、公鸡按住空格滑翔（提示文字由 CI 测）",
+          "do": "分别用 Cat 和 Rooster 玩",
+          "expect": "Cat 抓 ☂ 减速；Rooster 按住 Space 滑翔，提示文字对应"
+        },
+        {
+          "id": "game.finish",
+          "rev": "0.3.0",
+          "ci": "auto",
+          "do": "结束后按 R 重来，再关闭窗口",
+          "expect": "可以重来；关闭后回到桌面，宠物爱心增加"
+        }
+      ]
+    },
+    {
+      "id": "backup",
+      "title": "备份与恢复",
+      "items": [
+        {
+          "id": "backup.export",
+          "rev": "0.35.0",
+          "ci": "partial",
+          "mac": true,
+          "do": "设置 → Backup → Export backup…，先输两个不同的密码点 Export，再输相同的密码导出；另存为对话框里选桌面",
+          "expect": "两次密码不同时提示 The passwords don't match、不导出；保存后显示 Saved (encrypted): <路径>；文件名默认 ePet backup <今天日期>.epetbackup",
+          "human": "另存为对话框、默认文件名和保存后的提示"
+        },
+        {
+          "id": "backup.wrong-password",
+          "rev": "0.35.0",
+          "ci": "partial",
+          "mac": true,
+          "do": "Restore from backup… 选刚才的加密备份，先输错密码，再输对",
+          "expect": "先要求输入密码；输错显示 Wrong password.；输对后显示备份来自哪台电脑、什么时候，以及几个闹钟/待办/纪念日（不算计时器）",
+          "human": "打开文件对话框和密码框"
+        },
+        {
+          "id": "backup.restore-merge",
+          "rev": "0.35.0",
+          "ci": "partial",
+          "mac": true,
+          "do": "导出后删掉一个待办、新加一个待办、改一个闹钟的名字，再 Restore from backup…（全部勾选，Merge）",
+          "expect": "ePet 自动重启；删掉的待办回来了，新加的还在，没有重复；改过名字的闹钟保持新名字（这边改得更晚）；计时器不会被恢复；Automatic backups 列表里多了一份 before a restore",
+          "human": "重启后面板和宠物都正常，列表里的 before a restore"
+        },
+        {
+          "id": "backup.restore-replace",
+          "rev": "0.35.0",
+          "mac": true,
+          "do": "在另一台电脑（或清空后）用 Restore from backup… 选 Replace；可以只勾 Alarms, to-dos and anniversaries",
+          "expect": "这边原有的闹钟、待办、纪念日被备份里的取代（正在计时的计时器保留）；没勾 Settings 时这边的设置不变；勾了 Settings 时设置换成备份里的，但开机自启保持这台电脑自己的"
+        },
+        {
+          "id": "backup.auto",
+          "rev": "0.35.0",
+          "ci": "partial",
+          "mac": true,
+          "do": "启动 ePet 等十几秒，打开 设置 → Backup；隔天再启动一次",
+          "expect": "Automatic backups 下列出今天的一份（· daily），每天最多一份、最多保留 7 份；点 Restore… 可以直接从它恢复",
+          "human": "隔天新增一份、超过 7 份时最旧的被删掉"
+        }
+      ]
+    },
+    {
+      "id": "stability",
+      "title": "稳定性",
+      "items": [
+        {
+          "id": "stability.windows",
+          "rev": "0.2.0",
+          "ci": "auto",
+          "do": "连续打开/关闭面板和游戏窗口 10 次",
+          "expect": "不卡死、没有黑窗、任务栏不消失"
+        },
+        {
+          "id": "stability.sleep",
+          "rev": "0.5.0",
+          "mac": true,
+          "do": "电脑睡眠后唤醒",
+          "expect": "宠物正常；错过的闹钟按贪睡/Missed 规则处理"
+        },
+        {
+          "id": "stability.long-run",
+          "rev": "0.1.0",
+          "mac": true,
+          "ci": "auto",
+          "nightly": true,
+          "do": "运行 1 小时以上，看任务管理器/活动监视器",
+          "expect": "CPU、内存占用稳定，不持续上涨"
+        }
+      ]
+    }
+  ]
+}

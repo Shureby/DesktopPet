@@ -1,0 +1,340 @@
+:root {
+  color-scheme: light dark;
+  font-family: "Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --bubble-bg: #ffffff;
+  --bubble-fg: #2b2118;
+  --bubble-border: #2b2118;
+  --accent: #e2474b;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#pet {
+  position: fixed;
+  left: 0;
+  top: 0;
+  image-rendering: pixelated;
+}
+
+.bubble {
+  position: fixed;
+  transform: translate(-50%, -100%);
+  max-width: 220px;
+  width: max-content;
+  padding: 6px 10px;
+  border: 2px solid var(--bubble-border);
+  border-radius: 10px;
+  background: var(--bubble-bg);
+  color: var(--bubble-fg);
+  font-size: 13px;
+  line-height: 1.3;
+  text-align: center;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.25);
+  z-index: 2;
+}
+.bubble::after {
+  content: "";
+  position: absolute;
+  /* Points at the pet even when the bubble is shifted to stay on screen (PetHost). */
+  left: calc(50% + var(--tail, 0px));
+  bottom: -8px;
+  margin-left: -6px;
+  border: 6px solid transparent;
+  border-top-color: var(--bubble-border);
+  border-bottom: 0;
+}
+.bubble .actions {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 6px;
+}
+.bubble button {
+  font: inherit;
+  font-size: 12px;
+  padding: 2px 8px;
+  border: 1.5px solid var(--bubble-border);
+  border-radius: 6px;
+  background: #fff3e0;
+  color: var(--bubble-fg);
+  cursor: pointer;
+}
+.bubble input.duration {
+  width: 70px;
+  font: inherit;
+  font-size: 13px;
+  padding: 2px 6px;
+  border: 1.5px solid var(--bubble-border);
+  border-radius: 6px;
+}
+.bubble .hint {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #7b6f66;
+}
+.bubble .saved {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 6px;
+}
+.bubble .saved .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 2px 1px 6px;
+  font-size: 11px;
+  border: 1.5px dashed var(--bubble-border);
+  border-radius: 10px;
+}
+.bubble .saved .chip.editing {
+  border-style: solid;
+  background: #fff3e0;
+}
+.bubble .saved .chip button {
+  padding: 0 4px;
+  font-size: 11px;
+  border: none;
+  background: none;
+}
+.bubble .hint.error {
+  color: #c0392b;
+}
+.bubble button:hover {
+  background: #ffe0b2;
+}
+
+.badges {
+  position: fixed;
+  transform: translateY(-100%);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  z-index: 1;
+}
+/* Left of the pet when they don't fit on screen to its right (PetHost.render). */
+.badges.left {
+  transform: translate(-100%, -100%);
+  align-items: flex-end;
+}
+.badges > div {
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid var(--accent);
+  color: #7a1d1f;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  /* The column is kept inside the window (PetHost); a long badge ends in "…". */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  z-index: 1;
+}
+/* What a badge stands for (every running timer…), drawn on hover: native tooltips don't
+   show reliably in the pet's transparent, never-focused window. */
+.badge-info {
+  position: fixed;
+  transform: translateY(-100%);
+  max-width: 200px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1.5px solid var(--bubble-border);
+  color: var(--bubble-fg);
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: pre-line;
+  /* Clickable: it does what its badge does (PetHost.updateBadgeInfo). */
+  cursor: pointer;
+  z-index: 4;
+}
+.badge-info .link {
+  display: block;
+  color: #2f6fd6;
+  text-decoration: underline;
+}
+.badge-info:hover .link {
+  color: #1c4fa8;
+}
+.bubble .note {
+  margin-top: 3px;
+  font-size: 11px;
+  color: #7b6f66;
+}
+
+/* ----- Browser mock (npm run dev in a normal browser) ----- */
+.fake-window,
+.demo-help {
+  display: none;
+}
+body.demo {
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(160deg, #3a6186, #89253e);
+}
+body.demo .fake-window {
+  display: block;
+  position: absolute;
+  background: #f4f4f4;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+body.demo .fake-window header {
+  padding: 6px 10px;
+  background: #dcdcdc;
+  font-size: 12px;
+  color: #333;
+  cursor: move;
+}
+body.demo .demo-help {
+  display: block;
+  position: absolute;
+  left: 12px;
+  top: 4px;
+  color: #fff;
+  font-size: 12px;
+  opacity: 0.85;
+}
+body.demo .demo-help a {
+  color: #ffe0b2;
+}
+
+.pet-menu {
+  position: fixed;
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  min-width: 170px;
+  background: #fff;
+  color: #222;
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  font-size: 13px;
+  z-index: 10;
+}
+.pet-menu li {
+  position: relative;
+  padding: 5px 14px;
+  cursor: default;
+  white-space: nowrap;
+}
+.pet-menu li:hover {
+  background: #eef3ff;
+}
+.pet-menu li.disabled,
+.pet-menu li.disabled:hover {
+  color: #999;
+  background: none;
+}
+.pet-menu li.sep {
+  height: 1px;
+  padding: 0;
+  margin: 4px 0;
+  background: #ddd;
+}
+.pet-menu .pet-menu {
+  display: none;
+  left: 100%;
+  top: -4px;
+  position: absolute;
+}
+.pet-menu li:hover > .pet-menu {
+  display: block;
+}
+
+.badges > div.clickable {
+  cursor: pointer;
+}
+.badges > div.clickable:hover {
+  filter: brightness(0.93);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+/* Missed alarm: stays until clicked. */
+.badges > div.missed {
+  border-color: #e8743b;
+  color: #9a3c10;
+}
+/* Finished timer: quiet, gone after an hour or on click. */
+.badges > div.quiet {
+  border-color: #b9b0a8;
+  color: #6b625b;
+  background: rgba(245, 242, 238, 0.9);
+}
+
+/* Hearts (affection) and dots (fullness), shown while hovering the pet. */
+.mood {
+  position: fixed;
+  transform: translate(-100%, -100%);
+  text-align: right;
+  line-height: 1.3;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #d6336c;
+  font-size: 11px;
+  letter-spacing: 1px;
+  white-space: pre;
+  z-index: 2;
+}
+.mood[data-side="right"] {
+  transform: translateY(-100%);
+  text-align: left;
+}
+.mood[data-side="above"] {
+  transform: translate(-50%, -100%);
+  text-align: center;
+}
+.mood.hungry {
+  box-shadow: 0 0 0 1.5px #e8743b;
+}
+
+/* "+3 ♥" floating up when the pet gets some love. */
+.gain {
+  position: fixed;
+  color: #e0527a;
+  font-size: 13px;
+  font-weight: 800;
+  text-shadow: 0 0 3px #fff, 0 0 3px #fff;
+  pointer-events: none;
+  white-space: nowrap;
+  animation: gain-rise 1.2s ease-out forwards;
+  z-index: 3;
+}
+.gain.loss {
+  color: #7a6f66;
+}
+@keyframes gain-rise {
+  from {
+    opacity: 1;
+    translate: 0 0;
+  }
+  to {
+    opacity: 0;
+    translate: 0 -36px;
+  }
+}
+/* The mode (✨ 👔 🌙) before the first badge; hovering it says which and until when. */
+.badges > div .mode-mark {
+  margin-right: 4px;
+  padding-right: 4px;
+  border-right: 1px solid rgb(0 0 0 / 0.15);
+}
+/* Line icons (src/ui/icons.ts) in the bubble's buttons. */
+svg.ic {
+  vertical-align: -0.15em;
+}

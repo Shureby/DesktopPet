@@ -1,0 +1,1295 @@
+/* `hidden` always hides, even on elements whose class sets a display (e.g. .row). */
+[hidden] {
+  display: none !important;
+}
+:root {
+  color-scheme: light dark;
+  --bg: #fbf7f2;
+  --surface: #ffffff;
+  --fg: #2b2118;
+  --muted: #7b6f66;
+  --border: #e6ddd3;
+  --accent: #e8743b;
+  --accent-fg: #ffffff;
+  --accent-soft: #fde9dc;
+  font-family: "Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1d1a18;
+    --surface: #26221f;
+    --fg: #f2ebe4;
+    --muted: #a99d93;
+    --border: #3a3430;
+    --accent: #f08a54;
+    --accent-soft: #3b2a20;
+  }
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+}
+a {
+  color: var(--accent);
+}
+nav {
+  display: flex;
+  gap: 2px;
+  padding: 8px 8px 0;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 1;
+  overflow-x: auto;
+}
+nav button {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  padding: 8px 7px;
+  font: inherit;
+  font-size: 13px;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+/* Seven tabs (Modes since 0.37.1): all fit down to the panel's narrowest (380 px). */
+@media (max-width: 440px) {
+  nav {
+    gap: 0;
+    padding: 8px 4px 0;
+  }
+  nav button {
+    padding: 8px 3px;
+    font-size: 12px;
+  }
+}
+nav button.active {
+  color: var(--fg);
+  border-bottom-color: var(--accent);
+  font-weight: 700;
+}
+main {
+  padding: 14px;
+}
+h3 {
+  margin: 18px 0 8px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+input,
+select,
+button {
+  font: inherit;
+  color: var(--fg);
+}
+input[type="text"],
+input[type="time"],
+input[type="number"],
+select {
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  min-width: 0;
+}
+input[type="text"] {
+  flex: 1;
+}
+input[type="number"] {
+  width: 70px;
+}
+button {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+}
+button:hover {
+  border-color: var(--accent);
+}
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 700;
+}
+button.icon {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  padding: 2px 6px;
+}
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.row.wrap {
+  flex-wrap: wrap;
+}
+.row.center {
+  justify-content: center;
+}
+.hint {
+  color: var(--muted);
+  font-size: 12px;
+  min-height: 1em;
+  margin: 6px 2px;
+}
+.empty {
+  color: var(--muted);
+  text-align: center;
+  padding: 24px 0;
+}
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
+}
+.list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+.list .title {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.list .when {
+  color: var(--accent);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.list li.done .title {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+details summary {
+  cursor: pointer;
+  color: var(--muted);
+  margin-top: 10px;
+}
+
+label.check {
+  justify-content: flex-start !important;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+.card {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 12px;
+}
+.card canvas {
+  align-self: center;
+  image-rendering: pixelated;
+}
+.card p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.card.selected {
+  border: 2px solid var(--accent);
+  background: var(--accent-soft);
+}
+.chips {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.chip {
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.issues pre {
+  font-size: 11px;
+  white-space: pre-wrap;
+  color: #c0392b;
+}
+
+.games {
+  list-style: none;
+  padding: 0;
+}
+.game {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 8px;
+}
+.game p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.soon {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+footer {
+  margin-top: 20px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mood-card {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.meter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+.meter .track {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+.meter .fill {
+  height: 100%;
+}
+.meter .fill.love {
+  background: #e0527a;
+}
+.meter .fill.food {
+  background: #5aa469;
+}
+.meter .fill.food.hungry {
+  background: var(--accent);
+}
+.mood-card .tier {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+details.finished summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+details.finished .clear {
+  padding: 2px 10px;
+  font-size: 12px;
+}
+details.finished summary::-webkit-details-marker {
+  display: none;
+}
+details.finished summary::before {
+  content: "▸ ";
+}
+details.finished[open] summary::before {
+  content: "▾ ";
+}
+details.finished summary > :first-child {
+  margin-left: auto;
+}
+
+
+/* ----- Alarms tab: phone-clock style ----- */
+.clocks .clock-row {
+  gap: 12px;
+  padding: 10px 12px;
+}
+.clock-row .big {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 78px;
+}
+.clock-row .info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.clock-row .info .title {
+  overflow-wrap: anywhere;
+}
+.clock-row .sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+.clock-row .sub.missed {
+  color: var(--accent);
+}
+.clock-row .chip {
+  align-self: flex-start;
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.clock-row .countdown {
+  color: var(--accent);
+}
+/* Switched off: greyed, never struck through (strike-through means "finished"). */
+.clock-row.off .big,
+.clock-row.off .title {
+  color: var(--muted);
+}
+.finished-row .big,
+.finished-row .title {
+  color: var(--muted);
+}
+.finished-row .big {
+  font-size: 16px;
+}
+/* Edit and delete only show on hover, like a swipe action on a phone. */
+.clock-row .edit,
+.clock-row .delete {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.clock-row:hover .edit,
+.clock-row:hover .delete,
+.clock-row .edit:focus-visible,
+.clock-row .delete:focus-visible {
+  opacity: 1;
+}
+/* "Edit alarm · Gym" with Cancel on the right. */
+.edit-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+/* The alarm being edited in the form above. */
+.clock-row.editing {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.clock-row.editing .edit {
+  opacity: 1;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 24px;
+  flex: none;
+  cursor: pointer;
+}
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+.switch .slider {
+  position: absolute;
+  inset: 0;
+  border-radius: 99px;
+  background: var(--border);
+  transition: background 0.15s;
+  pointer-events: none;
+}
+.switch .slider::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s;
+}
+.switch input:checked + .slider {
+  background: var(--accent);
+}
+.switch input:checked + .slider::before {
+  transform: translateX(18px);
+}
+.switch input:focus-visible + .slider {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button.custom {
+  border-style: dashed;
+  border-color: var(--accent);
+}
+.custom-chip {
+  display: inline-flex;
+  align-items: center;
+}
+/* ✎ and ✕ only show on hover (or keyboard focus), so the row stays as tidy as the presets. */
+.custom-chip button.icon {
+  width: 0;
+  padding: 0;
+  overflow: hidden;
+  opacity: 0;
+}
+.custom-chip:hover button.icon,
+.custom-chip:focus-within button.icon {
+  width: auto;
+  padding: 0 4px;
+  opacity: 1;
+}
+.row.custom-row {
+  margin-top: 10px;
+}
+input.custom-timer {
+  flex: 1;
+}
+
+
+/* ----- "Skip once" on a repeating alarm ----- */
+.chip.skip button.link,
+.edit-head button.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: inherit;
+  text-decoration: underline;
+}
+.ask-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.35);
+}
+.ask {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(360px, 100%);
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+.ask p {
+  margin: 0;
+  text-align: center;
+}
+.ask .title {
+  font-weight: 700;
+}
+.ask .sub {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+.backup-dialog input[type="password"] {
+  width: 100%;
+  box-sizing: border-box;
+}
+.backup-dialog .check {
+  text-align: left;
+}
+.backup-dialog .replace small {
+  color: var(--danger, #c0392b);
+}
+.backup-status {
+  word-break: break-all;
+}
+.backup-status:empty {
+  display: none;
+}
+.ask button.cancel {
+  border-color: transparent;
+  background: none;
+  color: var(--muted);
+}
+
+/* ----- Time field: drag, scroll or type each part (src/panel/timeField.ts) ----- */
+.time-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  touch-action: none;
+}
+.time-field .part {
+  min-width: 1.6em;
+  padding: 3px 3px;
+  border-radius: 5px;
+  text-align: center;
+  cursor: ns-resize;
+  outline: none;
+}
+.time-field .part.period {
+  min-width: 2.2em;
+  margin-left: 4px;
+  cursor: pointer;
+}
+.time-field .part:focus,
+.time-field .part.dragging {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.time-field .sep {
+  color: var(--muted);
+}
+
+/* ----- Day picker: M T W T F S S (src/panel/dayPicker.ts) ----- */
+.day-picker {
+  display: flex;
+  gap: 5px;
+}
+.day-picker button {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.day-picker button.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+}
+.days-row {
+  margin-top: 6px;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ----- When the pet is hidden (Settings → Alerts) ----- */
+.list .when.overdue {
+  color: #c0392b;
+  font-weight: 700;
+}
+
+/* ----- Boxes: the Focus and Settings tabs group their settings in cards ----- */
+.box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.box hr {
+  width: 100%;
+  margin: 2px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+.box .hint {
+  margin: -2px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.box .subhead {
+  font-size: 13px;
+}
+.row.spread {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+label.check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+h3.split {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+h3 button.reset-timing {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+h3.split small {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  font-size: 11px;
+}
+/* Two side by side: the hidden-pet ticks, Ring for / If nobody answers. */
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 10px;
+}
+.pair.labelled label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.pair select {
+  width: 100%;
+}
+.off-for-all {
+  color: #b9770e;
+}
+.off-for-all .turn-on {
+  color: var(--accent);
+  font-weight: 600;
+}
+.warning {
+  margin: 0;
+  color: #c0392b;
+  font-size: 12px;
+}
+
+/* ----- Focus tab: compact, so it fits the default panel without scrolling ----- */
+.focus-page > h3 {
+  margin: 22px 0 10px;
+}
+.box.now {
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+}
+.now-icon {
+  font-size: 30px;
+}
+.now-phase {
+  color: var(--muted);
+  font-size: 12px;
+}
+.now-clock {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.now-buttons {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+.focus-page .bars {
+  display: flex;
+  gap: 10px;
+  height: 78px;
+  align-items: flex-end;
+}
+.focus-page .bar {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.focus-page .bar .fill {
+  width: 100%;
+  min-height: 2px;
+  background: var(--accent);
+  border-radius: 3px 3px 0 0;
+}
+.timing {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.timing label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.timing input[type="number"] {
+  width: 100%;
+  box-sizing: border-box;
+}
+.focus-page > label.check {
+  margin: 5px 0;
+}
+.timing.focus-sounds {
+  grid-template-columns: 1fr 1fr 0.7fr;
+  margin: 2px 0 4px;
+}
+.focus-sounds .row {
+  gap: 4px;
+}
+.focus-sounds select {
+  flex: 1;
+  min-width: 0;
+}
+.focus-sounds input[type="range"] {
+  width: 100%;
+  margin-top: 6px;
+  accent-color: var(--accent);
+}
+
+/* ----- Settings tab ----- */
+.settings > h3:first-child {
+  margin-top: 4px;
+}
+.settings .row .label {
+  width: 52px;
+}
+.settings input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent);
+}
+.settings output {
+  width: 44px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.box.alert select {
+  flex: 1;
+  min-width: 0;
+}
+.box.alert input[type="range"] {
+  width: 80px;
+  flex: none;
+}
+/* Room for "120" plus the spin arrows Windows always shows. */
+.upcoming input[type="number"] {
+  width: 76px;
+  box-sizing: border-box;
+}
+.pair.labelled select {
+  font-size: 13px;
+  color: var(--fg);
+}
+/* In a box, days and times share a line. */
+.box .day-picker {
+  gap: 4px;
+}
+.box .day-picker button {
+  width: 24px;
+  height: 24px;
+  font-size: 11px;
+}
+.box .time-field {
+  padding: 2px 4px;
+  font-size: 13px;
+}
+.box .time-field .part {
+  min-width: 1.4em;
+  padding: 2px;
+}
+
+/* "Custom days" whole, in wider fonts too (Segoe UI). */
+select.repeat {
+  min-width: 142px;
+}
+
+/* ----- To-dos: day, time and repeat (src/panel/main.ts renderTodos) ----- */
+.when-row {
+  margin-top: 6px;
+  flex-wrap: nowrap;
+}
+.when-row select.repeat {
+  min-width: 0;
+  width: 122px;
+}
+/* "+ Date" / "+ Time": not set; click to add. */
+.add-when {
+  border: 1px dashed var(--muted);
+  background: none;
+  color: var(--muted);
+}
+/* ✕ inside a date or time field: take it off. */
+.time-field .mini {
+  border: 0;
+  background: none;
+  padding: 0 0 0 4px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.date-field .weekday {
+  color: var(--muted);
+  font-size: 13px;
+  margin-right: 3px;
+}
+.date-field .part.month {
+  min-width: 2.2em;
+}
+.date-field .part.year {
+  min-width: 2.6em;
+}
+.list .when .rep {
+  margin-right: 4px;
+}
+.list .when .rep::after {
+  content: " ·";
+}
+/* ✎ shows on hover, like on alarms; the to-do being edited is outlined. */
+.list li .edit {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.list li:hover .edit,
+.list li .edit:focus-visible,
+.list li.editing .edit {
+  opacity: 1;
+}
+.list li.editing {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.day-time {
+  align-items: center;
+  gap: 8px;
+}
+/* "Upcoming (2) · next Tue, 6 Oct": title on the left (Done's first child is its Clear button). */
+details.upcoming summary {
+  justify-content: flex-start;
+  gap: 4px;
+}
+details.upcoming summary > :first-child {
+  margin-left: 0;
+}
+
+/* ----- To-dos sub-pages and Anniversaries (src/panel/main.ts renderAnniversaries) ----- */
+.subtabs {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+.subtabs button {
+  border-radius: 16px;
+  padding: 5px 12px;
+  font-size: 13px;
+}
+.subtabs button.on {
+  background: var(--accent);
+  color: var(--accent-fg);
+  border-color: var(--accent);
+}
+.subtabs .n {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+.subtabs button.on .n {
+  background: var(--accent-fg);
+  color: var(--accent);
+}
+.ann-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+.ann-form .row {
+  align-items: center;
+}
+.ann-form .row.end {
+  justify-content: flex-end;
+}
+.ann-form .lbl {
+  font-size: 12px;
+  color: var(--muted);
+  min-width: 52px;
+}
+.ann-form .lbl.short {
+  min-width: 0;
+  margin-left: 6px;
+}
+.ann-form .ann-type,
+.ann-form .ann-name {
+  flex: 1;
+}
+.ann-form .since {
+  width: 78px;
+}
+.ann-form .prep input {
+  flex: 1;
+}
+.ann-form select.lead {
+  width: 100px;
+}
+.ann-form .mini {
+  border: 0;
+  background: none;
+  color: var(--muted);
+}
+.ann-form .add-more,
+.celebrate input[type="number"] {
+  align-self: flex-start;
+}
+.ann-form button.link,
+.edit-head button.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 13px;
+  text-decoration: underline;
+}
+.icon-pick {
+  font-size: 20px;
+  width: 44px;
+  padding: 4px 0;
+}
+.icon-grid {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  top: 90px;
+  display: grid;
+  grid-template-columns: repeat(8, 36px);
+  gap: 4px;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+.icon-grid button {
+  font-size: 20px;
+  padding: 3px 0;
+  border: 0;
+  background: none;
+}
+.icon-grid button.on {
+  background: var(--accent-soft);
+  outline: 2px solid var(--accent);
+}
+.list li.ann {
+  gap: 10px;
+}
+.ann .ann-icon {
+  font-size: 22px;
+}
+.ann .main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.ann .sub,
+.ann .preps {
+  font-size: 12px;
+  color: var(--muted);
+}
+.ann .sub .soon {
+  color: var(--accent);
+  font-weight: 700;
+}
+.celebrate input[type="number"] {
+  width: 64px;
+  margin: 0 4px;
+}
+.box.alert .celebrate-music input[type="range"] {
+  width: 110px;
+}
+.ann-form select.ann-music {
+  flex: 1;
+}
+.card-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.card-wrap .card {
+  flex: 1;
+}
+.card-wrap button.copy {
+  align-self: flex-end;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 12px;
+  padding: 2px 4px;
+}
+button.reload {
+  font-size: 13px;
+}
+
+/* Settings → Modes: the week, the time slots, what each mode changes. */
+:root {
+  --mode-lively: #f2b84b;
+  --mode-normal: #e9e2da;
+  --mode-work: #6f9bd1;
+  --mode-quiet: #7a6aa8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --mode-normal: #3a3430;
+  }
+}
+.modes .mode-now small {
+  font-weight: 400;
+}
+.modes-top {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.week {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.week-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.week-row.today .week-day {
+  color: var(--accent);
+  font-weight: 700;
+}
+.week-day {
+  width: 28px;
+}
+.week-bar {
+  position: relative;
+  flex: 1;
+  height: 12px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--mode-normal);
+}
+.week-bar .slot,
+.week-bar .now-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.week-bar .now-line {
+  width: 2px;
+  background: var(--fg);
+}
+.slot.lively,
+.key.lively::before {
+  background: var(--mode-lively);
+}
+.slot.normal,
+.key.normal::before {
+  background: var(--mode-normal);
+}
+.slot.work,
+.key.work::before {
+  background: var(--mode-work);
+}
+.slot.quiet,
+.key.quiet::before {
+  background: var(--mode-quiet);
+}
+.week-legend {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 2px 0 0 34px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.week-legend .key::before {
+  content: "";
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  margin-right: 4px;
+  border: 1px solid var(--border);
+}
+.slots {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: flex-start;
+}
+.slot-row {
+  gap: 5px;
+}
+.slot-row .remove {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.modes button.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 12px;
+  align-self: flex-start;
+}
+table.presets {
+  border-collapse: collapse;
+  font-size: 12px;
+  width: 100%;
+}
+table.presets th {
+  font-weight: 600;
+  text-align: center;
+  padding: 2px;
+  white-space: nowrap;
+}
+table.presets td {
+  padding: 2px;
+  text-align: center;
+}
+table.presets td:first-child {
+  text-align: left;
+  color: var(--muted);
+}
+table.presets select {
+  font-size: 11px;
+  max-width: 78px;
+}
+.modes .nowrap {
+  white-space: nowrap;
+}
+button.info {
+  border: 0;
+  background: none;
+  padding: 0 0 0 3px;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: help;
+  vertical-align: baseline;
+}
+button.info:hover,
+button.info:focus-visible {
+  color: var(--accent);
+}
+.info-tip {
+  position: fixed;
+  z-index: 50;
+  padding: 7px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 400;
+  text-align: left;
+  text-transform: none;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.15);
+  pointer-events: none;
+}
+/* Line icons (src/ui/icons.ts): sit on the text's baseline, take its colour. */
+svg.ic {
+  vertical-align: -0.15em;
+  flex-shrink: 0;
+}
+button.preview .ic {
+  margin-right: 5px;
+}
+.slot {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.slot .next-day {
+  font-size: 11px;
+  white-space: nowrap;
+  visibility: hidden;
+}
+.slot .next-day.on {
+  visibility: visible;
+}
+.slot .overlap {
+  margin: 0 0 2px 2px;
+  font-size: 11px;
+}
+.slot .overlap .ic {
+  vertical-align: -0.1em;
+}
+.clock-row .title .chip.important {
+  margin-left: 6px;
+  vertical-align: 1px;
+}
+.important-row {
+  margin-top: 6px;
+}
+.ann-form .ann-date .lunar-fields,
+.ann-form .ann-date .week-fields {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ann-form .lunar-leap {
+  margin: 0;
+}
+.ann-form .ann-next {
+  flex: 1;
+}
+.ann-form .ann-holiday {
+  flex: 1;
+}
+.ann-form .ann-music {
+  min-width: 150px;
+}

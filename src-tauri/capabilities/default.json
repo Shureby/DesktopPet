@@ -1,0 +1,16 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Permissions for the pet, panel and game windows.",
+  "windows": ["pet", "panel", "game"],
+  "permissions": [
+    "core:default",
+    "core:menu:default",
+    "core:tray:default",
+    "core:window:allow-set-focus",
+    "core:window:allow-hide",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled"
+  ]
+}

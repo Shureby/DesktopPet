@@ -1,0 +1,20 @@
+[package]
+name = "desktoppet-core"
+description = "Platform-independent core of the desktop pet: storage, reminders, alarms and the tomato clock."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+rusqlite = { version = "0.37", features = ["bundled"] }
+thiserror = "2"
+argon2 = "0.5"
+chacha20poly1305 = "0.10"
+flate2 = "1"
+getrandom = "0.2"
+
+[dev-dependencies]
+chrono-tz = "0.10"
