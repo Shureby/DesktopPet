@@ -4,6 +4,7 @@
 //! GUI. The Tauri app (`src-tauri`) wraps it in commands and a timer loop.
 
 pub mod backup;
+pub mod lunar;
 pub mod model;
 pub mod pomodoro;
 pub mod schedule;

@@ -171,9 +171,25 @@ function setPomodoro(s: MockState, next: PomodoroStatus, now: number) {
 function checkAnniversary(a: NewAnniversary): NewAnniversary {
   const name = a.name.trim();
   if (!name) throw new Error("name is empty");
-  if (new Date(2000, a.month - 1, a.day).getDate() !== a.day) throw new Error("no such day");
+  const calendar = a.calendar ?? "solar";
+  const real =
+    calendar === "lunar"
+      ? a.month >= 1 && a.month <= 12 && a.day >= 1 && a.day <= 30
+      : calendar === "weekday"
+        ? a.month >= 1 && a.month <= 12 && [1, 2, 3, 4, -1].includes(a.nth ?? 0) && (a.weekday ?? -1) >= 0 && (a.weekday ?? 7) < 7
+        : new Date(2000, a.month - 1, a.day).getDate() === a.day;
+  if (!real) throw new Error("no such day");
   const preps = a.preps.filter((p) => p.label.trim()).slice(0, 3).map((p) => ({ lead: p.lead, label: p.label.trim() }));
-  return { ...a, name, preps, music: a.music ?? null };
+  return {
+    ...a,
+    name,
+    preps,
+    music: a.music ?? null,
+    calendar,
+    leap: calendar === "lunar" && a.leap === true,
+    nth: calendar === "weekday" ? (a.nth ?? null) : null,
+    weekday: calendar === "weekday" ? (a.weekday ?? null) : null,
+  };
 }
 
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -242,7 +258,8 @@ export function startMockScheduler(): () => void {
       // Remembrances first, as celebrations_due orders them (the pet plays them in turn).
       const byTurn = [...(s.anniversaries ?? [])].sort((x, y) => Number(x.kind !== "remembrance") - Number(y.kind !== "remembrance") || x.id - y.id);
       for (const a of byTurn) {
-        const on = nextAnniversary(a.month, a.day, now);
+        const on = nextAnniversary(a, now);
+        if (!on) continue;
         const since = new Date(a.changedAt);
         since.setHours(0, 0, 0, 0);
         for (const p of a.preps) {
@@ -423,7 +440,7 @@ export const mockBackend: Backend = {
   },
   async previewCelebration(a) {
     const s = load();
-    const on = nextAnniversary(a.month, a.day);
+    const on = nextAnniversary(a) ?? new Date();
     const years = a.since !== null && on.getFullYear() - a.since > 0 ? on.getFullYear() - a.since : null;
     fire("celebrate", {
       anniversary: { ...a, name: a.name.trim(), id: 0, createdAt: Date.now() },

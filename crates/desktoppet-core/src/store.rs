@@ -125,6 +125,12 @@ pub(crate) const MIGRATIONS: &[&str] = &[
     // v15: an important alarm rings in full even when the pet steps aside for a call or a
     // presentation, and in Quiet.
     "ALTER TABLE alarms ADD COLUMN important INTEGER NOT NULL DEFAULT 0;",
+    // v16: anniversaries kept by the lunar calendar, or on the nth day of the week of a
+    // month (Mother's Day); all earlier ones are dates.
+    "ALTER TABLE anniversaries ADD COLUMN calendar TEXT NOT NULL DEFAULT 'solar';
+     ALTER TABLE anniversaries ADD COLUMN leap INTEGER NOT NULL DEFAULT 0;
+     ALTER TABLE anniversaries ADD COLUMN nth INTEGER;
+     ALTER TABLE anniversaries ADD COLUMN weekday INTEGER;",
 ];
 
 /// Tables whose rows carry a uid, updated_at and a tombstone when deleted (see v14), with
@@ -176,7 +182,8 @@ fn migration_sql(sql: &str) -> String {
 /// Tombstones are kept this long (a computer away longer than that may bring a deleted one back).
 const TOMBSTONE_DAYS: i64 = 90;
 
-const ANNIVERSARY_COLUMNS: &str = "id, kind, icon, name, month, day, since, preps, effect, created_at, music";
+const ANNIVERSARY_COLUMNS: &str =
+    "id, kind, icon, name, month, day, since, preps, effect, created_at, music, calendar, leap, nth, weekday";
 
 /// How long the celebration lasts if the settings don't say (`celebrate.seconds`, 10–60).
 const DEFAULT_CELEBRATE_SECONDS: u32 = 15;
@@ -441,6 +448,10 @@ impl Store {
             effect: r.get(8)?,
             created_at: r.get(9)?,
             music: r.get(10)?,
+            calendar: Calendar::parse(&r.get::<_, String>(11)?),
+            leap: r.get(12)?,
+            nth: r.get(13)?,
+            weekday: r.get(14)?,
         })
     }
 
@@ -467,8 +478,17 @@ impl Store {
         if name.is_empty() {
             return Err(StoreError::Invalid("name is empty".into()));
         }
-        // 2000 is a leap year, so Feb 29 is a day of the year.
-        if chrono::NaiveDate::from_ymd_opt(2000, a.month, a.day).is_none() {
+        let real = match a.calendar {
+            // 2000 is a leap year, so Feb 29 is a day of the year.
+            Calendar::Solar => chrono::NaiveDate::from_ymd_opt(2000, a.month, a.day).is_some(),
+            Calendar::Lunar => (1..=12).contains(&a.month) && (1..=30).contains(&a.day),
+            Calendar::Weekday => {
+                (1..=12).contains(&a.month)
+                    && matches!(a.nth, Some(1..=4) | Some(-1))
+                    && a.weekday.is_some_and(|w| w < 7)
+            }
+        };
+        if !real {
             return Err(StoreError::Invalid("no such day".into()));
         }
         let preps: Vec<AnniversaryPrep> = a
@@ -484,9 +504,25 @@ impl Store {
     pub fn add_anniversary(&self, a: &NewAnniversary, now: Millis) -> Result<Anniversary> {
         let (name, preps) = Self::check_anniversary(a)?;
         self.conn.execute(
-            "INSERT INTO anniversaries (kind, icon, name, month, day, since, preps, effect, music, created_at, changed_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?10)",
-            params![a.kind, a.icon, name, a.month, a.day, a.since, serde_json::to_string(&preps)?, a.effect, a.music, now],
+            "INSERT INTO anniversaries (kind, icon, name, month, day, since, preps, effect, music, created_at, changed_at,
+               calendar, leap, nth, weekday)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?10, ?11, ?12, ?13, ?14)",
+            params![
+                a.kind,
+                a.icon,
+                name,
+                a.month,
+                a.day,
+                a.since,
+                serde_json::to_string(&preps)?,
+                a.effect,
+                a.music,
+                now,
+                a.calendar.as_str(),
+                a.leap && a.calendar == Calendar::Lunar,
+                a.nth.filter(|_| a.calendar == Calendar::Weekday),
+                a.weekday.filter(|_| a.calendar == Calendar::Weekday)
+            ],
         )?;
         let id = self.conn.last_insert_rowid();
         self.anniversary(id)?.ok_or_else(|| StoreError::Invalid("not saved".into()))
@@ -497,7 +533,8 @@ impl Store {
         let (name, preps) = Self::check_anniversary(a)?;
         let changed = self.conn.execute(
             "UPDATE anniversaries SET kind = ?2, icon = ?3, name = ?4, month = ?5, day = ?6, since = ?7, preps = ?8,
-               effect = ?9, music = ?10, changed_at = ?11 WHERE id = ?1",
+               effect = ?9, music = ?10, changed_at = ?11, calendar = ?12, leap = ?13, nth = ?14, weekday = ?15
+             WHERE id = ?1",
             params![
                 id,
                 a.kind,
@@ -509,7 +546,11 @@ impl Store {
                 serde_json::to_string(&preps)?,
                 a.effect,
                 a.music,
-                now
+                now,
+                a.calendar.as_str(),
+                a.leap && a.calendar == Calendar::Lunar,
+                a.nth.filter(|_| a.calendar == Calendar::Weekday),
+                a.weekday.filter(|_| a.calendar == Calendar::Weekday)
             ],
         )?;
         if changed == 0 {
@@ -541,7 +582,7 @@ impl Store {
         };
         for (id, changed_at) in changed {
             let Some(a) = self.anniversary(id)? else { continue };
-            let Some(on) = anniversary_on_or_after(a.month, a.day, today) else { continue };
+            let Some(on) = anniversary_on_or_after(&a.rule(), today) else { continue };
             let since_day = local_date(tz, changed_at).unwrap_or(today);
             for p in &a.preps {
                 let Some(day) = prep_day(on, &p.lead) else { continue };
@@ -580,7 +621,7 @@ impl Store {
         let (enabled, seconds) = self.celebrate_settings()?;
         let mut out = vec![];
         for a in self.list_anniversaries()? {
-            if anniversary_on_or_after(a.month, a.day, today) != Some(today) {
+            if anniversary_on_or_after(&a.rule(), today) != Some(today) {
                 continue;
             }
             let done: Option<String> =
@@ -614,7 +655,7 @@ impl Store {
     /// for an anniversary being set up or a saved one. Nothing is marked or made.
     pub fn preview_celebration<Tz: TimeZone>(&self, tz: &Tz, a: &NewAnniversary, now: Millis) -> Result<Celebration> {
         let today = local_date(tz, now).ok_or_else(|| StoreError::Invalid("bad time".into()))?;
-        let on = anniversary_on_or_after(a.month, a.day, today).unwrap_or(today);
+        let on = anniversary_on_or_after(&a.rule(), today).unwrap_or(today);
         let (enabled, seconds) = self.celebrate_settings()?;
         let anniversary = Anniversary {
             id: 0,
@@ -628,6 +669,10 @@ impl Store {
             effect: a.effect,
             music: a.music.clone(),
             created_at: now,
+            calendar: a.calendar,
+            leap: a.leap,
+            nth: a.nth,
+            weekday: a.weekday,
         };
         let years = a.since.map(|y| on.year() - y).filter(|&n| n > 0);
         Ok(Celebration { anniversary, years, effect: enabled && a.effect, seconds, peek: false, preview: true })
@@ -1875,6 +1920,7 @@ mod tests {
             ],
             effect: true,
             music: None,
+            ..Default::default()
         }
     }
 
@@ -1907,6 +1953,41 @@ mod tests {
         // Off on the 9th, on again on the 10th: the cake to-do is made, due (overdue) on the 9th.
         assert!(s.tick_anniversaries(&London, at(9, 0) + 3 * DAY).unwrap());
         assert_eq!(s.list_todos().unwrap()[0].due_at, Some(at(0, 0) + 2 * DAY));
+    }
+
+    #[test]
+    fn a_lunar_anniversary_comes_on_its_lunar_day_each_year() {
+        let s = Store::open_in_memory().unwrap();
+        // Lunar 11/22 is Saturday Jan 10, 2026, and Dec 30, 2026 the next time round.
+        let lunar = NewAnniversary { calendar: Calendar::Lunar, month: 11, day: 22, ..birthday(1) };
+        let a = s.add_anniversary(&lunar, at(9, 0)).unwrap();
+        assert_eq!((a.calendar, a.month, a.day, a.nth), (Calendar::Lunar, 11, 22, None));
+        // The cake the day before (Friday the 9th).
+        assert!(s.tick_anniversaries(&London, at(8, 0) + 2 * DAY).unwrap());
+        assert_eq!(s.list_todos().unwrap()[0].due_at, Some(at(0, 0) + 2 * DAY));
+        let sat = at(10, 0) + 3 * DAY;
+        assert_eq!(s.celebrations_due(&London, sat).unwrap().len(), 1);
+        s.mark_celebrated(&London, a.id, sat).unwrap();
+        let dec30 = London.with_ymd_and_hms(2026, 12, 30, 9, 0, 0).unwrap().timestamp_millis();
+        assert_eq!(s.celebrations_due(&London, dec30 - DAY).unwrap().len(), 0);
+        assert_eq!(s.celebrations_due(&London, dec30).unwrap().len(), 1);
+        // A day of the week: Mother's Day 2026 is Sunday May 10.
+        let mothers = NewAnniversary {
+            calendar: Calendar::Weekday,
+            month: 5,
+            day: 1,
+            nth: Some(2),
+            weekday: Some(0),
+            ..birthday(1)
+        };
+        let m = s.add_anniversary(&mothers, at(9, 0)).unwrap();
+        assert_eq!((m.nth, m.weekday), (Some(2), Some(0)));
+        let may10 = London.with_ymd_and_hms(2026, 5, 10, 9, 0, 0).unwrap().timestamp_millis();
+        assert!(s.celebrations_due(&London, may10).unwrap().iter().any(|c| c.anniversary.id == m.id));
+        // Days that can't be: lunar 13/1, the 5th Sunday, no day of the week.
+        assert!(s.add_anniversary(&NewAnniversary { month: 13, ..lunar.clone() }, at(9, 0)).is_err());
+        assert!(s.add_anniversary(&NewAnniversary { nth: Some(5), ..mothers.clone() }, at(9, 0)).is_err());
+        assert!(s.add_anniversary(&NewAnniversary { weekday: None, ..mothers }, at(9, 0)).is_err());
     }
 
     #[test]

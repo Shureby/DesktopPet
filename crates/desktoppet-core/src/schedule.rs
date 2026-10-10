@@ -2,7 +2,8 @@
 
 use chrono::{DateTime, Datelike, Duration, LocalResult, Months, NaiveDate, NaiveTime, TimeZone, Utc};
 
-use crate::model::{DayMask, Millis, TodoRepeat};
+use crate::lunar::lunar_in_year;
+use crate::model::{Calendar, DateRule, DayMask, Millis, TodoRepeat};
 
 /// Parses "HH:MM".
 pub fn parse_hm(hm: &str) -> Option<NaiveTime> {
@@ -93,13 +94,37 @@ pub fn next_todo<Tz: TimeZone>(tz: &Tz, anchor: Millis, repeat: TodoRepeat, afte
     None
 }
 
-/// The anniversary on `month`/`day` on or after `date`: this year's, or next year's once it
-/// has passed. Feb 29 is Feb 28 in other years.
-pub fn anniversary_on_or_after(month: u32, day: u32, date: NaiveDate) -> Option<NaiveDate> {
-    (date.year()..=date.year() + 1).find_map(|y| {
-        let d = NaiveDate::from_ymd_opt(y, month, day).or_else(|| NaiveDate::from_ymd_opt(y, month, day - 1))?;
-        (d >= date).then_some(d)
-    })
+/// The day of the `nth` (1–4, or -1: the last) `weekday` (0 = Sunday) of a month.
+pub fn nth_weekday(year: i32, month: u32, nth: i32, weekday: u32) -> Option<NaiveDate> {
+    if nth < 0 {
+        let last = NaiveDate::from_ymd_opt(year, month + 1, 1)
+            .or_else(|| NaiveDate::from_ymd_opt(year + 1, 1, 1))?
+            .pred_opt()?;
+        let back = (last.weekday().num_days_from_sunday() + 7 - weekday) % 7;
+        return last.checked_sub_days(chrono::Days::new(back as u64));
+    }
+    let first = NaiveDate::from_ymd_opt(year, month, 1)?;
+    let ahead = (weekday + 7 - first.weekday().num_days_from_sunday()) % 7;
+    first.checked_add_days(chrono::Days::new((ahead + (nth.max(1) as u32 - 1) * 7) as u64))
+}
+
+/// Where an anniversary falls in a year: Gregorian `year` for a date or a day of the week,
+/// lunar `year` for a lunar date. Feb 29 is Feb 28 in other years.
+fn anniversary_in(rule: &DateRule, year: i32) -> Option<NaiveDate> {
+    match rule.calendar {
+        Calendar::Lunar => lunar_in_year(year, rule.month, rule.day, rule.leap),
+        Calendar::Weekday => nth_weekday(year, rule.month, rule.nth, rule.weekday),
+        Calendar::Solar => NaiveDate::from_ymd_opt(year, rule.month, rule.day)
+            .or_else(|| NaiveDate::from_ymd_opt(year, rule.month, rule.day - 1)),
+    }
+}
+
+/// The anniversary on or after `date`: this year's, or next year's once it has passed (none
+/// past the lunar table, 2099). Mirrors `nextAnniversary` in src/features/anniversary/templates.ts.
+pub fn anniversary_on_or_after(rule: &DateRule, date: NaiveDate) -> Option<NaiveDate> {
+    // A lunar year starts in January or February: last lunar year's end may still be ahead.
+    let first = if rule.calendar == Calendar::Lunar { date.year() - 1 } else { date.year() };
+    (first..=date.year() + 1).find_map(|y| anniversary_in(rule, y).filter(|d| *d >= date))
 }
 
 /// The day of a reminder `lead` ("1d", "2d", "3d", "1w", "2w", "1m") before `on`.
@@ -194,15 +219,42 @@ mod tests {
     #[test]
     fn anniversaries_fall_on_their_day_each_year() {
         let d = |y, m, dd| NaiveDate::from_ymd_opt(y, m, dd).unwrap();
-        assert_eq!(anniversary_on_or_after(10, 25, d(2026, 10, 2)), Some(d(2026, 10, 25)));
-        assert_eq!(anniversary_on_or_after(10, 25, d(2026, 10, 25)), Some(d(2026, 10, 25)));
-        assert_eq!(anniversary_on_or_after(3, 3, d(2026, 10, 2)), Some(d(2027, 3, 3)));
+        assert_eq!(anniversary_on_or_after(&DateRule::date(10, 25), d(2026, 10, 2)), Some(d(2026, 10, 25)));
+        assert_eq!(anniversary_on_or_after(&DateRule::date(10, 25), d(2026, 10, 25)), Some(d(2026, 10, 25)));
+        assert_eq!(anniversary_on_or_after(&DateRule::date(3, 3), d(2026, 10, 2)), Some(d(2027, 3, 3)));
         // Feb 29: Feb 28 in other years, Feb 29 in leap years.
-        assert_eq!(anniversary_on_or_after(2, 29, d(2026, 10, 2)), Some(d(2027, 2, 28)));
-        assert_eq!(anniversary_on_or_after(2, 29, d(2027, 10, 2)), Some(d(2028, 2, 29)));
+        assert_eq!(anniversary_on_or_after(&DateRule::date(2, 29), d(2026, 10, 2)), Some(d(2027, 2, 28)));
+        assert_eq!(anniversary_on_or_after(&DateRule::date(2, 29), d(2027, 10, 2)), Some(d(2028, 2, 29)));
         assert_eq!(prep_day(d(2026, 10, 25), "1d"), Some(d(2026, 10, 24)));
         assert_eq!(prep_day(d(2026, 10, 25), "2w"), Some(d(2026, 10, 11)));
         assert_eq!(prep_day(d(2026, 3, 31), "1m"), Some(d(2026, 2, 28)));
         assert_eq!(prep_day(d(2026, 3, 31), "soon"), None);
+    }
+
+    #[test]
+    fn lunar_and_weekday_anniversaries() {
+        let d = |y, m, dd| NaiveDate::from_ymd_opt(y, m, dd).unwrap();
+        let lunar = |month, day, leap| DateRule { calendar: Calendar::Lunar, month, day, leap, nth: 1, weekday: 0 };
+        // Mid-Autumn: 2026-09-25, then 2027-09-15.
+        assert_eq!(anniversary_on_or_after(&lunar(8, 15, false), d(2026, 9, 1)), Some(d(2026, 9, 25)));
+        assert_eq!(anniversary_on_or_after(&lunar(8, 15, false), d(2026, 9, 25)), Some(d(2026, 9, 25)));
+        assert_eq!(anniversary_on_or_after(&lunar(8, 15, false), d(2026, 9, 26)), Some(d(2027, 9, 15)));
+        // Late in the lunar year: in January of the next Gregorian one.
+        assert_eq!(
+            anniversary_on_or_after(&lunar(12, 1, false), d(2026, 12, 20)),
+            crate::lunar::lunar_to_date(2026, 12, 1, false)
+        );
+        // New Year's Eve 2026 (lunar 12/30 in a short 12th month) is 2027-02-05.
+        assert_eq!(anniversary_on_or_after(&lunar(12, 30, false), d(2026, 10, 10)), Some(d(2027, 2, 5)));
+        assert_eq!(anniversary_on_or_after(&lunar(8, 15, false), d(2100, 10, 1)), None);
+        let weekday =
+            |month, nth, weekday| DateRule { calendar: Calendar::Weekday, month, day: 1, leap: false, nth, weekday };
+        assert_eq!(anniversary_on_or_after(&weekday(5, 2, 0), d(2026, 5, 1)), Some(d(2026, 5, 10)));
+        assert_eq!(anniversary_on_or_after(&weekday(5, 2, 0), d(2026, 5, 11)), Some(d(2027, 5, 9)));
+        assert_eq!(nth_weekday(2026, 11, 4, 4), Some(d(2026, 11, 26)));
+        assert_eq!(nth_weekday(2026, 2, 1, 0), Some(d(2026, 2, 1)));
+        assert_eq!(nth_weekday(2026, 5, -1, 1), Some(d(2026, 5, 25)));
+        assert_eq!(nth_weekday(2026, 1, -1, 6), Some(d(2026, 1, 31)));
+        assert_eq!(nth_weekday(2026, 12, -1, 4), Some(d(2026, 12, 31)));
     }
 }

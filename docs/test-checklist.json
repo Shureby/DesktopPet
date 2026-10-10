@@ -846,17 +846,57 @@
         },
         {
           "id": "anniv.form",
-          "rev": "0.26.0",
+          "rev": "0.39.0",
           "ci": "auto",
           "do": "在 Anniversaries 子页依次选 Type：Birthday、Remembrance、Wedding anniversary；点图标按钮选一个别的图标；手动改一条提前提醒后再换 Type",
-          "expect": "Birthday 自动填 🎂、1 week: Buy a gift、1 day: Order a cake，勾选 “Fireworks on the day 🎆”；Remembrance 变 🕯️、1 day: Buy flowers，勾选框文字变成 “Candle and flowers on the day 🕯️” 且默认不勾；图标网格 20 个可选，选中的有橙框；手动改过的图标、提醒、勾选在换 Type 时保留"
+          "expect": "Birthday 自动填 🎂、1 week: Buy a gift、1 day: Order a cake，勾选 “Fireworks on the day 🎆”；Remembrance 变 🕯️、1 day: Buy flowers，勾选框文字变成 “Candle and flowers on the day 🕯️” 且默认不勾；图标网格 20 个可选，选中的有橙框；手动改过的图标、提醒、勾选在换 Type 时保留；Type 里有 🎉 Holiday（选它多一行 Holiday 下拉框）"
         },
         {
           "id": "anniv.add-list",
-          "rev": "0.26.0",
+          "rev": "0.39.0",
           "ci": "auto",
           "do": "添加三个：今天的生日（Since 1990）、明天的结婚纪念日（Since 2016）、40 天后的忌日（Since 2019）；日期框试拖动和滚轮，选 2 月 29 日；最多加 3 条提前提醒",
           "expect": "日期只有日和月，可拖、滚、打字，能选 Feb 29；列表按日期排序：“… · Today 🎉 · 36th”、“… · Tomorrow · 10th”（7 天内橙色）、“… · in 40 days · 7 years”，下面列出提前提醒；+ Add another 到 3 条后消失"
+        },
+        {
+          "id": "anniv.lunar",
+          "rev": "0.39.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "在 Anniversaries 表单把 Date 旁的下拉框选 Lunar date，选 8th month、15，名字填 Grandma，看下面的 “Next: …”，点 Add；再建一个勾了 Leap 的 4th month、8；点 Grandma 的 ✎",
+          "expect": "Next 写着今年或明年中秋那天（公历日期）；列表显示 “Lunar 8/15 · 星期, 月 日 · in … ”；勾 Leap 的那个显示 “Lunar leap 4/8”；✎ 后表单回到 Lunar date、8th month、15"
+        },
+        {
+          "id": "anniv.lunar-leap",
+          "rev": "0.39.0",
+          "mac": true,
+          "do": "建一个 Lunar date 6th month 10、勾 Leap 的纪念日，看 Next；再建一个 12th month 30 的，看 Next",
+          "expect": "闰六月的那个：今年没有闰六月时，Next 是普通六月初十（2025 年有闰六月，那年是闰六月初十）；腊月三十的那个：腊月只有 29 天的年份，Next 是腊月廿九，也就是除夕（例如 2027 年 2 月 5 日）"
+        },
+        {
+          "id": "anniv.weekday",
+          "rev": "0.39.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "Date 旁选 Day of the week，选 Last、Monday、of May，名字填 Memorial，点 Add",
+          "expect": "列表显示 “Last Monday of May · Mon, May 25 …”（5 月最后一个星期一）"
+        },
+        {
+          "id": "anniv.holidays",
+          "rev": "0.39.0",
+          "mac": true,
+          "ci": "auto",
+          "human": "你看看节日列表、图标和建议的提前提醒合不合适",
+          "do": "Type 选 🎉 Holiday，在 Holiday 下拉框依次选 Mid-Autumn Festival、Mother's Day、Lunar New Year's Eve、Thanksgiving (US)，各点 Add",
+          "expect": "选了节日会自动填好名字、图标（🥮 💐 🥟 🦃）、日期规则和提前提醒（Buy mooncakes / Buy flowers / Book the reunion dinner / Plan the dinner）；没有 Since；列表分别显示 “Lunar 8/15 …”、“2nd Sunday of May …”、“Lunar 12/30 …”、“4th Thursday of November …”；当天宠物说 “🥮 Happy Mid-Autumn Festival!” 这类话，放烟火"
+        },
+        {
+          "id": "anniv.lunar-celebrate",
+          "rev": "0.39.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "用 ePet Test：查好明天的农历日期（例如手机日历），建一个那天的农历生日（Lunar date），提前提醒 1 day / Order a cake；切到 To-dos 子页；然后托盘 → 🧪 Test clock → +1 day，动一下鼠标",
+          "expect": "今天就出现待办 “🎂 Mum - Order a cake”；拨到明天后宠物庆祝 “🎉 Happy birthday, Mum!”。测完点 Back to now"
         },
         {
           "id": "anniv.preview",

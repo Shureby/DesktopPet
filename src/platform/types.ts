@@ -2,6 +2,7 @@ import product from "../../product.config.json";
 import type { Rect, WindowRect } from "../engine/geometry";
 import type { RingtoneId } from "../pet/sound";
 import { DEFAULT_MODES, modeSettings, type ModeSettings } from "../features/modes/modes";
+import type { CalendarKind } from "../features/anniversary/templates";
 import { avoidSettings, DEFAULT_AVOID, type AvoidReason, type AvoidSettings, type Busy } from "../features/avoid/avoid";
 
 export interface PomodoroConfig {
@@ -306,8 +307,17 @@ export interface Anniversary {
   kind: string;
   icon: string;
   name: string;
+  /** With `calendar` "lunar", a lunar month and day; "weekday": the month (and `day` unused). */
   month: number;
   day: number;
+  /** How its day is found each year (src/features/anniversary/templates.ts, DateRule); "solar" if missing. */
+  calendar?: CalendarKind;
+  /** A lunar date in a leap month (that month in years without one). */
+  leap?: boolean;
+  /** "weekday": which one in the month (1–4, -1 the last) … */
+  nth?: number | null;
+  /** … of which day of the week (0 = Sunday). */
+  weekday?: number | null;
   /** The year it began, for "36th". */
   since: number | null;
   preps: AnniversaryPrep[];

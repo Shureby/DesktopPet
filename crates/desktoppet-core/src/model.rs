@@ -365,6 +365,93 @@ pub struct Anniversary {
     #[serde(default)]
     pub music: Option<String>,
     pub created_at: Millis,
+    /// How its day is found each year (with `Calendar::Lunar`, `month`/`day` are lunar).
+    #[serde(default)]
+    pub calendar: Calendar,
+    /// A lunar date in a leap month.
+    #[serde(default)]
+    pub leap: bool,
+    /// `Calendar::Weekday`: which one in the month (1–4, -1 the last) …
+    #[serde(default)]
+    pub nth: Option<i32>,
+    /// … of which day of the week (0 = Sunday).
+    #[serde(default)]
+    pub weekday: Option<u32>,
+}
+
+/// How an anniversary's day is found each year.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Calendar {
+    /// A date (Feb 29 is Feb 28 in other years).
+    #[default]
+    Solar,
+    /// A date in the Chinese lunar calendar (src/lunar.rs).
+    Lunar,
+    /// The nth day of the week of a month ("2nd Sunday of May").
+    Weekday,
+}
+
+impl Calendar {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Calendar::Solar => "solar",
+            Calendar::Lunar => "lunar",
+            Calendar::Weekday => "weekday",
+        }
+    }
+
+    pub fn parse(s: &str) -> Self {
+        match s {
+            "lunar" => Calendar::Lunar,
+            "weekday" => Calendar::Weekday,
+            _ => Calendar::Solar,
+        }
+    }
+}
+
+/// An anniversary's day each year (see `schedule::anniversary_on_or_after`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DateRule {
+    pub calendar: Calendar,
+    pub month: u32,
+    pub day: u32,
+    pub leap: bool,
+    pub nth: i32,
+    pub weekday: u32,
+}
+
+impl DateRule {
+    /// A plain date.
+    pub fn date(month: u32, day: u32) -> Self {
+        DateRule { calendar: Calendar::Solar, month, day, leap: false, nth: 1, weekday: 0 }
+    }
+}
+
+impl Anniversary {
+    pub fn rule(&self) -> DateRule {
+        DateRule {
+            calendar: self.calendar,
+            month: self.month,
+            day: self.day,
+            leap: self.leap,
+            nth: self.nth.unwrap_or(1),
+            weekday: self.weekday.unwrap_or(0),
+        }
+    }
+}
+
+impl NewAnniversary {
+    pub fn rule(&self) -> DateRule {
+        DateRule {
+            calendar: self.calendar,
+            month: self.month,
+            day: self.day,
+            leap: self.leap,
+            nth: self.nth.unwrap_or(1),
+            weekday: self.weekday.unwrap_or(0),
+        }
+    }
 }
 
 /// "1 day before: Order a cake". `lead` is "1d", "2d", "3d", "1w", "2w" or "1m".
@@ -391,6 +478,14 @@ pub struct NewAnniversary {
     pub effect: bool,
     #[serde(default)]
     pub music: Option<String>,
+    #[serde(default)]
+    pub calendar: Calendar,
+    #[serde(default)]
+    pub leap: bool,
+    #[serde(default)]
+    pub nth: Option<i32>,
+    #[serde(default)]
+    pub weekday: Option<u32>,
 }
 
 /// Today is an anniversary: the pet celebrates it (and the app may play the effect).

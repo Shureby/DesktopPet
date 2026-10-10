@@ -53,10 +53,10 @@ describe("anniversaries", () => {
   });
 
   it("come round every year (Feb 29 on the 28th otherwise)", () => {
-    expect(nextAnniversary(10, 25, at(2026, 10, 2))).toEqual(new Date(2026, 9, 25));
-    expect(nextAnniversary(10, 2, at(2026, 10, 2))).toEqual(new Date(2026, 9, 2));
-    expect(nextAnniversary(3, 3, at(2026, 10, 2))).toEqual(new Date(2027, 2, 3));
-    expect(nextAnniversary(2, 29, at(2026, 10, 2))).toEqual(new Date(2027, 1, 28));
+    expect(nextAnniversary({ month: 10, day: 25 }, at(2026, 10, 2))).toEqual(new Date(2026, 9, 25));
+    expect(nextAnniversary({ month: 10, day: 2 }, at(2026, 10, 2))).toEqual(new Date(2026, 9, 2));
+    expect(nextAnniversary({ month: 3, day: 3 }, at(2026, 10, 2))).toEqual(new Date(2027, 2, 3));
+    expect(nextAnniversary({ month: 2, day: 29 }, at(2026, 10, 2))).toEqual(new Date(2027, 1, 28));
     expect(daysUntil(new Date(2026, 9, 25), at(2026, 10, 2))).toBe(23);
     expect([0, 1, 3, 60, 150].map(untilText)).toEqual(["Today 🎉", "Tomorrow", "in 3 days", "in 60 days", "in 5 months"]);
   });

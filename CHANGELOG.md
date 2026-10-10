@@ -16,6 +16,22 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.39.0] - 2026-10-10
+
+### Added
+- **Lunar-calendar anniversaries**: an anniversary's date can be a lunar date (month, day,
+  leap month), for birthdays, remembrances and the like kept by the Chinese calendar. Each
+  year it falls on the right Gregorian day (1900–2099). A leap-month date falls in the
+  regular month in years without that leap month; a 30th falls on the 29th in a short month.
+- **Days of the week**: an anniversary can be "the 2nd Sunday of May" or "the last Monday
+  of May".
+- **Holidays**: a Holiday type with Lunar New Year, Lantern Festival, Dragon Boat, Qixi,
+  Mid-Autumn, Double Ninth, Lunar New Year's Eve, Mother's Day, Father's Day (and
+  Australia/NZ's), and Thanksgiving (US, Canada); each fills in its name, icon, day and
+  suggested reminders.
+- The form says when the day as set comes next ("Next: Fri, Sep 25, 2026 (in 12 days)"),
+  and the list how each one is kept ("Lunar 8/15 · …").
+
 ## [0.38.0] - 2026-10-10
 
 ### Added

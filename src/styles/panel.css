@@ -1274,3 +1274,22 @@ button.preview .ic {
 .important-row {
   margin-top: 6px;
 }
+.ann-form .ann-date .lunar-fields,
+.ann-form .ann-date .week-fields {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ann-form .lunar-leap {
+  margin: 0;
+}
+.ann-form .ann-next {
+  flex: 1;
+}
+.ann-form .ann-holiday {
+  flex: 1;
+}
+.ann-form .ann-music {
+  min-width: 150px;
+}

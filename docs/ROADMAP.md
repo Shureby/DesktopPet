@@ -59,14 +59,14 @@ store pages. Simplified Chinese first (with 铃宠, see the rename), then others
 - Characters can carry lines per language (falling back to English).
 - Dates and times already follow the system locale.
 
-## Holidays on moving dates (later)
+## Holidays on moving dates (shipped in 0.39.0)
 
 Mother's Day, Father's Day and the like ("the second Sunday of May") as anniversary
 templates, alongside lunar dates below.
 
-## Lunar-calendar birthdays (future upgrade, a selling point)
+## Lunar-calendar birthdays (shipped in 0.39.0, a selling point)
 
-> **Status: idea for later.** Recorded 2026-10-02.
+> **Status: shipped in 0.39.0** (shown as "Lunar 8/15" until the app is translated). Recorded 2026-10-02.
 
 Many Chinese users, and their parents especially, keep 农历 birthdays, which fall on a
 different Gregorian date each year. Add a "Lunar" switch to the anniversary date, with the
@@ -137,7 +137,7 @@ store listings under the new name.
 ## Personality
 
 - Needs and moods (energy, boredom, affection) visible in the panel. The pet levels up with use.
-- Hides while a full-screen app or game is running, and in a "presentation mode".
+- ~~Hides while a full-screen app or game is running, and in a "presentation mode".~~ Shipped in 0.38.0 (stepping aside).
 - Several pets at once that interact with each other. Seasonal costumes.
 
 ## Small desktop tools

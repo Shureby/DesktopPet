@@ -364,6 +364,27 @@ Code: `renderAnniversaries` in `src/panel/main.ts`, `src/features/anniversary/te
   - **Name.**
   - **Date:** day and month only, in the date field (drag, scroll, type). Feb 29 can be
     picked; in other years it's Feb 28.
+  - **How the day is kept (since 0.39.0):** the select beside Date: **Date** (as above),
+    **Lunar date** or **Day of the week**. "Next: Fri, Sep 25, 2026 (in 12 days)" under it
+    says when the day as set comes next.
+    - **Lunar date:** the lunar month (1st–12th), day (1–30) and **Leap**. Code:
+      `src/features/anniversary/lunar.ts` and `crates/desktoppet-core/src/lunar.rs` (the
+      same table, 1900–2099; both tested against `crates/desktoppet-core/tests/lunar-vectors.json`,
+      from the Hong Kong Observatory's tables). A leap-month date falls in the leap month in
+      years that have it, else in the regular month; a 30th falls on the 29th in a 29-day
+      month (so lunar 12/30 is always New Year's Eve). Sources differ by a day on a few
+      months after 2050 (2057, 2089, 2097); ePet follows the Hong Kong Observatory.
+    - **Day of the week:** the 1st–4th or Last weekday of a month ("2nd Sunday of May").
+    - The list says how ("Lunar 8/15 · Fri, Sep 25 · in 12 days", "2nd Sunday of May ·
+      Sun, May 9"); reminders, the day's celebration and the years count work as for a
+      date. The years count is by the Gregorian year.
+  - **Holiday (since 0.39.0):** a type with a list to pick from: Lunar New Year, Lantern
+    Festival, Dragon Boat Festival, Qixi, Mid-Autumn Festival, Double Ninth Festival, Lunar
+    New Year's Eve (lunar), Mother's Day, Father's Day, Father's Day (Australia, NZ),
+    Thanksgiving (US), Thanksgiving (Canada) (days of the week). Picking one fills in its
+    name, icon, day, music and suggested reminders ("1 week before: Buy mooncakes"), all
+    still editable; a holiday has no Since. On the day: "🥮 Happy Mid-Autumn Festival!" and
+    fireworks. Qingming (a solar term) isn't offered.
   - **Since:** the year it began, optional, for "36th" / "7 years".
   - **Remind before:** up to 3 rows of lead (1 day, 2 days, 3 days, 1 week, 2 weeks,
     1 month) and label.

@@ -32,7 +32,13 @@ import {
   yearsText,
   musicChoices,
   musicFor,
+  HOLIDAYS,
+  ordinal,
+  ruleText,
+  WEEKDAY_NAMES,
   type AnniversaryKind,
+  type CalendarKind,
+  type DateRule,
 } from "../features/anniversary/templates";
 import { GAMES } from "../features/games/catalog";
 import {
@@ -193,7 +199,10 @@ let todoSub: "todos" | "anniversaries" = "todos";
 
 /** [To-dos] [🎂 Anniversaries · 1]: the count is how many come within a week. */
 function todoSubtabs(anniversaries: Anniversary[]): Node {
-  const soon = anniversaries.filter((a) => daysUntil(nextAnniversary(a.month, a.day)) <= 7).length;
+  const soon = anniversaries.filter((a) => {
+    const on = nextAnniversary(a);
+    return on !== null && daysUntil(on) <= 7;
+  }).length;
   const tab = (id: typeof todoSub, label: string, count = 0) =>
     h(
       "button",
@@ -393,7 +402,11 @@ interface AnniversaryDraft {
   kind: AnniversaryKind;
   icon: string;
   name: string;
+  /** How its day is kept: a date (`date`), a lunar date (`lunar`) or a day of the week (`week`). */
+  calendar: CalendarKind;
   date: string;
+  lunar: { month: number; day: number; leap: boolean };
+  week: { month: number; nth: number; weekday: number };
   since: string;
   preps: AnniversaryPrep[];
   effect: boolean;
@@ -447,7 +460,10 @@ function newAnniversaryDraft(kind: AnniversaryKind = "birthday"): AnniversaryDra
     kind,
     icon: t.icon,
     name: "",
+    calendar: "solar",
     date: ymdOf(Date.now()).replace(/^\d{4}/, "2000"),
+    lunar: { month: 1, day: 1, leap: false },
+    week: { month: 5, nth: 2, weekday: 0 },
     since: "",
     preps: t.preps.map((p) => ({ ...p })),
     effect: t.effect,
@@ -468,6 +484,21 @@ function renderAnniversaries(list: Anniversary[]): Node {
   const stopEdit = () => {
     annDraft = null;
     redraw();
+  };
+  /** The day as the form has it (DateRule). */
+  const formRule = (): DateRule & Pick<NewAnniversary, "calendar"> => {
+    if (draft.calendar === "lunar") return { calendar: "lunar", month: draft.lunar.month, day: draft.lunar.day, leap: draft.lunar.leap, nth: null, weekday: null };
+    if (draft.calendar === "weekday")
+      return { calendar: "weekday", month: draft.week.month, day: 1, leap: false, nth: draft.week.nth, weekday: draft.week.weekday };
+    const [, month, day] = draft.date.split("-").map(Number);
+    return { calendar: "solar", month, day, leap: false, nth: null, weekday: null };
+  };
+  /** A holiday's day, into the form. */
+  const setRule = (r: DateRule) => {
+    draft.calendar = r.calendar ?? "solar";
+    if (draft.calendar === "lunar") draft.lunar = { month: r.month, day: r.day, leap: r.leap === true };
+    else if (draft.calendar === "weekday") draft.week = { month: r.month, nth: r.nth ?? 1, weekday: r.weekday ?? 0 };
+    else draft.date = `2000-${String(r.month).padStart(2, "0")}-${String(r.day).padStart(2, "0")}`;
   };
 
   // Type: fills in what wasn't changed by hand.
@@ -516,7 +547,111 @@ function renderAnniversaries(list: Anniversary[]): Node {
     value: draft.name,
     oninput: (e: Event) => (draft.name = (e.target as HTMLInputElement).value),
   });
-  const date = dateField(draft.date, (v) => (draft.date = v), "Day", { year: false });
+  /** "→ Fri, Sep 25 (in 12 days)": when the day as set comes next. */
+  const nextLine = h("small", { class: "hint ann-next" });
+  const showNext = () => {
+    const on = nextAnniversary(formRule());
+    nextLine.textContent = on
+      ? `Next: ${on.toLocaleDateString([], { weekday: "short", year: "numeric", month: "short", day: "numeric" })} (${untilText(daysUntil(on)).replace(" 🎉", "")})`
+      : "";
+  };
+  const date = dateField(
+    draft.date,
+    (v) => {
+      draft.date = v;
+      showNext();
+    },
+    "Day",
+    { year: false },
+  );
+  const pick = (cls: string, options: [number, string][], value: number, set: (v: number) => void) =>
+    h(
+      "select",
+      {
+        class: cls,
+        onchange: (e: Event) => {
+          set(Number((e.target as HTMLSelectElement).value));
+          showNext();
+        },
+      },
+      ...options.map(([v, text]) => h("option", { value: String(v), selected: v === value }, text)),
+    );
+  const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
+  const MONTHS = range(1, 12).map((m): [number, string] => [m, new Date(2000, m - 1, 1).toLocaleDateString([], { month: "long" })]);
+  const lunarFields = h(
+    "span",
+    { class: "lunar-fields" },
+    pick("lunar-month", range(1, 12).map((m) => [m, `${ordinal(m)} month`]), draft.lunar.month, (v) => (draft.lunar.month = v)),
+    pick("lunar-day", range(1, 30).map((d) => [d, String(d)]), draft.lunar.day, (v) => (draft.lunar.day = v)),
+    h(
+      "label",
+      { class: "check lunar-leap", title: "A leap month: in years without one, the regular month" },
+      h("input", {
+        type: "checkbox",
+        checked: draft.lunar.leap,
+        onchange: (e: Event) => {
+          draft.lunar.leap = (e.target as HTMLInputElement).checked;
+          showNext();
+        },
+      }),
+      "Leap",
+    ),
+  );
+  const weekFields = h(
+    "span",
+    { class: "week-fields" },
+    pick("wd-nth", [[1, "1st"], [2, "2nd"], [3, "3rd"], [4, "4th"], [-1, "Last"]], draft.week.nth, (v) => (draft.week.nth = v)),
+    pick("wd-day", WEEKDAY_NAMES.map((n, i): [number, string] => [i, n]), draft.week.weekday, (v) => (draft.week.weekday = v)),
+    "of",
+    pick("wd-month", MONTHS, draft.week.month, (v) => (draft.week.month = v)),
+  );
+  const calendar = h(
+    "select",
+    {
+      class: "ann-calendar",
+      title: "How its day is kept each year",
+      onchange: (e: Event) => {
+        draft.calendar = (e.target as HTMLSelectElement).value as CalendarKind;
+        redraw();
+      },
+    },
+    ...(
+      [
+        ["solar", "Date"],
+        ["lunar", "Lunar date"],
+        ["weekday", "Day of the week"],
+      ] as const
+    ).map(([v, text]) => h("option", { value: v, selected: draft.calendar === v }, text)),
+  );
+  const dateInputs = draft.calendar === "lunar" ? lunarFields : draft.calendar === "weekday" ? weekFields : date;
+  // Holiday: pick one to fill in its name, icon, day and reminders.
+  const holidayPick =
+    draft.kind === "holiday"
+      ? h(
+          "div",
+          { class: "row" },
+          h("span", { class: "lbl" }, "Holiday"),
+          h(
+            "select",
+            {
+              class: "ann-holiday",
+              onchange: (e: Event) => {
+                const hol = HOLIDAYS[Number((e.target as HTMLSelectElement).value)];
+                if (!hol) return;
+                draft.name = hol.name;
+                draft.icon = hol.icon;
+                draft.music = hol.music;
+                setRule(hol.rule);
+                if (!draft.prepsTouched) draft.preps = hol.preps.map((p) => ({ ...p }));
+                redraw();
+              },
+            },
+            h("option", { value: "" }, "Choose one… (or name your own below)"),
+            ...HOLIDAYS.map((hol, i) => h("option", { value: String(i), selected: hol.name === draft.name }, `${hol.icon} ${hol.name}`)),
+          ),
+        )
+      : null;
+  showNext();
   const since = h("input", {
     type: "number",
     class: "since",
@@ -620,15 +755,14 @@ function renderAnniversaries(list: Anniversary[]): Node {
       );
   /** What the form holds, as it would be saved. */
   const formAnniversary = (): NewAnniversary => {
-    const [, mm, dd] = draft.date.split("-").map(Number);
     const year = Number(draft.since);
     return {
       kind: draft.kind,
       icon: draft.icon,
       name: draft.name.trim(),
-      month: mm,
-      day: dd,
-      since: Number.isInteger(year) && year >= 1900 && year <= new Date().getFullYear() ? year : null,
+      ...formRule(),
+      // A holiday has no first year to count from.
+      since: draft.kind !== "holiday" && Number.isInteger(year) && year >= 1900 && year <= new Date().getFullYear() ? year : null,
       preps: draft.preps.filter((p) => p.label.trim()),
       effect: draft.effect,
       music: TEMPLATES[draft.kind].musicFixed ? null : draft.music,
@@ -652,11 +786,15 @@ function renderAnniversaries(list: Anniversary[]): Node {
     redraw();
   };
   const startEdit = (a: Anniversary) => {
+    const calendar = a.calendar ?? "solar";
     annDraft = {
       kind: (a.kind in TEMPLATES ? a.kind : "custom") as AnniversaryKind,
       icon: a.icon,
       name: a.name,
-      date: `2000-${String(a.month).padStart(2, "0")}-${String(a.day).padStart(2, "0")}`,
+      calendar,
+      date: calendar === "solar" ? `2000-${String(a.month).padStart(2, "0")}-${String(a.day).padStart(2, "0")}` : newAnniversaryDraft().date,
+      lunar: calendar === "lunar" ? { month: a.month, day: a.day, leap: a.leap === true } : { month: 1, day: 1, leap: false },
+      week: calendar === "weekday" ? { month: a.month, nth: a.nth ?? 1, weekday: a.weekday ?? 0 } : { month: 5, nth: 2, weekday: 0 },
       since: a.since === null ? "" : String(a.since),
       preps: a.preps.map((p) => ({ ...p })),
       effect: a.effect,
@@ -670,12 +808,16 @@ function renderAnniversaries(list: Anniversary[]): Node {
   };
 
   const upcoming = list
-    .map((a) => ({ a, on: nextAnniversary(a.month, a.day) }))
+    .map((a) => ({ a, on: nextAnniversary(a) }))
+    // Past the lunar table (2099) there's no day to show.
+    .filter((x): x is { a: Anniversary; on: Date } => x.on !== null)
     .sort((x, y) => x.on.getTime() - y.on.getTime() || x.a.id - y.a.id);
   const row = ({ a, on }: { a: Anniversary; on: Date }) => {
     const days = daysUntil(on);
     const years = a.since !== null && on.getFullYear() - a.since > 0 ? on.getFullYear() - a.since : null;
-    const when = `${on.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} · ${untilText(days)}`;
+    // "Lunar 8/15 · Fri, Sep 25 · in 12 days"; a plain date just its day.
+    const rule = ruleText(a);
+    const when = `${rule ? `${rule} · ` : ""}${on.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} · ${untilText(days)}`;
     return h(
       "li",
       { class: `ann ${a.id === draft.editing ? "editing" : ""}` },
@@ -711,9 +853,17 @@ function renderAnniversaries(list: Anniversary[]): Node {
       "div",
       { class: "ann-form" },
       h("div", { class: "row" }, h("span", { class: "lbl" }, "Type"), type),
+      holidayPick,
       h("div", { class: "row" }, iconButton, name),
       grid,
-      h("div", { class: "row" }, h("span", { class: "lbl" }, "Date"), date, h("span", { class: "lbl short" }, "Since"), since),
+      h("div", { class: "row wrap ann-date" }, h("span", { class: "lbl" }, "Date"), calendar, dateInputs),
+      h(
+        "div",
+        { class: "row" },
+        nextLine,
+        draft.kind === "holiday" ? null : h("span", { class: "lbl short" }, "Since"),
+        draft.kind === "holiday" ? null : since,
+      ),
       h("div", { class: "lbl" }, "Remind before"),
       ...prepRows,
       draft.preps.length < 3

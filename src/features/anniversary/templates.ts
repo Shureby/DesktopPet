@@ -1,12 +1,13 @@
 import type { Anniversary, AnniversaryPrep } from "../../platform/types";
 import { PIECES, pieceById, type Piece } from "../../celebrate/music";
+import { lunarInYear } from "./lunar";
 
 /**
  * Anniversary templates (docs/INTERACTIONS.md, "Anniversaries"): picking one fills in the
  * icon, the reminders before the day and whether it plays an effect; the pet's words on the
  * day come from it too. Everything stays editable.
  */
-export type AnniversaryKind = "birthday" | "wedding" | "dating" | "pet" | "work" | "home" | "remembrance" | "custom";
+export type AnniversaryKind = "birthday" | "wedding" | "dating" | "pet" | "work" | "home" | "remembrance" | "holiday" | "custom";
 
 export interface AnniversaryTemplate {
   label: string;
@@ -89,10 +90,48 @@ export const TEMPLATES: Record<AnniversaryKind, AnniversaryTemplate> = {
     placeholder: "Who you remember",
     music: "aisi",
   },
+  holiday: {
+    label: "Holiday",
+    icon: "🎉",
+    preps: [],
+    effect: true,
+    falling: ["🎉", "🎊"],
+    placeholder: "e.g. Mid-Autumn Festival",
+    music: "festive",
+  },
   custom: { label: "Custom", icon: "🌟", preps: [], effect: true, falling: ["🎉", "🎊"], placeholder: "Name", music: "waltz" },
 };
 
 export const KINDS = Object.keys(TEMPLATES) as AnniversaryKind[];
+
+/** A holiday to pick (Holiday): its name, icon, day and suggested reminders. */
+export interface Holiday {
+  name: string;
+  icon: string;
+  rule: DateRule;
+  preps: AnniversaryPrep[];
+  music: string;
+}
+
+const lunar = (month: number, day: number): DateRule => ({ calendar: "lunar", month, day });
+const weekday = (month: number, nth: number, day: number): DateRule => ({ calendar: "weekday", month, day: 1, nth, weekday: day });
+
+/** The holidays Holiday offers, by their day in the year. */
+export const HOLIDAYS: Holiday[] = [
+  { name: "Lunar New Year", icon: "🧧", rule: lunar(1, 1), preps: [{ lead: "1w", label: "Buy New Year gifts" }], music: "festive" },
+  { name: "Lantern Festival", icon: "🏮", rule: lunar(1, 15), preps: [], music: "festive" },
+  { name: "Dragon Boat Festival", icon: "🐉", rule: lunar(5, 5), preps: [{ lead: "3d", label: "Buy zongzi" }], music: "festive" },
+  { name: "Qixi", icon: "💝", rule: lunar(7, 7), preps: [{ lead: "1w", label: "Buy a gift" }], music: "festive" },
+  { name: "Mid-Autumn Festival", icon: "🥮", rule: lunar(8, 15), preps: [{ lead: "1w", label: "Buy mooncakes" }], music: "festive" },
+  { name: "Double Ninth Festival", icon: "🌼", rule: lunar(9, 9), preps: [{ lead: "1d", label: "Call the elders" }], music: "festive" },
+  // The 30th is the 29th in a short month: always the last day of the year.
+  { name: "Lunar New Year's Eve", icon: "🥟", rule: lunar(12, 30), preps: [{ lead: "1d", label: "Book the reunion dinner" }], music: "festive" },
+  { name: "Mother's Day", icon: "💐", rule: weekday(5, 2, 0), preps: [{ lead: "1w", label: "Buy flowers" }], music: "waltz" },
+  { name: "Father's Day", icon: "👔", rule: weekday(6, 3, 0), preps: [{ lead: "1w", label: "Buy a gift" }], music: "waltz" },
+  { name: "Father's Day (Australia, NZ)", icon: "👔", rule: weekday(9, 1, 0), preps: [{ lead: "1w", label: "Buy a gift" }], music: "waltz" },
+  { name: "Thanksgiving (US)", icon: "🦃", rule: weekday(11, 4, 4), preps: [{ lead: "1w", label: "Plan the dinner" }], music: "waltz" },
+  { name: "Thanksgiving (Canada)", icon: "🦃", rule: weekday(10, 2, 1), preps: [{ lead: "1w", label: "Plan the dinner" }], music: "waltz" },
+];
 
 export function templateOf(kind: string): AnniversaryTemplate {
   return TEMPLATES[(kind in TEMPLATES ? kind : "custom") as AnniversaryKind];
@@ -145,6 +184,8 @@ export function celebrationLines(a: Pick<Anniversary, "kind" | "name" | "icon">,
       return [y ? `🏠 ${yearsText("home", y)} in your home!` : "🏠 Happy home anniversary!", a.name];
     case "remembrance":
       return [`🕯️ Remembering ${a.name} today.`, y ? yearsText("remembrance", y) : ""];
+    case "holiday":
+      return [`${a.icon} Happy ${a.name}!`, ""];
     default:
       return [`${a.icon} Today is ${a.name}!`, y ? yearsText("custom", y) : ""];
   }
@@ -179,16 +220,71 @@ export function musicFor(a: Pick<Anniversary, "kind" | "music">): Piece {
   return chosen ?? pieceById(t.music) ?? PIECES[0];
 }
 
-/** The next time it comes round, on or after `now`'s day (Feb 29 is Feb 28 in other years). */
-export function nextAnniversary(month: number, day: number, now = Date.now()): Date {
+/** How an anniversary's day is found each year (see DateRule). */
+export type CalendarKind = "solar" | "lunar" | "weekday";
+
+/**
+ * An anniversary's day: a date ("solar": month/day), a lunar date (month/day in the lunar
+ * calendar, `leap` for a leap month) or a day of the week ("weekday": the `nth` (1–4, -1 for
+ * the last) `weekday` (0 = Sunday) of `month`, e.g. Mother's Day).
+ */
+export type DateRule = Pick<Anniversary, "month" | "day"> & Partial<Pick<Anniversary, "calendar" | "leap" | "nth" | "weekday">>;
+
+/** The day of the `nth` (1–4, or -1: the last) `weekday` (0 = Sunday) of a month. */
+export function nthWeekday(year: number, month: number, nth: number, weekday: number): Date {
+  if (nth < 0) {
+    const last = new Date(year, month, 0);
+    return new Date(year, month - 1, last.getDate() - ((last.getDay() - weekday + 7) % 7));
+  }
+  const first = new Date(year, month - 1, 1).getDay();
+  return new Date(year, month - 1, 1 + ((weekday - first + 7) % 7) + (nth - 1) * 7);
+}
+
+/**
+ * When it comes round in a year: Gregorian year `year` for a date or a day of the week, lunar
+ * year `year` for a lunar date (null outside 1900–2099). Feb 29 is Feb 28 in other years.
+ */
+function inYear(rule: DateRule, year: number): Date | null {
+  switch (rule.calendar ?? "solar") {
+    case "lunar":
+      return lunarInYear(year, rule.month, rule.day, rule.leap === true);
+    case "weekday":
+      return nthWeekday(year, rule.month, rule.nth ?? 1, rule.weekday ?? 0);
+    default: {
+      const last = new Date(year, rule.month, 0).getDate();
+      return new Date(year, rule.month - 1, Math.min(rule.day, last));
+    }
+  }
+}
+
+/**
+ * The next time it comes round, on or after `now`'s day (mirrors anniversary_on_or_after in
+ * schedule.rs); null past the lunar table (2099).
+ */
+export function nextAnniversary(rule: DateRule, now = Date.now()): Date | null {
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
-  for (const y of [today.getFullYear(), today.getFullYear() + 1]) {
-    const last = new Date(y, month, 0).getDate();
-    const d = new Date(y, month - 1, Math.min(day, last));
-    if (d >= today) return d;
+  const y = today.getFullYear();
+  // A lunar year starts in January or February: last lunar year's end may still be ahead.
+  const years = rule.calendar === "lunar" ? [y - 1, y, y + 1] : [y, y + 1];
+  for (const year of years) {
+    const d = inYear(rule, year);
+    if (d && d >= today) return d;
   }
-  return today;
+  return null;
+}
+
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+export const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+/** "Lunar 8/15", "Lunar leap 4/8", "2nd Sunday of May"; null for a plain date (its day says it). */
+export function ruleText(rule: DateRule): string | null {
+  if (rule.calendar === "lunar") return `Lunar ${rule.leap ? "leap " : ""}${rule.month}/${rule.day}`;
+  if (rule.calendar === "weekday") {
+    const nth = rule.nth ?? 1;
+    return `${nth < 0 ? "Last" : ordinal(nth)} ${WEEKDAY_NAMES[rule.weekday ?? 0]} of ${MONTH_NAMES[rule.month - 1]}`;
+  }
+  return null;
 }
 
 /** Whole days from today to `date`. */

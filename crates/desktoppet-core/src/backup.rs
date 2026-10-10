@@ -775,6 +775,7 @@ mod tests {
                     preps: vec![AnniversaryPrep { lead: "1d".into(), label: "Cake".into() }],
                     effect: true,
                     music: None,
+                    ..Default::default()
                 },
                 at(9, 0),
             )
@@ -818,6 +819,7 @@ mod tests {
             preps: vec![],
             effect: true,
             music: None,
+            ..Default::default()
         }
     }
 
