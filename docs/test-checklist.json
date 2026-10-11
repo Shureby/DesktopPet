@@ -1256,10 +1256,10 @@
         },
         {
           "id": "avoid.real-slides",
-          "rev": "0.38.0",
+          "rev": "0.39.1",
           "mac": true,
-          "do": "Windows：PowerPoint 按 F5 放映；Mac：Keynote 播放（或 PowerPoint 放映）。放映时让一个普通闹钟和一个勾了 Important 的闹钟先后响；结束放映",
-          "expect": "放映一开始宠物就离开，托盘写 “Stepped aside: presenting”；普通闹钟不响、宠物不出来；Important 闹钟照常全音量响，宠物出来提醒，点 Done 后宠物又离开；结束放映约 10 秒后宠物回来，告诉你错过了那个普通闹钟"
+          "do": "Windows：PowerPoint 按 F5 放映；Mac：Keynote 播放（或 PowerPoint 放映）。放映时让一个勾了 Important 的闹钟响，点气泡上的 Done；再让一个普通闹钟响；放映中再开一下截图工具（Win+Shift+S）；结束放映",
+          "expect": "放映一开始宠物就离开，托盘写 “Stepped aside: presenting”；普通闹钟不响、宠物不出来；Important 闹钟照常全音量响，宠物出来提醒，点 Done 后宠物走回屏幕边缘离开，放映期间不再出现（点过宠物、开过截图工具都一样）；结束放映约 10 秒后宠物回来，告诉你错过了那个普通闹钟"
         },
         {
           "id": "avoid.real-call",
@@ -1293,7 +1293,7 @@
         },
         {
           "id": "avoid.important",
-          "rev": "0.38.0",
+          "rev": "0.39.1",
           "mac": true,
           "ci": "auto",
           "do": "Pretend → In a call 时，让一个勾了 Important 的闹钟响；之后模式换成 🌙 Quiet，再让一个 Important 闹钟和一个普通闹钟各响一次",

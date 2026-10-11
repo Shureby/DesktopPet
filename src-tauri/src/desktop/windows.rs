@@ -97,7 +97,7 @@ use windows::Win32::System::Registry::{
     RegCloseKey, RegEnumKeyExW, RegGetValueW, RegOpenKeyExW, HKEY, HKEY_CURRENT_USER, KEY_READ, RRF_RT_QWORD,
 };
 use windows::Win32::UI::Shell::{SHQueryUserNotificationState, QUNS_PRESENTATION_MODE, QUNS_RUNNING_D3D_FULL_SCREEN};
-use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, IsZoomed, GWL_STYLE, WS_CAPTION};
+use windows::Win32::UI::WindowsAndMessaging::{IsZoomed, GWL_STYLE, WS_CAPTION, WS_EX_TRANSPARENT};
 
 use super::Busy;
 
@@ -124,38 +124,75 @@ pub fn busy(own_pid: u32, pet: (i32, i32)) -> Busy {
     b
 }
 
-/// The window in front covers the whole of the pet's screen (taskbar too): a game, a video, a
-/// browser on F11, a slide show. A maximized window with a title bar doesn't count, so an
-/// auto-hiding taskbar doesn't make every maximized window "full screen". Returns its class.
+/// The frontmost app window on the pet's screen covers all of it (taskbar too): a game, a
+/// video, a browser on F11, a slide show. Walks the windows front to back (super::fullscreen_front)
+/// rather than asking which has the focus. Returns its class.
 unsafe fn fullscreen_front(own_pid: u32, pet: (i32, i32)) -> Option<String> {
-    let hwnd = GetForegroundWindow();
-    if hwnd.is_invalid() || !IsWindowVisible(hwnd).as_bool() || IsIconic(hwnd).as_bool() {
+    let pet_screen = MonitorFromPoint(POINT { x: pet.0, y: pet.1 }, MONITOR_DEFAULTTONEAREST);
+    let mut ctx = Layers { own_pid, pet_screen, out: Vec::new() };
+    // EnumWindows walks top-level windows in z-order, topmost first.
+    let _ = EnumWindows(Some(visit_layer), LPARAM(&mut ctx as *mut Layers as isize));
+    super::fullscreen_front(ctx.out)
+}
+
+struct Layers {
+    own_pid: u32,
+    pet_screen: windows::Win32::Graphics::Gdi::HMONITOR,
+    out: Vec<super::Layer>,
+}
+
+unsafe extern "system" fn visit_layer(hwnd: HWND, lparam: LPARAM) -> BOOL {
+    let ctx = &mut *(lparam.0 as *mut Layers);
+    if let Some(layer) = layer(hwnd, ctx) {
+        let stop = !layer.own && !layer.shell && layer.on_pet_screen;
+        ctx.out.push(layer);
+        // The first app window on the pet's screen decides: no need to look further.
+        if stop {
+            return BOOL(0);
+        }
+    }
+    BOOL(1)
+}
+
+/// A window that could be in front of the pet's screen; none for hidden, minimized, cloaked
+/// (other virtual desktops, suspended Store apps), untitled, click-through and tool windows
+/// (overlays, tooltips).
+unsafe fn layer(hwnd: HWND, ctx: &Layers) -> Option<super::Layer> {
+    if !IsWindowVisible(hwnd).as_bool() || IsIconic(hwnd).as_bool() || GetWindowTextLengthW(hwnd) == 0 {
+        return None;
+    }
+    let ex = GetWindowLongW(hwnd, GWL_EXSTYLE) as u32;
+    if ex & (WS_EX_TOOLWINDOW.0 | WS_EX_TRANSPARENT.0) != 0 {
+        return None;
+    }
+    let mut cloaked = 0u32;
+    if DwmGetWindowAttribute(hwnd, DWMWA_CLOAKED, &mut cloaked as *mut u32 as *mut c_void, size_of::<u32>() as u32)
+        .is_ok()
+        && cloaked != 0
+    {
         return None;
     }
     let mut pid = 0u32;
     GetWindowThreadProcessId(hwnd, Some(&mut pid));
-    if pid == own_pid {
-        return None;
-    }
     let mut class = [0u16; 64];
     let len = GetClassNameW(hwnd, &mut class) as usize;
     let class = String::from_utf16_lossy(&class[..len]);
-    if IGNORED_CLASSES.contains(&class.as_str()) {
-        return None;
-    }
     let monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-    if monitor != MonitorFromPoint(POINT { x: pet.0, y: pet.1 }, MONITOR_DEFAULTTONEAREST) {
-        return None;
-    }
     let mut info = MONITORINFO { cbSize: size_of::<MONITORINFO>() as u32, ..Default::default() };
     let mut r = RECT::default();
     if !GetMonitorInfoW(monitor, &mut info).as_bool() || GetWindowRect(hwnd, &mut r).is_err() {
         return None;
     }
     let m = info.rcMonitor;
-    let covers = r.left <= m.left && r.top <= m.top && r.right >= m.right && r.bottom >= m.bottom;
     let titled = (GetWindowLongW(hwnd, GWL_STYLE) as u32) & WS_CAPTION.0 == WS_CAPTION.0;
-    (covers && !(IsZoomed(hwnd).as_bool() && titled)).then_some(class)
+    Some(super::Layer {
+        own: pid == ctx.own_pid,
+        shell: IGNORED_CLASSES.contains(&class.as_str()),
+        on_pet_screen: monitor == ctx.pet_screen,
+        covers: r.left <= m.left && r.top <= m.top && r.right >= m.right && r.bottom >= m.bottom,
+        maximized: IsZoomed(hwnd).as_bool() && titled,
+        class,
+    })
 }
 
 /// Some app is using the camera or the microphone now. Windows keeps who used them when

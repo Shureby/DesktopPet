@@ -69,7 +69,7 @@ check("avoid.call", "in a call the pet steps aside, nothing rings (alarms are li
   await app.answer("Done");
 });
 
-check("avoid.important", "an important alarm brings the pet out even in a call, rings in full (also in Quiet), and the pet goes again after Done", async () => {
+check("avoid.important", "an important alarm brings the pet out even in a call, rings in full (also in Quiet), and the pet goes again after Done and stays away", async () => {
   const app = ctx.app;
   await reset({ ringSeconds: 30 });
   await stepAside(CALL, "call");
@@ -81,6 +81,10 @@ check("avoid.important", "an important alarm brings the pet out even in a call, 
   assert.deepEqual([ring?.volume, ring?.rampUp], [0.6, false]);
   await app.answer("Done");
   await app.b.waitUntil(async () => !(await app.visible("pet")), { timeout: 25_000 });
+  // Answering it doesn't end the call: the pet stays away (it used to come back for good).
+  await app.sleep(15_000);
+  assert.equal(await app.visible("pet"), false, "still aside after Done");
+  assert.equal((await status()).reason, "call");
   await reset({ ringSeconds: 30 });
   // Quiet rings softly and starts low; an important alarm doesn't.
   await app.setSettings((s) => ({ ...s, modes: { ...s.modes, choice: "quiet" } }));
@@ -96,7 +100,7 @@ check("avoid.important", "an important alarm brings the pet out even in a call, 
   const soft = (await app.sounds(since)).find((s) => s.kind === "ring");
   assert.equal(soft?.rampUp, true, "an ordinary one starts soft in Quiet");
   await app.answer("Done");
-});
+}, { timeout: 120_000 });
 
 check("avoid.fullscreen", "full screen (a game, a video): the pet steps aside, alarms ring unseen and softly at first, ePet stays in screenshots; unanswered, they're told when it's back", async () => {
   const app = ctx.app;

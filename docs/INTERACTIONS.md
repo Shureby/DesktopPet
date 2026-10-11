@@ -617,8 +617,10 @@ protection), `busy` in `src-tauri/src/desktop/{windows,macos}.rs` (what you're d
 `src/panel/avoid.ts` (Modes tab → Step aside automatically).
 
 - **What it steps aside for** (each can be unticked in the Modes tab):
-  - **Full screen**: the window in front covers the whole of the pet's screen, taskbar or
-    menu bar too (a game, a video, a browser on F11). A maximized window with a title bar
+  - **Full screen**: the frontmost app window on the pet's screen (front to back, skipping
+    ePet's own windows, the desktop and the taskbar; not the window with the focus, since
+    0.39.1, so clicking the pet or a screenshot tool doesn't end a slide show) covers the
+    whole of that screen, taskbar or menu bar too (a game, a video, a browser on F11). A maximized window with a title bar
     doesn't count (an auto-hiding taskbar would make every one "full screen"). On Windows a
     full-screen Direct3D game counts wherever it is. Only the pet's screen counts: a video
     full screen on the other one leaves the pet where it is.

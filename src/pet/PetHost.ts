@@ -60,6 +60,8 @@ const BADGE_INFO_GRACE_MS = 400;
 const BADGE_FLIP_SLACK = 40;
 
 export const PET_WINDOW = { w: 340, h: 240 };
+/** The speech bubble's widest (as in pet.css). */
+const BUBBLE_MAX_W = 220;
 
 /** An anniversary put off by the mode, and the day (it's offered only on that day). */
 interface Postponed {
@@ -662,7 +664,9 @@ export class PetHost {
     // (docs/INTERACTIONS.md, "At the edge of the screen").
     const vis = this.visibleRange();
 
-    // The speech bubble stays on screen; its tail keeps pointing at the pet.
+    // The speech bubble stays on screen; its tail keeps pointing at the pet. At a screen edge
+    // less of the window shows: the bubble wraps narrower rather than being cut off.
+    this.bubble.style.maxWidth = `${Math.max(80, Math.min(BUBBLE_MAX_W, vis.right - vis.left - 4))}px`;
     const bw = this.bubble.offsetWidth;
     const bx = Math.max(vis.left + 2 + bw / 2, Math.min(f.x, vis.right - 2 - bw / 2));
     this.bubble.style.left = `${bw ? bx : f.x}px`;

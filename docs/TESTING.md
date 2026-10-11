@@ -2,7 +2,7 @@
 
 <!-- Generated from test-checklist.json by `npm run test-checklist`. Edit the JSON, not this file. -->
 
-当前版本 `0.39.0`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
+当前版本 `0.39.1`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
 标 🤖 的项目由 CI 自动测（Windows），不用手动测；标 🤖+👀 的项目逻辑由 CI 测，你只看 👀 后面写的部分；标 🌙 的每晚测一次（太久，不在每次推送时测）。
 macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码，在 Windows 上测过就行。
 在线勾选页面（保存结果，自动标出需要重测的项目）：https://claude.ai/artifact/XQVzPKq4w2MThVnTLYCGy1
@@ -11,7 +11,7 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 
 - [ ] 1.1 🍎 安装包安装 → **开始菜单/启动台里有应用，图标和名字正常**
 - [ ] 1.2 🍎 🤖+👀 首次启动 → **宠物从屏幕上方掉下来，落在任务栏/Dock 上方** 👀 你只看掉落的样子（窗口出现、宠物落在任务栏上方由 CI 测）
-- [ ] 1.3 🤖 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.39.0 · …`，与安装包版本一致**
+- [ ] 1.3 🤖 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.39.1 · …`，与安装包版本一致**
 - [ ] 1.4 🍎 🤖 已经运行时再启动一次 → **不会出现第二只宠物（只打开面板）**
 - [ ] 1.5 🤖 装着旧版本、ePet 正在运行时，双击新版本的安装包，一路点 Next / Install / Finish → **不再出现“已安装（Already Installed）/ 是否先卸载”那一页，也不提示 ePet 正在运行（会自动关掉它）；旧版被安静地卸载后装上新版；之前的待办、闹钟、纪念日、设置、心情值都还在。重装同一版本或装更旧的版本时仍会询问**
 - [ ] 1.6 正式版 ePet 开着时安装 ePet Test；装好后两个都开着，再重装一次 ePet Test；最后在 ePet 开着时重装正式版 → **装 ePet Test 时不弹 “is running”、不关正式版，装完两个可以同时运行（任务管理器里是 desktoppet.exe 和 epet-test.exe）；重装哪一个都不弹框，正在运行的那一个被悄悄关掉、装完重新打开即可，另一个不受影响**
@@ -145,13 +145,13 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 ## 11. 纪念日
 
 - [ ] 11.1 🤖 打开 To-dos 页，点 🎂 Anniversaries，再切回 To-dos；切到别的页再回来 → **顶部有 [To-dos] [🎂 Anniversaries] 两个子页按钮，打开 To-dos 默认在 To-dos 子页；7 天内有纪念日时按钮上有数字**
-- [ ] 11.2 🤖 **【新】** 在 Anniversaries 子页依次选 Type：Birthday、Remembrance、Wedding anniversary；点图标按钮选一个别的图标；手动改一条提前提醒后再换 Type → **Birthday 自动填 🎂、1 week: Buy a gift、1 day: Order a cake，勾选 “Fireworks on the day 🎆”；Remembrance 变 🕯️、1 day: Buy flowers，勾选框文字变成 “Candle and flowers on the day 🕯️” 且默认不勾；图标网格 20 个可选，选中的有橙框；手动改过的图标、提醒、勾选在换 Type 时保留；Type 里有 🎉 Holiday（选它多一行 Holiday 下拉框）**
-- [ ] 11.3 🤖 **【新】** 添加三个：今天的生日（Since 1990）、明天的结婚纪念日（Since 2016）、40 天后的忌日（Since 2019）；日期框试拖动和滚轮，选 2 月 29 日；最多加 3 条提前提醒 → **日期只有日和月，可拖、滚、打字，能选 Feb 29；列表按日期排序：“… · Today 🎉 · 36th”、“… · Tomorrow · 10th”（7 天内橙色）、“… · in 40 days · 7 years”，下面列出提前提醒；+ Add another 到 3 条后消失**
-- [ ] 11.4 🍎 🤖 **【新】** 在 Anniversaries 表单把 Date 旁的下拉框选 Lunar date，选 8th month、15，名字填 Grandma，看下面的 “Next: …”，点 Add；再建一个勾了 Leap 的 4th month、8；点 Grandma 的 ✎ → **Next 写着今年或明年中秋那天（公历日期）；列表显示 “Lunar 8/15 · 星期, 月 日 · in … ”；勾 Leap 的那个显示 “Lunar leap 4/8”；✎ 后表单回到 Lunar date、8th month、15**
-- [ ] 11.5 🍎 **【新】** 建一个 Lunar date 6th month 10、勾 Leap 的纪念日，看 Next；再建一个 12th month 30 的，看 Next → **闰六月的那个：今年没有闰六月时，Next 是普通六月初十（2025 年有闰六月，那年是闰六月初十）；腊月三十的那个：腊月只有 29 天的年份，Next 是腊月廿九，也就是除夕（例如 2027 年 2 月 5 日）**
-- [ ] 11.6 🍎 🤖 **【新】** Date 旁选 Day of the week，选 Last、Monday、of May，名字填 Memorial，点 Add → **列表显示 “Last Monday of May · Mon, May 25 …”（5 月最后一个星期一）**
-- [ ] 11.7 🍎 🤖 **【新】** Type 选 🎉 Holiday，在 Holiday 下拉框依次选 Mid-Autumn Festival、Mother's Day、Lunar New Year's Eve、Thanksgiving (US)，各点 Add → **选了节日会自动填好名字、图标（🥮 💐 🥟 🦃）、日期规则和提前提醒（Buy mooncakes / Buy flowers / Book the reunion dinner / Plan the dinner）；没有 Since；列表分别显示 “Lunar 8/15 …”、“2nd Sunday of May …”、“Lunar 12/30 …”、“4th Thursday of November …”；当天宠物说 “🥮 Happy Mid-Autumn Festival!” 这类话，放烟火**
-- [ ] 11.8 🍎 🤖 **【新】** 用 ePet Test：查好明天的农历日期（例如手机日历），建一个那天的农历生日（Lunar date），提前提醒 1 day / Order a cake；切到 To-dos 子页；然后托盘 → 🧪 Test clock → +1 day，动一下鼠标 → **今天就出现待办 “🎂 Mum - Order a cake”；拨到明天后宠物庆祝 “🎉 Happy birthday, Mum!”。测完点 Back to now**
+- [ ] 11.2 🤖 在 Anniversaries 子页依次选 Type：Birthday、Remembrance、Wedding anniversary；点图标按钮选一个别的图标；手动改一条提前提醒后再换 Type → **Birthday 自动填 🎂、1 week: Buy a gift、1 day: Order a cake，勾选 “Fireworks on the day 🎆”；Remembrance 变 🕯️、1 day: Buy flowers，勾选框文字变成 “Candle and flowers on the day 🕯️” 且默认不勾；图标网格 20 个可选，选中的有橙框；手动改过的图标、提醒、勾选在换 Type 时保留；Type 里有 🎉 Holiday（选它多一行 Holiday 下拉框）**
+- [ ] 11.3 🤖 添加三个：今天的生日（Since 1990）、明天的结婚纪念日（Since 2016）、40 天后的忌日（Since 2019）；日期框试拖动和滚轮，选 2 月 29 日；最多加 3 条提前提醒 → **日期只有日和月，可拖、滚、打字，能选 Feb 29；列表按日期排序：“… · Today 🎉 · 36th”、“… · Tomorrow · 10th”（7 天内橙色）、“… · in 40 days · 7 years”，下面列出提前提醒；+ Add another 到 3 条后消失**
+- [ ] 11.4 🍎 🤖 在 Anniversaries 表单把 Date 旁的下拉框选 Lunar date，选 8th month、15，名字填 Grandma，看下面的 “Next: …”，点 Add；再建一个勾了 Leap 的 4th month、8；点 Grandma 的 ✎ → **Next 写着今年或明年中秋那天（公历日期）；列表显示 “Lunar 8/15 · 星期, 月 日 · in … ”；勾 Leap 的那个显示 “Lunar leap 4/8”；✎ 后表单回到 Lunar date、8th month、15**
+- [ ] 11.5 🍎 建一个 Lunar date 6th month 10、勾 Leap 的纪念日，看 Next；再建一个 12th month 30 的，看 Next → **闰六月的那个：今年没有闰六月时，Next 是普通六月初十（2025 年有闰六月，那年是闰六月初十）；腊月三十的那个：腊月只有 29 天的年份，Next 是腊月廿九，也就是除夕（例如 2027 年 2 月 5 日）**
+- [ ] 11.6 🍎 🤖 Date 旁选 Day of the week，选 Last、Monday、of May，名字填 Memorial，点 Add → **列表显示 “Last Monday of May · Mon, May 25 …”（5 月最后一个星期一）**
+- [ ] 11.7 🍎 🤖 Type 选 🎉 Holiday，在 Holiday 下拉框依次选 Mid-Autumn Festival、Mother's Day、Lunar New Year's Eve、Thanksgiving (US)，各点 Add → **选了节日会自动填好名字、图标（🥮 💐 🥟 🦃）、日期规则和提前提醒（Buy mooncakes / Buy flowers / Book the reunion dinner / Plan the dinner）；没有 Since；列表分别显示 “Lunar 8/15 …”、“2nd Sunday of May …”、“Lunar 12/30 …”、“4th Thursday of November …”；当天宠物说 “🥮 Happy Mid-Autumn Festival!” 这类话，放烟火**
+- [ ] 11.8 🍎 🤖 用 ePet Test：查好明天的农历日期（例如手机日历），建一个那天的农历生日（Lunar date），提前提醒 1 day / Order a cake；切到 To-dos 子页；然后托盘 → 🧪 Test clock → +1 day，动一下鼠标 → **今天就出现待办 “🎂 Mum - Order a cake”；拨到明天后宠物庆祝 “🎉 Happy birthday, Mum!”。测完点 Back to now**
 - [ ] 11.9 🤖+👀 不保存，直接在表单里点 ▶ Preview；保存后在列表那一行点 ▶；隐藏宠物后再点一次 ▶；关掉 Settings 里的 “Celebrate anniversaries on screen” 再预览；预览一个今天的纪念日后动鼠标 → **点预览后宠物马上说那句话、屏幕播放效果；播放期间和结束后，宠物所在屏幕上的所有窗口（包括 ePet 面板）都能正常点击，不会卡死；预览和当天的庆祝一模一样（说的话、第几年、效果、时长），没填名字时用模板名；预览不会保存纪念日、不会生成待办；隐藏时宠物出来，播完回去；总开关关掉时只说一句话；预览过的今天的纪念日，动鼠标后仍会真正庆祝一次** 👀 你只看效果的样子，以及播放中其他窗口都能正常点击（台词、不保存、隐藏时出来回去由 CI 测）
 - [ ] 11.10 🍎 🤖+👀 设置里打开音乐；在纪念日表单点 ▶ Preview，播放中再点它（现在写 ■ Stop）；连点 Preview 三次；Type 选 Wedding 点 Preview，播放中在 Music 里换成 Bridal Chorus；列表里某一行的 ▶ 也试一次 → **播放时按钮变成 “■ Stop（线条图标）”（列表那一行变成 ■）；点了立刻停：音乐、烟火或蜡烛、宠物的话一起消失，守蜡烛的宠物起身走开，按钮变回 “▶ Preview”；播完自己也变回；连点只放一遍，不会一遍接一遍；播放中换曲子立刻改放新曲子** 👀 你只看按钮的样子，以及点 Stop 后是不是立刻安静（何时变、停没停、放的哪首由 CI 测）
 - [ ] 11.11 🤖 Settings 里音乐先关着；在 Anniversaries 表单依次选 Type：Birthday、Pet's birthday、Wedding anniversary、Work anniversary、Remembrance；Work 时选 Jasmine Flower 后保存，再 ✎ 编辑它；把一个选了 Taps 的 Remembrance 改成 Custom → **Birthday 和 Pet's birthday 显示 “Music 🎵 Happy Birthday”，不能改；Wedding 是下拉框，只有 Canon in D (Pachelbel)、Wedding March (Mendelssohn)、Bridal Chorus (Wagner) 三首，默认卡农；其他喜庆类型是下拉框，有 8 首喜庆曲目（含两首婚礼曲），默认 Music-box waltz；在 Dating 里选 Wedding March 后换成 Wedding，保留 Wedding March，选 Waltz 后换成 Wedding 则回到卡农；Remembrance 只有 4 首哀乐，默认 Remembrance (original, Chinese style)；音乐关着时旁边写 “⚠ Music is off for all anniversaries · Turn on”，点 Turn on 就在设置里打开音乐、警告消失；编辑时保留选的曲目；喜庆和祭日之间换类型时回到新类型的默认曲目**
@@ -210,12 +210,12 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 
 - [ ] 16.1 🍎 在宠物所在的屏幕上把一个视频（例如 YouTube）切到全屏；退出全屏；再把一个普通窗口最大化（带标题栏）；有两块屏幕的话，在另一块屏幕上全屏放视频 → **全屏后约 1 秒内宠物离开，托盘第一项变成 Show pet，托盘里有灰色的一行 “Stepped aside: full screen”，托盘图标悬停提示末尾是 “· Stepped aside: full screen”；退出全屏约 10 秒后宠物回来；最大化的普通窗口不算全屏，宠物不走；另一块屏幕全屏时，这块屏幕上的宠物不走**
 - [ ] 16.2 打开一个全屏游戏玩一会儿；期间设一个 1 分钟的计时器（可以先设好再进游戏）；不理它；退出游戏 → **游戏时宠物不出现、不挡画面；计时器到时会响，开始小声、慢慢变大，宠物不出来；退出游戏约 10 秒后宠物回来，说 “While you were busy you missed:” 并列出那个计时器**
-- [ ] 16.3 🍎 Windows：PowerPoint 按 F5 放映；Mac：Keynote 播放（或 PowerPoint 放映）。放映时让一个普通闹钟和一个勾了 Important 的闹钟先后响；结束放映 → **放映一开始宠物就离开，托盘写 “Stepped aside: presenting”；普通闹钟不响、宠物不出来；Important 闹钟照常全音量响，宠物出来提醒，点 Done 后宠物又离开；结束放映约 10 秒后宠物回来，告诉你错过了那个普通闹钟**
+- [ ] 16.3 🍎 **【新】** Windows：PowerPoint 按 F5 放映；Mac：Keynote 播放（或 PowerPoint 放映）。放映时让一个勾了 Important 的闹钟响，点气泡上的 Done；再让一个普通闹钟响；放映中再开一下截图工具（Win+Shift+S）；结束放映 → **放映一开始宠物就离开，托盘写 “Stepped aside: presenting”；普通闹钟不响、宠物不出来；Important 闹钟照常全音量响，宠物出来提醒，点 Done 后宠物走回屏幕边缘离开，放映期间不再出现（点过宠物、开过截图工具都一样）；结束放映约 10 秒后宠物回来，告诉你错过了那个普通闹钟**
 - [ ] 16.4 🍎 打开 Teams、Zoom、微信视频或系统的相机 App，开摄像头；之后只开麦克风（关摄像头）再试一次；最后关掉 → **开摄像头时宠物离开，托盘写 “Stepped aside: in a call”；只开麦克风也算；关掉后约 10 秒宠物回来；如果某个程序一直占着麦克风（例如语音聊天挂着），宠物会一直不出来，可以在 Modes 页签取消勾选 Video calls**
 - [ ] 16.5 🍎 在会议里共享整个屏幕，让对方看；这时按托盘 Show pet 把宠物叫回来；再截一张图（Windows：Win+Shift+S；Mac：Cmd+Shift+3）；会议结束后再截一张 → **会议中你自己看得到宠物，对方看不到（共享画面里没有宠物、没有黑块）；会议中的截图里也没有宠物；会议结束后的截图里有宠物。Mac 新系统的部分录屏方式可能仍拍得到，记下实际情况**
 - [ ] 16.6 🍎 用 ePet Test：托盘 → 🧪 Pretend → In a call；再选 Full screen、Presenting；最后选 Nothing (look for real) → **每选一项宠物都离开，托盘写对应原因（in a call / full screen / presenting），当前选项打勾；选 Nothing 后约 10 秒宠物回来。正式版没有这个菜单**
 - [ ] 16.7 🍎 🤖 （ePet Test 里用 🧪 Pretend → In a call 代替真的通话）设一个 1 分钟后的普通闹钟，等它到时；然后选 Nothing (look for real) → **宠物离开；闹钟不响、宠物不出来；约 10 秒后宠物回来，说 “While you were busy you missed:”，列出那个闹钟，点 Done 清掉**
-- [ ] 16.8 🍎 🤖 Pretend → In a call 时，让一个勾了 Important 的闹钟响；之后模式换成 🌙 Quiet，再让一个 Important 闹钟和一个普通闹钟各响一次 → **通话中 Important 闹钟照常响，宠物出来提醒，点 Done 后宠物又离开；Quiet 模式下 Important 闹钟一开始就是正常音量，普通闹钟从小声开始**
+- [ ] 16.8 🍎 🤖 **【新】** Pretend → In a call 时，让一个勾了 Important 的闹钟响；之后模式换成 🌙 Quiet，再让一个 Important 闹钟和一个普通闹钟各响一次 → **通话中 Important 闹钟照常响，宠物出来提醒，点 Done 后宠物又离开；Quiet 模式下 Important 闹钟一开始就是正常音量，普通闹钟从小声开始**
 - [ ] 16.9 🍎 🤖 Pretend → Full screen 时，让一个普通闹钟响，别理它；然后选 Nothing → **闹钟会响（从小声开始），宠物不出来；没人理就记下来；宠物回来时告诉你错过了它**
 - [ ] 16.10 🍎 🤖 Pretend → In a call（或真的开会）时打开托盘菜单 → **第一项是 Show pet；Switch mode 下面有一行灰色、不能点的 “Stepped aside: in a call”；不在避让时没有这一行**
 - [ ] 16.11 🍎 🤖 Pretend → In a call 后，点托盘 Show pet → **宠物马上回来，托盘第一项变回 Hide pet，这次通话期间不再离开；下一次通话又会离开**

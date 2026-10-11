@@ -82,6 +82,31 @@ pub struct Busy {
     pub call: bool,
 }
 
+/// A window, front to back, as far as stepping aside goes (see `fullscreen_front`).
+#[cfg_attr(not(any(windows, test)), allow(dead_code))]
+pub struct Layer {
+    /// One of ePet's own windows (the pet, its panel): never in the way.
+    pub own: bool,
+    /// The desktop or the taskbar: never an app.
+    pub shell: bool,
+    /// On the pet's screen.
+    pub on_pet_screen: bool,
+    /// Covers that whole screen, taskbar too.
+    pub covers: bool,
+    /// Maximized with a title bar (with an auto-hiding taskbar it covers the screen too).
+    pub maximized: bool,
+    pub class: String,
+}
+
+/// The frontmost app window on the pet's screen, if it covers the whole screen (returns its
+/// class): a game, a video, a slide show. Front to back, not the window with the focus, so
+/// clicking the pet (or a screenshot tool) doesn't end a slide show still on screen.
+#[cfg_attr(not(any(windows, test)), allow(dead_code))]
+pub fn fullscreen_front(front_to_back: impl IntoIterator<Item = Layer>) -> Option<String> {
+    let front = front_to_back.into_iter().find(|l| !l.own && !l.shell && l.on_pet_screen)?;
+    (front.covers && !front.maximized).then_some(front.class)
+}
+
 /// What you're doing on the screen the pet is on.
 pub fn busy<R: Runtime>(pet: &WebviewWindow<R>) -> Busy {
     let Ok(pos) = pet.outer_position() else {
@@ -100,5 +125,31 @@ pub fn busy<R: Runtime>(pet: &WebviewWindow<R>) -> Busy {
     {
         let _ = (x, y);
         Busy::default()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn layer(class: &str, covers: bool) -> Layer {
+        Layer { own: false, shell: false, on_pet_screen: true, covers, maximized: false, class: class.into() }
+    }
+
+    #[test]
+    fn the_frontmost_app_window_on_the_pets_screen_decides() {
+        let pet = Layer { own: true, ..layer("pet", false) };
+        let taskbar = Layer { shell: true, ..layer("Shell_TrayWnd", false) };
+        let show = layer("screenClass", true);
+        // The pet clicked (it has the focus, it's in front): the slide show is still on.
+        assert_eq!(fullscreen_front([pet, taskbar, show]), Some("screenClass".into()));
+        // A window over it (Alt+Tab to the notes): not full screen any more.
+        assert_eq!(fullscreen_front([layer("Notepad", false), layer("screenClass", true)]), None);
+        // A video full screen on the other screen doesn't count.
+        let elsewhere = Layer { on_pet_screen: false, ..layer("Chrome_WidgetWin_1", true) };
+        assert_eq!(fullscreen_front([elsewhere, layer("Notepad", false)]), None);
+        // A maximized window with a title bar isn't full screen.
+        assert_eq!(fullscreen_front([Layer { maximized: true, ..layer("Notepad", true) }]), None);
+        assert_eq!(fullscreen_front([]), None);
     }
 }

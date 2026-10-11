@@ -16,6 +16,15 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.39.1] - 2026-10-11
+
+### Fixed
+- Windows: during a slide show (or a game or video), answering an important alarm on the pet,
+  or opening a screenshot tool, made ePet think the slide show was over: the pet came back
+  and stayed over the slides. It now looks at which window is in front on the pet's screen,
+  not which one has the focus.
+- At the edge of the screen, the pet's speech bubble wraps narrower instead of being cut off.
+
 ## [0.39.0] - 2026-10-10
 
 ### Added
