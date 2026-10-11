@@ -60,8 +60,9 @@ const BADGE_INFO_GRACE_MS = 400;
 const BADGE_FLIP_SLACK = 40;
 
 export const PET_WINDOW = { w: 340, h: 240 };
-/** The speech bubble's widest (as in pet.css). */
+/** The speech bubble's widest text (max-width in pet.css), and its shadow's width. */
 const BUBBLE_MAX_W = 220;
+const BUBBLE_SHADOW = 2;
 
 /** An anniversary put off by the mode, and the day (it's offered only on that day). */
 interface Postponed {
@@ -203,6 +204,8 @@ export class PetHost {
   private badgeSide: "left" | "right" = "right";
   /** False while the pet is hidden from its menu or the tray. */
   private petVisible = true;
+  /** The speech bubble's padding, border and shadow across (measured once). */
+  private bubbleFrame: number | undefined;
   /** Stepped aside (src/features/avoid/avoid.ts): why, or null. */
   private away: AvoidReason | null = null;
   /** ePet Test: what the tray's 🧪 Pretend makes the app think you're doing. */
@@ -666,7 +669,13 @@ export class PetHost {
 
     // The speech bubble stays on screen; its tail keeps pointing at the pet. At a screen edge
     // less of the window shows: the bubble wraps narrower rather than being cut off.
-    this.bubble.style.maxWidth = `${Math.max(80, Math.min(BUBBLE_MAX_W, vis.right - vis.left - 4))}px`;
+    // (max-width is the text's: the padding, border and shadow come on top.)
+    this.bubbleFrame ??= (() => {
+      const cs = getComputedStyle(this.bubble);
+      const px = (v: string) => parseFloat(v) || 0;
+      return px(cs.paddingLeft) + px(cs.paddingRight) + px(cs.borderLeftWidth) + px(cs.borderRightWidth) + BUBBLE_SHADOW;
+    })();
+    this.bubble.style.maxWidth = `${Math.max(80, Math.min(BUBBLE_MAX_W, vis.right - vis.left - 4 - this.bubbleFrame))}px`;
     const bw = this.bubble.offsetWidth;
     const bx = Math.max(vis.left + 2 + bw / 2, Math.min(f.x, vis.right - 2 - bw / 2));
     this.bubble.style.left = `${bw ? bx : f.x}px`;

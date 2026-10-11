@@ -16,6 +16,12 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.39.2] - 2026-10-11
+
+### Fixed
+- At the edge of the screen the speech bubble was still cut off on one side (its padding and
+  border weren't counted when it was narrowed); it now fits whole.
+
 ## [0.39.1] - 2026-10-11
 
 ### Fixed

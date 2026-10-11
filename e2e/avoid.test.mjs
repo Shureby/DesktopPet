@@ -173,3 +173,38 @@ check("alarm.important", "the alarm form's Important tick: saved with the alarm,
   await app.sleep(500);
   assert.equal((await app.invoke("list_alarms"))[0].important, true);
 });
+
+check("pet.bubble-edge", "at the very edge of the screen (half the pet window off it) the speech bubble wraps narrower and stays whole on screen", async () => {
+  const app = ctx.app;
+  await reset();
+  // A long line: "While I was hidden you missed:" and an item.
+  await app.invoke("record_unseen", { item: { kind: "alarm", refId: 0, title: "Alarm", at: Date.now() - 60_000, snoozes: 0 } });
+  const p = await app.pet();
+  // Walk to the left edge of its screen.
+  await app.b.waitUntil(async () => {
+    // Asked again until it's there (it may set off on a walk of its own first).
+    await app.b.execute((x) => window.__epet.walkTo(x), p.area.x);
+    await app.sleep(1500);
+    const q = await app.pet();
+    return q.grounded && q.state !== "walkTo" && q.x - q.area.x < q.size.w;
+  }, { timeout: 40_000, interval: 200 }).catch(async (e) => {
+    const q = await app.pet();
+    throw new Error(`didn't reach the edge: ${JSON.stringify({ x: q.x, area: q.area, state: q.state, size: q.size, grounded: q.grounded, target: q.target })} (${e.message})`);
+  });
+  await app.invoke("e2e_tray", { id: "hide" });
+  await app.sleep(500);
+  await app.invoke("e2e_tray", { id: "show" });
+  await app.waitBubble("you missed", 5000);
+  await app.sleep(500);
+  const r = await app.b.execute(() => {
+    const s = window.__epet.state();
+    const b = document.getElementById("bubble").getBoundingClientRect();
+    // The screen's part of the window, in its CSS px.
+    const left = (s.area.x - s.origin.x) / s.dpr;
+    const right = (s.area.x + s.area.w - s.origin.x) / s.dpr;
+    return { b: { left: b.left, right: b.right }, left, right };
+  });
+  assert.ok(r.left > 0, `the window hangs off the screen (${JSON.stringify(r)})`);
+  assert.ok(r.b.left >= r.left - 1 && r.b.right <= Math.min(r.right, 340) + 1, `the bubble is whole on screen: ${JSON.stringify(r)}`);
+  await app.answer("Done");
+}, { timeout: 60_000 });
