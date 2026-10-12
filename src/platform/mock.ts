@@ -202,10 +202,10 @@ export function startMockScheduler(): () => void {
     mutate((s) => {
       // The same rules as take_due in the Rust store: what came due while ePet wasn't running
       // doesn't ring late, except an alarm still within its snooze time.
-      const ring = (kind: "todo" | "alarm", id: number, title: string, allDay = false, important = false) => {
+      const ring = (kind: "todo" | "alarm", id: number, title: string, dueAt: number, allDay = false, important = false) => {
         // Stepped aside: only an important alarm brings the pet out.
         const peek = away ? kind === "alarm" && important : petHidden && comesOut(s, kind, title);
-        events.push(["reminder", { kind, id, title, peek, allDay, important }]);
+        events.push(["reminder", { kind, id, title, peek, allDay, important, dueAt }]);
       };
       s.notified ??= [];
       for (const t of s.todos) {
@@ -213,7 +213,7 @@ export function startMockScheduler(): () => void {
         const at = t.remindAt ?? todoRemindsAt(t, s.settings.todoDayTime) ?? t.dueAt;
         if (at > now) continue;
         // A day's to-do reminds any time that day; one with a time only on time.
-        if (t.allDay ? now < endOfDay(t.dueAt) : now - at <= LATE_TOLERANCE) ring("todo", t.id, t.title, t.allDay);
+        if (t.allDay ? now < endOfDay(t.dueAt) : now - at <= LATE_TOLERANCE) ring("todo", t.id, t.title, at, t.allDay);
         s.notified.push(t.id);
         t.remindAt = null;
       }
@@ -228,7 +228,7 @@ export function startMockScheduler(): () => void {
           const next = a.repeat !== "none" && a.timeHm ? nextOccurrence(a.timeHm, daysOf(a), now) : null;
           a.skippedFire = null;
           if (onTime || (snoozesItself && now - cycleStart <= snoozeMs * alert.autoSnoozeMax)) {
-            ring("alarm", a.id, a.label, false, a.important === true);
+            ring("alarm", a.id, a.label, fireAt, false, a.important === true);
             if (a.snoozes === 0) {
               a.missedAt = null;
               a.missedSeenAt = null;

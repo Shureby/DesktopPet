@@ -16,6 +16,19 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.41.0] - 2026-10-12
+
+### Added
+- **Rung late**: an alarm, timer or to-do that rings a minute or more after its time says
+  when it was meant for, how late, and why, in a small line under it ("Due 4:30 PM · 7 min
+  late — you were presenting"; also: an app was full screen, you were in a call, ePet wasn't
+  running, the computer was asleep, another reminder was ringing). A day's to-do says the
+  time it was meant for.
+
+### Changed
+- An alarm rung late after ePet wasn't running says how many tries are left instead of
+  "Snoozed 2×" (those snoozes weren't yours).
+
 ## [0.40.0] - 2026-10-12
 
 ### Added

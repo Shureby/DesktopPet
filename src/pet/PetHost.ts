@@ -9,6 +9,7 @@ import { Pet } from "../characters/Pet";
 import { loadAll, type CharacterRegistry, type LoadedCharacter } from "../characters/registry";
 import { areaIndexAt } from "../engine/physics";
 import type { Rect } from "../engine/geometry";
+import { lateness, lateNote, type LateReason } from "../features/alarm/late";
 import { createRng } from "../engine/random";
 import { SpriteAtlas } from "../engine/sprites";
 import {
@@ -220,6 +221,8 @@ export class PetHost {
   private away: AvoidReason | null = null;
   /** ePet Test: what the tray's 🧪 Pretend makes the app think you're doing. */
   private pretend: Busy | null = null;
+  /** Alarms and timers ringing now: when each was meant to ring and why it's late (rungLate). */
+  private readonly ringDue = new Map<number, { dueAt?: number; late?: LateReason | null; rang: number }>();
   /** What came due while the pet was aside and didn't bring it out: rung (or missed) once you're back. */
   private held: Held<ReminderEvent>[] = [];
   /** The screens showing a slide show (physical px): an important alarm brings the pet out elsewhere. */
@@ -1417,6 +1420,7 @@ export class PetHost {
   /** Snoozes and confirms, so the snoozed alarm never silently disappears. */
   private async snooze(id: number, minutes: number): Promise<void> {
     this.importantRings.delete(id);
+    this.ringDue.delete(id);
     try {
       await this.backend.snoozeAlarm(id, minutes);
       await this.refreshTimers();
@@ -1677,7 +1681,7 @@ export class PetHost {
     // Stepped aside and not brought out for it (only important alarms are): it waits for you
     // to be back (catchUpHeld). Nothing rings without the pet.
     if (!r.peek && this.away !== null) {
-      this.held.push({ item: r, at: Date.now(), todo: r.kind === "todo" });
+      this.held.push({ item: { ...r, late: r.late ?? this.away }, at: Date.now(), todo: r.kind === "todo" });
       return;
     }
     // Hidden and not coming out for this kind (Settings → Alerts): nobody can answer it, so
@@ -1689,7 +1693,7 @@ export class PetHost {
     // Hidden (or behind a mini-game): come out for it.
     if (r.peek || this.hidden) this.enterPeek();
     if (r.kind === "todo") {
-      if (this.activeRing) this.queued.push(r);
+      if (this.activeRing) this.queued.push({ ...r, late: r.late ?? "queued" });
       else if (r.allDay) this.remindDayTodo(r);
       else this.remindTodo(r);
       return;
@@ -1697,6 +1701,7 @@ export class PetHost {
     const joining = this.activeRing !== null && this.ringing.length > 0;
     if (!this.ringing.includes(r.id)) this.ringing.push(r.id);
     if (r.important) this.importantRings.add(r.id);
+    this.ringDue.set(r.id, { dueAt: r.dueAt, late: r.late, rang: Date.now() });
     const alert = this.settings.alerts.alarm;
     const mode = this.ringPreset();
     if (!joining) {
@@ -1747,21 +1752,36 @@ export class PetHost {
         : note;
     };
     const describe = (a: Alarm | undefined) => (!a ? "Alarm" : isTimer(a) ? `${timerName(a)} timer` : alarmName(a));
+    // Rung late (docs/INTERACTIONS.md, "Rung late"): when it was meant for, and why.
+    const late = (id: number, a: Alarm | undefined) => {
+      const due = this.ringDue.get(id);
+      return due ? lateness(a && isTimer(a) ? "timer" : "alarm", due.dueAt, due.rang, due.late) : null;
+    };
     if (items.length === 1) {
       const a = items[0];
       const head = a && isTimer(a) ? `⏱ Time's up! (${timerName(a)} timer)` : this.ringHeadline || describe(a);
-      const note = a ? snoozeNote(a) : null;
-      return note ? [head, note] : [head];
+      const l = late(this.ringing[0], a);
+      // Rung late after ePet wasn't running (or the computer slept): the snoozes that time
+      // used are counted, but they weren't the user's: say how many tries are left instead.
+      const offline = ["notRunning", "asleep"].includes(this.ringDue.get(this.ringing[0])?.late ?? "");
+      if (l && a && a.snoozes > 0 && offline) {
+        const left = alert.autoSnoozeMax - a.snoozes;
+        const tries = left > 0 ? `${left} more ${left === 1 ? "try" : "tries"}` : "last try before it's marked missed";
+        return [head, `${lateNote(l)} · ${tries}`];
+      }
+      const notes = [a ? snoozeNote(a) : null, l ? lateNote(l) : null].filter((n): n is string => !!n);
+      return [head, ...notes];
     }
     const allTimers = items.every((a) => a && isTimer(a));
     const head = allTimers ? `⏱ ${items.length} timers are up:` : `⏰ ${items.length} things are due:`;
-    return [
-      head,
-      ...items.map((a) => {
-        const note = a && !isTimer(a) && a.snoozes ? ` (snoozed ${a.snoozes}×)` : "";
-        return `• ${describe(a)}${note}`;
-      }),
-    ];
+    const whys = new Set<string>();
+    const lines = items.map((a, i) => {
+      const note = a && !isTimer(a) && a.snoozes ? ` (snoozed ${a.snoozes}×)` : "";
+      const l = late(this.ringing[i], a);
+      if (l?.why) whys.add(l.why);
+      return `• ${describe(a)}${note}${l ? ` (${l.by} late)` : ""}`;
+    });
+    return [head, ...lines, ...(whys.size ? [`Late: ${[...whys].join("; ")}`] : [])];
   }
 
   /**
@@ -1817,7 +1837,7 @@ export class PetHost {
     setTimeout(() => {
       const list = this.dayTodos;
       this.dayTodos = [];
-      if (this.activeRing) this.queued.push(...list);
+      if (this.activeRing) this.queued.push(...list.map((r) => ({ ...r, late: r.late ?? ("queued" as const) })));
       else if (list.length === 1) this.remindTodo(list[0]);
       else this.remindDayTodos(list);
     }, DAY_TODO_GATHER_MS);
@@ -1832,7 +1852,8 @@ export class PetHost {
       { label: "Open To-dos", run: () => void this.backend.openPanel("todos") },
       { label: "Later", run: () => list.forEach((r) => this.later(r)) },
     ];
-    const lines = ["📅 Today:", ...list.map((r) => `• ${r.title}`)];
+    const late = lateness("day", list[0].dueAt, Date.now());
+    const lines = ["📅 Today:", ...list.map((r) => `• ${r.title}`), ...(late ? [lateNote(late)] : [])];
     this.say(lines, 60_000, actions, this.peek ? () => list.forEach((r) => void this.unansweredWhileHidden(r)) : undefined);
     if (alert.ring && mode.todoRing) playRingtone(alert.ringtone, alert.volume * mode.volume);
   }
@@ -1860,7 +1881,9 @@ export class PetHost {
       { label: "Later", run: () => this.later(r) },
     ];
     // Out of hiding for it, an unanswered reminder is recorded for when you show the pet.
-    this.say(text, 60_000, actions, this.peek ? () => void this.unansweredWhileHidden(r) : undefined);
+    // Rung late: when it was meant for, and why (a day's to-do: just its time).
+    const l = lateness(r.allDay ? "day" : "todo", r.dueAt, Date.now(), r.late);
+    this.say(l ? [text, lateNote(l)] : text, 60_000, actions, this.peek ? () => void this.unansweredWhileHidden(r) : undefined);
     if (alert.ring && mode.todoRing) playRingtone(alert.ringtone, alert.volume * mode.volume);
   }
 
@@ -2030,6 +2053,7 @@ export class PetHost {
    */
   private async done(id: number): Promise<void> {
     this.importantRings.delete(id);
+    this.ringDue.delete(id);
     await this.backend.dismissAlarm(id);
     await this.refreshTimers();
   }
@@ -2039,6 +2063,7 @@ export class PetHost {
     // Rung out of hiding (or aside, for an important alarm): listed for when you're back.
     const outOfSight = !!this.peek;
     this.importantRings.delete(id);
+    this.ringDue.delete(id);
     await this.refreshTimers();
     const alarm = this.timers.find((a) => a.id === id);
     if (!alarm) return;
@@ -2122,11 +2147,14 @@ export class PetHost {
    */
   private holdRinging(): void {
     const now = Date.now();
-    for (const r of this.queued.splice(0)) this.held.push({ item: r, at: now, todo: r.kind === "todo" });
+    for (const r of this.queued.splice(0)) this.held.push({ item: { ...r, late: r.late === "queued" ? this.away : (r.late ?? this.away) }, at: now, todo: r.kind === "todo" });
     if (!this.activeRing || !this.ringing.length || this.ringing.some((id) => this.importantRings.has(id))) return;
     for (const id of this.ringing) {
       const a = this.timers.find((x) => x.id === id);
-      this.held.push({ item: { kind: "alarm", id, title: a?.label ?? "Alarm" }, at: now, todo: false });
+      const due = this.ringDue.get(id);
+      this.ringDue.delete(id);
+      const item: ReminderEvent = { kind: "alarm", id, title: a?.label ?? "Alarm", dueAt: due?.dueAt, late: due?.late ?? this.away };
+      this.held.push({ item, at: now, todo: false });
     }
     this.ringing = [];
     this.ringControls = null;

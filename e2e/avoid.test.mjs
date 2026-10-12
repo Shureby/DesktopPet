@@ -130,7 +130,7 @@ check("avoid.fullscreen", "full screen (a game, a video): the pet steps aside an
   await app.answer("Done");
 });
 
-check("avoid.held", "aside, an alarm and a to-do wait; back within 15 min the alarm rings with the pet first, then the to-do is told", async () => {
+check("avoid.held", "aside, an alarm and a to-do wait; back within 15 min the alarm rings with the pet first, then the to-do is told, each saying how late and why", async () => {
   const app = ctx.app;
   await reset({ ringSeconds: 30 });
   await stepAside(GAME, "fullscreen");
@@ -144,8 +144,11 @@ check("avoid.held", "aside, an alarm and a to-do wait; back within 15 min the al
   await comeBack();
   await app.waitBubble("Laundry", 5000);
   assert.ok(!(await app.bubble()).includes("plumber"), "the alarm first");
+  // Rung late: when it was meant for, how late, and why.
+  assert.match(await app.bubble(), /Due .+ · 1\d min late — an app was full screen/);
   await app.answer("Done");
   await app.waitBubble("Call the plumber", 5000);
+  assert.match(await app.bubble(), /Due .+ · 1\d min late — an app was full screen/);
   assert.equal((await app.invoke("list_unseen")).length, 0, "nothing missed");
 }, { timeout: 90_000 });
 

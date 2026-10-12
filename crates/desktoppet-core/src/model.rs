@@ -284,6 +284,24 @@ pub struct Reminder {
     /// An important alarm (see `Alarm::important`).
     #[serde(default)]
     pub important: bool,
+    /// When it was meant to ring (a to-do's reminder time, an alarm's or timer's ring time):
+    /// later than that, the pet says so (docs/INTERACTIONS.md, "Rung late").
+    #[serde(default)]
+    pub due_at: Millis,
+    /// Why it's late, if the app knows (set by the app's scheduler).
+    #[serde(default)]
+    pub late: Option<LateReason>,
+}
+
+/// Why a reminder rings later than it was meant to (see `Reminder::late`); the pet window adds
+/// its own (stepped aside, another reminder ringing).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum LateReason {
+    /// ePet wasn't running when it came due.
+    NotRunning,
+    /// The computer was asleep.
+    Asleep,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

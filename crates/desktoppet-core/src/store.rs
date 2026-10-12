@@ -1020,7 +1020,22 @@ impl Store {
                 now - at <= LATE_TOLERANCE_MS
             };
             if ring {
-                out.push(Reminder { kind: ReminderKind::Todo, id, title, peek: false, all_day, important: false });
+                let due_at = if all_day {
+                    let day = local_date(tz, due);
+                    remind_at.or_else(|| day.and_then(|d| local_ms(tz, d, day_time))).unwrap_or(due)
+                } else {
+                    remind_at.unwrap_or(due)
+                };
+                out.push(Reminder {
+                    kind: ReminderKind::Todo,
+                    id,
+                    title,
+                    peek: false,
+                    all_day,
+                    important: false,
+                    due_at,
+                    late: None,
+                });
             }
             self.conn.execute("UPDATE todos SET notified_at = ?2, remind_at = NULL WHERE id = ?1", params![id, now])?;
         }
@@ -1055,6 +1070,8 @@ impl Store {
                     peek: false,
                     all_day: false,
                     important: a.important,
+                    due_at: fire_at,
+                    late: None,
                 });
                 // Rung alarms and timers stay (disabled) so the user can still snooze them, and
                 // finished ones stay in the history until the daily clean-up.
@@ -1304,7 +1321,9 @@ mod tests {
                 title: "call mom".into(),
                 peek: false,
                 all_day: false,
-                important: false
+                important: false,
+                due_at: at(15, 0),
+                late: None,
             }]
         );
         assert!(s.take_due(&London, at(15, 1)).unwrap().is_empty());
@@ -1737,6 +1756,8 @@ mod tests {
         s.set_alarm_auto_snooze(a.id, true).unwrap();
         let rung = s.take_due(&London, at(9, 12)).unwrap();
         assert_eq!(rung.iter().map(|r| r.id).collect::<Vec<_>>(), vec![a.id]);
+        // Meant for 9:00: the pet says it's 12 minutes late.
+        assert_eq!(rung[0].due_at, at(9, 0));
         let x = s.list_alarms().unwrap()[0].clone();
         assert_eq!((x.snoozes, x.rang_at), (2, Some(at(9, 0))));
 
@@ -1831,11 +1852,14 @@ mod tests {
         assert!(s.take_due(&London, at(8, 59)).unwrap().is_empty());
         let due = s.take_due(&London, at(9, 0)).unwrap();
         assert_eq!(due.iter().map(|r| (r.id, r.all_day)).collect::<Vec<_>>(), vec![(bins.id, true), (bills.id, true)]);
+        // Meant for the day's reminder time, not its midnight.
+        assert_eq!(due[0].due_at, at(9, 0));
         // "Later" keeps the day and reminds again then.
         s.update_todo(&London, bins.id, &TodoPatch { remind_at: Some(at(9, 10)), ..Default::default() }, at(9, 0))
             .unwrap();
         assert!(s.take_due(&London, at(9, 9)).unwrap().is_empty());
-        assert_eq!(s.take_due(&London, at(9, 10)).unwrap().len(), 1);
+        let later = s.take_due(&London, at(9, 10)).unwrap();
+        assert_eq!((later.len(), later[0].due_at), (1, at(9, 10)));
         assert_eq!(s.list_todos().unwrap()[0].due_at, Some(midnight));
         // ePet started at 4 pm: still reminds that day; started the next day: overdue, no ring.
         s.add_todo(&day_todo("late start", midnight, TodoRepeat::None), 0).unwrap();

@@ -614,6 +614,29 @@ before), `updateMode` / `preset()` in `PetHost`, `modeItem` in `src/pet/menu.ts`
 - Modes are this computer's own settings (not synced); a backup restores them with the
   rest of the settings.
 
+## Rung late (since 0.41.0)
+
+Code: `src/features/alarm/late.ts` (pure: the line), `late_reason` in `src-tauri/src/scheduler.rs`
+(why, as the app knows), `ringLines` / `remindTodo` in `PetHost`.
+
+An alarm, timer or to-do that rings a minute or more after it was meant to says so in a
+small line under it: when it was meant for, how late, and why.
+
+- "Due 4:30 PM · 7 min late — you were presenting" (an alarm or a to-do); a timer: "Ran out
+  at 4:30 PM · 7 min ago — an app was full screen".
+- Why: "an app was full screen", "you were presenting", "you were in a call" (it waited
+  while the pet stepped aside), "ePet wasn't running" (it came due before ePet started),
+  "the computer was asleep" (the app didn't look for over 30 s), "another reminder was
+  ringing" (a to-do that waited its turn). Late for another reason (the test clock set
+  ahead): just how late.
+- An alarm rung late within its snooze time after ePet wasn't running (or the computer
+  slept) counts the snoozes that time used, but they weren't yours: the line says how many
+  tries are left ("· 1 more try") instead of "Snoozed 2×".
+- Several at once: each "(7 min late)", and a last line "Late: …" with why.
+- A day's to-do (no time) reminds any time that day: "📅 Today: …" says "Meant for 9:00 AM",
+  no why.
+- A minute late or less isn't mentioned. The panel's lists don't record it.
+
 ## Stepping aside (since 0.38.0)
 
 Code: `src-tauri/src/avoid.rs` (watching, every second; coming back; screen-capture

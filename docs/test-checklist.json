@@ -635,10 +635,19 @@
         },
         {
           "id": "alarm.off-while-shut",
-          "rev": "0.33.0",
+          "rev": "0.41.0",
           "ci": "auto",
           "do": "设一个 3 分钟后的一次性闹钟、一个 3 分钟后的计时器、一个 3 分钟后提醒的待办，然后退出 ePet，等 10 分钟后再打开；另设一个 2 分钟后的闹钟（贪睡 5 分钟 × 3 次），退出后等约 12 分钟再打开",
-          "expect": "第一组都不响：闹钟和计时器在 Finished 里写 “Didn't ring · … · ePet wasn't running”，没有 Missed 角标，也不在 “While I was hidden” 清单里；待办显示红色 “Overdue · …”；第二个闹钟打开后立刻补响，气泡写 “Snoozed 2× · first rang …”，不理的话再贪睡一次后被标记为错过；如果超过 15 分钟才打开则不响"
+          "expect": "第一组都不响：闹钟和计时器在 Finished 里写 “Didn't ring · … · ePet wasn't running”，没有 Missed 角标，也不在 “While I was hidden” 清单里；待办显示红色 “Overdue · …”；第二个闹钟打开后立刻补响，气泡小字写 “Due … · 12 min late — ePet wasn't running · 1 more try”（不写 Snoozed 2×），不理的话再贪睡一次后被标记为错过；如果超过 15 分钟才打开则不响"
+        },
+        {
+          "id": "alarm.late-note",
+          "rev": "0.41.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "真的放映、睡眠电脑、开关 ePet 的几种情况，以及文字读起来是否清楚",
+          "do": "让提醒晚响 1 分钟以上，分别试：① 用 ePet Test 🧪 Pretend → Presenting（或真的放映）时让一个普通闹钟、一个计时器、一个待办到点，2 分钟后选 Nothing；② 一个勾了 “Try again” 的闹钟，到点前退出 ePet，过 2 分钟再打开；③ 闹钟响着时让一个待办到点，等 1 分多钟再点 Done；④ 一个没定时间的待办，到提醒时间时 ePet 没开，之后再打开",
+          "expect": "每次补响的气泡里多一行小字：① 闹钟 “Due 4:30 PM · 2 min late — you were presenting”，计时器 “Ran out at … · 2 min ago — …”，待办同闹钟；② “Due … · 2 min late — ePet wasn't running · 1 more try”（不再写 Snoozed 2×）；③ 待办 “… — another reminder was ringing”；④ “📅 Today:” 下面写 “Meant for 9:00 AM”，不写原因。电脑睡眠后补响的写 “the computer was asleep”。晚不到 1 分钟的不写；几个一起响时每项后面写 “(7 min late)”，最后一行写原因"
         },
         {
           "id": "alarm.important",
@@ -1332,11 +1341,11 @@
         },
         {
           "id": "avoid.held",
-          "rev": "0.40.0",
+          "rev": "0.41.0",
           "mac": true,
           "ci": "auto",
           "do": "Pretend → Full screen 时，让一个待办和一个普通闹钟先后到时；10 分钟内选 Nothing",
-          "expect": "期间什么都不响、宠物不出来；宠物回来后先补响闹钟，点 Done 后再提醒那个待办；不进 “While you were busy you missed:”。纪念日也等你回来再庆祝"
+          "expect": "期间什么都不响、宠物不出来；宠物回来后先补响闹钟，点 Done 后再提醒那个待办；每个补响的气泡里有一行小字 “Due … · N min late — an app was full screen”；不进 “While you were busy you missed:”。纪念日也等你回来再庆祝"
         },
         {
           "id": "avoid.tray",

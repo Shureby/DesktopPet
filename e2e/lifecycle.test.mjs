@@ -99,7 +99,7 @@ check("stability.windows", "the panel and the game opened and closed 10 times: n
   assert.equal(appProcesses(), 1);
 });
 
-check("alarm.off-while-shut", "due while ePet wasn't running: past the snoozes' grace nothing rings (“ePet wasn't running”, to-dos Overdue); within it the alarm rings at once, its snoozes counted", async () => {
+check("alarm.off-while-shut", "due while ePet wasn't running: past the snoozes' grace nothing rings (“ePet wasn't running”, to-dos Overdue); within it the alarm rings at once, its snoozes counted, saying how late and why (“Due … · 1 min late — ePet wasn't running · 1 more try”)", async () => {
   let app = ctx.app;
   // Snoozes of 30 s × 3: a 90-second grace.
   await app.setSettings((s) => {
@@ -127,7 +127,7 @@ check("alarm.off-while-shut", "due while ePet wasn't running: past the snoozes' 
   await app.waitText("details.finished .finished-row .sub", "ePet wasn't running");
   await app.panel("todos");
   await app.waitText(".when.overdue", "Overdue");
-  // Within the grace: off for 65 s → it rings when ePet starts, "Snoozed 2×".
+  // Within the grace: off for 65 s → it rings when ePet starts, 2 of its 3 snoozes used.
   await app.toPet();
   const due2 = Date.now() + 3000;
   const late = await app.invoke("add_alarm", { label: "Late", at: due2, repeat: "none", days: null });
@@ -136,7 +136,9 @@ check("alarm.off-while-shut", "due while ePet wasn't running: past the snoozes' 
   await sleep(due2 + 62_000 - Date.now());
   ctx.app = app = await App.launch({ keepData: true });
   const said = await app.waitBubble("Late", 15_000);
-  assert.match(said, new RegExp(`Snoozed 2× · first rang ${(await app.clock(due2)).replace(/\s/g, "\\s")}`));
+  const at = (await app.clock(due2)).replace(/\s/g, "\\s");
+  assert.match(said, new RegExp(`Due ${at} · \\d+ min late — ePet wasn't running · 1 more try`));
+  assert.doesNotMatch(said, /Snoozed/, "the snoozes weren't yours");
   await app.answer("Done");
   assert.equal((await app.invoke("list_alarms")).find((a) => a.id === late.id).enabled, false);
 }, { timeout: 300_000 });

@@ -1,9 +1,9 @@
 //! Background loop that rings alarms, to-do reminders and tomato-clock phase changes.
 
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 use chrono::{Local, TimeZone};
-use desktoppet_core::{Celebration, Reminder, ReminderKind};
+use desktoppet_core::{Celebration, LateReason, Millis, Reminder, ReminderKind};
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
@@ -15,6 +15,7 @@ pub fn spawn<R: Runtime>(app: AppHandle<R>) {
         .name("scheduler".into())
         .spawn(move || {
             let mut presence = Presence::default();
+            let mut watch = Watch { started: now_ms(), last_look: None };
             // Today's backup, once the app has settled (beside the loop, never delaying it).
             let backup_app = app.clone();
             std::thread::spawn(move || {
@@ -27,16 +28,46 @@ pub fn spawn<R: Runtime>(app: AppHandle<R>) {
                 if !app.state::<AppState>().pet_ready.load(std::sync::atomic::Ordering::Relaxed) {
                     continue;
                 }
-                tick(&app);
+                tick(&app, &mut watch);
                 celebrate(&app, &mut presence);
             }
         })
         .expect("failed to start scheduler thread");
 }
 
-fn tick<R: Runtime>(app: &AppHandle<R>) {
+/// What the scheduler knows about its own running, to say why a reminder rings late.
+struct Watch {
+    /// When ePet started (the app's clock).
+    started: Millis,
+    /// When it last looked (the computer's own clock, not the test clock).
+    last_look: Option<SystemTime>,
+}
+
+/// How long the scheduler (which looks every second) must have been stopped for the computer
+/// to have been asleep.
+const ASLEEP_AFTER: Duration = Duration::from_secs(30);
+
+/// Rung more than a minute late (a look is due every second): why, if the app knows. Due
+/// before ePet started: it wasn't running; due during a long gap between looks: the computer
+/// was asleep. Otherwise (the test clock set ahead) it doesn't say.
+fn late_reason(due_at: Millis, now: Millis, started: Millis, gap: Option<Duration>) -> Option<LateReason> {
+    if now - due_at <= 60_000 {
+        None
+    } else if due_at < started {
+        Some(LateReason::NotRunning)
+    } else if gap.is_some_and(|g| g > ASLEEP_AFTER) {
+        Some(LateReason::Asleep)
+    } else {
+        None
+    }
+}
+
+fn tick<R: Runtime>(app: &AppHandle<R>, watch: &mut Watch) {
     let state = app.state::<AppState>();
     let now = now_ms();
+    let real = SystemTime::now();
+    let gap = watch.last_look.and_then(|t| real.duration_since(t).ok());
+    watch.last_look = Some(real);
     let (reminders, pomodoro, cleaned, prepped) = {
         let store = state.store();
         (
@@ -69,7 +100,8 @@ fn tick<R: Runtime>(app: &AppHandle<R>) {
             for r in list {
                 let comes = if away { r.important && r.kind == ReminderKind::Alarm } else { comes_out.covers(&r) };
                 let peeks = comes && peek(app);
-                let _ = app.emit("reminder", Reminder { peek: peeks, ..r });
+                let late = late_reason(r.due_at, now, watch.started, gap);
+                let _ = app.emit("reminder", Reminder { peek: peeks, late, ..r });
             }
             let _ = app.emit("todos-changed", ());
             let _ = app.emit("alarms-changed", ());
@@ -221,5 +253,27 @@ fn daily_cleanup(store: &desktoppet_core::Store, now: i64) -> bool {
             log::error!("daily clean-up failed: {e}");
             false
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const MIN: Millis = 60_000;
+
+    #[test]
+    fn says_why_a_reminder_rings_late_when_it_knows() {
+        let start = 100 * MIN;
+        let look = Some(Duration::from_secs(1));
+        // On time (a look a second late is still on time).
+        assert_eq!(late_reason(200 * MIN, 200 * MIN + 59_000, start, look), None);
+        // Due before ePet started.
+        assert_eq!(late_reason(90 * MIN, start + 2 * MIN, start, look), Some(LateReason::NotRunning));
+        // Due while the computer slept (no look for 10 minutes).
+        let slept = Some(Duration::from_secs(600));
+        assert_eq!(late_reason(200 * MIN, 207 * MIN, start, slept), Some(LateReason::Asleep));
+        // Late without either (the test clock set ahead): no reason given.
+        assert_eq!(late_reason(200 * MIN, 207 * MIN, start, look), None);
     }
 }

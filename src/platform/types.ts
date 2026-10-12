@@ -3,6 +3,7 @@ import type { Rect, WindowRect } from "../engine/geometry";
 import type { RingtoneId } from "../pet/sound";
 import { DEFAULT_MODES, modeSettings, type ModeSettings } from "../features/modes/modes";
 import type { CalendarKind } from "../features/anniversary/templates";
+import type { LateReason } from "../features/alarm/late";
 import { avoidSettings, DEFAULT_AVOID, type AvoidReason, type AvoidSettings, type Busy } from "../features/avoid/avoid";
 
 export interface PomodoroConfig {
@@ -300,6 +301,10 @@ export interface ReminderEvent {
   allDay?: boolean;
   /** An important alarm (`Alarm.important`). */
   important?: boolean;
+  /** When it was meant to ring: later than that, the pet says so (src/features/alarm/late.ts). */
+  dueAt?: number;
+  /** Why it's late, if known (the app: ePet wasn't running, asleep; the pet adds its own). */
+  late?: LateReason | null;
 }
 
 /** A day to remember every year (docs/INTERACTIONS.md, "Anniversaries"). */
