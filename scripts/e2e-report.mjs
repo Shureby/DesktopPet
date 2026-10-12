@@ -35,7 +35,8 @@ const unitPath = join(dir, "unit.json");
 if (existsSync(unitPath)) {
   for (const file of JSON.parse(readFileSync(unitPath, "utf8")).testResults ?? []) {
     for (const t of file.assertionResults ?? []) {
-      const m = /\[([a-z0-9-]+\.[a-z0-9.-]+)\]/.exec(t.title ?? "");
+      // The tag may be on the test or on a describe around it.
+      const m = /\[([a-z0-9-]+\.[a-z0-9.-]+)\]/.exec([...(t.ancestorTitles ?? []), t.title ?? ""].join(" "));
       if (m) add(m[1], { name: t.fullName ?? t.title, ok: t.status === "passed", error: t.failureMessages?.join("\n").slice(0, 2000), kind: "unit" });
     }
   }
