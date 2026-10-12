@@ -75,34 +75,53 @@ use core_graphics::window::kCGWindowOwnerName;
 
 use super::Busy;
 
-/// Apps whose full-screen window is a slide show.
+/// Apps whose full-screen window is a slide show (or its presenter view: macOS doesn't tell
+/// them apart without the Screen Recording permission).
 const PRESENTERS: &[&str] = &["Keynote", "Microsoft PowerPoint"];
 
-/// What you're doing on the pet's screen (`pet` is a point on it, in points).
-pub fn busy(own_pid: u32, pet: (f64, f64)) -> Busy {
-    let mut b = Busy::default();
-    if let Some(owner) = fullscreen_front(own_pid, pet) {
-        b.fullscreen = true;
-        b.presenting = PRESENTERS.contains(&owner.as_str());
-    }
-    b.call = camera_in_use() || microphone_in_use();
-    b
+/// What you're doing (`pet` is a point on its screen, in points), and the screens showing a
+/// slide show (in physical pixels, as Tauri's monitors: points × that screen's scale).
+pub fn busy(own_pid: u32, pet: (f64, f64)) -> (Busy, Vec<super::Rect>) {
+    let displays: Vec<CGDisplay> =
+        CGDisplay::active_displays().unwrap_or_default().into_iter().map(CGDisplay::new).collect();
+    let screens: Vec<super::Rect> = displays
+        .iter()
+        .map(|d| {
+            let r = d.bounds();
+            super::Rect { x: r.origin.x, y: r.origin.y, w: r.size.width, h: r.size.height }
+        })
+        .collect();
+    let scene = super::classify(&layers(own_pid), &screens, super::screen_at(&screens, pet));
+    let slideshows = scene
+        .slideshows
+        .iter()
+        .map(|s| {
+            let scale = displays
+                .iter()
+                .find(|d| d.bounds().origin.x == s.x && d.bounds().origin.y == s.y)
+                .map_or(1.0, |d| d.pixels_wide() as f64 / s.w.max(1.0));
+            super::Rect { x: s.x * scale, y: s.y * scale, w: s.w * scale, h: s.h * scale }
+        })
+        .collect();
+    let b = Busy {
+        fullscreen: scene.fullscreen,
+        presenting: !scene.slideshows.is_empty(),
+        call: camera_in_use() || microphone_in_use(),
+    };
+    (b, slideshows)
 }
 
-/// The frontmost app window on the pet's screen covers all of it (menu bar too): a full-screen
-/// app, a video, a slide show. Zoomed windows leave the menu bar, so they don't count.
-/// Returns the app's name.
-fn fullscreen_front(own_pid: u32, pet: (f64, f64)) -> Option<String> {
-    let screen = CGDisplay::active_displays().ok()?.into_iter().map(|id| CGDisplay::new(id).bounds()).find(|r| {
-        pet.0 >= r.origin.x
-            && pet.0 < r.origin.x + r.size.width
-            && pet.1 >= r.origin.y
-            && pet.1 < r.origin.y + r.size.height
-    })?;
-    let info =
-        copy_window_info(kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements, kCGNullWindowID)?;
+/// The app windows on screen, front to back, in points. Zoomed windows leave the menu bar, so
+/// they never cover a screen; full-screen apps and slide shows do.
+fn layers(own_pid: u32) -> Vec<super::Layer> {
+    let Some(info) =
+        copy_window_info(kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements, kCGNullWindowID)
+    else {
+        return Vec::new();
+    };
     let info: CFArray<CFDictionary<CFString, CFType>> =
         unsafe { CFArray::wrap_under_get_rule(info.as_concrete_TypeRef()) };
+    let mut out = Vec::new();
     for dict in info.iter() {
         let num = |key| unsafe { dict.find(CFString::wrap_under_get_rule(key)) }.and_then(|v| v.downcast::<CFNumber>());
         if num(unsafe { kCGWindowLayer }).and_then(|n| n.to_i32()) != Some(0)
@@ -116,32 +135,20 @@ fn fullscreen_front(own_pid: u32, pet: (f64, f64)) -> Option<String> {
         else {
             continue;
         };
-        let (cx, cy) = (r.origin.x + r.size.width / 2.0, r.origin.y + r.size.height / 2.0);
-        let on_screen = cx >= screen.origin.x
-            && cx < screen.origin.x + screen.size.width
-            && cy >= screen.origin.y
-            && cy < screen.origin.y + screen.size.height;
-        if !on_screen {
-            continue;
-        }
-        // The frontmost window on that screen decides (ours are skipped: the pet, the panel).
-        if num(unsafe { kCGWindowOwnerPID }).and_then(|n| n.to_i64()) == Some(own_pid as i64) {
-            continue;
-        }
-        let covers = r.origin.x <= screen.origin.x
-            && r.origin.y <= screen.origin.y
-            && r.origin.x + r.size.width >= screen.origin.x + screen.size.width
-            && r.origin.y + r.size.height >= screen.origin.y + screen.size.height;
-        if !covers {
-            return None;
-        }
         let owner = unsafe { dict.find(CFString::wrap_under_get_rule(kCGWindowOwnerName)) }
             .and_then(|v| v.downcast::<CFString>())
             .map(|s| s.to_string())
             .unwrap_or_default();
-        return Some(owner);
+        out.push(super::Layer {
+            // The pet, the panel.
+            own: num(unsafe { kCGWindowOwnerPID }).and_then(|n| n.to_i64()) == Some(own_pid as i64),
+            shell: false,
+            rect: super::Rect { x: r.origin.x, y: r.origin.y, w: r.size.width, h: r.size.height },
+            maximized: false,
+            slideshow: PRESENTERS.contains(&owner.as_str()),
+        });
     }
-    None
+    out
 }
 
 // CoreMediaIO and CoreAudio: whether a camera, or the microphone, is running "somewhere"

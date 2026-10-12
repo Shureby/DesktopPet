@@ -111,6 +111,7 @@ pub fn run() {
             commands::close_game,
             avoid::avoid_status,
             avoid::pretend_busy,
+            scheduler::peek_for_held,
             backup::backup_export,
             backup::backup_open,
             backup::backup_restore,

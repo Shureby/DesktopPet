@@ -1271,7 +1271,17 @@ button.preview .ic {
   margin-left: 6px;
   vertical-align: 1px;
 }
-.important-row {
+.clock-row .title.retry::after {
+  content: "💤";
+  margin-left: 6px;
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: var(--accent-soft);
+  vertical-align: 1px;
+}
+.important-row,
+.auto-snooze-row {
   margin-top: 6px;
 }
 .ann-form .ann-date .lunar-fields,

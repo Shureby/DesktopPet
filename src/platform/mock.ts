@@ -223,7 +223,7 @@ export function startMockScheduler(): () => void {
         if (a.enabled && a.nextFire !== null && a.nextFire <= now) {
           const fireAt = a.nextFire;
           const cycleStart = a.snoozes > 0 ? (a.rangAt ?? fireAt) : fireAt;
-          const snoozesItself = !a.label.startsWith("Timer: ") && alert.autoSnoozeMax > 0 && snoozeMs > 0;
+          const snoozesItself = a.autoSnooze !== false && !a.label.startsWith("Timer: ") && alert.autoSnoozeMax > 0 && snoozeMs > 0;
           const onTime = now - fireAt <= LATE_TOLERANCE;
           const next = a.repeat !== "none" && a.timeHm ? nextOccurrence(a.timeHm, daysOf(a), now) : null;
           a.skippedFire = null;
@@ -476,7 +476,7 @@ export const mockBackend: Backend = {
   async listAlarms() {
     return load().alarms;
   },
-  async addAlarm(label, at, repeat, days = 0, important = false) {
+  async addAlarm(label, at, repeat, days = 0, important = false, autoSnooze = true) {
     const t = alarmTimes(at, repeat, days);
     const alarm = mutate((s) => {
       const a: Alarm = {
@@ -492,6 +492,7 @@ export const mockBackend: Backend = {
         rangAt: null,
         createdAt: Date.now(),
         important,
+        autoSnooze: autoSnooze && !label.startsWith("Timer: "),
       };
       s.alarms.push(a);
       return a;
@@ -499,13 +500,14 @@ export const mockBackend: Backend = {
     fire("alarms-changed", null);
     return alarm;
   },
-  async updateAlarm(id, label, at, repeat, days = 0, important) {
+  async updateAlarm(id, label, at, repeat, days = 0, important, autoSnooze) {
     const t = alarmTimes(at, repeat, days);
     const alarm = mutate((s) => {
       const a = s.alarms.find((x) => x.id === id);
       if (!a) return null;
       Object.assign(a, { label: label.trim(), ...t, repeat, enabled: true, snoozes: 0, rangAt: null, skippedFire: null, offAt: null });
       if (important !== undefined) a.important = important;
+      if (autoSnooze !== undefined) a.autoSnooze = autoSnooze;
       return { ...a };
     });
     if (!alarm) throw new Error("that alarm no longer exists");
@@ -639,7 +641,10 @@ export const mockBackend: Backend = {
   async endPeek() {},
   async avoidStatus() {
     const reason = away;
-    return { reason, protected: !!reason && othersPresent(reason), pretend };
+    return { reason, protected: !!reason && othersPresent(reason), pretend, slideshows: [] };
+  },
+  async peekForHeld(todo, title) {
+    return petHidden && comesOut(load(), todo ? "todo" : "alarm", title);
   },
   async pretendBusy(busy) {
     pretend = busy;

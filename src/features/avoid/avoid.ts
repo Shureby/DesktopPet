@@ -1,8 +1,11 @@
+import type { Rect } from "../../engine/geometry";
+
 /**
  * Stepping aside (docs/INTERACTIONS.md, "Stepping aside"): while an app covers the pet's
  * screen, a slide show runs, or a camera or the microphone is in use, the pet leaves the
  * screen and comes back about 10 s after that's over. The app watches for these
- * (src-tauri/src/avoid.rs); this decides what the pet does about what comes due meanwhile.
+ * (src-tauri/src/avoid.rs). Wherever something rings, the pet is there: only an important
+ * alarm brings it out meanwhile; the rest waits for you to be back (`catchUp`).
  */
 
 /** Why the pet stepped aside. */
@@ -38,7 +41,7 @@ export function avoidSettings(stored: unknown): AvoidSettings {
   return { fullscreen: flag("fullscreen"), presenting: flag("presenting"), calls: flag("calls"), alwaysHide: flag("alwaysHide") };
 }
 
-/** Others may see or hear your screen: only important alarms ring, and ePet hides from capture. */
+/** Others may see or hear your screen: ePet hides from capture, and no focus sounds. */
 export function othersPresent(reason: AvoidReason): boolean {
   return reason !== "fullscreen";
 }
@@ -51,13 +54,44 @@ export const AVOID_LABELS: Record<AvoidReason, string> = {
 };
 
 /**
- * Something came due while the pet is aside and didn't bring it out (only important alarms
- * do): during a game or a video, alarms and timers ring (softly at first) and can be
- * answered once you're back; with others watching or listening, nothing rings. Either way
- * what isn't answered (and every to-do) is in "While you were busy you missed…".
+ * Held while the pet is aside this long at most: back sooner, what came due rings then (with
+ * the pet); later, it's missed (a timer is just done) and listed in "While you were busy…".
  */
-export function awayAction(reason: AvoidReason, kind: "alarm" | "timer" | "todo"): "ring" | "silent" {
-  return kind !== "todo" && reason === "fullscreen" ? "ring" : "silent";
+export const CATCH_UP_MS = 15 * 60_000;
+
+/** Something that came due while the pet was aside and didn't bring it out (only important alarms do). */
+export interface Held<T> {
+  item: T;
+  /** When it came due. */
+  at: number;
+  todo: boolean;
+}
+
+/**
+ * Back: what was held rings now, alarms and timers first (to-dos are told after them), each
+ * kind in the order it came due; what waited longer than CATCH_UP_MS is missed.
+ */
+export function catchUp<T>(held: Held<T>[], now: number): { ring: Held<T>[]; missed: Held<T>[] } {
+  const byTime = [...held].sort((a, b) => a.at - b.at);
+  const fresh = byTime.filter((h) => now - h.at <= CATCH_UP_MS);
+  return {
+    ring: [...fresh.filter((h) => !h.todo), ...fresh.filter((h) => h.todo)],
+    missed: byTime.filter((h) => now - h.at > CATCH_UP_MS),
+  };
+}
+
+/**
+ * An important alarm while a slide show runs: the pet comes out on a screen without it (the
+ * presenter's), if the one it's on shows the slides. Returns the area's index.
+ */
+export function outOfTheSlideShow(areas: Rect[], current: number, slideshows: Rect[]): number {
+  const showing = (a: Rect) => {
+    const [x, y] = [a.x + a.w / 2, a.y + a.h / 2];
+    return slideshows.some((s) => x >= s.x && x < s.x + s.w && y >= s.y && y < s.y + s.h);
+  };
+  if (!areas[current] || !showing(areas[current])) return current;
+  const other = areas.findIndex((a) => !showing(a));
+  return other >= 0 ? other : current;
 }
 
 /** Focus and break start sounds: during a game or a video yes, with others listening no. */

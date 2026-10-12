@@ -4,7 +4,7 @@
 //! ePet's windows are also left out of screen sharing and recordings.
 //!
 //! What rings meanwhile is decided by the scheduler (only important alarms bring the pet
-//! out) and by the pet window (src/features/avoid/avoid.ts).
+//! out; the rest waits for you to be back, see src/features/avoid/avoid.ts).
 
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
@@ -14,7 +14,7 @@ use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
 use crate::app_windows::{CELEBRATE, PET};
-use crate::desktop::{self, Busy};
+use crate::desktop::{self, Busy, Rect};
 use crate::state::AppState;
 
 /// Why the pet stepped aside.
@@ -98,6 +98,9 @@ pub struct Avoid {
     pub pretend: Option<Busy>,
     /// ePet's windows are left out of screen capture.
     pub protected: bool,
+    /// The screens showing a slide show (physical pixels): an important alarm brings the pet
+    /// out on another one, if there is one.
+    pub slideshows: Vec<Rect>,
 }
 
 impl Avoid {
@@ -149,15 +152,19 @@ fn check<R: Runtime>(app: &AppHandle<R>) {
     let state = app.state::<AppState>();
     let settings = state.store().settings().map(|s| AvoidSettings::from(&s)).unwrap_or_default();
     let pretend = state.avoid().pretend;
-    let busy = match pretend {
-        Some(b) => b,
+    let (busy, slideshows) = match pretend {
+        Some(b) => (b, Vec::new()),
         // The end-to-end tests' runner may have anything on screen: only what they pretend.
-        None if crate::commands::e2e_enabled() => Busy::default(),
+        None if crate::commands::e2e_enabled() => Default::default(),
         None => app.get_webview_window(PET).map(|w| desktop::busy(&w)).unwrap_or_default(),
     };
     let want = settings.reason(busy);
     let (before, after, protect) = {
         let mut a = state.avoid();
+        if a.slideshows != slideshows {
+            a.slideshows = slideshows.clone();
+            let _ = app.emit("avoid-slideshows", &slideshows);
+        }
         let before = a.step(want, Instant::now());
         // Hidden from capture while others may be watching, even with the pet shown anyway.
         let protect = settings.always_hide || want.is_some_and(Reason::others_present);
@@ -222,13 +229,14 @@ pub struct AvoidStatus {
     reason: Option<Reason>,
     protected: bool,
     pretend: Option<Busy>,
+    slideshows: Vec<Rect>,
 }
 
 /// Why the pet stepped aside (if it did), and whether ePet is hidden from screen capture.
 #[tauri::command]
 pub fn avoid_status(state: tauri::State<AppState>) -> AvoidStatus {
     let a = state.avoid();
-    AvoidStatus { reason: a.reason, protected: a.protected, pretend: a.pretend }
+    AvoidStatus { reason: a.reason, protected: a.protected, pretend: a.pretend, slideshows: a.slideshows.clone() }
 }
 
 /// Test builds and end-to-end tests: pretend you're doing this (None: look again).

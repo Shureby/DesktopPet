@@ -901,7 +901,7 @@ async function renderAlarms(): Promise<Node> {
   const alarms = await backend.listAlarms();
   // The alarm being edited was deleted (here or by the pet): back to a new one.
   if (alarmDraft?.editing != null && !alarms.some((a) => a.id === alarmDraft?.editing)) alarmDraft = null;
-  alarmDraft ??= { time: nowHm(), choice: "none", days: WEEKDAYS, label: "", important: false, editing: null };
+  alarmDraft ??= { time: nowHm(), choice: "none", days: WEEKDAYS, label: "", important: false, autoSnooze: false, autoSnoozeTouched: false, editing: null };
   const draft = alarmDraft;
   const editingAlarm = alarms.find((a) => a.id === draft.editing) ?? null;
   // ✎ fills the form; Save sets the alarm again, Cancel goes back to a new alarm.
@@ -962,12 +962,37 @@ async function renderAlarms(): Promise<Node> {
     ).map(([v, text]) => h("option", { value: v, selected: draft.choice === v }, text)),
   );
   refresh();
+  // "Try again" follows Important until it's changed by hand.
+  const retry = h("input", {
+    type: "checkbox",
+    class: "auto-snooze",
+    checked: draft.autoSnooze,
+    onchange: (e: Event) => {
+      draft.autoSnooze = (e.target as HTMLInputElement).checked;
+      draft.autoSnoozeTouched = true;
+    },
+  });
   const important = h("input", {
     type: "checkbox",
     class: "important",
     checked: draft.important,
-    onchange: (e: Event) => (draft.important = (e.target as HTMLInputElement).checked),
+    onchange: (e: Event) => {
+      draft.important = (e.target as HTMLInputElement).checked;
+      if (!draft.autoSnoozeTouched) retry.checked = draft.autoSnooze = draft.important;
+    },
   });
+  const a = settings.alerts.alarm;
+  const retryRow = h(
+    "label",
+    { class: "check auto-snooze-row" },
+    retry,
+    "Try again if I don't answer",
+    infoTip(
+      a.autoSnoozeMax > 0
+        ? `Unanswered, it rings again every ${a.snoozeMinutes} min, up to ${a.autoSnoozeMax} times (Settings → Alarms & timers), then it's marked missed. Off: missed after one ring.`
+        : "Settings → Alarms & timers says “Mark as missed”: unanswered alarms don't try again.",
+    ),
+  );
   const importantRow = h(
     "label",
     { class: "check important-row" },
@@ -988,17 +1013,18 @@ async function renderAlarms(): Promise<Node> {
     const name = label.value.trim() || DEFAULT_ALARM_LABEL;
     if (editingAlarm) {
       // Set again: it switches on, and its old snooze or skipped ring is forgotten.
-      await backend.updateAlarm(editingAlarm.id, name, d.getTime(), r.repeat, r.days, draft.important);
+      await backend.updateAlarm(editingAlarm.id, name, d.getTime(), r.repeat, r.days, draft.important, draft.autoSnooze);
       stopEdit();
       return;
     }
     // Cleared first: the list redraws the form as soon as the alarm is added.
     const isImportant = draft.important;
+    const tryAgain = draft.autoSnooze;
     draft.label = "";
-    draft.important = false;
-    await backend.addAlarm(name, d.getTime(), r.repeat, r.days, isImportant);
+    draft.important = draft.autoSnooze = draft.autoSnoozeTouched = false;
+    await backend.addAlarm(name, d.getTime(), r.repeat, r.days, isImportant, tryAgain);
     label.value = "";
-    important.checked = false;
+    important.checked = retry.checked = false;
   };
   // Custom length, with a live preview of how it's understood. `editing` is the saved
   // custom length being changed with ✎; starting a timer then replaces it in place.
@@ -1109,7 +1135,13 @@ async function renderAlarms(): Promise<Node> {
       h(
         "div",
         { class: "info" },
-        h("span", { class: "title" }, a.label, a.important ? h("span", { class: "chip important", title: "Rings even during calls and slide shows" }, "Important") : null),
+        h(
+          "span",
+          // "Try again if I don't answer": a 💤 after the label, drawn by CSS (the title's text stays the label).
+          a.autoSnooze !== false ? { class: "title retry", title: "💤 Tries again if you don't answer" } : { class: "title" },
+          a.label,
+          a.important ? h("span", { class: "chip important", title: "Rings even during calls and slide shows" }, "Important") : null,
+        ),
         h("span", { class: "sub" }, alarmSubtitle(a)),
         a.enabled && a.snoozes > 0 && a.nextFire
           ? h(
@@ -1175,6 +1207,7 @@ async function renderAlarms(): Promise<Node> {
     h("div", { class: "row" }, time, repeat, label, addButton),
     daysRow,
     importantRow,
+    retryRow,
     timers.length ? h("h3", {}, "Timers") : null,
     timers.length ? h("ul", { class: "list clocks" }, ...timers.map(timerRow)) : null,
     h("h3", {}, "Alarms"),
@@ -1911,7 +1944,12 @@ function unansweredRow(a: AlertSettings, update: (p: Partial<AlertSettings>) => 
     h(
       "label",
       {},
-      "If nobody answers",
+      h(
+        "span",
+        {},
+        "If nobody answers",
+        infoTip("For alarms with “Try again if I don't answer” ticked (in the Alarms tab: on for Important ones by default). Others are marked missed after one ring."),
+      ),
       h(
         "select",
         {

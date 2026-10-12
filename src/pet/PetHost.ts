@@ -8,6 +8,7 @@ import { RulesBrain } from "../brain/RulesBrain";
 import { Pet } from "../characters/Pet";
 import { loadAll, type CharacterRegistry, type LoadedCharacter } from "../characters/registry";
 import { areaIndexAt } from "../engine/physics";
+import type { Rect } from "../engine/geometry";
 import { createRng } from "../engine/random";
 import { SpriteAtlas } from "../engine/sprites";
 import {
@@ -45,7 +46,16 @@ import { buildItems, buildTrayItems, nativeMenu, showPetMenu, type Item, type Me
 import { CLOCK_STEPS, shiftLabel } from "../platform/testClock";
 import product from "../../product.config.json";
 import { icon } from "../ui/icons";
-import { AVOID_LABELS, awayAction, focusTonesAway, NOT_BUSY, othersPresent, type AvoidReason, type Busy } from "../features/avoid/avoid";
+import {
+  AVOID_LABELS,
+  catchUp,
+  focusTonesAway,
+  NOT_BUSY,
+  outOfTheSlideShow,
+  type AvoidReason,
+  type Busy,
+  type Held,
+} from "../features/avoid/avoid";
 import { baseMode, dayKey, MODE_ICONS, MODE_NAMES, modeNow, presetOf, type ModeNow, type ModePreset } from "../features/modes/modes";
 import { playFocusTone, playMusic, playRingtone, ringAlarm, sounds } from "./sound";
 
@@ -210,8 +220,14 @@ export class PetHost {
   private away: AvoidReason | null = null;
   /** ePet Test: what the tray's 🧪 Pretend makes the app think you're doing. */
   private pretend: Busy | null = null;
-  /** Alarms and timers rung while the pet was out of sight (stepped aside): unanswered, they're listed. */
-  private readonly outOfSightRings = new Set<number>();
+  /** What came due while the pet was aside and didn't bring it out: rung (or missed) once you're back. */
+  private held: Held<ReminderEvent>[] = [];
+  /** The screens showing a slide show (physical px): an important alarm brings the pet out elsewhere. */
+  private slideshows: Rect[] = [];
+  /** What's ringing, answerable from the tray too (Done, Snooze). */
+  private ringControls: { done: () => void; snooze: () => void; snoozeMinutes: number } | null = null;
+  /** ePet Test: frames drawn per second, over the last 5 s (tray 🧪). */
+  private fps = 0;
   /** Important alarms ringing now: in full, whatever the mode. */
   private readonly importantRings = new Set<number>();
   /** Tray menus still referenced: the current one and the one before (it may be open). */
@@ -320,9 +336,11 @@ export class PetHost {
       this.setHidden(this.gameOn);
     });
     await this.backend.on("avoid", (reason) => this.onAvoid(reason));
+    await this.backend.on("avoid-slideshows", (screens) => (this.slideshows = screens));
     const avoid = await this.backend.avoidStatus().catch(() => null);
     this.away = avoid?.reason ?? null;
     this.pretend = avoid?.pretend ?? null;
+    this.slideshows = avoid?.slideshows ?? [];
     await this.backend.on("pet-command", (c) => {
       if (c === "greet") this.pet.react({ type: "greet" });
     });
@@ -332,6 +350,18 @@ export class PetHost {
     const clock = await this.backend.testClock().catch(() => null);
     this.clockInTray = clock?.inTray ?? false;
     this.clockShift = clock?.shift ?? 0;
+    if (this.clockInTray) {
+      // 🧪 Frame rate: how smoothly the pet runs (a throttled window draws few frames).
+      let counted = this.frames;
+      setInterval(() => {
+        const fps = Math.round((this.frames - counted) / 5);
+        counted = this.frames;
+        if (fps !== this.fps) {
+          this.fps = fps;
+          this.scheduleTray();
+        }
+      }, 5000);
+    }
     await this.backend.on("clock-shift", (shift) => {
       this.clockShift = shift;
       // After this window's Date has moved too (followTestClock hears the same event).
@@ -636,7 +666,9 @@ export class PetHost {
   }
 
   private frame(now: number): void {
-    const dt = Math.min(0.25, (now - this.last) / 1000);
+    // Up to a second at once: a slow frame (a busy computer, a window over a full-screen game)
+    // doesn't slow the pet down.
+    const dt = Math.min(1, (now - this.last) / 1000);
     this.last = now;
     this.frames++;
     this.acc += dt;
@@ -1160,7 +1192,7 @@ export class PetHost {
     type Entry = Item | "sep";
     const menus = {
       pet: () => buildItems(this.petMenuContext()),
-      tray: () => buildTrayItems({ ...this.menuContext(), petVisible: this.petVisible, away: this.away }),
+      tray: () => buildTrayItems({ ...this.menuContext(), petVisible: this.petVisible, away: this.away, ringing: this.ringControls }),
     };
     const outline = (items: Entry[]): unknown[] =>
       items.map((i) => (i === "sep" ? "—" : i.items ? { text: i.text, items: outline(i.items) } : i.checked ? `✓ ${i.text}` : i.text));
@@ -1279,6 +1311,7 @@ export class PetHost {
       ...this.menuContext(),
       petVisible: this.petVisible,
       away: this.away,
+      ringing: this.ringControls,
     });
     if (this.clockInTray) {
       // ePet Test: above Quit, the clock and steps to set it ahead.
@@ -1290,7 +1323,7 @@ export class PetHost {
           "sep",
           { text: "Back to now", action: shift(-this.clockShift) },
         ],
-      }, this.pretendItem(), "sep");
+      }, this.pretendItem(), { text: `🧪 Frame rate: ${this.fps}/s`, disabled: true }, "sep");
     }
     const outline = JSON.stringify(items, (k, v) => (k === "action" ? undefined : v));
     // "ePet · 👔 Work until 5:30 PM": the mode even with the pet hidden.
@@ -1381,7 +1414,6 @@ export class PetHost {
 
   /** Snoozes and confirms, so the snoozed alarm never silently disappears. */
   private async snooze(id: number, minutes: number): Promise<void> {
-    this.outOfSightRings.delete(id);
     this.importantRings.delete(id);
     try {
       await this.backend.snoozeAlarm(id, minutes);
@@ -1602,11 +1634,7 @@ export class PetHost {
         btn.textContent = a.label;
         btn.addEventListener("click", (ev) => {
           ev.stopPropagation();
-          this.activeRing = null;
-          // Answered: nothing left to protect from being talked over.
-          this.importantUntil = 0;
-          a.run();
-          this.hideBubble();
+          this.answer(a);
         });
         row.append(btn);
       }
@@ -1622,6 +1650,16 @@ export class PetHost {
     }, ms);
   }
 
+  /** A bubble's button pressed (or the tray's Done / Snooze while ringing). */
+  private answer(a: BubbleAction): void {
+    this.activeRing = null;
+    clearTimeout(this.bubbleTimer);
+    // Answered: nothing left to protect from being talked over.
+    this.importantUntil = 0;
+    a.run();
+    this.hideBubble();
+  }
+
   private hideBubble(): void {
     this.bubble.hidden = true;
     this.stopRinging?.();
@@ -1634,21 +1672,17 @@ export class PetHost {
    * silently counting as unanswered. A to-do that comes due meanwhile waits its turn.
    */
   private onReminder(r: ReminderEvent): void {
+    // Stepped aside and not brought out for it (only important alarms are): it waits for you
+    // to be back (catchUpHeld). Nothing rings without the pet.
+    if (!r.peek && this.away !== null) {
+      this.held.push({ item: r, at: Date.now(), todo: r.kind === "todo" });
+      return;
+    }
     // Hidden and not coming out for this kind (Settings → Alerts): nobody can answer it, so
     // it counts as unanswered at once and waits in "While I was hidden you missed…".
     if (!r.peek && !this.petVisible) {
       void this.unansweredWhileHidden(r);
       return;
-    }
-    // Stepped aside and not brought out for it (only important alarms are): during a game or
-    // a video alarms and timers ring unseen, otherwise it's missed at once and listed.
-    const unseen = !r.peek && this.away !== null;
-    if (unseen) {
-      const kind = r.kind === "todo" ? "todo" : r.title.startsWith(TIMER_PREFIX) ? "timer" : "alarm";
-      if (awayAction(this.away!, kind) === "silent") {
-        void this.unansweredWhileHidden(r);
-        return;
-      }
     }
     // Hidden (or behind a mini-game): come out for it.
     if (r.peek || this.hidden) this.enterPeek();
@@ -1660,13 +1694,12 @@ export class PetHost {
     }
     const joining = this.activeRing !== null && this.ringing.length > 0;
     if (!this.ringing.includes(r.id)) this.ringing.push(r.id);
-    if (unseen) this.outOfSightRings.add(r.id);
     if (r.important) this.importantRings.add(r.id);
     const alert = this.settings.alerts.alarm;
     const mode = this.ringPreset();
     if (!joining) {
       // During a focus session the pet stays at its "desk" so the session isn't disrupted.
-      const run = alert.petRuns && mode.petRuns && this.pomodoro.phase !== "focus" && !unseen;
+      const run = alert.petRuns && mode.petRuns && this.pomodoro.phase !== "focus";
       const known = this.timers.find((a) => a.id === r.id);
       this.pet.react({ type: "reminder", kind: "alarm", title: known ? alarmName(known) : r.title, run });
       // The pet's own line ("MEOW! Alarm 9:40 PM") heads a single alarm's bubble.
@@ -1674,9 +1707,7 @@ export class PetHost {
     }
     // (Re)start the sound: a joining alarm rings for the full time too, like the bubble.
     this.stopRinging?.();
-    // Rung unseen (stepped aside for a game or a video): softly at first, like in Quiet.
-    const rampUp = mode.rampUp || (unseen && !r.important);
-    this.stopRinging = alert.ring ? ringAlarm(alert.ringtone, alert.volume * mode.volume, this.ringSeconds(), rampUp) : null;
+    this.stopRinging = alert.ring ? ringAlarm(alert.ringtone, alert.volume * mode.volume, this.ringSeconds(), mode.rampUp) : null;
     this.showRing();
     // The cached list may predate this ring (snooze count, first ring time): refresh and redraw.
     void this.refreshTimers().then(() => {
@@ -1740,6 +1771,8 @@ export class PetHost {
     const ids = () => {
       const all = this.ringing;
       this.ringing = [];
+      this.ringControls = null;
+      this.scheduleTray();
       // Whatever waited (a to-do) gets its turn once this bubble is gone.
       setTimeout(() => this.nextQueued(), 400);
       return all;
@@ -1758,6 +1791,13 @@ export class PetHost {
         },
       },
     ];
+    // The tray offers the same (the pet may be on another screen, or behind something).
+    this.ringControls = {
+      snooze: () => this.answer(actions[0]),
+      done: () => this.answer(actions[1]),
+      snoozeMinutes: alert.snoozeMinutes,
+    };
+    this.scheduleTray();
     const ms = restart ? this.ringSeconds() * 1000 : Math.max(1000, this.ringEndsAt - Date.now());
     if (restart) this.ringEndsAt = Date.now() + ms;
     this.say(this.ringLines(), ms, actions, () => {
@@ -1987,7 +2027,6 @@ export class PetHost {
    * when they rang), so an answered timer is never just gone; repeating alarms keep their schedule.
    */
   private async done(id: number): Promise<void> {
-    this.outOfSightRings.delete(id);
     this.importantRings.delete(id);
     await this.backend.dismissAlarm(id);
     await this.refreshTimers();
@@ -1995,9 +2034,8 @@ export class PetHost {
 
   /** Nobody answered: alarms snooze themselves a few times, then count as missed; timers are just done. */
   private async unanswered(id: number): Promise<void> {
-    // Rung out of hiding, or unseen while stepped aside: listed for when you're back.
-    const outOfSight = !!this.peek || this.outOfSightRings.has(id);
-    this.outOfSightRings.delete(id);
+    // Rung out of hiding (or aside, for an important alarm): listed for when you're back.
+    const outOfSight = !!this.peek;
     this.importantRings.delete(id);
     await this.refreshTimers();
     const alarm = this.timers.find((a) => a.id === id);
@@ -2065,22 +2103,50 @@ export class PetHost {
   private onAvoid(reason: AvoidReason | null): void {
     const before = this.away;
     this.away = reason;
-    if (reason) {
+    if (reason && !before) {
       // It went, out for a reminder or not (an important alarm brings it out again).
-      if (!before) this.peek = null;
-      // Others may hear now: what's ringing goes quiet (unless it's important); unanswered,
-      // it's listed for later.
-      const important = this.ringing.some((id) => this.importantRings.has(id));
-      if (othersPresent(reason) && this.activeRing && !important) {
-        this.stopRinging?.();
-        this.stopRinging = null;
-        for (const id of this.ringing) this.outOfSightRings.add(id);
-      }
+      this.peek = null;
+      this.holdRinging();
     }
     if (!this.windowed && !this.peek) this.setHidden(!!reason || !this.petVisible);
     this.updateMode();
     this.scheduleTray();
-    if (before && !reason && this.petVisible) void this.tellUnseen(true);
+    if (before && !reason) void this.catchUpHeld();
+  }
+
+  /**
+   * Stepping aside while something rings: nothing rings without the pet, so it stops and
+   * waits for you to be back, with whatever waited its turn (an important alarm rings on).
+   */
+  private holdRinging(): void {
+    const now = Date.now();
+    for (const r of this.queued.splice(0)) this.held.push({ item: r, at: now, todo: r.kind === "todo" });
+    if (!this.activeRing || !this.ringing.length || this.ringing.some((id) => this.importantRings.has(id))) return;
+    for (const id of this.ringing) {
+      const a = this.timers.find((x) => x.id === id);
+      this.held.push({ item: { kind: "alarm", id, title: a?.label ?? "Alarm" }, at: now, todo: false });
+    }
+    this.ringing = [];
+    this.ringControls = null;
+    this.activeRing = null;
+    clearTimeout(this.bubbleTimer);
+    this.hideBubble();
+  }
+
+  /**
+   * Back: what came due meanwhile rings now with the pet (to-dos after), or, if it waited
+   * more than 15 minutes, is missed and told in "While you were busy you missed:".
+   */
+  private async catchUpHeld(): Promise<void> {
+    const { ring, missed } = catchUp(this.held, Date.now());
+    this.held = [];
+    for (const h of missed) await this.unansweredWhileHidden(h.item);
+    for (const h of ring) {
+      // Hidden by you: it comes out for it if Settings say so, as when it came due.
+      const peek = !this.petVisible && (await this.backend.peekForHeld(h.todo, h.item.title));
+      this.onReminder({ ...h.item, peek });
+    }
+    if (this.petVisible) void this.tellUnseen(true);
   }
 
   /**
@@ -2116,9 +2182,18 @@ export class PetHost {
       return;
     }
     this.peek = { since: Date.now(), leaving: null };
-    const area = this.peekArea();
+    let area = this.peekArea();
+    const b = this.pet.body;
+    const areas = this.pet.world?.areas ?? [];
+    if (area && this.away && this.slideshows.length) {
+      // Its screen shows the slides: out on another one (the presenter's), from its floor.
+      const there = areas[outOfTheSlideShow(areas, areas.indexOf(area), this.slideshows)];
+      if (there !== area) {
+        area = there;
+        b.y = area.y + area.h;
+      }
+    }
     if (area) {
-      const b = this.pet.body;
       const margin = this.pet.spriteSize.w;
       b.x = b.x - area.x < area.x + area.w - b.x ? area.x + margin : area.x + area.w - margin;
       b.support = null;

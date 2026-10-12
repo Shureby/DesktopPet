@@ -46,6 +46,11 @@ describe("unanswered alarms", () => {
     expect(onUnanswered(alarm(), { ...s, autoSnoozeMax: 0 })).toEqual({ action: "missed" });
   });
 
+  it("an alarm without “Try again if I don't answer” is missed after one ring", () => {
+    expect(onUnanswered(alarm({ autoSnooze: false }), s)).toEqual({ action: "missed" });
+    expect(onUnanswered(alarm({ autoSnooze: true }), s)).toMatchObject({ action: "autoSnooze", attempt: 1 });
+  });
+
   it("never snoozes timers", () => {
     expect(onUnanswered(alarm({ label: "Timer: 5 min", repeat: "none", timeHm: null }), s)).toEqual({ action: "timerDone" });
   });

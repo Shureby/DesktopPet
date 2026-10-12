@@ -35,7 +35,9 @@ async function hide() {
 async function waitOut(timeout = 10_000) {
   const app = ctx.app;
   await app.b.waitUntil(async () => app.visible("pet"), { timeout });
-  assert.equal((await app.menu("tray"))[0], "Show pet", "still hidden as far as the tray goes");
+  // (Above it, while something rings: ⏰ Done and 💤 Snooze.)
+  const showHide = (await app.menu("tray")).find((i) => i === "Show pet" || i === "Hide pet");
+  assert.equal(showHide, "Show pet", "still hidden as far as the tray goes");
   assert.equal((await app.pet()).peek, true);
 }
 

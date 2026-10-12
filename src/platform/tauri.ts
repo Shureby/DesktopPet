@@ -32,13 +32,13 @@ export const tauriBackend: Backend = {
   closeCelebration: () => invoke("close_celebration"),
 
   listAlarms: () => invoke("list_alarms"),
-  addAlarm: (label, at, repeat, days, important) =>
-    invoke("add_alarm", { label, at, repeat, days: days ?? null, important: important ?? null }),
+  addAlarm: (label, at, repeat, days, important, autoSnooze) =>
+    invoke("add_alarm", { label, at, repeat, days: days ?? null, important: important ?? null, autoSnooze: autoSnooze ?? null }),
   setAlarmEnabled: (id, enabled) => invoke("set_alarm_enabled", { id, enabled }),
   skipAlarmOnce: (id) => invoke("skip_alarm_once", { id }),
   unskipAlarm: (id) => invoke("unskip_alarm", { id }),
-  updateAlarm: (id, label, at, repeat, days, important) =>
-    invoke("update_alarm", { id, label, at, repeat, days: days ?? null, important: important ?? null }),
+  updateAlarm: (id, label, at, repeat, days, important, autoSnooze) =>
+    invoke("update_alarm", { id, label, at, repeat, days: days ?? null, important: important ?? null, autoSnooze: autoSnooze ?? null }),
   deleteAlarm: (id) => invoke("delete_alarm", { id }),
   clearFinishedAlarms: () => invoke("clear_finished_alarms"),
   snoozeAlarm: (id, minutes) => invoke("snooze_alarm", { id, minutes }),
@@ -53,6 +53,7 @@ export const tauriBackend: Backend = {
   endPeek: () => invoke("end_peek"),
   avoidStatus: () => invoke<AvoidStatus>("avoid_status"),
   pretendBusy: (busy) => invoke("pretend_busy", { busy }),
+  peekForHeld: (todo, title) => invoke<boolean>("peek_for_held", { todo, title }),
   e2eEnabled: () => invoke<boolean>("e2e_enabled").catch(() => false),
   e2eTray: (id) => invoke("e2e_tray", { id }),
   backupExport: (password, path) => invoke("backup_export", { password, path: path ?? null }),

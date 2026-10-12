@@ -255,6 +255,8 @@ export interface Alarm {
   offAt?: number | null;
   /** Rings in full even when the pet has stepped aside for a call or a slide show, and in Quiet. */
   important?: boolean;
+  /** "Try again if I don't answer": snoozes itself when nobody answers (missing: yes, as before 0.40). */
+  autoSnooze?: boolean;
 }
 
 export type PomodoroPhase = "idle" | "focus" | "short_break" | "long_break";
@@ -404,6 +406,8 @@ export interface BackendEvents {
   "preview-stop": null;
   /** The pet stepped aside (why), or came back (null). */
   avoid: AvoidReason | null;
+  /** The screens showing a slide show changed (see AvoidStatus.slideshows). */
+  "avoid-slideshows": Rect[];
 }
 
 /** Stepping aside, as the app sees it now. */
@@ -413,6 +417,8 @@ export interface AvoidStatus {
   protected: boolean;
   /** What a test build pretends you're doing (null: what you really are). */
   pretend: Busy | null;
+  /** The screens showing a slide show (physical px): an important alarm brings the pet out elsewhere. */
+  slideshows: Rect[];
 }
 
 /** The test clock (src/platform/testClock.ts): how far ahead, and whether the tray offers it. */
@@ -493,9 +499,9 @@ export interface Backend {
 
   listAlarms(): Promise<Alarm[]>;
   /** `days` is for repeat "days". */
-  addAlarm(label: string, at: number, repeat: Repeat, days?: DayMask, important?: boolean): Promise<Alarm>;
+  addAlarm(label: string, at: number, repeat: Repeat, days?: DayMask, important?: boolean, autoSnooze?: boolean): Promise<Alarm>;
   /** Editing (✎): set again with a new label, time and repeat; it switches on. */
-  updateAlarm(id: number, label: string, at: number, repeat: Repeat, days?: DayMask, important?: boolean): Promise<Alarm>;
+  updateAlarm(id: number, label: string, at: number, repeat: Repeat, days?: DayMask, important?: boolean, autoSnooze?: boolean): Promise<Alarm>;
   setAlarmEnabled(id: number, enabled: boolean): Promise<void>;
   /** Repeating alarms: skip the next ring (or the rest of today's snoozes). */
   skipAlarmOnce(id: number): Promise<void>;
@@ -529,6 +535,11 @@ export interface Backend {
   avoidStatus(): Promise<AvoidStatus>;
   /** Test builds: pretend you're doing this (null: look at what you really are). */
   pretendBusy(busy: Busy | null): Promise<void>;
+  /**
+   * Back after stepping aside, something held meanwhile rings now: with the pet hidden it
+   * comes out for it if Settings say so (as when it came due). Whether it did.
+   */
+  peekForHeld(todo: boolean, title: string): Promise<boolean>;
   /** A debug build started for the end-to-end tests: the windows offer test hooks (e2e/). */
   e2eEnabled(): Promise<boolean>;
   /**

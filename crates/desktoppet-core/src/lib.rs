@@ -11,4 +11,4 @@ pub mod schedule;
 pub mod store;
 
 pub use model::*;
-pub use store::{Store, StoreError};
+pub use store::{Store, StoreError, TIMER_PREFIX};

@@ -51,6 +51,8 @@ export interface TrayMenuContext extends MenuContext {
   petVisible: boolean;
   /** The pet stepped aside (why): "Show pet" brings it back anyway. */
   away?: AvoidReason | null;
+  /** An alarm or timer is ringing: it can be answered from the tray too (the pet may be out of view). */
+  ringing?: { done: () => void; snooze: () => void; snoozeMinutes: number } | null;
 }
 
 export interface Item {
@@ -225,7 +227,15 @@ export function buildItems(c: PetMenuContext): (Item | "sep")[] {
  * the hidden pet window's script is throttled.
  */
 export function buildTrayItems(c: TrayMenuContext): (Item | "sep")[] {
+  const ring = c.ringing;
   return [
+    ...(ring
+      ? [
+          { text: "⏰ Done (stop ringing)", action: ring.done },
+          { text: `💤 Snooze ${ring.snoozeMinutes} min`, action: ring.snooze },
+          "sep" as const,
+        ]
+      : []),
     c.petVisible && !c.away ? { id: "hide", text: "Hide pet" } : { id: "show", text: "Show pet" },
     "sep",
     ...taskItems(c),

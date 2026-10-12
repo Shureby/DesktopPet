@@ -27,7 +27,7 @@ pub type Result<T> = std::result::Result<T, StoreError>;
 const LATE_TOLERANCE_MS: Millis = 60 * 1000;
 
 /// Timers are alarms whose label starts with this (see src/features/alarm/timers.ts).
-pub(crate) const TIMER_PREFIX: &str = "Timer: ";
+pub const TIMER_PREFIX: &str = "Timer: ";
 
 pub(crate) const MIGRATIONS: &[&str] = &[
     // v1
@@ -131,6 +131,10 @@ pub(crate) const MIGRATIONS: &[&str] = &[
      ALTER TABLE anniversaries ADD COLUMN leap INTEGER NOT NULL DEFAULT 0;
      ALTER TABLE anniversaries ADD COLUMN nth INTEGER;
      ALTER TABLE anniversaries ADD COLUMN weekday INTEGER;",
+    // v17: whether an alarm tries again when nobody answers (it's the alarm's own choice
+    // now). Alarms from before keep doing so; timers never do.
+    "ALTER TABLE alarms ADD COLUMN auto_snooze INTEGER NOT NULL DEFAULT 0;
+     UPDATE alarms SET auto_snooze = 1 WHERE label NOT LIKE 'Timer: %';",
 ];
 
 /// Tables whose rows carry a uid, updated_at and a tombstone when deleted (see v14), with
@@ -197,7 +201,7 @@ const DEFAULT_TODO_DAY_TIME: &str = "09:00";
 const AUTO_PERIOD_KEY: &str = "pomodoro_auto_period";
 
 const ALARM_COLUMNS: &str =
-    "id, label, next_fire, time_hm, repeat, enabled, snoozes, missed_at, rang_at, created_at, missed_seen_at, skipped_fire, repeat_days, off_at, important";
+    "id, label, next_fire, time_hm, repeat, enabled, snoozes, missed_at, rang_at, created_at, missed_seen_at, skipped_fire, repeat_days, off_at, important, auto_snooze";
 
 pub struct Store {
     pub(crate) conn: Connection,
@@ -708,6 +712,7 @@ impl Store {
             repeat_days: r.get(12)?,
             off_at: r.get(13)?,
             important: r.get(14)?,
+            auto_snooze: r.get(15)?,
         })
     }
 
@@ -807,12 +812,19 @@ impl Store {
             repeat_days,
             off_at: None,
             important: false,
+            auto_snooze: false,
         })
     }
 
     /// Marks an alarm important (or not): it rings in full when the pet has stepped aside.
     pub fn set_alarm_important(&self, id: i64, important: bool) -> Result<()> {
         self.conn.execute("UPDATE alarms SET important = ?2 WHERE id = ?1", params![id, important])?;
+        Ok(())
+    }
+
+    /// Whether an alarm tries again when nobody answers (Settings: how often and how many times).
+    pub fn set_alarm_auto_snooze(&self, id: i64, on: bool) -> Result<()> {
+        self.conn.execute("UPDATE alarms SET auto_snooze = ?2 WHERE id = ?1", params![id, on])?;
         Ok(())
     }
 
@@ -1024,7 +1036,8 @@ impl Store {
             });
             // The ringing cycle began at its first ring; a snoozed ring keeps that time.
             let cycle_start = if a.snoozes > 0 { a.rang_at.unwrap_or(fire_at) } else { fire_at };
-            let snoozes_itself = !a.label.starts_with(TIMER_PREFIX) && auto_snoozes > 0 && snooze_ms > 0;
+            let snoozes_itself =
+                a.auto_snooze && !a.label.starts_with(TIMER_PREFIX) && auto_snoozes > 0 && snooze_ms > 0;
             let on_time = now - fire_at <= LATE_TOLERANCE_MS;
             let within_snoozes = snoozes_itself && now - cycle_start <= snooze_ms * auto_snoozes as Millis;
             if on_time || within_snoozes {
@@ -1721,13 +1734,19 @@ mod tests {
         // 5 min × 3 by default: 9:00 rung at 9:12 has used 2 snoozes; at 9:16 it doesn't ring.
         let s = Store::open_in_memory().unwrap();
         let a = s.add_alarm(&London, "Alarm", at(9, 0), Repeat::None, 0, at(8, 0)).unwrap();
+        s.set_alarm_auto_snooze(a.id, true).unwrap();
         let rung = s.take_due(&London, at(9, 12)).unwrap();
         assert_eq!(rung.iter().map(|r| r.id).collect::<Vec<_>>(), vec![a.id]);
         let x = s.list_alarms().unwrap()[0].clone();
         assert_eq!((x.snoozes, x.rang_at), (2, Some(at(9, 0))));
 
         let b = s.add_alarm(&London, "Alarm", at(9, 0) + DAY, Repeat::None, 0, at(8, 0)).unwrap();
+        s.set_alarm_auto_snooze(b.id, true).unwrap();
         assert!(s.take_due(&London, at(9, 16) + DAY).unwrap().is_empty());
+        // One that doesn't try again has no snooze time: 2 minutes late is late.
+        let c = s.add_alarm(&London, "Alarm", at(9, 0) + 2 * DAY, Repeat::None, 0, at(8, 0)).unwrap();
+        assert!(!c.auto_snooze);
+        assert!(s.take_due(&London, at(9, 2) + 2 * DAY).unwrap().is_empty());
         let y = s.list_alarms().unwrap().into_iter().find(|x| x.id == b.id).unwrap();
         assert_eq!((y.off_at, y.missed_at), (Some(at(9, 0) + DAY), None));
     }
@@ -1736,13 +1755,50 @@ mod tests {
     fn the_snooze_time_follows_the_settings() {
         let s = Store::open_in_memory().unwrap();
         s.set_settings(&serde_json::json!({"alerts": {"alarm": {"snoozeMinutes": 10, "autoSnoozeMax": 3}}})).unwrap();
-        s.add_alarm(&London, "Alarm", at(9, 0), Repeat::None, 0, at(8, 0)).unwrap();
+        let a = s.add_alarm(&London, "Alarm", at(9, 0), Repeat::None, 0, at(8, 0)).unwrap();
+        s.set_alarm_auto_snooze(a.id, true).unwrap();
         assert_eq!(s.take_due(&London, at(9, 25)).unwrap().len(), 1);
         assert_eq!(s.list_alarms().unwrap()[0].snoozes, 2);
         // "Stop and mark as missed": no snooze time, so late is late.
         s.set_settings(&serde_json::json!({"alerts": {"alarm": {"snoozeMinutes": 5, "autoSnoozeMax": 0}}})).unwrap();
-        s.add_alarm(&London, "Alarm", at(9, 0) + DAY, Repeat::None, 0, at(8, 0)).unwrap();
+        let b = s.add_alarm(&London, "Alarm", at(9, 0) + DAY, Repeat::None, 0, at(8, 0)).unwrap();
+        s.set_alarm_auto_snooze(b.id, true).unwrap();
         assert!(s.take_due(&London, at(9, 2) + DAY).unwrap().is_empty());
+    }
+
+    #[test]
+    fn alarms_from_before_0_40_keep_trying_again_timers_dont_and_only_once() {
+        let dir = std::env::temp_dir().join(format!("desktoppet-v17-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("store.db");
+        let _ = std::fs::remove_file(&path);
+        {
+            let conn = Connection::open(&path).unwrap();
+            for (i, sql) in MIGRATIONS.iter().take(16).enumerate() {
+                conn.execute_batch(&format!("BEGIN; {}; PRAGMA user_version = {}; COMMIT;", migration_sql(sql), i + 1))
+                    .unwrap();
+            }
+            conn.execute("INSERT INTO alarms (label, repeat, enabled) VALUES ('Pills', 'none', 1)", []).unwrap();
+            conn.execute("INSERT INTO alarms (label, repeat, enabled) VALUES ('Timer: 5 min', 'none', 1)", []).unwrap();
+        }
+        let by = |s: &Store| -> Vec<(String, bool)> {
+            s.list_alarms().unwrap().into_iter().map(|a| (a.label, a.auto_snooze)).collect()
+        };
+        let pills = {
+            let s = Store::open(&path).unwrap();
+            assert_eq!(by(&s), vec![("Pills".into(), true), ("Timer: 5 min".into(), false)]);
+            // Turned off by hand after the upgrade, and an alarm made in 0.40 (off).
+            let pills = s.list_alarms().unwrap()[0].id;
+            s.set_alarm_auto_snooze(pills, false).unwrap();
+            s.add_alarm(&London, "Gym", at(9, 0), Repeat::None, 0, at(8, 0)).unwrap();
+            pills
+        };
+        // The next start doesn't upgrade them again.
+        let s = Store::open(&path).unwrap();
+        assert_eq!(by(&s), vec![("Pills".into(), false), ("Timer: 5 min".into(), false), ("Gym".into(), false)]);
+        assert_eq!(s.list_alarms().unwrap()[0].id, pills);
+        drop(s);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

@@ -31,9 +31,9 @@ async function reset(alarm = {}, extra = (s) => s) {
   await app.until(() => document.getElementById("bubble").hidden || !document.querySelector("#bubble .actions"), [], 15_000).catch(() => {});
 }
 
-/** An alarm (no label: "Alarm 9:40 PM") ringing in `ms`. */
-function addAlarm(ms, label = "") {
-  return ctx.app.invoke("add_alarm", { label, at: Date.now() + ms, repeat: "none", days: null });
+/** An alarm (no label: "Alarm 9:40 PM") ringing in `ms`, trying again if unanswered (or not). */
+function addAlarm(ms, label = "", autoSnooze = true) {
+  return ctx.app.invoke("add_alarm", { label, at: Date.now() + ms, repeat: "none", days: null, autoSnooze });
 }
 
 check("alarm.ring", "when it's time: the bubble with Snooze 5 min and Done, and the ring (Settings decide)", async () => {
@@ -51,7 +51,7 @@ check("alarm.ring", "when it's time: the bubble with Snooze 5 min and Done, and 
   assert.ok((await app.sounds(since)).some((s) => s.kind === "ring-stop"), "the ring stops");
 });
 
-check("alarm.auto-snooze", "unanswered, an alarm snoozes itself: 💤 badge, (1/3) in the panel, Cancel snooze in the menu; its rings say “Snoozed 1× · first rang …”, the last “last try…”", async () => {
+check("alarm.auto-snooze", "unanswered, an alarm with “Try again if I don't answer” snoozes itself: 💤 badge, (1/3) in the panel, Cancel snooze in the menu; its rings say “Snoozed 1× · first rang …”, the last “last try…”", async () => {
   const app = ctx.app;
   // Rings 3 s; snoozes of 12 s.
   await reset({ ringSeconds: 3, snoozeMinutes: 0.2 });
@@ -203,6 +203,11 @@ check("settings.unanswered", "Ring for and If nobody answers are kept; “Mark a
   let a = (await app.fullSettings()).alerts.alarm;
   assert.deepEqual([a.snoozeMinutes, a.autoSnoozeMax], [10, 3]);
   await app.panel("settings");
+  // Its ⓘ: only for alarms that try again.
+  const tip = await app.b.execute(() =>
+    [...document.querySelectorAll(".box.alert label")].find((x) => x.textContent.startsWith("If nobody answers"))?.querySelector(".info")?.getAttribute("aria-label"),
+  );
+  assert.match(tip ?? "", /Try again if I don't answer/);
   await choose("If nobody answers", 3);
   await app.sleep(600);
   a = (await app.fullSettings()).alerts.alarm;
@@ -263,3 +268,41 @@ check("settings.alerts", "Ring off: silent; ringtone and volume as set; the ▶ 
   }
   assert.ok(ran, `came to the middle in 12 tries (target − middle each try: ${JSON.stringify(seen)})`);
 });
+
+check("alarm.auto-snooze-option", "the alarm form's “Try again if I don't answer”: follows Important until ticked by hand, saved and shown (💤); off, an unanswered alarm is missed after one ring", async () => {
+  const app = ctx.app;
+  await reset({ ringSeconds: 3, snoozeMinutes: 0.2 });
+  await app.panel("alarms");
+  const retry = () => app.b.execute(() => document.querySelector(".auto-snooze-row input").checked);
+  assert.equal(await retry(), false, "off for a new alarm");
+  await app.click(".important-row input");
+  assert.equal(await retry(), true, "on with Important");
+  await app.click(".important-row input");
+  assert.equal(await retry(), false, "off again");
+  // Ticked by hand: Important no longer changes it.
+  await app.click(".auto-snooze-row input");
+  await app.click(".important-row input");
+  await app.click(".important-row input");
+  assert.equal(await retry(), true, "kept as ticked");
+  await app.b.execute(() => {
+    const label = document.querySelector('input[placeholder="Label"]');
+    label.value = "Vitamins";
+    label.dispatchEvent(new Event("input"));
+  });
+  await app.click("button.primary", "Add");
+  await app.b.waitUntil(() => app.b.execute(() => !!document.querySelector(".clock-row .title.retry")), { timeout: 5000 });
+  const [saved] = await alarms();
+  assert.deepEqual([saved.autoSnooze, saved.important], [true, false]);
+  await app.click(".clock-row button.edit");
+  assert.equal(await retry(), true, "kept when edited");
+  await app.click(".auto-snooze-row input");
+  await app.click("button.primary", "Save");
+  await app.b.waitUntil(async () => (await find(saved.id))?.autoSnooze === false, { timeout: 5000 });
+  await app.b.waitUntil(() => app.b.execute(() => !document.querySelector(".clock-row .title.retry")), { timeout: 5000 });
+  // Off: one ring (3 s here), then missed, no snoozing.
+  await app.toPet();
+  const x = await addAlarm(2000, "Plants", false);
+  await app.b.waitUntil(async () => (await find(x.id))?.missedAt, { timeout: 15_000 });
+  assert.equal((await find(x.id)).snoozes, 0);
+  await app.b.execute(() => [...document.getElementById("badges").children].find((e) => e.textContent.startsWith("⏰"))?.click());
+}, { timeout: 60_000 });

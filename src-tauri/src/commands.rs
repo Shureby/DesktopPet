@@ -155,12 +155,19 @@ pub fn add_alarm(
     repeat: Repeat,
     days: Option<u8>,
     important: Option<bool>,
+    auto_snooze: Option<bool>,
 ) -> CmdResult<Alarm> {
     let store = state.store();
     let mut alarm = store.add_alarm(&Local, &label, at, repeat, days.unwrap_or(0), now_ms()).map_err(err)?;
     if important == Some(true) {
         store.set_alarm_important(alarm.id, true).map_err(err)?;
         alarm.important = true;
+    }
+    // Not said (callers from before 0.40): it tries again, as alarms always did. Timers never do.
+    let snooze = auto_snooze.unwrap_or(true) && !label.starts_with(desktoppet_core::TIMER_PREFIX);
+    if snooze {
+        store.set_alarm_auto_snooze(alarm.id, true).map_err(err)?;
+        alarm.auto_snooze = true;
     }
     let _ = app.emit("alarms-changed", ());
     Ok(alarm)
@@ -178,12 +185,17 @@ pub fn update_alarm(
     repeat: Repeat,
     days: Option<u8>,
     important: Option<bool>,
+    auto_snooze: Option<bool>,
 ) -> CmdResult<Alarm> {
     let store = state.store();
     let mut alarm = store.update_alarm(&Local, id, &label, at, repeat, days.unwrap_or(0)).map_err(err)?;
     if let Some(important) = important {
         store.set_alarm_important(id, important).map_err(err)?;
         alarm.important = important;
+    }
+    if let Some(on) = auto_snooze {
+        store.set_alarm_auto_snooze(id, on).map_err(err)?;
+        alarm.auto_snooze = on;
     }
     let _ = app.emit("alarms-changed", ());
     Ok(alarm)

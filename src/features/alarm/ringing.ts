@@ -15,7 +15,8 @@ export type Unanswered =
 
 export function onUnanswered(alarm: Alarm, s: AlertSettings): Unanswered {
   if (isTimer(alarm)) return { action: "timerDone" };
-  if (alarm.snoozes < s.autoSnoozeMax) {
+  // Only an alarm set to "Try again if I don't answer" (all of them before 0.40).
+  if (alarm.autoSnooze !== false && alarm.snoozes < s.autoSnoozeMax) {
     return { action: "autoSnooze", minutes: s.snoozeMinutes, attempt: alarm.snoozes + 1, max: s.autoSnoozeMax };
   }
   return { action: "missed" };

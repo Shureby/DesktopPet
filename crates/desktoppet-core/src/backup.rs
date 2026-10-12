@@ -425,6 +425,13 @@ impl Store {
                 {
                     continue;
                 }
+                // Alarms from before 0.40 tried again when nobody answered: they still do.
+                if table == "alarms" && !row.contains_key("auto_snooze") {
+                    let mut row = row.clone();
+                    row.insert("auto_snooze".into(), Value::from(1));
+                    self.restore_row(table, &columns, &row)?;
+                    continue;
+                }
                 self.restore_row(table, &columns, row)?;
             }
             // What the backup deleted goes, unless it changed here after that.
@@ -745,6 +752,22 @@ mod tests {
         assert_eq!(titles(&other), vec!["From backup"]);
         let labels: Vec<String> = other.list_alarms().unwrap().into_iter().map(|a| a.label).collect();
         assert_eq!(labels, vec!["Timer: 5 min"]);
+    }
+
+    #[test]
+    fn alarms_from_a_backup_before_0_40_keep_trying_again() {
+        let s = Store::open_in_memory().unwrap();
+        s.add_alarm(&London, "Pills", at(9, 0), Repeat::Daily, 0, at(8, 0)).unwrap();
+        let mut snap = s.snapshot("0.39.0", device(), at(10, 0)).unwrap();
+        snap.schedule.alarms[0].remove("auto_snooze");
+        let other = Store::open_in_memory().unwrap();
+        other.restore(&snap, all(), RestoreMode::Merge).unwrap();
+        assert!(other.list_alarms().unwrap()[0].auto_snooze);
+        // From 0.40 on, its own choice is kept.
+        let snap = s.snapshot("0.40.0", device(), at(10, 0)).unwrap();
+        let third = Store::open_in_memory().unwrap();
+        third.restore(&snap, all(), RestoreMode::Merge).unwrap();
+        assert!(!third.list_alarms().unwrap()[0].auto_snooze);
     }
 
     #[test]

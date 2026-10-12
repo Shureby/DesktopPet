@@ -16,6 +16,32 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.40.0] - 2026-10-12
+
+### Added
+- **"Try again if I don't answer"** on each alarm (💤 in the list): only these snooze
+  themselves when nobody answers; the others are marked missed after one ring. New alarms
+  have it ticked when Important (until you change it); alarms from before this version keep
+  trying again. Timers never do. Settings → "If nobody answers" now says it applies to these.
+- While an alarm or timer rings, the tray menu starts with **⏰ Done (stop ringing)** and
+  **💤 Snooze 5 min**, to answer it when the pet is out of view.
+- ePet Test: 🧪 Frame rate in the tray.
+
+### Changed
+- **Stepping aside: wherever something rings, the pet is there.** While the pet is aside
+  (a full-screen game or video, a slide show, a call) only Important alarms ring, and they
+  always bring the pet. Other alarms, timers and to-do reminders wait: back within 15
+  minutes, they ring then with the pet; later, they're missed and told in "While you were
+  busy…". (Before, during a game or video, alarms rang without the pet.)
+- A slide show on **any** screen counts as presenting, so the pet steps aside on the
+  presenter view's screen too; an Important alarm then brings it out on the screen without
+  the slides.
+- A game covering several screens (racing, flight simulators) counts as full screen on each.
+
+### Fixed
+- The pet ran slowly in and out over a full-screen app or slide show (its window was being
+  throttled): it keeps its usual speed now.
+
 ## [0.39.2] - 2026-10-11
 
 ### Fixed

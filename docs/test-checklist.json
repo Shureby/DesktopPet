@@ -577,9 +577,9 @@
         },
         {
           "id": "alarm.auto-snooze",
-          "rev": "0.15.0",
+          "rev": "0.40.0",
           "ci": "auto",
-          "do": "新建一个不填标签的一次性闹钟，到点后不理会，等它响完；再等下一次（贪睡后）响铃",
+          "do": "新建一个不填标签的一次性闹钟，勾上 “Try again if I don't answer”，到点后不理会，等它响完；再等下一次（贪睡后）响铃",
           "expect": "自动贪睡：宠物旁 “💤 …”，面板显示 (1/3)，右键菜单 “Cancel snooze: Alarm 9:40 PM (next ring 9:46 PM)”；贪睡后的响铃气泡仍写 “Alarm 9:40 PM”，并有小字 “Snoozed 1× · first rang 9:40 PM”；第 3 次贪睡的响铃还写 “last try before it's marked missed”；所有时间都是同一种格式（跟随系统 12/24 小时制）"
         },
         {
@@ -647,6 +647,14 @@
           "ci": "auto",
           "do": "面板 Alarms 页签新建闹钟时勾上 Important（旁边 ⓘ 有说明），点 Add；再点 ✎ 编辑它，点 Save",
           "expect": "列表里这个闹钟名字后面有一个 “Important” 小标签；编辑时 Important 仍然勾着，保存后还是 Important"
+        },
+        {
+          "id": "alarm.auto-snooze-option",
+          "rev": "0.40.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "面板 Alarms 页签新建闹钟：先看 “Try again if I don't answer” 是否勾着；勾上 Important 再取消；然后手动勾上 Try again，再勾、取消 Important；点 Add，再 ✎ 编辑，取消 Try again 后 Save；最后让一个不勾 Try again 的闹钟响，不理它",
+          "expect": "新闹钟默认不勾；勾 Important 时 Try again 跟着勾上，取消时跟着取消；手动改过 Try again 之后，Important 不再带动它；列表里勾了 Try again 的闹钟名字后面有 “💤” 小标签，编辑时仍勾着，取消后小标签消失；不勾 Try again 的闹钟只响一次就记为 missed，不贪睡；旁边 ⓘ 说明会重试几次（按 设置 → Alarms & timers）。升级前已有的闹钟都保持勾着（行为和以前一样），计时器永远不自动贪睡"
         }
       ]
     },
@@ -1139,10 +1147,10 @@
         },
         {
           "id": "settings.unanswered",
-          "rev": "0.5.0",
+          "rev": "0.40.0",
           "ci": "auto",
-          "do": "改 Ring for 和 If nobody answers",
-          "expect": "按设置执行（响铃时长、贪睡次数或直接标记 missed）"
+          "do": "改 Ring for 和 If nobody answers；把鼠标放到 If nobody answers 旁边的 ⓘ 上",
+          "expect": "按设置执行（响铃时长、贪睡次数或直接标记 missed）；ⓘ 说明这个设置只对勾了 “Try again if I don't answer” 的闹钟生效（Important 闹钟默认勾），其他闹钟响一次没人理就记为 missed"
         },
         {
           "id": "settings.other-sounds",
@@ -1251,23 +1259,30 @@
       "items": [
         {
           "id": "avoid.real-fullscreen",
-          "rev": "0.38.0",
+          "rev": "0.40.0",
           "mac": true,
-          "do": "在宠物所在的屏幕上把一个视频（例如 YouTube）切到全屏；退出全屏；再把一个普通窗口最大化（带标题栏）；有两块屏幕的话，在另一块屏幕上全屏放视频",
-          "expect": "全屏后约 1 秒内宠物离开，托盘第一项变成 Show pet，托盘里有灰色的一行 “Stepped aside: full screen”，托盘图标悬停提示末尾是 “· Stepped aside: full screen”；退出全屏约 10 秒后宠物回来；最大化的普通窗口不算全屏，宠物不走；另一块屏幕全屏时，这块屏幕上的宠物不走"
+          "do": "在宠物所在的屏幕上把一个视频（例如 YouTube）切到全屏；退出全屏；再把一个普通窗口最大化（带标题栏）；有两块屏幕的话，在另一块屏幕上全屏放视频；全屏时让一个普通闹钟响",
+          "expect": "全屏后约 1 秒内宠物离开，托盘第一项变成 Show pet，托盘里有灰色的一行 “Stepped aside: full screen”，托盘图标悬停提示末尾是 “· Stepped aside: full screen”；全屏期间普通闹钟不响（没有宠物就没有铃声）；退出全屏约 10 秒后宠物回来，那个闹钟带着宠物补响；最大化的普通窗口不算全屏，宠物不走；另一块屏幕全屏时，这块屏幕上的宠物不走"
         },
         {
           "id": "avoid.real-game",
-          "rev": "0.38.0",
-          "do": "打开一个全屏游戏玩一会儿；期间设一个 1 分钟的计时器（可以先设好再进游戏）；不理它；退出游戏",
-          "expect": "游戏时宠物不出现、不挡画面；计时器到时会响，开始小声、慢慢变大，宠物不出来；退出游戏约 10 秒后宠物回来，说 “While you were busy you missed:” 并列出那个计时器"
+          "rev": "0.40.0",
+          "do": "打开一个全屏游戏玩一会儿；期间设一个 1 分钟的计时器（可以先设好再进游戏）；不理它；1 分钟后退出游戏。再来一次，这次玩 15 分钟以上再退出",
+          "expect": "游戏时宠物不出现、不挡画面，计时器到时也不响；15 分钟内退出游戏约 10 秒后宠物回来，计时器带着宠物补响；超过 15 分钟才退出时不补响，宠物说 “While you were busy you missed:” 并列出那个计时器"
+        },
+        {
+          "id": "avoid.real-spanning",
+          "rev": "0.40.0",
+          "human": "需要两块以上的屏幕和一个能横跨多屏全屏的游戏（赛车、飞行模拟）",
+          "do": "把游戏设成横跨所有屏幕的全屏（或 NVIDIA Surround / AMD Eyefinity），宠物先放在任意一块屏幕上，开始游戏",
+          "expect": "无论宠物在哪块屏幕上，游戏开始约 1 秒内都离开，托盘写 “Stepped aside: full screen”；退出游戏约 10 秒后回来"
         },
         {
           "id": "avoid.real-slides",
-          "rev": "0.39.1",
+          "rev": "0.40.0",
           "mac": true,
-          "do": "Windows：PowerPoint 按 F5 放映；Mac：Keynote 播放（或 PowerPoint 放映）。放映时让一个勾了 Important 的闹钟响，点气泡上的 Done；再让一个普通闹钟响；放映中再开一下截图工具（Win+Shift+S）；结束放映",
-          "expect": "放映一开始宠物就离开，托盘写 “Stepped aside: presenting”；普通闹钟不响、宠物不出来；Important 闹钟照常全音量响，宠物出来提醒，点 Done 后宠物走回屏幕边缘离开，放映期间不再出现（点过宠物、开过截图工具都一样）；结束放映约 10 秒后宠物回来，告诉你错过了那个普通闹钟"
+          "do": "Windows：PowerPoint 按 F5 放映；Mac：Keynote 播放（或 PowerPoint 放映）。有两块屏幕的话打开演示者视图（Presenter View），并把宠物先放在演示者视图那块屏幕上。放映时让一个勾了 Important 的闹钟响，点气泡上的 Done；再让一个普通闹钟响；放映中再开一下截图工具（Win+Shift+S）、点一下宠物所在的屏幕；15 分钟内结束放映",
+          "expect": "放映一开始宠物就离开（宠物在演示者视图那块屏幕上也一样），托盘写 “Stepped aside: presenting”；普通闹钟不响、宠物不出来；Important 闹钟照常全音量响，宠物出来提醒——宠物原来在放映那块屏幕上时，会改到演示者视图那块屏幕上出来（Mac 上可能仍在原屏幕）；点 Done 后宠物跑回屏幕边缘离开，速度和平时一样快，放映期间不再出现（点过宠物、开过截图工具都一样）；结束放映约 10 秒后宠物回来，普通闹钟带着宠物补响"
         },
         {
           "id": "avoid.real-call",
@@ -1293,11 +1308,11 @@
         },
         {
           "id": "avoid.call",
-          "rev": "0.38.0",
+          "rev": "0.40.0",
           "mac": true,
           "ci": "auto",
           "do": "（ePet Test 里用 🧪 Pretend → In a call 代替真的通话）设一个 1 分钟后的普通闹钟，等它到时；然后选 Nothing (look for real)",
-          "expect": "宠物离开；闹钟不响、宠物不出来；约 10 秒后宠物回来，说 “While you were busy you missed:”，列出那个闹钟，点 Done 清掉"
+          "expect": "宠物离开；闹钟不响、宠物不出来；约 10 秒后宠物回来，那个闹钟带着宠物补响，点 Done 停"
         },
         {
           "id": "avoid.important",
@@ -1309,11 +1324,19 @@
         },
         {
           "id": "avoid.fullscreen",
-          "rev": "0.38.0",
+          "rev": "0.40.0",
           "mac": true,
           "ci": "auto",
-          "do": "Pretend → Full screen 时，让一个普通闹钟响，别理它；然后选 Nothing",
-          "expect": "闹钟会响（从小声开始），宠物不出来；没人理就记下来；宠物回来时告诉你错过了它"
+          "do": "Pretend → Full screen 时，让一个普通闹钟响；用 🧪 Test clock 把时间往后拨 30 min（等于玩了 15 分钟以上）；然后选 Nothing",
+          "expect": "闹钟不响，宠物不出来；宠物回来时不补响，说 “While you were busy you missed:” 并列出那个闹钟，它在面板里记为 missed"
+        },
+        {
+          "id": "avoid.held",
+          "rev": "0.40.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "Pretend → Full screen 时，让一个待办和一个普通闹钟先后到时；10 分钟内选 Nothing",
+          "expect": "期间什么都不响、宠物不出来；宠物回来后先补响闹钟，点 Done 后再提醒那个待办；不进 “While you were busy you missed:”。纪念日也等你回来再庆祝"
         },
         {
           "id": "avoid.tray",
@@ -1322,6 +1345,22 @@
           "ci": "auto",
           "do": "Pretend → In a call（或真的开会）时打开托盘菜单",
           "expect": "第一项是 Show pet；Switch mode 下面有一行灰色、不能点的 “Stepped aside: in a call”；不在避让时没有这一行"
+        },
+        {
+          "id": "avoid.tray-stop",
+          "rev": "0.40.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "让一个闹钟响，打开托盘菜单，点 “⏰ Done (stop ringing)”；再让一个闹钟响，点托盘 “💤 Snooze 5 min”",
+          "expect": "响铃时托盘最上面是这两项；点 Done 铃声马上停，气泡消失，闹钟结束；点 Snooze 铃声停，闹钟 5 分钟后再响；不响时托盘没有这两项"
+        },
+        {
+          "id": "avoid.speed",
+          "rev": "0.40.0",
+          "mac": true,
+          "human": "看起来快不快要你判断",
+          "do": "用 ePet Test：托盘里看 “🧪 Frame rate: …/s”；然后放映 PowerPoint（或全屏一个游戏），期间让 Important 闹钟响、点 Done；再拖动宠物、扔一下",
+          "expect": "平时 Frame rate 约 60/s（屏幕刷新率更高时可能更高），放映时也不明显变低；Important 闹钟时宠物跑进、跑出的速度和平时一样，不再慢吞吞；拖动和扔出去的效果正常，不会突然瞬移"
         },
         {
           "id": "avoid.show-anyway",

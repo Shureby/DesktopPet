@@ -8,7 +8,8 @@ const GAME = { fullscreen: true, presenting: false, call: false };
 const status = () => ctx.app.invoke("avoid_status");
 const pretend = (busy) => ctx.app.invoke("pretend_busy", { busy });
 const addAlarm = (ms, label = "", important = false) =>
-  ctx.app.invoke("add_alarm", { label, at: Date.now() + ms, repeat: "none", days: null, important });
+  ctx.app.invoke("add_alarm", { label, at: Date.now() + ms, repeat: "none", days: null, important, autoSnooze: false });
+const addTodo = (ms, title) => ctx.app.invoke("add_todo", { todo: { title, dueAt: Date.now() + ms, allDay: false, repeat: "none" } });
 
 /** Shown and back from any stepping aside, nothing set or unseen; alarms ring 3 s, no snoozes. */
 async function reset(alarm = {}) {
@@ -20,6 +21,9 @@ async function reset(alarm = {}) {
   if ((await app.menu("tray"))[0] === "Show pet") await app.invoke("e2e_tray", { id: "show" });
   for (const label of ["Done", "Done"]) await app.answer(label).catch(() => {});
   for (const a of await app.invoke("list_alarms")) await app.invoke("delete_alarm", { id: a.id });
+  for (const t of await app.invoke("list_todos")) await app.invoke("delete_todo", { id: t.id });
+  const clock = await app.invoke("test_clock");
+  if (clock?.shift) await app.invoke("shift_clock", { ms: -clock.shift });
   await app.invoke("clear_unseen");
   await app.setSettings((s) => {
     s.alerts.alarm = { ...s.alerts.alarm, ring: true, ringtone: "classic", volume: 0.6, petRuns: false, ringSeconds: 3, autoSnoozeMax: 0, ...alarm };
@@ -49,22 +53,24 @@ async function comeBack() {
   assert.equal((await app.pet()).away, null);
 }
 
-check("avoid.call", "in a call the pet steps aside, nothing rings (alarms are listed for later), ePet is hidden from screen sharing; back ~10 s after, it tells what you missed", async () => {
+check("avoid.call", "in a call the pet steps aside and nothing rings (an alarm waits), ePet is hidden from screen sharing; back ~10 s after, the alarm rings with the pet", async () => {
   const app = ctx.app;
-  await reset();
+  await reset({ ringSeconds: 30 });
   await stepAside(CALL, "call");
   assert.equal((await status()).protected, true, "left out of screen sharing");
   const tray = await app.menu("tray");
   assert.equal(tray[0], "Show pet");
   assert.ok(tray.includes("Stepped aside: in a call"), JSON.stringify(tray));
   const since = Date.now();
-  await addAlarm(1500, "Stand-up notes");
-  await app.b.waitUntil(async () => (await app.invoke("list_unseen")).length === 1, { timeout: 10_000 });
+  const a = await addAlarm(1500, "Stand-up notes");
+  await app.b.waitUntil(async () => (await app.invoke("list_alarms")).find((x) => x.id === a.id)?.rangAt, { timeout: 10_000 });
+  await app.sleep(2000);
   assert.equal(await app.visible("pet"), false, "it doesn't come out");
   assert.ok(!(await app.sounds(since)).some((s) => s.kind === "ring"), "no ring in a call");
+  assert.equal((await app.invoke("list_unseen")).length, 0, "not missed: it waits");
   await comeBack();
-  await app.waitBubble("While you were busy you missed:", 5000);
-  assert.ok((await app.bubble()).includes("Stand-up notes"));
+  await app.waitBubble("Stand-up notes", 5000);
+  assert.ok((await app.sounds(since)).some((s) => s.kind === "ring"), "rings now, with the pet");
   assert.equal((await status()).protected, false, "back in screenshots");
   await app.answer("Done");
 });
@@ -102,22 +108,66 @@ check("avoid.important", "an important alarm brings the pet out even in a call, 
   await app.answer("Done");
 }, { timeout: 120_000 });
 
-check("avoid.fullscreen", "full screen (a game, a video): the pet steps aside, alarms ring unseen and softly at first, ePet stays in screenshots; unanswered, they're told when it's back", async () => {
+check("avoid.fullscreen", "full screen (a game, a video): the pet steps aside and nothing rings, ePet stays in screenshots; back more than 15 min later, the alarm is missed and told", async () => {
   const app = ctx.app;
   await reset();
   await stepAside(GAME, "fullscreen");
   assert.equal((await status()).protected, false);
   const since = Date.now();
-  await addAlarm(1500, "Pizza");
-  await app.b.waitUntil(async () => (await app.sounds(since)).some((s) => s.kind === "ring"), { timeout: 10_000 });
-  const ring = (await app.sounds(since)).find((s) => s.kind === "ring");
-  assert.equal(ring.rampUp, true, "starts soft");
-  assert.equal(await app.visible("pet"), false, "rung without coming out");
-  // Rings 3 s; unanswered (no snoozes), it's listed.
-  await app.b.waitUntil(async () => (await app.invoke("list_unseen")).length === 1, { timeout: 15_000 });
+  const a = await addAlarm(1500, "Pizza");
+  await app.b.waitUntil(async () => (await app.invoke("list_alarms")).find((x) => x.id === a.id)?.rangAt, { timeout: 10_000 });
+  await app.sleep(2000);
+  assert.ok(!(await app.sounds(since)).some((s) => s.kind === "ring"), "no ring without the pet");
+  assert.equal(await app.visible("pet"), false);
+  // The game goes on for 16 minutes.
+  await app.invoke("shift_clock", { ms: 16 * 60_000 });
+  await app.sleep(2500);
   await comeBack();
   await app.waitBubble("While you were busy you missed:", 5000);
+  assert.ok((await app.bubble()).includes("Pizza"));
+  assert.ok(!(await app.sounds(since)).some((s) => s.kind === "ring"), "too late to ring");
+  assert.ok((await app.invoke("list_alarms")).find((x) => x.id === a.id)?.missedAt, "missed");
   await app.answer("Done");
+});
+
+check("avoid.held", "aside, an alarm and a to-do wait; back within 15 min the alarm rings with the pet first, then the to-do is told", async () => {
+  const app = ctx.app;
+  await reset({ ringSeconds: 30 });
+  await stepAside(GAME, "fullscreen");
+  await addTodo(1000, "Call the plumber");
+  await addAlarm(2000, "Laundry");
+  await app.sleep(4000);
+  assert.equal(await app.visible("pet"), false);
+  // Ten minutes later: still in time.
+  await app.invoke("shift_clock", { ms: 10 * 60_000 });
+  await app.sleep(2500);
+  await comeBack();
+  await app.waitBubble("Laundry", 5000);
+  assert.ok(!(await app.bubble()).includes("plumber"), "the alarm first");
+  await app.answer("Done");
+  await app.waitBubble("Call the plumber", 5000);
+  assert.equal((await app.invoke("list_unseen")).length, 0, "nothing missed");
+}, { timeout: 90_000 });
+
+check("avoid.tray-stop", "while an alarm rings, the tray's top lines “⏰ Done (stop ringing)” and “💤 Snooze 5 min” answer it", async () => {
+  const app = ctx.app;
+  await reset({ ringSeconds: 30, snoozeMinutes: 5 });
+  let since = Date.now();
+  const a = await addAlarm(1500, "Kettle");
+  await app.waitBubble("Kettle", 10_000);
+  const tray = await app.menu("tray");
+  assert.deepEqual(tray.slice(0, 3), ["⏰ Done (stop ringing)", "💤 Snooze 5 min", "—"]);
+  await app.run("tray", "⏰ Done");
+  assert.ok((await app.sounds(since)).some((s) => s.kind === "ring-stop"), "the ring stops");
+  assert.equal((await app.pet()).ringing, false);
+  await app.b.waitUntil(async () => !(await app.invoke("list_alarms")).find((x) => x.id === a.id)?.enabled, { timeout: 5000 });
+  assert.notEqual((await app.menu("tray"))[0], "⏰ Done (stop ringing)");
+  since = Date.now();
+  const b = await addAlarm(1500, "Oven");
+  await app.waitBubble("Oven", 10_000);
+  await app.run("tray", "💤 Snooze");
+  assert.equal((await app.pet()).ringing, false);
+  await app.b.waitUntil(async () => (await app.invoke("list_alarms")).find((x) => x.id === b.id)?.snoozes === 1, { timeout: 5000 });
 });
 
 check("avoid.show-anyway", "Show pet while it stepped aside brings it back until that's over; still hidden from screen sharing while the call goes on", async () => {

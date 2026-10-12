@@ -170,6 +170,9 @@ pub struct Alarm {
     pub off_at: Option<Millis>,
     /// Rings in full even when the pet has stepped aside for a call or a presentation.
     pub important: bool,
+    /// Tries again when nobody answers ("Try again if I don't answer").
+    #[serde(default)]
+    pub auto_snooze: bool,
 }
 
 impl Alarm {

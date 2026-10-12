@@ -151,6 +151,17 @@ describe("tray menu", () => {
     expect(outline(buildTrayItems(trayCtx())).join()).not.toContain("Stepped aside");
   });
 
+  it("[avoid.tray-stop] while something rings, Done and Snooze are on top", () => {
+    const answered: string[] = [];
+    const ringing = { done: () => answered.push("done"), snooze: () => answered.push("snooze"), snoozeMinutes: 5 };
+    const items = buildTrayItems(trayCtx({ ringing }));
+    expect(outline(items).slice(0, 4)).toEqual(["⏰ Done (stop ringing)", "💤 Snooze 5 min", "—", "Hide pet"]);
+    (items[0] as Item).action!();
+    (items[1] as Item).action!();
+    expect(answered).toEqual(["done", "snooze"]);
+    expect(outline(buildTrayItems(trayCtx())).join()).not.toContain("stop ringing");
+  });
+
   it("never shows a countdown, which a menu built ahead of time can't keep current", () => {
     const all = JSON.stringify(outline(buildTrayItems(trayCtx(busy))));
     expect(all).not.toContain("left");

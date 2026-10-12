@@ -101,7 +101,7 @@ describe("the Alarms list order", () => {
 describe("editing an alarm (✎)", () => {
   it("fills the form from the alarm", () => {
     const daily = alarm({ id: 3, label: "Daily Meds", repeat: "daily", timeHm: "22:00", nextFire: at(22, 0) });
-    expect(draftFor(daily, now)).toEqual({ time: "22:00", choice: "daily", days: WEEKDAYS, label: "Daily Meds", important: false, editing: 3 });
+    expect(draftFor(daily, now)).toEqual({ time: "22:00", choice: "daily", days: WEEKDAYS, label: "Daily Meds", important: false, autoSnooze: true, autoSnoozeTouched: true, editing: 3 });
     expect(draftFor({ ...daily, important: true }, now).important).toBe(true);
     const tueThuSat = 0b101_0100;
     const custom = alarm({ id: 4, repeat: "days", repeatDays: tueThuSat, timeHm: "15:50", nextFire: at(15, 50) });

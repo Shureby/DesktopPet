@@ -99,6 +99,11 @@ Code: `src/features/alarm/ringing.ts`, the scheduler in `src-tauri/src/scheduler
   to 3 times (both in Settings → Alarms & timers). After that it is marked **missed**:
   - an orange "⏰ Missed 9:40 PM" badge that stays until clicked;
   - the pet mentions it once, the next time you hover or click it.
+- **Only alarms with "Try again if I don't answer"** (since 0.40.0, in the alarm form, 💤 in
+  the list) snooze themselves; the others are missed after one ring. A new alarm has it
+  ticked if it's Important, until you tick or untick it yourself. Alarms made before 0.40
+  keep trying again (the upgrade ticks it for them, once). Settings → "If nobody answers"
+  applies to these alarms. The Snooze button is on every ring.
 - **Done on any ring ends the whole snooze cycle.**
 - **Timers never snooze themselves.** An unanswered timer leaves a grey "⏱ Done 14:05"
   badge for an hour, or until clicked. The pet mentioning it doesn't remove the badge.
@@ -612,20 +617,29 @@ before), `updateMode` / `preset()` in `PetHost`, `modeItem` in `src/pet/menu.ts`
 ## Stepping aside (since 0.38.0)
 
 Code: `src-tauri/src/avoid.rs` (watching, every second; coming back; screen-capture
-protection), `busy` in `src-tauri/src/desktop/{windows,macos}.rs` (what you're doing),
-`src/features/avoid/avoid.ts` (pure: what rings meanwhile), `onAvoid` in `PetHost`,
+protection), `classify` in `src-tauri/src/desktop/mod.rs` and `busy` in
+`src-tauri/src/desktop/{windows,macos}.rs` (what you're doing), `src/features/avoid/avoid.ts`
+(pure: catching up, which screen), `onAvoid` and `catchUpHeld` in `PetHost`,
 `src/panel/avoid.ts` (Modes tab → Step aside automatically).
 
+The rule: **wherever something rings, the pet is there** (since 0.40.0). A ring without the
+pet can't be answered, so nothing rings while the pet is aside unless it comes out for it.
+
 - **What it steps aside for** (each can be unticked in the Modes tab):
-  - **Full screen**: the frontmost app window on the pet's screen (front to back, skipping
-    ePet's own windows, the desktop and the taskbar; not the window with the focus, since
-    0.39.1, so clicking the pet or a screenshot tool doesn't end a slide show) covers the
-    whole of that screen, taskbar or menu bar too (a game, a video, a browser on F11). A maximized window with a title bar
-    doesn't count (an auto-hiding taskbar would make every one "full screen"). On Windows a
-    full-screen Direct3D game counts wherever it is. Only the pet's screen counts: a video
-    full screen on the other one leaves the pet where it is.
-  - **Presenting**: a PowerPoint slide show (Windows: its window, or Windows' presentation
-    mode), Keynote or PowerPoint full screen (macOS).
+  - **Full screen**: the front app window on the pet's screen (front to back, skipping
+    ePet's own windows, the desktop and the taskbar; not the window with the focus, so
+    clicking the pet or a screenshot tool doesn't end a slide show) covers the whole of that
+    screen, taskbar or menu bar too (a game, a video, a browser on F11, a slide show's
+    presenter view). One window covering several screens (a racing or flight game across
+    all of them) covers each (since 0.40.0). A maximized window with a title bar doesn't
+    count (an auto-hiding taskbar would make every one "full screen"). On Windows a
+    full-screen Direct3D game counts wherever it is. Otherwise only the pet's screen counts:
+    a video full screen on the other one leaves the pet where it is.
+  - **Presenting**: a slide show covering **any** screen (since 0.40.0, so the pet on the
+    presenter view's screen steps aside for the show too): PowerPoint's slide show window or
+    Windows' presentation mode; Keynote or PowerPoint full screen on macOS (which can't tell
+    the presenter display from the slides without the Screen Recording permission, so both
+    count as the show there).
   - **A call**: any app is using a camera or the microphone. Windows: Settings → Privacy's
     record of who uses them (an app using one has no stop time yet). macOS: the camera or the
     default microphone "running somewhere" (what the green and orange dots show).
@@ -637,16 +651,27 @@ protection), `busy` in `src-tauri/src/desktop/{windows,macos}.rs` (what you're d
   over (the next one sends it off again).
 - **Meanwhile:**
   - **Important alarms** (the alarm form's Important tick) bring the pet out, as when it's
-    hidden, and ring in full.
-  - During a **game or video**, other alarms and timers ring without the pet, softly at
-    first (as in Quiet); unanswered, they snooze or go on the list as usual.
-  - During a **call or slide show** nothing else rings: alarms are missed at once and timers
-    done, as for a hidden pet that isn't coming out for them; whatever was ringing when it
-    started goes quiet.
-  - To-do reminders go on the list in both cases. Focus and break sounds play during a game
-    or video, not in a call. Anniversaries wait until the pet is back (and you move the
-    mouse); the pet doesn't talk or wander.
-- **Back:** "While you were busy you missed:" and the list (as after hiding).
+    hidden, and ring in full. During a slide show it comes out on a screen without the
+    slides (the presenter's), if the pet's own screen shows them.
+  - **Everything else waits:** other alarms, timers and to-do reminders don't ring. If what
+    it stepped aside for is over **within 15 minutes** of one coming due, it rings then,
+    with the pet (alarms and timers first, then to-dos); unanswered, the alarm's own "Try
+    again" decides. Later than that, an alarm is **missed** (a timer just done) and both are
+    told in "While you were busy you missed:".
+  - Whatever was ringing when it stepped aside (unless important) stops and waits the same way.
+  - Focus and break sounds play during a game or video, not in a call or a slide show.
+    Anniversaries wait until the pet is back (and you move the mouse); the pet doesn't talk
+    or wander.
+- **Back:** what waited rings, then "While you were busy you missed:" and the list (as after
+  hiding). If you hid the pet yourself, what waited brings it out only for what Settings →
+  "When your pet is hidden, it comes out for…" ticks; the rest is listed for Show pet.
+- **The tray answers a ring** (since 0.40.0): while an alarm or timer rings, the tray menu's
+  top lines are "⏰ Done (stop ringing)" and "💤 Snooze 5 min" — for when the pet is on
+  another screen or behind something.
+- **It keeps its pace** (since 0.40.0): the pet's window isn't slowed down behind a
+  full-screen app (WebView2's occlusion throttling off, macOS background throttling off),
+  and a slow frame moves it up to a second's worth, so it runs in and out at its usual
+  speed. ePet Test's tray shows 🧪 Frame rate.
 - **Screen sharing:** during a call or a slide show ePet's pet and effect windows are left out
   of screen sharing, recordings and screenshots (Windows 10 2004 and later:
   `WDA_EXCLUDEFROMCAPTURE`; macOS: not shared). You still see them. "Always hide ePet from

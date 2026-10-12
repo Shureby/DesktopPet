@@ -184,13 +184,28 @@ impl From<&Value> for HiddenAlerts {
 
 impl HiddenAlerts {
     fn covers(&self, r: &Reminder) -> bool {
-        match r.kind {
-            ReminderKind::Todo => self.todos,
+        self.covers_kind(r.kind == ReminderKind::Todo, &r.title)
+    }
+
+    fn covers_kind(&self, todo: bool, title: &str) -> bool {
+        if todo {
+            self.todos
+        } else if title.starts_with(desktoppet_core::TIMER_PREFIX) {
             // Timers are alarms labelled "Timer: …" (src/features/alarm/timers.ts).
-            ReminderKind::Alarm if r.title.starts_with("Timer: ") => self.timers,
-            ReminderKind::Alarm => self.alarms,
+            self.timers
+        } else {
+            self.alarms
         }
     }
+}
+
+/// Back after stepping aside (avoid.rs), a reminder held meanwhile rings now: with the pet
+/// hidden it comes out for it if Settings say so (as when it came due). Whether it did.
+#[tauri::command]
+pub fn peek_for_held<R: Runtime>(app: AppHandle<R>, todo: bool, title: String) -> bool {
+    let state = app.state::<AppState>();
+    let comes_out = state.store().settings().map(|s| HiddenAlerts::from(&s)).unwrap_or_default();
+    comes_out.covers_kind(todo, &title) && peek(&app)
 }
 
 /// Once per local day: clear finished alarms/timers and to-dos ticked off before today.

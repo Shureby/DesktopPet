@@ -89,10 +89,7 @@ unsafe fn platform_rect(hwnd: HWND, own_pid: u32) -> Option<WindowRect> {
 // --- Stepping aside (src-tauri/src/avoid.rs) --------------------------------------------
 
 use windows::core::{w, PCWSTR};
-use windows::Win32::Foundation::{ERROR_SUCCESS, POINT};
-use windows::Win32::Graphics::Gdi::{
-    GetMonitorInfoW, MonitorFromPoint, MonitorFromWindow, MONITORINFO, MONITOR_DEFAULTTONEAREST,
-};
+use windows::Win32::Foundation::ERROR_SUCCESS;
 use windows::Win32::System::Registry::{
     RegCloseKey, RegEnumKeyExW, RegGetValueW, RegOpenKeyExW, HKEY, HKEY_CURRENT_USER, KEY_READ, RRF_RT_QWORD,
 };
@@ -101,63 +98,49 @@ use windows::Win32::UI::WindowsAndMessaging::{IsZoomed, GWL_STYLE, WS_CAPTION, W
 
 use super::Busy;
 
-/// What you're doing on the pet's screen (`pet` is a point on it, physical pixels).
-pub fn busy(own_pid: u32, pet: (i32, i32)) -> Busy {
+/// What you're doing (`screens` and `pet`, a point on its screen, in physical pixels), and
+/// the screens showing a slide show.
+pub fn busy(own_pid: u32, screens: &[super::Rect], pet: (f64, f64)) -> (Busy, Vec<super::Rect>) {
     let mut b = Busy::default();
+    let mut ctx = Layers { own_pid, out: Vec::new() };
     unsafe {
-        // Windows' own "don't disturb" states: a full-screen Direct3D game or presentation
-        // mode (PowerPoint and "presentation settings"), wherever they are.
-        match SHQueryUserNotificationState() {
-            Ok(QUNS_RUNNING_D3D_FULL_SCREEN) => b.fullscreen = true,
-            Ok(QUNS_PRESENTATION_MODE) => b.presenting = true,
-            _ => {}
-        }
-        if let Some(class) = fullscreen_front(own_pid, pet) {
-            b.fullscreen = true;
-            // A PowerPoint slide show.
-            if class == "screenClass" {
-                b.presenting = true;
-            }
-        }
+        // EnumWindows walks top-level windows in z-order, topmost first.
+        let _ = EnumWindows(Some(visit_layer), LPARAM(&mut ctx as *mut Layers as isize));
+    }
+    let scene = super::classify(&ctx.out, screens, super::screen_at(screens, pet));
+    b.fullscreen = scene.fullscreen;
+    b.presenting = !scene.slideshows.is_empty();
+    // Windows' own "don't disturb" states: a full-screen Direct3D game or presentation mode
+    // (PowerPoint, "presentation settings"), wherever they are.
+    match unsafe { SHQueryUserNotificationState() } {
+        Ok(QUNS_RUNNING_D3D_FULL_SCREEN) => b.fullscreen = true,
+        Ok(QUNS_PRESENTATION_MODE) => b.presenting = true,
+        _ => {}
     }
     b.call = in_use("webcam") || in_use("microphone");
-    b
+    (b, scene.slideshows)
 }
 
-/// The frontmost app window on the pet's screen covers all of it (taskbar too): a game, a
-/// video, a browser on F11, a slide show. Walks the windows front to back (super::fullscreen_front)
-/// rather than asking which has the focus. Returns its class.
-unsafe fn fullscreen_front(own_pid: u32, pet: (i32, i32)) -> Option<String> {
-    let pet_screen = MonitorFromPoint(POINT { x: pet.0, y: pet.1 }, MONITOR_DEFAULTTONEAREST);
-    let mut ctx = Layers { own_pid, pet_screen, out: Vec::new() };
-    // EnumWindows walks top-level windows in z-order, topmost first.
-    let _ = EnumWindows(Some(visit_layer), LPARAM(&mut ctx as *mut Layers as isize));
-    super::fullscreen_front(ctx.out)
-}
+/// A PowerPoint slide show (its presenter view is another window).
+const SLIDESHOW_CLASSES: &[&str] = &["screenClass"];
 
 struct Layers {
     own_pid: u32,
-    pet_screen: windows::Win32::Graphics::Gdi::HMONITOR,
     out: Vec<super::Layer>,
 }
 
 unsafe extern "system" fn visit_layer(hwnd: HWND, lparam: LPARAM) -> BOOL {
     let ctx = &mut *(lparam.0 as *mut Layers);
-    if let Some(layer) = layer(hwnd, ctx) {
-        let stop = !layer.own && !layer.shell && layer.on_pet_screen;
+    if let Some(layer) = layer(hwnd, ctx.own_pid) {
         ctx.out.push(layer);
-        // The first app window on the pet's screen decides: no need to look further.
-        if stop {
-            return BOOL(0);
-        }
     }
     BOOL(1)
 }
 
-/// A window that could be in front of the pet's screen; none for hidden, minimized, cloaked
-/// (other virtual desktops, suspended Store apps), untitled, click-through and tool windows
+/// A window that could be in front on a screen; none for hidden, minimized, cloaked (other
+/// virtual desktops, suspended Store apps), untitled, click-through and tool windows
 /// (overlays, tooltips).
-unsafe fn layer(hwnd: HWND, ctx: &Layers) -> Option<super::Layer> {
+unsafe fn layer(hwnd: HWND, own_pid: u32) -> Option<super::Layer> {
     if !IsWindowVisible(hwnd).as_bool() || IsIconic(hwnd).as_bool() || GetWindowTextLengthW(hwnd) == 0 {
         return None;
     }
@@ -177,21 +160,20 @@ unsafe fn layer(hwnd: HWND, ctx: &Layers) -> Option<super::Layer> {
     let mut class = [0u16; 64];
     let len = GetClassNameW(hwnd, &mut class) as usize;
     let class = String::from_utf16_lossy(&class[..len]);
-    let monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-    let mut info = MONITORINFO { cbSize: size_of::<MONITORINFO>() as u32, ..Default::default() };
     let mut r = RECT::default();
-    if !GetMonitorInfoW(monitor, &mut info).as_bool() || GetWindowRect(hwnd, &mut r).is_err() {
-        return None;
-    }
-    let m = info.rcMonitor;
+    GetWindowRect(hwnd, &mut r).ok()?;
     let titled = (GetWindowLongW(hwnd, GWL_STYLE) as u32) & WS_CAPTION.0 == WS_CAPTION.0;
     Some(super::Layer {
-        own: pid == ctx.own_pid,
+        own: pid == own_pid,
         shell: IGNORED_CLASSES.contains(&class.as_str()),
-        on_pet_screen: monitor == ctx.pet_screen,
-        covers: r.left <= m.left && r.top <= m.top && r.right >= m.right && r.bottom >= m.bottom,
+        rect: super::Rect {
+            x: r.left as f64,
+            y: r.top as f64,
+            w: (r.right - r.left) as f64,
+            h: (r.bottom - r.top) as f64,
+        },
         maximized: IsZoomed(hwnd).as_bool() && titled,
-        class,
+        slideshow: SLIDESHOW_CLASSES.contains(&class.as_str()),
     })
 }
 
