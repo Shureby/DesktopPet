@@ -1261,6 +1261,8 @@ export class PetHost {
         vx: this.pet.body.vx,
         vy: this.pet.body.vy,
         grounded: this.pet.grounded,
+        /** What it stands on: the floor of an area, or a window's top (its id). */
+        support: this.pet.body.support,
         /** Where the pet window is (physical px): page px × dpr from here are screen px. */
         origin: {
           x: this.pet.body.x - (PET_WINDOW.w / 2) * this.dpr,

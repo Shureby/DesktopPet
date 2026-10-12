@@ -4,7 +4,7 @@
  * desktop (click-through window, the OS cursor). docs/INTERACTIONS.md has the rules.
  */
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { after, afterEach, before } from "node:test";
@@ -118,6 +118,31 @@ if (process.platform === "win32") {
       { timeout: 15_000, interval: 50 },
     );
     return seen.join(" ");
+  }
+
+  /**
+   * What the pet stands on, for a failure's message: its support and, if it's a window, that
+   * window's rect and which app's window it is (Windows: the apps with a main window).
+   */
+  async function standingOn() {
+    const p = await ctx.app.pet();
+    const s = p.support;
+    if (!s || s.kind !== "window") return JSON.stringify(s);
+    const w = p.windows.find((x) => x.id === s.id);
+    let apps = "";
+    try {
+      apps = execFileSync(
+        "pwsh",
+        ["-NoProfile", "-Command", "Get-Process | ? MainWindowHandle -ne 0 | % { '{0} #{1} \"{2}\" {3:x}' -f $_.ProcessName,$_.Id,$_.MainWindowTitle,[int64]$_.MainWindowHandle }"],
+        { encoding: "utf8", timeout: 15_000 },
+      )
+        .trim()
+        .split(/\r?\n/)
+        .join("; ");
+    } catch (e) {
+      apps = `(couldn't list apps: ${e.message})`;
+    }
+    return `window ${s.id} ${JSON.stringify(w)}; apps with windows: ${apps}`;
   }
 
   /** Walks the pet to the middle of the work area (away from the walls it might climb). */
@@ -395,7 +420,7 @@ if (process.platform === "win32") {
     p = await landed();
     assert.ok(
       Math.abs(p.mood.affection - 49) < 0.2,
-      `slammed: ${p.mood.affection} (held at ${Math.round(held.area.y + held.area.h - held.y)} px up, ${held.state}; fall: ${trace})`,
+      `slammed: ${p.mood.affection} (held at ${Math.round(held.area.y + held.area.h - held.y)} px up, ${held.state}; fall: ${trace}; on: ${await standingOn()})`,
     );
     assert.ok(said(await app.bubble(), "cat", "landed"), `says so: ${await app.bubble()}`);
     await away();
@@ -472,7 +497,7 @@ if (process.platform === "win32") {
     await landed();
     try {
       const rooster = await fall();
-      assert.ok(rooster.states.has("glide"), `glides: ${[...rooster.states].join(", ")} (fall: ${rooster.trace}; cat: ${cat.trace})`);
+      assert.ok(rooster.states.has("glide"), `glides: ${[...rooster.states].join(", ")} (fall: ${rooster.trace}; cat: ${cat.trace}; on: ${await standingOn()})`);
       assert.ok(rooster.vy < cat.vy * 0.6, `slower: cat ${says(cat)}; rooster ${says(rooster)}`);
     } finally {
       await app.run("pet", "Switch character", "Cat");
