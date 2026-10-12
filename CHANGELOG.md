@@ -16,6 +16,15 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.42.0] - 2026-10-12
+
+### Added
+- **Stepping aside, the pet says goodbye and hello**: it says why ("Presenting? Good luck!
+  I'll keep out of sight.") and dashes off the edge of the screen instead of vanishing; back,
+  it runs in from that edge and, with nothing missed to tell after 2 minutes or more away,
+  chats about it ("Are you playing games without me?", "That was a long presentation you had
+  there!"). On a screen showing slides it still goes at once, without a word.
+
 ## [0.41.1] - 2026-10-12
 
 ### Fixed

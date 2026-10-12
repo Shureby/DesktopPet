@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { mergeSettings } from "../../platform/types";
-import { avoidSettings, CATCH_UP_MS, catchUp, DEFAULT_AVOID, focusTonesAway, othersPresent, outOfTheSlideShow } from "./avoid";
+import { avoidSettings, CATCH_UP_MS, catchUp, DEFAULT_AVOID, focusTonesAway, othersPresent, outOfTheSlideShow, showsSlides } from "./avoid";
 
 describe("stepping aside", () => {
   it("reads the settings, filling in what's missing", () => {
@@ -47,5 +47,8 @@ describe("stepping aside", () => {
     expect(outOfTheSlideShow([right], 0, slides)).toBe(0);
     expect(outOfTheSlideShow([left, right], 1, [...slides, { x: 0, y: 0, w: 1920, h: 1080 }])).toBe(1);
     expect(outOfTheSlideShow([left, right], 1, [])).toBe(1);
+    // On the slides' screen it leaves at once; on the presenter's it runs off.
+    expect(showsSlides(right, slides)).toBe(true);
+    expect(showsSlides(left, slides)).toBe(false);
   });
 });

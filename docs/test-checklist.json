@@ -1268,10 +1268,10 @@
       "items": [
         {
           "id": "avoid.real-fullscreen",
-          "rev": "0.40.0",
+          "rev": "0.42.0",
           "mac": true,
           "do": "在宠物所在的屏幕上把一个视频（例如 YouTube）切到全屏；退出全屏；再把一个普通窗口最大化（带标题栏）；有两块屏幕的话，在另一块屏幕上全屏放视频；全屏时让一个普通闹钟响",
-          "expect": "全屏后约 1 秒内宠物离开，托盘第一项变成 Show pet，托盘里有灰色的一行 “Stepped aside: full screen”，托盘图标悬停提示末尾是 “· Stepped aside: full screen”；全屏期间普通闹钟不响（没有宠物就没有铃声）；退出全屏约 10 秒后宠物回来，那个闹钟带着宠物补响；最大化的普通窗口不算全屏，宠物不走；另一块屏幕全屏时，这块屏幕上的宠物不走"
+          "expect": "全屏后约 1 秒内宠物说一句并跑出屏幕边缘，托盘第一项变成 Show pet，托盘里有灰色的一行 “Stepped aside: full screen”，托盘图标悬停提示末尾是 “· Stepped aside: full screen”；全屏期间普通闹钟不响（没有宠物就没有铃声）；退出全屏约 10 秒后宠物回来，那个闹钟带着宠物补响；最大化的普通窗口不算全屏，宠物不走；另一块屏幕全屏时，这块屏幕上的宠物不走"
         },
         {
           "id": "avoid.real-game",
@@ -1288,10 +1288,10 @@
         },
         {
           "id": "avoid.real-slides",
-          "rev": "0.40.0",
+          "rev": "0.42.0",
           "mac": true,
           "do": "Windows：PowerPoint 按 F5 放映；Mac：Keynote 播放（或 PowerPoint 放映）。有两块屏幕的话打开演示者视图（Presenter View），并把宠物先放在演示者视图那块屏幕上。放映时让一个勾了 Important 的闹钟响，点气泡上的 Done；再让一个普通闹钟响；放映中再开一下截图工具（Win+Shift+S）、点一下宠物所在的屏幕；15 分钟内结束放映",
-          "expect": "放映一开始宠物就离开（宠物在演示者视图那块屏幕上也一样），托盘写 “Stepped aside: presenting”；普通闹钟不响、宠物不出来；Important 闹钟照常全音量响，宠物出来提醒——宠物原来在放映那块屏幕上时，会改到演示者视图那块屏幕上出来（Mac 上可能仍在原屏幕）；点 Done 后宠物跑回屏幕边缘离开，速度和平时一样快，放映期间不再出现（点过宠物、开过截图工具都一样）；结束放映约 10 秒后宠物回来，普通闹钟带着宠物补响"
+          "expect": "放映一开始宠物就离开：宠物在放映幻灯片的那块屏幕上时立刻消失、不说话也不跑（投影观众看得到）；在演示者视图那块屏幕上时先说一句再跑出屏幕，托盘写 “Stepped aside: presenting”；普通闹钟不响、宠物不出来；Important 闹钟照常全音量响，宠物出来提醒——宠物原来在放映那块屏幕上时，会改到演示者视图那块屏幕上出来（Mac 上可能仍在原屏幕）；点 Done 后宠物跑回屏幕边缘离开，速度和平时一样快，放映期间不再出现（点过宠物、开过截图工具都一样）；结束放映约 10 秒后宠物回来，普通闹钟带着宠物补响"
         },
         {
           "id": "avoid.real-call",
@@ -1370,6 +1370,15 @@
           "human": "看起来快不快要你判断",
           "do": "用 ePet Test：托盘里看 “🧪 Frame rate: …/s”；然后放映 PowerPoint（或全屏一个游戏），期间让 Important 闹钟响、点 Done；再拖动宠物、扔一下",
           "expect": "平时 Frame rate 约 60/s（屏幕刷新率更高时可能更高），放映时可能变低；无论帧率高低，Important 闹钟时宠物跑进、跑出的速度都和平时一样，不再慢吞吞（帧率低时只是不那么流畅）；拖动和扔出去的效果正常；屏幕上不会多出空白窗口"
+        },
+        {
+          "id": "avoid.goodbye",
+          "rev": "0.42.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "看动作是否自然、台词是否合适（每种情况各 3 句，随机）",
+          "do": "用 ePet Test：🧪 Pretend → Full screen，看宠物怎么离开；用 🧪 Test clock 往后拨 5 min，再选 Nothing (look for real)，看它怎么回来；再分别试 Presenting、In a call；最后 In a call 时点托盘 Show pet。另外试一次：离开期间有闹钟到点（回来时补响），以及离开不到 2 分钟就回来",
+          "expect": "离开时宠物先说一句原因（例如 “Full screen? I'll get out of your way.”），再快速跑出最近的屏幕边缘（约 1 秒），然后消失；回来时从离开的那一侧跑进屏幕，避让满 2 分钟、又没有要提醒的，就说一句闲聊（例如 “Are you playing games without me?”；全屏超过 1 小时、演示超过 45 分钟、通话超过 1 小时换成 “That was a long …” 之类）；有补响或错过的内容时不闲聊，直接响或显示清单；不到 2 分钟默默回来；Show pet 时说 “OK, I'm back!” 之类；🌙 Quiet 模式不说话只跑"
         },
         {
           "id": "avoid.show-anyway",

@@ -10,6 +10,7 @@ import { loadAll, type CharacterRegistry, type LoadedCharacter } from "../charac
 import { areaIndexAt } from "../engine/physics";
 import type { Rect } from "../engine/geometry";
 import { lateness, lateNote, type LateReason } from "../features/alarm/late";
+import { backLine, leavingLine } from "../features/avoid/lines";
 import { createRng } from "../engine/random";
 import { SpriteAtlas } from "../engine/sprites";
 import {
@@ -51,6 +52,7 @@ import {
   AVOID_LABELS,
   catchUp,
   focusTonesAway,
+  showsSlides,
   NOT_BUSY,
   outOfTheSlideShow,
   type AvoidReason,
@@ -60,6 +62,8 @@ import {
 import { baseMode, dayKey, MODE_ICONS, MODE_NAMES, modeNow, presetOf, type ModeNow, type ModePreset } from "../features/modes/modes";
 import { playFocusTone, playMusic, playRingtone, ringAlarm, sounds } from "./sound";
 
+/** Stepping aside, it dashes off the screen in about this long (the app hides it after 3 s anyway). */
+const LEAVE_SECONDS = 1.2;
 const STEP = 1 / 30;
 /**
  * Logical size of the pet window in Tauri mode (must match tauri.conf.json). Wide enough
@@ -223,6 +227,12 @@ export class PetHost {
   private pretend: Busy | null = null;
   /** Alarms and timers ringing now: when each was meant to ring and why it's late (rungLate). */
   private readonly ringDue = new Map<number, { dueAt?: number; late?: LateReason | null; rang: number }>();
+  /** Stepped aside: since when, and to which side of the screen it ran (it comes back from there). */
+  private aside: { since: number; side: 1 | -1 } | null = null;
+  /** Running off the screen to step aside: where to, and since when (it goes at the edge, or after 1.5 s). */
+  private leaving: { x: number; since: number } | null = null;
+  /** "Show pet" brought it back before what it stepped aside for was over. */
+  private shownAnyway = false;
   /** What came due while the pet was aside and didn't bring it out: rung (or missed) once you're back. */
   private held: Held<ReminderEvent>[] = [];
   /** The screens showing a slide show (physical px): an important alarm brings the pet out elsewhere. */
@@ -340,6 +350,7 @@ export class PetHost {
     });
     await this.backend.on("avoid", (reason) => this.onAvoid(reason));
     await this.backend.on("avoid-slideshows", (screens) => (this.slideshows = screens));
+    await this.backend.on("avoid-shown-anyway", () => (this.shownAnyway = true));
     const avoid = await this.backend.avoidStatus().catch(() => null);
     this.away = avoid?.reason ?? null;
     this.pretend = avoid?.pretend ?? null;
@@ -378,7 +389,10 @@ export class PetHost {
     // Anything the hidden pet couldn't tell you before ePet was last closed.
     if (this.petVisible) void this.tellUnseen();
     // The pet out for a reminder goes back once it's answered (see watchPeek).
-    setInterval(() => this.watchPeek(), 300);
+    setInterval(() => {
+      this.watchPeek();
+      this.watchLeaving();
+    }, 300);
     // Timers that ran out leave the tray menu even if no event arrives (unchanged menus aren't rebuilt).
     setInterval(() => this.scheduleTray(), 30_000);
     // Mood is saved every minute and when leaving, not every tick.
@@ -905,6 +919,18 @@ export class PetHost {
   }
 
   /** Moves the Tauri window to the pet and toggles click-through based on what's under the cursor. */
+  /** Moves the window to the pet now (before showing it, so it doesn't appear where it was). */
+  private async placeWindow(): Promise<void> {
+    const b = this.pet.body;
+    await this.backend.petFrame(
+      Math.round(b.x - (PET_WINDOW.w / 2) * this.dpr),
+      Math.round(b.y - (PET_WINDOW.h - 2) * this.dpr),
+      Math.round(PET_WINDOW.w * this.dpr),
+      Math.round(PET_WINDOW.h * this.dpr),
+      this.ignoringCursor,
+    );
+  }
+
   private async syncWindow(): Promise<void> {
     if (this.framePending) return;
     this.framePending = true;
@@ -2131,14 +2157,100 @@ export class PetHost {
     const before = this.away;
     this.away = reason;
     if (reason && !before) {
-      // It went, out for a reminder or not (an important alarm brings it out again).
+      // It goes, out for a reminder or not (an important alarm brings it out again), unless
+      // an important alarm is ringing: it stays out for that and goes once it's answered.
+      const important = this.activeRing && this.ringing.some((id) => this.importantRings.has(id));
       this.peek = null;
       this.holdRinging();
+      if (important) {
+        this.peek = { since: Date.now(), leaving: null };
+        void this.backend.avoidStay();
+      } else this.stepAside(reason);
     }
-    if (!this.windowed && !this.peek) this.setHidden(!!reason || !this.petVisible);
     this.updateMode();
     this.scheduleTray();
-    if (before && !reason) void this.catchUpHeld();
+    if (before && !reason) void this.comeBack(before);
+  }
+
+  /**
+   * Stepping aside: it says why and runs off the nearer edge of its screen (watchLeaving),
+   * then its window goes. On a screen showing slides it goes at once, without a word (a
+   * projector shows it to everyone); hidden (by you, behind a mini-game) it just stays out of sight.
+   */
+  private stepAside(reason: AvoidReason): void {
+    const area = this.peekArea();
+    const b = this.pet.body;
+    const side: 1 | -1 = area && b.x - area.x < area.x + area.w - b.x ? -1 : 1;
+    this.aside = { since: Date.now(), side };
+    const seen = this.petVisible && !this.hidden && !this.gameOn;
+    if (!seen || !area || (reason === "presenting" && showsSlides(area, this.slideshows))) {
+      this.vanish();
+      return;
+    }
+    this.say(leavingLine(reason), 3000);
+    const x = side < 0 ? area.x : area.x + area.w;
+    this.leaving = { x, since: Date.now() };
+    this.pet.target = { x };
+    this.pet.fsm.set("goto", true);
+    // Off the screen in about a second, however far the edge (a dash, not its usual run).
+    this.pet.scratch.dash = Math.abs(x - b.x) / LEAVE_SECONDS;
+  }
+
+  /** Running off to step aside: gone at the edge, or after 2 s whatever happens. */
+  private watchLeaving(): void {
+    const l = this.leaving;
+    if (!l) return;
+    const arrived = Math.abs(this.pet.body.x - l.x) < this.pet.spriteSize.w;
+    if (!this.away) this.leaving = null;
+    else if (arrived || Date.now() - l.since > 2000) {
+      this.leaving = null;
+      this.vanish();
+    }
+  }
+
+  /** Out of sight (stepped aside): the app hides the window; in the browser, the canvas. */
+  private vanish(): void {
+    if (this.windowed) void this.backend.avoidHide();
+    else this.setHidden(true);
+  }
+
+  /**
+   * Back: it runs in from the edge it left by. Then what waited rings, or what was missed is
+   * told; with nothing to tell (and 2 minutes away or more), it chats about what you did.
+   */
+  private async comeBack(reason: AvoidReason): Promise<void> {
+    const shownAnyway = this.shownAnyway;
+    this.shownAnyway = false;
+    this.leaving = null;
+    const awayMs = Date.now() - (this.aside?.since ?? Date.now());
+    const side = this.aside?.side ?? -1;
+    this.aside = null;
+    // Out for an important alarm meanwhile: it's already here.
+    if (!this.peek && this.petVisible) await this.enterFromEdge(side);
+    const told = await this.catchUpHeld();
+    if (!told && this.petVisible && this.preset().chatter) {
+      const line = backLine(reason, awayMs, shownAnyway);
+      if (line) this.say(line, 6000);
+    }
+  }
+
+  /** Stands at the screen's edge (half off it), shows itself and runs in a little way. */
+  private async enterFromEdge(side: 1 | -1): Promise<void> {
+    const area = this.peekArea();
+    if (area) {
+      const b = this.pet.body;
+      b.x = side < 0 ? area.x : area.x + area.w;
+      b.y = area.y + area.h;
+      b.support = null;
+      b.vx = 0;
+      if (this.windowed) await this.placeWindow();
+    }
+    if (this.windowed) await this.backend.avoidShow();
+    else this.setHidden(this.gameOn);
+    if (area) {
+      this.pet.target = { x: side < 0 ? area.x + area.w * 0.2 : area.x + area.w * 0.8 };
+      this.pet.fsm.set("goto", true);
+    }
   }
 
   /**
@@ -2167,7 +2279,7 @@ export class PetHost {
    * Back: what came due meanwhile rings now with the pet (to-dos after), or, if it waited
    * more than 15 minutes, is missed and told in "While you were busy you missed:".
    */
-  private async catchUpHeld(): Promise<void> {
+  private async catchUpHeld(): Promise<boolean> {
     const { ring, missed } = catchUp(this.held, Date.now());
     this.held = [];
     for (const h of missed) await this.unansweredWhileHidden(h.item);
@@ -2176,7 +2288,8 @@ export class PetHost {
       const peek = !this.petVisible && (await this.backend.peekForHeld(h.todo, h.item.title));
       this.onReminder({ ...h.item, peek });
     }
-    if (this.petVisible) void this.tellUnseen(true);
+    const unseen = this.petVisible ? await this.tellUnseen(true) : false;
+    return ring.length > 0 || missed.length > 0 || unseen;
   }
 
   /**
@@ -2184,12 +2297,12 @@ export class PetHost {
    * stays until Done (an important bubble: chatter and petting can't replace it), which
    * clears the list and the badges of the missed alarms in it.
    */
-  private async tellUnseen(busy = false): Promise<void> {
+  private async tellUnseen(busy = false): Promise<boolean> {
     const list = await this.backend.listUnseen();
-    if (!list.length) return;
+    if (!list.length) return false;
     if (this.activeRing) {
       this.unseenPending = true;
-      return;
+      return true;
     }
     this.unseenPending = false;
     // Its alarms are told here, not again on hover (welcomeBack).
@@ -2200,7 +2313,7 @@ export class PetHost {
       [{ label: "Done", run: () => void this.backend.clearUnseen().then(() => this.refreshTimers()) }],
       undefined,
       true,
-    );
+    );    return true;
   }
 
   // --- Out of hiding for a reminder ("peek") --------------------------------

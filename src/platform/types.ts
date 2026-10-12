@@ -413,6 +413,8 @@ export interface BackendEvents {
   avoid: AvoidReason | null;
   /** The screens showing a slide show changed (see AvoidStatus.slideshows). */
   "avoid-slideshows": Rect[];
+  /** "Show pet" while it stepped aside: it comes back before what it stepped aside for is over. */
+  "avoid-shown-anyway": null;
 }
 
 /** Stepping aside, as the app sees it now. */
@@ -545,6 +547,12 @@ export interface Backend {
    * comes out for it if Settings say so (as when it came due). Whether it did.
    */
   peekForHeld(todo: boolean, title: string): Promise<boolean>;
+  /** Stepping aside: the pet has run off the screen, hide its window (the app does after 3 s anyway). */
+  avoidHide(): Promise<void>;
+  /** Back: the pet stands at the screen's edge, show its window (the app does after 3 s anyway). */
+  avoidShow(): Promise<void>;
+  /** Stepping aside while an important alarm rings: the pet stays out until it's answered. */
+  avoidStay(): Promise<void>;
   /** A debug build started for the end-to-end tests: the windows offer test hooks (e2e/). */
   e2eEnabled(): Promise<boolean>;
   /**

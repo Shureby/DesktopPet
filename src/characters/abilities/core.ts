@@ -203,10 +203,13 @@ export const core: AbilityModule<Record<string, never>> = {
           return "alert";
         }
         p.facing = dx > 0 ? 1 : -1;
-        p.body.vx = p.facing * p.runSpeed();
+        // A dash (px/s) when it has to be somewhere quickly: off the screen when stepping aside.
+        const dash = p.scratch.dash as number | undefined;
+        p.body.vx = p.facing * Math.max(p.runSpeed(), dash ?? 0);
       },
       exit: (p) => {
         p.body.vx = 0;
+        delete p.scratch.dash;
       },
     },
   },

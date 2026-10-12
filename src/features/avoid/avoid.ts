@@ -85,13 +85,18 @@ export function catchUp<T>(held: Held<T>[], now: number): { ring: Held<T>[]; mis
  * presenter's), if the one it's on shows the slides. Returns the area's index.
  */
 export function outOfTheSlideShow(areas: Rect[], current: number, slideshows: Rect[]): number {
-  const showing = (a: Rect) => {
-    const [x, y] = [a.x + a.w / 2, a.y + a.h / 2];
-    return slideshows.some((s) => x >= s.x && x < s.x + s.w && y >= s.y && y < s.y + s.h);
-  };
-  if (!areas[current] || !showing(areas[current])) return current;
-  const other = areas.findIndex((a) => !showing(a));
+  if (!areas[current] || !showsSlides(areas[current], slideshows)) return current;
+  const other = areas.findIndex((a) => !showsSlides(a, slideshows));
   return other >= 0 ? other : current;
+}
+
+/**
+ * This screen (its work area) shows a slide show: the pet steps aside there at once, without
+ * a word or a run (a projector shows it to everyone, screen-capture protection or not).
+ */
+export function showsSlides(area: Rect, slideshows: Rect[]): boolean {
+  const [x, y] = [area.x + area.w / 2, area.y + area.h / 2];
+  return slideshows.some((s) => x >= s.x && x < s.x + s.w && y >= s.y && y < s.y + s.h);
 }
 
 /** Focus and break start sounds: during a game or a video yes, with others listening no. */

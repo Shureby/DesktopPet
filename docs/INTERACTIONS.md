@@ -672,7 +672,17 @@ pet can't be answered, so nothing rings while the pet is aside unless it comes o
     the camera "running somewhere" (the green dot), and the apps recording (macOS 14.2+;
     before, any app on the default microphone counts).
   - The strictest counts: presenting, then a call, then full screen.
-- **It goes at once and comes back about 10 s after** that's over (a video leaving full
+- **Going and coming back** (since 0.42.0, `src/features/avoid/lines.ts`): it says why
+  ("Full screen? I'll get out of your way.") and dashes off the nearer edge of its screen in
+  about a second, then its window goes. On a screen showing slides it goes at once, without a
+  word or a run: a projector shows it to everyone. Back, it runs in from the edge it left by;
+  then what waited rings, or "While you were busy you missed:" is told; with nothing to tell
+  and 2 minutes away or more, it chats about what you did ("Are you playing games without
+  me?"; after a long game, presentation or call: "That was a long presentation you had
+  there!"). Three lines or more for each, picked at random; none in a mode without chatter
+  (Quiet). Shown anyway from the tray: "OK, I'm back!". If the pet window doesn't hide (or
+  show) itself within 3 s, the app does.
+- **It goes as soon as it notices and comes back about 10 s after** that's over (a video leaving full
   screen for a moment doesn't bring it out and send it off again). The window is hidden
   natively, as when you hide it, but the tray says why ("Stepped aside: in a call", and in
   the tooltip) and offers **Show pet**: it comes back and stays until that call or game is

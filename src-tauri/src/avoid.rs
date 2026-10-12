@@ -180,24 +180,79 @@ fn check<R: Runtime>(app: &AppHandle<R>) {
     }
 }
 
-/// The pet leaves (or comes back), and every window hears why ("avoid").
+/// How long the pet has to run off (or back on) before the app hides (or shows) its window
+/// itself: never stuck in front of a game or a slide show, nor gone after it.
+const SCENE_TIMEOUT: Duration = Duration::from_secs(3);
+
+/// The pet leaves (or comes back), and every window hears why ("avoid"). The pet window says
+/// why and runs off the screen, then hides itself (`avoid_hide`); back, it shows itself at
+/// the screen's edge and runs in (`avoid_show`). If it doesn't, the app does.
 fn apply<R: Runtime>(app: &AppHandle<R>, before: Option<Reason>, after: Option<Reason>) {
-    let state = app.state::<AppState>();
-    if let Some(w) = app.get_webview_window(PET) {
-        let result = match (before, after) {
-            (None, Some(_)) => {
-                // Out for a reminder or not, it goes (an important alarm brings it back).
-                state.peeking.store(false, Ordering::Relaxed);
-                w.hide()
-            }
-            (Some(_), None) if !state.pet_hidden.load(Ordering::Relaxed) => w.show(),
-            _ => Ok(()),
-        };
-        if let Err(e) = result {
-            log::warn!("could not step the pet aside or back: {e}");
+    match (before, after) {
+        (None, Some(_)) => {
+            // Out for a reminder or not, it goes (an important alarm brings it back).
+            app.state::<AppState>().peeking.store(false, Ordering::Relaxed);
+            later(app, hide_if_away);
         }
+        (Some(_), None) => later(app, show_if_back),
+        _ => {}
     }
     let _ = app.emit("avoid", after);
+}
+
+fn later<R: Runtime>(app: &AppHandle<R>, then: fn(&AppHandle<R>)) {
+    let app = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(SCENE_TIMEOUT);
+        then(&app);
+    });
+}
+
+/// Stepped aside (and not out for a ringing important alarm): the pet window goes.
+fn hide_if_away<R: Runtime>(app: &AppHandle<R>) {
+    let state = app.state::<AppState>();
+    if state.avoid().reason.is_some() && !state.peeking.load(Ordering::Relaxed) {
+        if let Some(w) = app.get_webview_window(PET) {
+            if let Err(e) = w.hide() {
+                log::warn!("could not step the pet aside: {e}");
+            }
+        }
+    }
+}
+
+/// Back (and not hidden by the user): the pet window shows.
+fn show_if_back<R: Runtime>(app: &AppHandle<R>) {
+    let state = app.state::<AppState>();
+    if state.avoid().reason.is_none() && !state.pet_hidden.load(Ordering::Relaxed) {
+        if let Some(w) = app.get_webview_window(PET) {
+            if !w.is_visible().unwrap_or(false) {
+                if let Err(e) = w.show() {
+                    log::warn!("could not bring the pet back: {e}");
+                }
+            }
+        }
+    }
+}
+
+/// The pet has run off the screen: hide its window (if it's still aside).
+#[tauri::command]
+pub fn avoid_hide<R: Runtime>(app: AppHandle<R>) {
+    hide_if_away(&app);
+}
+
+/// The pet stands at the screen's edge, about to run back in: show its window.
+#[tauri::command]
+pub fn avoid_show<R: Runtime>(app: AppHandle<R>) {
+    show_if_back(&app);
+}
+
+/// Stepping aside while an important alarm rings: the pet stays out for it, as when it comes
+/// out for one (it goes once that's answered, `end_peek`).
+#[tauri::command]
+pub fn avoid_stay(state: tauri::State<AppState>) {
+    if state.avoid().reason.is_some() {
+        state.peeking.store(true, Ordering::Relaxed);
+    }
 }
 
 /// ePet's pet and effect windows are left out of screen sharing, recordings and screenshots.
@@ -211,11 +266,16 @@ fn set_protected<R: Runtime>(app: &AppHandle<R>, on: bool) {
     }
 }
 
-/// "Show pet" while it stepped aside: it comes back now (see `Avoid::dismiss`).
-pub fn dismiss<R: Runtime>(app: &AppHandle<R>) {
-    if app.state::<AppState>().avoid().dismiss() {
+/// "Show pet" while it stepped aside: it comes back now (see `Avoid::dismiss`), running in from
+/// the edge (`avoid_show`). Whether it was aside.
+pub fn dismiss<R: Runtime>(app: &AppHandle<R>) -> bool {
+    let dismissed = app.state::<AppState>().avoid().dismiss();
+    if dismissed {
+        later(app, show_if_back);
+        let _ = app.emit("avoid-shown-anyway", ());
         let _ = app.emit("avoid", None::<Reason>);
     }
+    dismissed
 }
 
 /// Whether the pet has stepped aside.

@@ -643,6 +643,9 @@ export const mockBackend: Backend = {
     const reason = away;
     return { reason, protected: !!reason && othersPresent(reason), pretend, slideshows: [] };
   },
+  async avoidHide() {},
+  async avoidShow() {},
+  async avoidStay() {},
   async peekForHeld(todo, title) {
     return petHidden && comesOut(load(), todo ? "todo" : "alarm", title);
   },

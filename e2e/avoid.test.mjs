@@ -173,6 +173,38 @@ check("avoid.tray-stop", "while an alarm rings, the tray's top lines “⏰ Done
   await app.b.waitUntil(async () => (await app.invoke("list_alarms")).find((x) => x.id === b.id)?.snoozes === 1, { timeout: 5000 });
 });
 
+check("avoid.goodbye", "stepping aside it says why and runs off the edge; back it runs in from that edge and, with nothing to tell after 2 minutes away, chats; Show pet: “I'm back”", async () => {
+  const app = ctx.app;
+  await reset();
+  const LEAVING = ["Full screen? I'll get out of your way.", "Go on, I'll wait off-screen.", "Big screen time! I'll be just around the corner."];
+  const BACK = ["Are you playing games without me?", "What app needs the whole screen like that?", "Back from the big screen? I missed you."];
+  const SHOWN = ["OK, I'm back!", "You called? Here I am!", "Back already? Hi again!"];
+  await pretend(GAME);
+  // It says why and runs before its window goes.
+  await app.b.waitUntil(async () => LEAVING.includes(await app.bubble()), { timeout: 3000, interval: 100 });
+  assert.equal((await app.pet()).state, "goto", "runs off");
+  await app.b.waitUntil(async () => !(await app.visible("pet")), { timeout: 5000 });
+  const gone = await app.pet();
+  const edge = Math.min(Math.abs(gone.x - gone.area.x), Math.abs(gone.area.x + gone.area.w - gone.x));
+  assert.ok(edge < gone.size.w * 2, `at the edge when it goes: ${JSON.stringify({ x: gone.x, area: gone.area })}`);
+  // Three minutes of game, nothing due: back, it runs in from that edge and chats.
+  await app.invoke("shift_clock", { ms: 3 * 60_000 });
+  await pretend(null);
+  await app.b.waitUntil(async () => app.visible("pet"), { timeout: 15_000 });
+  const back = await app.pet();
+  const fromEdge = Math.min(Math.abs(back.x - back.area.x), Math.abs(back.area.x + back.area.w - back.x));
+  assert.ok(fromEdge < back.area.w * 0.25, `comes in from the edge: ${JSON.stringify({ x: back.x, area: back.area })}`);
+  await app.b.waitUntil(async () => BACK.includes(await app.bubble()), { timeout: 5000, interval: 100 });
+  // Show pet during a call: back at once, "I'm back".
+  await stepAside(CALL, "call");
+  await app.invoke("e2e_tray", { id: "show" });
+  await app.b.waitUntil(async () => app.visible("pet"), { timeout: 5000 });
+  await app.b.waitUntil(async () => SHOWN.includes(await app.bubble()), { timeout: 5000, interval: 100 });
+  // Shown anyway, it stays until 10 s after the call is over (for the next test).
+  await pretend(null);
+  await app.sleep(11_000);
+}, { timeout: 90_000 });
+
 check("avoid.show-anyway", "Show pet while it stepped aside brings it back until that's over; still hidden from screen sharing while the call goes on", async () => {
   const app = ctx.app;
   await reset();

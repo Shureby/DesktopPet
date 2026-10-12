@@ -220,16 +220,15 @@ pub fn set_pet_visible<R: Runtime>(app: &AppHandle<R>, visible: bool) -> tauri::
     state.pet_hidden.store(!visible, Ordering::Relaxed);
     // Shown while out for a reminder: it stays out.
     state.peeking.store(false, Ordering::Relaxed);
-    // Shown while it stepped aside: it stays out until that's over.
-    if visible {
-        crate::avoid::dismiss(app);
-    }
+    // Shown while it stepped aside: it stays out until that's over, and runs back in from
+    // the screen's edge (it shows its window itself, avoid::avoid_show).
+    let back_from_aside = visible && crate::avoid::dismiss(app);
     if let Some(w) = app.get_webview_window(PET) {
-        if visible {
+        if !visible {
+            w.hide()?;
+        } else if !back_from_aside {
             w.show()?;
             app.emit_to(PET, "pet-command", "greet")?;
-        } else {
-            w.hide()?;
         }
         app.emit("pet-visibility", visible)?;
     }
