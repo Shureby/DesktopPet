@@ -43,7 +43,7 @@ const BACK: Record<AvoidReason, { short: string[]; long: string[] }> = {
     long: [
       "That was a long game! Did you win?",
       "Whatever that was, it kept you busy for ages!",
-      "Your eyes must be tired after all that. Blink with me!",
+      "Welcome back! Let's rest our eyes together for a moment.",
     ],
   },
   presenting: {
