@@ -117,8 +117,164 @@ pub fn busy(own_pid: u32, screens: &[super::Rect], pet: (f64, f64)) -> (Busy, Ve
         Ok(QUNS_PRESENTATION_MODE) => b.presenting = true,
         _ => {}
     }
-    b.call = in_use("webcam") || in_use("microphone");
+    let recording = recording_apps(own_pid);
+    b.call = super::in_call(camera_in_use(own_pid), recording.iter().map(String::as_str));
     (b, scene.slideshows)
+}
+
+// --- In a call: the camera, and which apps use the microphone ------------------------------
+//
+// Windows 11 no longer keeps the privacy settings' "recent activity" up to date in the registry
+// (ConsentStore's LastUsedTimeStop), which 0.38–0.41 read: the camera is watched with Media
+// Foundation's sensor activity monitor instead, and the microphone's users are its recording
+// sessions (only meeting apps count, see super::in_call).
+
+use std::sync::{Mutex, OnceLock};
+
+use windows::core::{implement, Interface, Ref};
+use windows::Win32::Foundation::CloseHandle;
+use windows::Win32::Media::Audio::{
+    eCapture, AudioSessionStateActive, IAudioSessionControl2, IAudioSessionManager2, IMMDeviceEnumerator,
+    MMDeviceEnumerator, DEVICE_STATE_ACTIVE,
+};
+use windows::Win32::Media::MediaFoundation::{
+    IMFSensorActivitiesReport, IMFSensorActivitiesReportCallback, IMFSensorActivitiesReportCallback_Impl,
+    MFCreateSensorActivityMonitor, MFStartup, MFSTARTUP_LITE, MF_VERSION,
+};
+use windows::Win32::System::Com::{CoCreateInstance, CoInitializeEx, CLSCTX_ALL, COINIT_MULTITHREADED};
+use windows::Win32::System::Threading::{
+    OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION,
+};
+
+/// Each camera (its symbolic link) and whether another app streams from it now, as the sensor
+/// activity monitor last reported (its first report can come before `start_camera_monitor`
+/// returns, so this is ready beforehand).
+static CAMERAS: Mutex<Vec<(String, bool)>> = Mutex::new(Vec::new());
+
+/// Whether the sensor activity monitor runs (not before Windows 10 1703).
+static MONITOR: OnceLock<bool> = OnceLock::new();
+
+/// A camera is in use by another app.
+fn camera_in_use(own_pid: u32) -> bool {
+    if *MONITOR.get_or_init(|| start_camera_monitor(own_pid)) {
+        CAMERAS.lock().map(|c| c.iter().any(|(_, on)| *on)).unwrap_or(false)
+    } else {
+        // No monitor: the privacy settings' record (Windows 10 still keeps it).
+        in_use("webcam")
+    }
+}
+
+#[implement(IMFSensorActivitiesReportCallback)]
+struct CameraReports {
+    own_pid: u32,
+}
+
+impl IMFSensorActivitiesReportCallback_Impl for CameraReports_Impl {
+    /// Reports come when a camera starts or stops streaming for some app (one per camera).
+    fn OnActivitiesReport(&self, reports: Ref<'_, IMFSensorActivitiesReport>) -> windows::core::Result<()> {
+        let Some(reports) = reports.as_ref() else { return Ok(()) };
+        unsafe {
+            for i in 0..reports.GetCount()? {
+                let report = reports.GetActivityReport(i)?;
+                let mut link = [0u16; 512];
+                let mut len = 0u32;
+                report.GetSymbolicLink(&mut link, &mut len)?;
+                let link = String::from_utf16_lossy(&link[..(len as usize).min(link.len())]);
+                let mut streaming = false;
+                for p in 0..report.GetProcessCount()? {
+                    let activity = report.GetProcessActivity(p)?;
+                    if activity.GetProcessId()? != self.own_pid && activity.GetStreamingState()?.as_bool() {
+                        streaming = true;
+                    }
+                }
+                if let Ok(mut c) = CAMERAS.lock() {
+                    match c.iter_mut().find(|(l, _)| *l == link) {
+                        Some(camera) => camera.1 = streaming,
+                        None => c.push((link, streaming)),
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Starts watching the cameras (on a thread of its own, which keeps the monitor alive).
+fn start_camera_monitor(own_pid: u32) -> bool {
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::Builder::new()
+        .name("camera-monitor".into())
+        .spawn(move || unsafe {
+            let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
+            let monitor = MFStartup(MF_VERSION, MFSTARTUP_LITE).and_then(|()| {
+                let callback: IMFSensorActivitiesReportCallback = CameraReports { own_pid }.into();
+                let monitor = MFCreateSensorActivityMonitor(&callback)?;
+                monitor.Start()?;
+                Ok(monitor)
+            });
+            let started = monitor.is_ok();
+            if let Err(e) = &monitor {
+                log::warn!("no camera activity monitor ({e}); the privacy settings' record is used");
+            }
+            let _ = tx.send(started);
+            if started {
+                // The monitor reports from Media Foundation's own threads for as long as it lives.
+                loop {
+                    std::thread::park();
+                }
+            }
+        })
+        .is_ok_and(|_| rx.recv().unwrap_or(false))
+}
+
+/// The apps (program files) recording from any microphone now, but this one.
+fn recording_apps(own_pid: u32) -> Vec<String> {
+    let mut apps = Vec::new();
+    unsafe {
+        let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
+        let Ok(devices) = CoCreateInstance::<_, IMMDeviceEnumerator>(&MMDeviceEnumerator, None, CLSCTX_ALL)
+            .and_then(|e| e.EnumAudioEndpoints(eCapture, DEVICE_STATE_ACTIVE))
+        else {
+            return apps;
+        };
+        for d in 0..devices.GetCount().unwrap_or(0) {
+            let Ok(sessions) = devices
+                .Item(d)
+                .and_then(|device| device.Activate::<IAudioSessionManager2>(CLSCTX_ALL, None))
+                .and_then(|manager| manager.GetSessionEnumerator())
+            else {
+                continue;
+            };
+            for s in 0..sessions.GetCount().unwrap_or(0) {
+                let Ok(session) = sessions.GetSession(s) else { continue };
+                if session.GetState().ok() != Some(AudioSessionStateActive) {
+                    continue;
+                }
+                let Ok(pid) = session.cast::<IAudioSessionControl2>().and_then(|c| c.GetProcessId()) else {
+                    continue;
+                };
+                if pid != 0 && pid != own_pid {
+                    if let Some(name) = program_file(pid) {
+                        apps.push(name);
+                    }
+                }
+            }
+        }
+    }
+    apps
+}
+
+/// A process's program file ("C:\…\Zoom.exe").
+unsafe fn program_file(pid: u32) -> Option<String> {
+    let process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid).ok()?;
+    let mut buf = [0u16; 1024];
+    let mut len = buf.len() as u32;
+    let ok = QueryFullProcessImageNameW(process, PROCESS_NAME_WIN32, windows::core::PWSTR(buf.as_mut_ptr()), &mut len);
+    let _ = CloseHandle(process);
+    ok.ok()?;
+    let path = String::from_utf16_lossy(&buf[..len as usize]);
+    // The file name only: a folder's name (…\Zoom\bin\) isn't the app.
+    Some(path.rsplit(['\\', '/']).next().unwrap_or(&path).to_string())
 }
 
 /// A PowerPoint slide show (its presenter view is another window).
@@ -177,8 +333,8 @@ unsafe fn layer(hwnd: HWND, own_pid: u32) -> Option<super::Layer> {
     })
 }
 
-/// Some app is using the camera or the microphone now. Windows keeps who used them when
-/// (Settings → Privacy, "recent activity"): an app still using one has no stop time yet.
+/// Some app is using the camera now, by the privacy settings' "recent activity" record: an app
+/// still using it has no stop time yet. Windows 10 only (Windows 11 no longer keeps it there).
 fn in_use(device: &str) -> bool {
     let path: Vec<u16> =
         format!("Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\{device}")

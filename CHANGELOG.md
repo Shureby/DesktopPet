@@ -16,6 +16,18 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.41.1] - 2026-10-12
+
+### Fixed
+- **Calls weren't noticed on Windows 11** (the pet stayed during a Zoom call): Windows 11 no
+  longer keeps the privacy settings' camera and microphone record up to date, which ePet read.
+  It now asks Windows which apps use the camera and record from the microphone.
+
+### Changed
+- A call is now a camera in use (any app), or a meeting app on the microphone (Zoom, Teams,
+  Webex, Tencent Meeting, Feishu/Lark, DingTalk, WeChat, Skype): a voice chat left open or a
+  voice assistant no longer keeps the pet away. The same on macOS 14.2 and later.
+
 ## [0.41.0] - 2026-10-12
 
 ### Added

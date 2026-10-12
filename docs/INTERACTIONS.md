@@ -663,9 +663,14 @@ pet can't be answered, so nothing rings while the pet is aside unless it comes o
     Windows' presentation mode; Keynote or PowerPoint full screen on macOS (which can't tell
     the presenter display from the slides without the Screen Recording permission, so both
     count as the show there).
-  - **A call**: any app is using a camera or the microphone. Windows: Settings → Privacy's
-    record of who uses them (an app using one has no stop time yet). macOS: the camera or the
-    default microphone "running somewhere" (what the green and orange dots show).
+  - **A call** (since 0.41.1): a camera is in use by any app, or a meeting app records from a
+    microphone (Zoom, Teams, Webex, Tencent Meeting, Feishu/Lark, DingTalk, WeChat, Skype). Any
+    other app on the microphone alone (a voice chat left open, a voice assistant, a meeting in
+    a browser with the camera off) doesn't count. Windows: Media Foundation's sensor activity
+    monitor for the camera (Windows 10 before 1703: the privacy settings' record, which
+    Windows 11 no longer keeps up to date), and the microphones' recording sessions. macOS:
+    the camera "running somewhere" (the green dot), and the apps recording (macOS 14.2+;
+    before, any app on the default microphone counts).
   - The strictest counts: presenting, then a call, then full screen.
 - **It goes at once and comes back about 10 s after** that's over (a video leaving full
   screen for a moment doesn't bring it out and send it off again). The window is hidden

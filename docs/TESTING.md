@@ -2,7 +2,7 @@
 
 <!-- Generated from test-checklist.json by `npm run test-checklist`. Edit the JSON, not this file. -->
 
-当前版本 `0.41.0`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
+当前版本 `0.41.1`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
 标 🤖 的项目由 CI 自动测（Windows），不用手动测；标 🤖+👀 的项目逻辑由 CI 测，你只看 👀 后面写的部分；标 🌙 的每晚测一次（太久，不在每次推送时测）。
 macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码，在 Windows 上测过就行。
 在线勾选页面（保存结果，自动标出需要重测的项目）：https://claude.ai/artifact/XQVzPKq4w2MThVnTLYCGy1
@@ -11,7 +11,7 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 
 - [ ] 1.1 🍎 安装包安装 → **开始菜单/启动台里有应用，图标和名字正常**
 - [ ] 1.2 🍎 🤖+👀 首次启动 → **宠物从屏幕上方掉下来，落在任务栏/Dock 上方** 👀 你只看掉落的样子（窗口出现、宠物落在任务栏上方由 CI 测）
-- [ ] 1.3 🤖 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.41.0 · …`，与安装包版本一致**
+- [ ] 1.3 🤖 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.41.1 · …`，与安装包版本一致**
 - [ ] 1.4 🍎 🤖 已经运行时再启动一次 → **不会出现第二只宠物（只打开面板）**
 - [ ] 1.5 🤖 装着旧版本、ePet 正在运行时，双击新版本的安装包，一路点 Next / Install / Finish → **不再出现“已安装（Already Installed）/ 是否先卸载”那一页，也不提示 ePet 正在运行（会自动关掉它）；旧版被安静地卸载后装上新版；之前的待办、闹钟、纪念日、设置、心情值都还在。重装同一版本或装更旧的版本时仍会询问**
 - [ ] 1.6 正式版 ePet 开着时安装 ePet Test；装好后两个都开着，再重装一次 ePet Test；最后在 ePet 开着时重装正式版 → **装 ePet Test 时不弹 “is running”、不关正式版，装完两个可以同时运行（任务管理器里是 desktoppet.exe 和 epet-test.exe）；重装哪一个都不弹框，正在运行的那一个被悄悄关掉、装完重新打开即可，另一个不受影响**
@@ -107,8 +107,8 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 - [ ] 7.17 🤖 让 Every day 闹钟被错过 → **明天照常响**
 - [ ] 7.18 🤖 点掉 ⏰ Missed 角标后，看 Finished 区，再点 Clear → **错过的闹钟仍显示 “Missed · Today 9:40 PM · snoozed 3×”，左边大字 9:40 PM（不会变成 Rang 9:58）；按过 Done 的闹钟显示 “Rang · … · snoozed N×”；计时器显示 “Done · …”；最新的在最上面；Clear 后清空**
 - [ ] 7.19 🤖 跨天后（或改系统日期）打开面板 → **前一天已结束的项目被自动清理**
-- [ ] 7.20 🤖 **【新】** 设一个 3 分钟后的一次性闹钟、一个 3 分钟后的计时器、一个 3 分钟后提醒的待办，然后退出 ePet，等 10 分钟后再打开；另设一个 2 分钟后的闹钟（贪睡 5 分钟 × 3 次），退出后等约 12 分钟再打开 → **第一组都不响：闹钟和计时器在 Finished 里写 “Didn't ring · … · ePet wasn't running”，没有 Missed 角标，也不在 “While I was hidden” 清单里；待办显示红色 “Overdue · …”；第二个闹钟打开后立刻补响，气泡小字写 “Due … · 12 min late — ePet wasn't running · 1 more try”（不写 Snoozed 2×），不理的话再贪睡一次后被标记为错过；如果超过 15 分钟才打开则不响**
-- [ ] 7.21 🍎 🤖+👀 **【新】** 让提醒晚响 1 分钟以上，分别试：① 用 ePet Test 🧪 Pretend → Presenting（或真的放映）时让一个普通闹钟、一个计时器、一个待办到点，2 分钟后选 Nothing；② 一个勾了 “Try again” 的闹钟，到点前退出 ePet，过 2 分钟再打开；③ 闹钟响着时让一个待办到点，等 1 分多钟再点 Done；④ 一个没定时间的待办，到提醒时间时 ePet 没开，之后再打开 → **每次补响的气泡里多一行小字：① 闹钟 “Due 4:30 PM · 2 min late — you were presenting”，计时器 “Ran out at … · 2 min ago — …”，待办同闹钟；② “Due … · 2 min late — ePet wasn't running · 1 more try”（不再写 Snoozed 2×）；③ 待办 “… — another reminder was ringing”；④ “📅 Today:” 下面写 “Meant for 9:00 AM”，不写原因。电脑睡眠后补响的写 “the computer was asleep”。晚不到 1 分钟的不写；几个一起响时每项后面写 “(7 min late)”，最后一行写原因** 👀 真的放映、睡眠电脑、开关 ePet 的几种情况，以及文字读起来是否清楚
+- [ ] 7.20 🤖 设一个 3 分钟后的一次性闹钟、一个 3 分钟后的计时器、一个 3 分钟后提醒的待办，然后退出 ePet，等 10 分钟后再打开；另设一个 2 分钟后的闹钟（贪睡 5 分钟 × 3 次），退出后等约 12 分钟再打开 → **第一组都不响：闹钟和计时器在 Finished 里写 “Didn't ring · … · ePet wasn't running”，没有 Missed 角标，也不在 “While I was hidden” 清单里；待办显示红色 “Overdue · …”；第二个闹钟打开后立刻补响，气泡小字写 “Due … · 12 min late — ePet wasn't running · 1 more try”（不写 Snoozed 2×），不理的话再贪睡一次后被标记为错过；如果超过 15 分钟才打开则不响**
+- [ ] 7.21 🍎 🤖+👀 让提醒晚响 1 分钟以上，分别试：① 用 ePet Test 🧪 Pretend → Presenting（或真的放映）时让一个普通闹钟、一个计时器、一个待办到点，2 分钟后选 Nothing；② 一个勾了 “Try again” 的闹钟，到点前退出 ePet，过 2 分钟再打开；③ 闹钟响着时让一个待办到点，等 1 分多钟再点 Done；④ 一个没定时间的待办，到提醒时间时 ePet 没开，之后再打开 → **每次补响的气泡里多一行小字：① 闹钟 “Due 4:30 PM · 2 min late — you were presenting”，计时器 “Ran out at … · 2 min ago — …”，待办同闹钟；② “Due … · 2 min late — ePet wasn't running · 1 more try”（不再写 Snoozed 2×）；③ 待办 “… — another reminder was ringing”；④ “📅 Today:” 下面写 “Meant for 9:00 AM”，不写原因。电脑睡眠后补响的写 “the computer was asleep”。晚不到 1 分钟的不写；几个一起响时每项后面写 “(7 min late)”，最后一行写原因** 👀 真的放映、睡眠电脑、开关 ePet 的几种情况，以及文字读起来是否清楚
 - [ ] 7.22 🍎 🤖 面板 Alarms 页签新建闹钟时勾上 Important（旁边 ⓘ 有说明），点 Add；再点 ✎ 编辑它，点 Save → **列表里这个闹钟名字后面有一个 “Important” 小标签；编辑时 Important 仍然勾着，保存后还是 Important**
 - [ ] 7.23 🍎 🤖 面板 Alarms 页签新建闹钟：先看 “Try again if I don't answer” 是否勾着；勾上 Important 再取消；然后手动勾上 Try again，再勾、取消 Important；点 Add，再 ✎ 编辑，取消 Try again 后 Save；最后让一个不勾 Try again 的闹钟响，不理它 → **新闹钟默认不勾；勾 Important 时 Try again 跟着勾上，取消时跟着取消；手动改过 Try again 之后，Important 不再带动它；列表里勾了 Try again 的闹钟名字后面有 “💤” 小标签，编辑时仍勾着，取消后小标签消失；不勾 Try again 的闹钟只响一次就记为 missed，不贪睡；旁边 ⓘ 说明会重试几次（按 设置 → Alarms & timers）。升级前已有的闹钟都保持勾着（行为和以前一样），计时器永远不自动贪睡**
 
@@ -215,13 +215,13 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 - [ ] 16.2 打开一个全屏游戏玩一会儿；期间设一个 1 分钟的计时器（可以先设好再进游戏）；不理它；1 分钟后退出游戏。再来一次，这次玩 15 分钟以上再退出 → **游戏时宠物不出现、不挡画面，计时器到时也不响；15 分钟内退出游戏约 10 秒后宠物回来，计时器带着宠物补响；超过 15 分钟才退出时不补响，宠物说 “While you were busy you missed:” 并列出那个计时器**
 - [ ] 16.3 把游戏设成横跨所有屏幕的全屏（或 NVIDIA Surround / AMD Eyefinity），宠物先放在任意一块屏幕上，开始游戏 → **无论宠物在哪块屏幕上，游戏开始约 1 秒内都离开，托盘写 “Stepped aside: full screen”；退出游戏约 10 秒后回来**
 - [ ] 16.4 🍎 Windows：PowerPoint 按 F5 放映；Mac：Keynote 播放（或 PowerPoint 放映）。有两块屏幕的话打开演示者视图（Presenter View），并把宠物先放在演示者视图那块屏幕上。放映时让一个勾了 Important 的闹钟响，点气泡上的 Done；再让一个普通闹钟响；放映中再开一下截图工具（Win+Shift+S）、点一下宠物所在的屏幕；15 分钟内结束放映 → **放映一开始宠物就离开（宠物在演示者视图那块屏幕上也一样），托盘写 “Stepped aside: presenting”；普通闹钟不响、宠物不出来；Important 闹钟照常全音量响，宠物出来提醒——宠物原来在放映那块屏幕上时，会改到演示者视图那块屏幕上出来（Mac 上可能仍在原屏幕）；点 Done 后宠物跑回屏幕边缘离开，速度和平时一样快，放映期间不再出现（点过宠物、开过截图工具都一样）；结束放映约 10 秒后宠物回来，普通闹钟带着宠物补响**
-- [ ] 16.5 🍎 打开 Teams、Zoom、微信视频或系统的相机 App，开摄像头；之后只开麦克风（关摄像头）再试一次；最后关掉 → **开摄像头时宠物离开，托盘写 “Stepped aside: in a call”；只开麦克风也算；关掉后约 10 秒宠物回来；如果某个程序一直占着麦克风（例如语音聊天挂着），宠物会一直不出来，可以在 Modes 页签取消勾选 Video calls**
+- [ ] 16.5 🍎 **【新】** ① Zoom（或 Teams、腾讯会议、微信视频）开会，只开摄像头；② 只开麦克风（关摄像头）；③ 都开；④ 都关但不退出会议；⑤ 退出会议后，打开 Discord 语音或浏览器里只开麦克风的网页（不开摄像头）；⑥ 系统的相机 App 开着 → **①②③⑥ 约 1 秒内宠物离开，托盘写 “Stepped aside: in a call”（全屏时也写 in a call，不是 full screen）；④ 宠物回来（如果 Zoom 仍占着麦克风，可能仍算通话，记下实际情况）；⑤ 宠物不走（不是会议程序、也没开摄像头）；结束后约 10 秒宠物回来。Mac 14.2 以前的系统，任何程序用麦克风都算**
 - [ ] 16.6 🍎 在会议里共享整个屏幕，让对方看；这时按托盘 Show pet 把宠物叫回来；再截一张图（Windows：Win+Shift+S；Mac：Cmd+Shift+3）；会议结束后再截一张 → **会议中你自己看得到宠物，对方看不到（共享画面里没有宠物、没有黑块）；会议中的截图里也没有宠物；会议结束后的截图里有宠物。Mac 新系统的部分录屏方式可能仍拍得到，记下实际情况**
 - [ ] 16.7 🍎 用 ePet Test：托盘 → 🧪 Pretend → In a call；再选 Full screen、Presenting；最后选 Nothing (look for real) → **每选一项宠物都离开，托盘写对应原因（in a call / full screen / presenting），当前选项打勾；选 Nothing 后约 10 秒宠物回来。正式版没有这个菜单**
 - [ ] 16.8 🍎 🤖 （ePet Test 里用 🧪 Pretend → In a call 代替真的通话）设一个 1 分钟后的普通闹钟，等它到时；然后选 Nothing (look for real) → **宠物离开；闹钟不响、宠物不出来；约 10 秒后宠物回来，那个闹钟带着宠物补响，点 Done 停**
 - [ ] 16.9 🍎 🤖 Pretend → In a call 时，让一个勾了 Important 的闹钟响；之后模式换成 🌙 Quiet，再让一个 Important 闹钟和一个普通闹钟各响一次 → **通话中 Important 闹钟照常响，宠物出来提醒，点 Done 后宠物又离开；Quiet 模式下 Important 闹钟一开始就是正常音量，普通闹钟从小声开始**
 - [ ] 16.10 🍎 🤖 Pretend → Full screen 时，让一个普通闹钟响；用 🧪 Test clock 把时间往后拨 30 min（等于玩了 15 分钟以上）；然后选 Nothing → **闹钟不响，宠物不出来；宠物回来时不补响，说 “While you were busy you missed:” 并列出那个闹钟，它在面板里记为 missed**
-- [ ] 16.11 🍎 🤖 **【新】** Pretend → Full screen 时，让一个待办和一个普通闹钟先后到时；10 分钟内选 Nothing → **期间什么都不响、宠物不出来；宠物回来后先补响闹钟，点 Done 后再提醒那个待办；每个补响的气泡里有一行小字 “Due … · N min late — an app was full screen”；不进 “While you were busy you missed:”。纪念日也等你回来再庆祝**
+- [ ] 16.11 🍎 🤖 Pretend → Full screen 时，让一个待办和一个普通闹钟先后到时；10 分钟内选 Nothing → **期间什么都不响、宠物不出来；宠物回来后先补响闹钟，点 Done 后再提醒那个待办；每个补响的气泡里有一行小字 “Due … · N min late — an app was full screen”；不进 “While you were busy you missed:”。纪念日也等你回来再庆祝**
 - [ ] 16.12 🍎 🤖 Pretend → In a call（或真的开会）时打开托盘菜单 → **第一项是 Show pet；Switch mode 下面有一行灰色、不能点的 “Stepped aside: in a call”；不在避让时没有这一行**
 - [ ] 16.13 🍎 🤖 让一个闹钟响，打开托盘菜单，点 “⏰ Done (stop ringing)”；再让一个闹钟响，点托盘 “💤 Snooze 5 min” → **响铃时托盘最上面是这两项；点 Done 铃声马上停，气泡消失，闹钟结束；点 Snooze 铃声停，闹钟 5 分钟后再响；不响时托盘没有这两项**
 - [ ] 16.14 🍎 用 ePet Test：托盘里看 “🧪 Frame rate: …/s”；然后放映 PowerPoint（或全屏一个游戏），期间让 Important 闹钟响、点 Done；再拖动宠物、扔一下 → **平时 Frame rate 约 60/s（屏幕刷新率更高时可能更高），放映时可能变低；无论帧率高低，Important 闹钟时宠物跑进、跑出的速度都和平时一样，不再慢吞吞（帧率低时只是不那么流畅）；拖动和扔出去的效果正常；屏幕上不会多出空白窗口**

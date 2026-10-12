@@ -146,6 +146,38 @@ pub fn screen_at(screens: &[Rect], (x, y): (f64, f64)) -> Option<usize> {
     (0..screens.len()).min_by(|&a, &b| dist(&screens[a]).total_cmp(&dist(&screens[b])))
 }
 
+/// Apps whose use of the microphone means a call or a meeting (lowercase, letters and digits
+/// only, matched within the app's program or bundle name): an app keeping the microphone open
+/// for anything else (a voice chat left open, a voice assistant, a browser tab) doesn't count;
+/// with the camera on, any app does.
+const MEETING_APPS: &[&str] = &[
+    "zoom",           // Zoom.exe, us.zoom.xos
+    "teams",          // ms-teams.exe, Teams.exe, com.microsoft.teams2
+    "webex",          // com.cisco.webexmeetingsapp, webexmta.exe
+    "ciscocollab",    // CiscoCollabHost.exe (Webex)
+    "wemeet",         // WeMeetApp.exe (Tencent Meeting)
+    "tencentmeeting", // com.tencent.meeting
+    "feishu",         // Feishu.exe, com.bytedance.feishu
+    "lark",           // Lark.exe
+    "dingtalk",       // DingTalk.exe, com.alibaba.DingTalkMac
+    "wechat",         // WeChat.exe, com.tencent.xinWeChat
+    "weixin",         // Weixin.exe (WeChat 4)
+    "skype",
+];
+
+/// Whether this app (its program file or bundle id) is a meeting app (see `MEETING_APPS`).
+#[cfg_attr(not(any(windows, target_os = "macos", test)), allow(dead_code))]
+pub fn is_meeting_app(name: &str) -> bool {
+    let name: String = name.chars().filter(char::is_ascii_alphanumeric).map(|c| c.to_ascii_lowercase()).collect();
+    MEETING_APPS.iter().any(|m| name.contains(m))
+}
+
+/// In a call: a camera is in use (by any app), or a meeting app uses the microphone.
+#[cfg_attr(not(any(windows, target_os = "macos", test)), allow(dead_code))]
+pub fn in_call<'a>(camera: bool, recording: impl IntoIterator<Item = &'a str>) -> bool {
+    camera || recording.into_iter().any(is_meeting_app)
+}
+
 /// What you're doing (see avoid.rs): on the pet's screen, or a slide show on any.
 pub fn busy<R: Runtime>(pet: &WebviewWindow<R>) -> (Busy, Vec<Rect>) {
     let Ok(pos) = pet.outer_position() else {
@@ -234,6 +266,36 @@ mod tests {
         assert!(classify(&[racing], &[LEFT, RIGHT], Some(1)).fullscreen);
         let half = app(Rect { x: 960.0, y: 0.0, w: 1920.0, h: 1080.0 });
         assert!(!classify(&[half], &[LEFT, RIGHT], Some(1)).fullscreen);
+    }
+
+    #[test]
+    fn a_call_is_a_camera_on_or_a_meeting_app_on_the_microphone() {
+        for app in [
+            r"C:\Users\me\AppData\Roaming\Zoom\bin\Zoom.exe",
+            "ms-teams.exe",
+            "CiscoCollabHost.exe",
+            "WeMeetApp.exe",
+            "Feishu.exe",
+            "DingTalk.exe",
+            "WeChat.exe",
+            "Weixin.exe",
+            "us.zoom.xos",
+            "com.microsoft.teams2",
+            "com.tencent.xinWeChat",
+            "com.tencent.meeting",
+            "com.alibaba.DingTalkMac",
+        ] {
+            assert!(is_meeting_app(app), "{app}");
+            assert!(in_call(false, [app]), "{app}");
+        }
+        // A voice chat left open, a voice assistant, a browser: not without the camera.
+        for app in ["Discord.exe", "chrome.exe", "com.google.Chrome", "Cortana.exe", "obs64.exe"] {
+            assert!(!is_meeting_app(app), "{app}");
+            assert!(!in_call(false, [app]), "{app}");
+            assert!(in_call(true, [app]), "{app} with the camera on");
+        }
+        assert!(in_call(true, []));
+        assert!(!in_call(false, []));
     }
 
     #[test]

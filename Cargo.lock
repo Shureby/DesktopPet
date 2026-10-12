@@ -843,7 +843,7 @@ dependencies = [
 
 [[package]]
 name = "desktoppet"
-version = "0.41.0"
+version = "0.41.1"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -861,11 +861,12 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-single-instance",
  "windows",
+ "windows-core 0.61.2",
 ]
 
 [[package]]
 name = "desktoppet-core"
-version = "0.41.0"
+version = "0.41.1"
 dependencies = [
  "argon2",
  "chacha20poly1305",

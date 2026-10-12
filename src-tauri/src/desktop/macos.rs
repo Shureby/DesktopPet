@@ -103,11 +103,7 @@ pub fn busy(own_pid: u32, pet: (f64, f64)) -> (Busy, Vec<super::Rect>) {
             super::Rect { x: s.x * scale, y: s.y * scale, w: s.w * scale, h: s.h * scale }
         })
         .collect();
-    let b = Busy {
-        fullscreen: scene.fullscreen,
-        presenting: !scene.slideshows.is_empty(),
-        call: camera_in_use() || microphone_in_use(),
-    };
+    let b = Busy { fullscreen: scene.fullscreen, presenting: !scene.slideshows.is_empty(), call: in_call(own_pid) };
     (b, slideshows)
 }
 
@@ -202,6 +198,86 @@ extern "C" {
         size: *mut u32,
         data: *mut c_void,
     ) -> i32;
+    fn AudioObjectGetPropertyDataSize(
+        object: u32,
+        address: *const PropertyAddress,
+        qualifier_size: u32,
+        qualifier: *const c_void,
+        size: *mut u32,
+    ) -> i32;
+}
+
+/// macOS 14.2+: the processes using audio, and for each its id, bundle id and whether it records.
+const PROCESS_OBJECTS: u32 = fourcc(b"prs#");
+const PROCESS_PID: u32 = fourcc(b"ppid");
+const PROCESS_BUNDLE_ID: u32 = fourcc(b"pbid");
+const PROCESS_RECORDS: u32 = fourcc(b"piri");
+
+/// In a call: a camera is in use (by any app), or a meeting app records from a microphone
+/// (super::in_call). Before macOS 14.2, which doesn't say which app records, any app does.
+fn in_call(own_pid: u32) -> bool {
+    let camera = camera_in_use();
+    match recording_apps(own_pid) {
+        Some(apps) => super::in_call(camera, apps.iter().map(String::as_str)),
+        None => camera || microphone_in_use(),
+    }
+}
+
+/// The apps (bundle ids) recording from a microphone now, but this one; None before macOS 14.2.
+fn recording_apps(own_pid: u32) -> Option<Vec<String>> {
+    unsafe {
+        let list = global(PROCESS_OBJECTS);
+        let mut size = 0u32;
+        if AudioObjectGetPropertyDataSize(SYSTEM_OBJECT, &list, 0, std::ptr::null(), &mut size) != 0 {
+            return None;
+        }
+        let mut ids = vec![0u32; size as usize / size_of::<u32>()];
+        if !ids.is_empty()
+            && AudioObjectGetPropertyData(
+                SYSTEM_OBJECT,
+                &list,
+                0,
+                std::ptr::null(),
+                &mut size,
+                ids.as_mut_ptr() as *mut c_void,
+            ) != 0
+        {
+            return None;
+        }
+        ids.truncate(size as usize / size_of::<u32>());
+        let u32_of = |id: u32, selector: u32| {
+            let mut v = 0u32;
+            let mut size = size_of::<u32>() as u32;
+            (AudioObjectGetPropertyData(
+                id,
+                &global(selector),
+                0,
+                std::ptr::null(),
+                &mut size,
+                &mut v as *mut u32 as *mut c_void,
+            ) == 0)
+                .then_some(v)
+        };
+        let apps = ids
+            .into_iter()
+            .filter(|&id| u32_of(id, PROCESS_RECORDS).is_some_and(|r| r != 0))
+            .filter(|&id| u32_of(id, PROCESS_PID).is_some_and(|pid| pid != own_pid))
+            .filter_map(|id| {
+                let mut s: core_foundation::string::CFStringRef = std::ptr::null();
+                let mut size = size_of::<core_foundation::string::CFStringRef>() as u32;
+                let ok = AudioObjectGetPropertyData(
+                    id,
+                    &global(PROCESS_BUNDLE_ID),
+                    0,
+                    std::ptr::null(),
+                    &mut size,
+                    &mut s as *mut _ as *mut c_void,
+                ) == 0;
+                (ok && !s.is_null()).then(|| CFString::wrap_under_create_rule(s).to_string())
+            })
+            .collect();
+        Some(apps)
+    }
 }
 
 fn global(selector: u32) -> PropertyAddress {
