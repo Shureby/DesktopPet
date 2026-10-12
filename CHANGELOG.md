@@ -39,8 +39,8 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 - A game covering several screens (racing, flight simulators) counts as full screen on each.
 
 ### Fixed
-- The pet ran slowly in and out over a full-screen app or slide show (its window was being
-  throttled): it keeps its usual speed now.
+- The pet ran slowly in and out over a full-screen app or slide show (its window drew few
+  frames there, and each moved it only a quarter second's worth): it keeps its usual speed now.
 
 ## [0.39.2] - 2026-10-11
 

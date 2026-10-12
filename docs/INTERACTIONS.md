@@ -668,9 +668,10 @@ pet can't be answered, so nothing rings while the pet is aside unless it comes o
 - **The tray answers a ring** (since 0.40.0): while an alarm or timer rings, the tray menu's
   top lines are "⏰ Done (stop ringing)" and "💤 Snooze 5 min" — for when the pet is on
   another screen or behind something.
-- **It keeps its pace** (since 0.40.0): the pet's window isn't slowed down behind a
-  full-screen app (WebView2's occlusion throttling off, macOS background throttling off),
-  so it runs in and out at its usual speed. ePet Test's tray shows 🧪 Frame rate.
+- **It keeps its pace** (since 0.40.0): when frames come slowly (a busy computer, its window
+  over a full-screen game or slide show) each one moves it up to a second's worth, so it
+  runs in and out at its usual speed, if less smoothly; on macOS its window isn't throttled
+  in the background. ePet Test's tray shows 🧪 Frame rate.
 - **Screen sharing:** during a call or a slide show ePet's pet and effect windows are left out
   of screen sharing, recordings and screenshots (Windows 10 2004 and later:
   `WDA_EXCLUDEFROMCAPTURE`; macOS: not shared). You still see them. "Always hide ePet from

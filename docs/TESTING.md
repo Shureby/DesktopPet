@@ -223,7 +223,7 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 - [ ] 16.11 🍎 🤖 **【新】** Pretend → Full screen 时，让一个待办和一个普通闹钟先后到时；10 分钟内选 Nothing → **期间什么都不响、宠物不出来；宠物回来后先补响闹钟，点 Done 后再提醒那个待办；不进 “While you were busy you missed:”。纪念日也等你回来再庆祝**
 - [ ] 16.12 🍎 🤖 Pretend → In a call（或真的开会）时打开托盘菜单 → **第一项是 Show pet；Switch mode 下面有一行灰色、不能点的 “Stepped aside: in a call”；不在避让时没有这一行**
 - [ ] 16.13 🍎 🤖 **【新】** 让一个闹钟响，打开托盘菜单，点 “⏰ Done (stop ringing)”；再让一个闹钟响，点托盘 “💤 Snooze 5 min” → **响铃时托盘最上面是这两项；点 Done 铃声马上停，气泡消失，闹钟结束；点 Snooze 铃声停，闹钟 5 分钟后再响；不响时托盘没有这两项**
-- [ ] 16.14 🍎 **【新】** 用 ePet Test：托盘里看 “🧪 Frame rate: …/s”；然后放映 PowerPoint（或全屏一个游戏），期间让 Important 闹钟响、点 Done；再拖动宠物、扔一下 → **平时 Frame rate 约 60/s（屏幕刷新率更高时可能更高），放映时也不明显变低；Important 闹钟时宠物跑进、跑出的速度和平时一样，不再慢吞吞；拖动和扔出去的效果正常，不会突然瞬移**
+- [ ] 16.14 🍎 **【新】** 用 ePet Test：托盘里看 “🧪 Frame rate: …/s”；然后放映 PowerPoint（或全屏一个游戏），期间让 Important 闹钟响、点 Done；再拖动宠物、扔一下 → **平时 Frame rate 约 60/s（屏幕刷新率更高时可能更高），放映时可能变低；无论帧率高低，Important 闹钟时宠物跑进、跑出的速度都和平时一样，不再慢吞吞（帧率低时只是不那么流畅）；拖动和扔出去的效果正常；屏幕上不会多出空白窗口**
 - [ ] 16.15 🍎 🤖 Pretend → In a call 后，点托盘 Show pet → **宠物马上回来，托盘第一项变回 Hide pet，这次通话期间不再离开；下一次通话又会离开**
 - [ ] 16.16 🍎 🤖+👀 打开面板 Modes 页签，拉到最下面的 “Step aside automatically”；取消勾选 Video calls，然后 Pretend → In a call；再勾上 Always hide ePet from screenshots and recordings，截一张图 → **四个选项各带 ⓘ 说明，默认前三个勾上、最后一个不勾；取消 Video calls 后通话时宠物不走；勾 Always hide 后截图里没有宠物（你自己照样看得见）；宠物离开时这一节下面写 “Now: stepped aside (…)”** 👀 你看看这一节的文字和 ⓘ 说明好不好懂
 

@@ -666,7 +666,9 @@ export class PetHost {
   }
 
   private frame(now: number): void {
-    const dt = Math.min(0.25, (now - this.last) / 1000);
+    // Up to a second at once: slow frames (a busy computer, a window over a full-screen game or
+    // slide show) don't slow the pet down.
+    const dt = Math.min(1, (now - this.last) / 1000);
     this.last = now;
     this.frames++;
     this.acc += dt;

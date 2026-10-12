@@ -12,33 +12,32 @@ pub const PANEL: &str = "panel";
 pub const GAME: &str = "game";
 pub const CELEBRATE: &str = "celebrate";
 
-/// WebView2 arguments for every window: wry's defaults, plus no throttling when Windows
-/// thinks a window is hidden behind another (the pet runs over a full-screen game or slide
-/// show, and its timers must keep their pace), plus anything asked for through
-/// `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS`, as Edge WebDriver does for the end-to-end tests
-/// (it needs `--remote-debugging-port`; WebView2 ignores that variable once arguments are set
-/// in code). All webviews share one WebView2 environment, so every window must get the same.
-fn browser_args() -> String {
-    let extra = std::env::var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS").unwrap_or_default();
-    format!(
-        "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,CalculateNativeWinOcclusion \
-         --autoplay-policy=no-user-gesture-required --disable-background-timer-throttling \
-         --disable-renderer-backgrounding --disable-backgrounding-occluded-windows {extra}"
-    )
-    .trim()
-    .to_string()
+/// Extra WebView2 arguments asked for through `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS`, as
+/// Edge WebDriver does for the end-to-end tests (it needs `--remote-debugging-port`).
+/// WebView2 ignores that variable once arguments are set in code, and wry always sets
+/// some, so they are passed on here with wry's defaults. All webviews share one WebView2
+/// environment, so every window must get the same; normally this is `None` and nothing changes.
+/// (No switches of our own: in 0.40 Chromium's anti-throttling switches left a blank
+/// msedgewebview2 window on screen.)
+pub fn browser_args() -> Option<String> {
+    let extra = std::env::var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS").ok().filter(|a| !a.trim().is_empty())?;
+    Some(format!(
+        "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --autoplay-policy=no-user-gesture-required {extra}"
+    ))
 }
 
-/// A window builder with [`browser_args`] applied and no background throttling.
+/// A window builder with [`browser_args`] applied and no background throttling (macOS).
 fn window<'a, R: Runtime>(
     app: &'a AppHandle<R>,
     label: &str,
     url: String,
 ) -> WebviewWindowBuilder<'a, R, AppHandle<R>> {
-    let builder = WebviewWindowBuilder::new(app, label, WebviewUrl::App(url.into()));
-    builder
-        .additional_browser_args(&browser_args())
-        .background_throttling(tauri::utils::config::BackgroundThrottlingPolicy::Disabled)
+    let builder = WebviewWindowBuilder::new(app, label, WebviewUrl::App(url.into()))
+        .background_throttling(tauri::utils::config::BackgroundThrottlingPolicy::Disabled);
+    match browser_args() {
+        Some(args) => builder.additional_browser_args(&args),
+        None => builder,
+    }
 }
 
 /// Creates the pet window from its entry in tauri.conf.json (`"create": false` there, so
@@ -46,8 +45,8 @@ fn window<'a, R: Runtime>(
 pub fn create_pet<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let mut config =
         app.config().app.windows.iter().find(|w| w.label == PET).cloned().expect("pet window in tauri.conf.json");
-    config.additional_browser_args = Some(browser_args());
-    // macOS: its timers keep their pace behind a full-screen app too (Windows: browser_args).
+    config.additional_browser_args = browser_args();
+    // macOS: its timers keep their pace behind a full-screen app too.
     config.background_throttling = Some(tauri::utils::config::BackgroundThrottlingPolicy::Disabled);
     WebviewWindowBuilder::from_config(app, &config)?.build()?;
     Ok(())
