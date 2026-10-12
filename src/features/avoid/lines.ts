@@ -24,7 +24,7 @@ const LEAVING: Record<AvoidReason, string[]> = {
   presenting: [
     "Presenting? Good luck! I'll keep out of sight.",
     "Showtime! I'll hide backstage.",
-    "Knock 'em dead! I'll stay out of the slides.",
+    "You've got this! I'll stay out of the slides.",
   ],
   call: [
     "You're on a call — I'll be quiet.",
