@@ -61,9 +61,13 @@ check("todo.day-remind", "to-dos without a time: one bubble “📅 Today: • �
   const a = await app.invoke("add_todo", { todo: { title: "Bins", allDay: true, repeat: "none", dueAt: day(0) } });
   const b = await app.invoke("add_todo", { todo: { title: "Pay bills", allDay: true, repeat: "none", dueAt: day(0) } });
   // The day's reminder time a minute ago (ePet opened late: still reminded that day).
-  await app.setSettings((s) => ((s.todoDayTime = hm(-MIN)), s));
+  const dayTime = hm(-MIN);
+  await app.setSettings((s) => ((s.todoDayTime = dayTime), s));
   const said = await app.waitBubble("📅 Today:", 10_000);
-  assert.match(said, /^📅 Today: • (Bins • Pay bills|Pay bills • Bins)$/);
+  // A minute late or more (to the second): it says the time it was meant for (alarm.late-note).
+  const [h, m] = dayTime.split(":").map(Number);
+  const meant = (await app.clock(new Date().setHours(h, m, 0, 0))).replace(/\s/g, "\\s");
+  assert.match(said, new RegExp(`^📅 Today: • (Bins • Pay bills|Pay bills • Bins) Meant for ${meant}$`));
   assert.deepEqual(await app.texts("#bubble .actions button"), ["Open To-dos", "Later"]);
   await app.answer("Later");
   // Not again right away (in 10 minutes: the store's tests check that), and still on its day.
