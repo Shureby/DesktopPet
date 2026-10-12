@@ -102,6 +102,24 @@ if (process.platform === "win32") {
     await mouse.up();
   }
 
+  /**
+   * Until it lands: where it fell from and how (for a failure's message): its feet's height
+   * above the floor, state and fall speed every 50 ms.
+   */
+  async function fallTrace() {
+    const app = ctx.app;
+    const seen = [];
+    await app.b.waitUntil(
+      async () => {
+        const s = await app.pet();
+        seen.push(`${Math.round(s.area.y + s.area.h - s.y)}:${s.state}:${Math.round(s.vy)}`);
+        return s.grounded;
+      },
+      { timeout: 15_000, interval: 50 },
+    );
+    return seen.join(" ");
+  }
+
   /** Walks the pet to the middle of the work area (away from the walls it might climb). */
   async function toMiddle() {
     const app = ctx.app;
@@ -371,9 +389,14 @@ if (process.platform === "win32") {
     p = await app.pet();
     const high = { x: hand.x, y: p.area.y + 60 };
     await mouse.glide(hand, high, 500);
+    const held = await app.pet();
     await drop(high);
+    const trace = await fallTrace();
     p = await landed();
-    assert.ok(Math.abs(p.mood.affection - 49) < 0.2, `slammed: ${p.mood.affection}`);
+    assert.ok(
+      Math.abs(p.mood.affection - 49) < 0.2,
+      `slammed: ${p.mood.affection} (held at ${Math.round(held.area.y + held.area.h - held.y)} px up, ${held.state}; fall: ${trace})`,
+    );
     assert.ok(said(await app.bubble(), "cat", "landed"), `says so: ${await app.bubble()}`);
     await away();
   });
@@ -428,17 +451,19 @@ if (process.platform === "win32") {
       const start = Date.now();
       const states = new Set();
       const vy = [];
+      const trace = [];
       await app.b.waitUntil(
         async () => {
           const s = await app.pet();
           states.add(s.state);
+          trace.push(`${Math.round(s.area.y + s.area.h - s.y)}:${s.state}:${Math.round(s.vy)}`);
           if (!s.grounded && s.vy > 0) vy.push(s.vy);
           return s.grounded;
         },
         { timeout: 15_000, interval: 50 },
       );
       vy.sort((a, b) => a - b);
-      return { ms: Date.now() - start, states, vy: Math.round(vy[Math.floor(vy.length / 2)] ?? 0) };
+      return { ms: Date.now() - start, states, vy: Math.round(vy[Math.floor(vy.length / 2)] ?? 0), trace: trace.join(" ") };
     };
     const says = (f) => `${f.ms} ms, ${f.vy} px/s, ${[...f.states].join(" ")}`;
     const cat = await fall();
@@ -447,7 +472,7 @@ if (process.platform === "win32") {
     await landed();
     try {
       const rooster = await fall();
-      assert.ok(rooster.states.has("glide"), `glides: ${[...rooster.states].join(", ")}`);
+      assert.ok(rooster.states.has("glide"), `glides: ${[...rooster.states].join(", ")} (fall: ${rooster.trace}; cat: ${cat.trace})`);
       assert.ok(rooster.vy < cat.vy * 0.6, `slower: cat ${says(cat)}; rooster ${says(rooster)}`);
     } finally {
       await app.run("pet", "Switch character", "Cat");

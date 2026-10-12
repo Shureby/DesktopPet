@@ -670,8 +670,7 @@ pet can't be answered, so nothing rings while the pet is aside unless it comes o
   another screen or behind something.
 - **It keeps its pace** (since 0.40.0): the pet's window isn't slowed down behind a
   full-screen app (WebView2's occlusion throttling off, macOS background throttling off),
-  and a slow frame moves it up to a second's worth, so it runs in and out at its usual
-  speed. ePet Test's tray shows 🧪 Frame rate.
+  so it runs in and out at its usual speed. ePet Test's tray shows 🧪 Frame rate.
 - **Screen sharing:** during a call or a slide show ePet's pet and effect windows are left out
   of screen sharing, recordings and screenshots (Windows 10 2004 and later:
   `WDA_EXCLUDEFROMCAPTURE`; macOS: not shared). You still see them. "Always hide ePet from
