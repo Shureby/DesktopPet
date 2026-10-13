@@ -1,4 +1,11 @@
+import { holidaysFor } from "../features/anniversary/holidays";
+import { region, REGION_NAMES, REGIONS, resolveRegion, type RegionSetting } from "../i18n/region";
+import { characterDescription, characterName, characterStyle } from "../characters/text";
 import { version } from "../../package.json";
+import { isChinese, LANGUAGE_NAMES, LANGUAGES, msg, onLanguage, resolveLanguage, t, type LanguageSetting } from "../i18n";
+import { monthName, shortDate, shortDateYear, weekdayName, weekdayNarrow, weekdayShort } from "../i18n/format";
+import { lunarMonthName } from "../i18n/chinese";
+import { followLocale, systemLocale } from "../i18n/apply";
 import product from "../../product.config.json";
 import { isHungry, moodTier, parseMood, type Mood } from "../brain/mood";
 import { ABILITIES } from "../characters/abilities";
@@ -32,10 +39,8 @@ import {
   yearsText,
   musicChoices,
   musicFor,
-  HOLIDAYS,
   ordinal,
   ruleText,
-  WEEKDAY_NAMES,
   type AnniversaryKind,
   type CalendarKind,
   type DateRule,
@@ -85,7 +90,7 @@ import { icon } from "../ui/icons";
 import { backupSection } from "./backup";
 import { hmText, infoTip, modesSection } from "./modes";
 import { avoidSection } from "./avoid";
-import { dayPicker, WEEK } from "./dayPicker";
+import { dayPicker, week } from "./dayPicker";
 import { workSpan } from "../features/modes/modes";
 import { formatHm, parseHm, timeField } from "./timeField";
 import { formatDay, formatWhen, h } from "./dom";
@@ -93,13 +98,13 @@ import { dateField, ymdOf, ymdToMs } from "./dateField";
 import { repeatBadge, splitTodos, todoHint, todoWhen } from "./todoText";
 
 const TABS: { id: PanelTab; label: string }[] = [
-  { id: "todos", label: "To-dos" },
-  { id: "alarms", label: "Alarms" },
-  { id: "focus", label: "Focus" },
-  { id: "modes", label: "Modes" },
-  { id: "characters", label: "Characters" },
-  { id: "games", label: "Games" },
-  { id: "settings", label: "Settings" },
+  { id: "todos", label: msg("To-dos") },
+  { id: "alarms", label: msg("Alarms") },
+  { id: "focus", label: msg("Focus") },
+  { id: "modes", label: msg("Modes") },
+  { id: "characters", label: msg("Characters") },
+  { id: "games", label: msg("Games") },
+  { id: "settings", label: msg("Settings") },
 ];
 
 let current: PanelTab = "todos";
@@ -216,7 +221,7 @@ function todoSubtabs(anniversaries: Anniversary[]): Node {
       label,
       count ? h("span", { class: "n" }, String(count)) : null,
     );
-  return h("div", { class: "subtabs" }, tab("todos", "To-dos"), tab("anniversaries", "🎂 Anniversaries", soon));
+  return h("div", { class: "subtabs" }, tab("todos", t("To-dos")), tab("anniversaries", t("🎂 Anniversaries"), soon));
 }
 
 async function renderTodos(): Promise<Node> {
@@ -224,18 +229,18 @@ async function renderTodos(): Promise<Node> {
   if (todoSub === "anniversaries") return renderAnniversaries(anniversaries);
   const todos = await backend.listTodos();
   // The to-do being edited was deleted or ticked off elsewhere: back to a new one.
-  if (todoDraft?.editing != null && !todos.some((t) => t.id === todoDraft?.editing && !t.done)) todoDraft = null;
+  if (todoDraft?.editing != null && !todos.some((it) => it.id === todoDraft?.editing && !it.done)) todoDraft = null;
   todoDraft ??= newTodoDraft();
   const draft = todoDraft;
-  const editingTodo = todos.find((t) => t.id === draft.editing) ?? null;
-  const startEdit = (t: Todo) => {
+  const editingTodo = todos.find((it) => it.id === draft.editing) ?? null;
+  const startEdit = (it: Todo) => {
     todoDraft = {
-      text: t.title,
-      date: t.dueAt === null ? null : ymdOf(t.dueAt),
-      time: t.dueAt === null || t.allDay ? null : formatHm(new Date(t.dueAt).getHours(), new Date(t.dueAt).getMinutes()),
-      repeat: t.repeat,
+      text: it.title,
+      date: it.dueAt === null ? null : ymdOf(it.dueAt),
+      time: it.dueAt === null || it.allDay ? null : formatHm(new Date(it.dueAt).getHours(), new Date(it.dueAt).getMinutes()),
+      repeat: it.repeat,
       touched: true,
-      editing: t.id,
+      editing: it.id,
     };
     void render();
   };
@@ -259,7 +264,7 @@ async function renderTodos(): Promise<Node> {
 
   const input = h("input", {
     type: "text",
-    placeholder: editingTodo ? "To-do" : "e.g. bins every tue · call mom at 3pm · pay bills monthly 1st",
+    placeholder: editingTodo ? t("To-do") : t("e.g. bins every tue · call mom at 3pm · pay bills monthly 1st"),
     value: draft.text,
   });
   const hint = h("div", { class: "hint" });
@@ -277,16 +282,16 @@ async function renderTodos(): Promise<Node> {
   const paintWhen = () => {
     const parts: Node[] = [];
     if (draft.date === null) {
-      parts.push(h("button", { class: "add-when", onclick: () => ((draft.date = ymdOf(Date.now())), changed()) }, "+ Date"));
+      parts.push(h("button", { class: "add-when", onclick: () => ((draft.date = ymdOf(Date.now())), changed()) }, t("+ Date")));
     } else {
-      const df = dateField(draft.date, (v) => ((draft.date = v), (draft.touched = true), showHint()), "Day");
-      df.append(mini("No date", () => ((draft.date = null), (draft.time = null), changed())));
+      const df = dateField(draft.date, (v) => ((draft.date = v), (draft.touched = true), showHint()), t("Day"));
+      df.append(mini(t("No date"), () => ((draft.date = null), (draft.time = null), changed())));
       parts.push(df);
       if (draft.time === null) {
-        parts.push(h("button", { class: "add-when", onclick: () => ((draft.time = nextHourHm()), changed()) }, "+ Time"));
+        parts.push(h("button", { class: "add-when", onclick: () => ((draft.time = nextHourHm()), changed()) }, t("+ Time")));
       } else {
-        const tf = timeField(draft.time, (v) => ((draft.time = v), (draft.touched = true), showHint()), "Time");
-        tf.append(mini("No time (any time that day)", () => ((draft.time = null), changed())));
+        const tf = timeField(draft.time, (v) => ((draft.time = v), (draft.touched = true), showHint()), t("Time"));
+        tf.append(mini(t("No time (any time that day)"), () => ((draft.time = null), changed())));
         parts.push(tf);
       }
     }
@@ -295,11 +300,11 @@ async function renderTodos(): Promise<Node> {
         "select",
         {
           class: "repeat",
-          title: draft.date === null ? "Pick a day to repeat from" : "Repeat",
+          title: draft.date === null ? t("Pick a day to repeat from") : t("Repeat"),
           disabled: draft.date === null,
           onchange: (e: Event) => ((draft.repeat = (e.target as HTMLSelectElement).value as TodoRepeat), changed()),
         },
-        ...TODO_REPEATS.map(([v, text]) => h("option", { value: v, selected: repeat() === v }, text)),
+        ...TODO_REPEATS.map(([v, text]) => h("option", { value: v, selected: repeat() === v }, t(text))),
       ),
     );
     whenRow.replaceChildren(...parts);
@@ -342,21 +347,21 @@ async function renderTodos(): Promise<Node> {
   showHint();
 
   const { today, upcoming, done } = splitTodos(todos, settings.todoDayTime);
-  const row = (t: Todo) => {
-    const when = t.done ? null : todoWhen(t);
-    const badge = t.done ? "" : repeatBadge(t.repeat);
+  const row = (it: Todo) => {
+    const when = it.done ? null : todoWhen(it);
+    const badge = it.done ? "" : repeatBadge(it.repeat);
     return h(
       "li",
-      { class: `${t.done ? "done" : ""} ${t.id === draft.editing ? "editing" : ""}` },
+      { class: `${it.done ? "done" : ""} ${it.id === draft.editing ? "editing" : ""}` },
       h("input", {
         type: "checkbox",
-        checked: t.done,
+        checked: it.done,
         onchange: () => {
-          void backend.updateTodo(t.id, { done: !t.done });
-          if (!t.done) void backend.emit("pet-event", { type: "todoDone" });
+          void backend.updateTodo(it.id, { done: !it.done });
+          if (!it.done) void backend.emit("pet-event", { type: "todoDone" });
         },
       }),
-      h("span", { class: "title" }, t.title),
+      h("span", { class: "title" }, it.title),
       // Its reminder time (or day) has passed, answered or not, or while ePet wasn't running.
       when || badge
         ? h(
@@ -366,9 +371,9 @@ async function renderTodos(): Promise<Node> {
             when?.text ?? "",
           )
         : null,
-      t.done && t.doneAt ? h("span", { class: "when" }, `Done · ${formatWhen(t.doneAt)}`) : null,
-      t.done ? null : h("button", { class: "icon edit", title: "Edit", onclick: () => startEdit(t) }, "✎"),
-      h("button", { class: "icon delete", title: "Delete", onclick: () => void backend.deleteTodo(t.id) }, icon("close")),
+      it.done && it.doneAt ? h("span", { class: "when" }, t("Done · {when}", { when: formatWhen(it.doneAt) })) : null,
+      it.done ? null : h("button", { class: "icon edit", title: t("Edit"), onclick: () => startEdit(it) }, "✎"),
+      h("button", { class: "icon delete", title: t("Delete"), onclick: () => void backend.deleteTodo(it.id) }, icon("close")),
     );
   };
 
@@ -380,18 +385,18 @@ async function renderTodos(): Promise<Node> {
       ? h(
           "div",
           { class: "edit-head" },
-          h("h3", {}, `Edit to-do · ${editingTodo.title}`),
-          h("button", { class: "link", onclick: stopEdit }, "Cancel"),
+          h("h3", {}, t("Edit to-do · {name}", { name: editingTodo.title })),
+          h("button", { class: "link", onclick: stopEdit }, t("Cancel")),
         )
       : null,
-    h("div", { class: "row" }, input, h("button", { class: "primary", onclick: add }, editingTodo ? "Save" : "Add")),
+    h("div", { class: "row" }, input, h("button", { class: "primary", onclick: add }, editingTodo ? t("Save") : t("Add"))),
     whenRow,
     hint,
-    h("h3", {}, `Today (${today.length})`),
-    today.length ? h("ul", { class: "list" }, ...today.map(row)) : h("p", { class: "empty" }, "Nothing for today. Your pet approves."),
+    h("h3", {}, t("Today ({n})", { n: today.length })),
+    today.length ? h("ul", { class: "list" }, ...today.map(row)) : h("p", { class: "empty" }, t("Nothing for today. Your pet approves.")),
     upcoming.length ? upcomingSection(upcoming, row) : null,
-    done.length ? finishedSection(`Done (${done.length})`, done.map(row), () => backend.clearDoneTodos()) : null,
-    h("p", { class: "hint" }, "Done to-dos are cleared automatically each day. Ticking a repeating one moves it to its next day; untick it in Done to undo."),
+    done.length ? finishedSection(t("Done ({n})", { n: done.length }), done.map(row), () => backend.clearDoneTodos()) : null,
+    h("p", { class: "hint" }, t("Done to-dos are cleared automatically each day. Ticking a repeating one moves it to its next day; untick it in Done to undo.")),
   );
 }
 
@@ -407,6 +412,8 @@ interface AnniversaryDraft {
   date: string;
   lunar: { month: number; day: number; leap: boolean };
   week: { month: number; nth: number; weekday: number };
+  /** A holiday's own day (calendar "table" or "easter"): kept as it is, not edited by hand. */
+  listed: { month: number; nth: number } | null;
   since: string;
   preps: AnniversaryPrep[];
   effect: boolean;
@@ -445,7 +452,7 @@ function previewButton(key: string, cls: string, title: string, label: string, p
 
 function paintPreviewButton(btn: HTMLElement): void {
   const on = previewing === btn.dataset.preview;
-  const label = btn.dataset.label ? (on ? "Stop" : btn.dataset.label) : "";
+  const label = btn.dataset.label ? (on ? t("Stop") : btn.dataset.label) : "";
   btn.replaceChildren(icon(on ? "stop" : "play"), ...(label ? [label] : []));
   btn.classList.toggle("stop", on);
 }
@@ -455,18 +462,19 @@ function paintPreviewButtons(): void {
 }
 
 function newAnniversaryDraft(kind: AnniversaryKind = "birthday"): AnniversaryDraft {
-  const t = TEMPLATES[kind];
+  const it = TEMPLATES[kind];
   return {
     kind,
-    icon: t.icon,
+    icon: it.icon,
     name: "",
     calendar: "solar",
     date: ymdOf(Date.now()).replace(/^\d{4}/, "2000"),
     lunar: { month: 1, day: 1, leap: false },
     week: { month: 5, nth: 2, weekday: 0 },
+    listed: null,
     since: "",
-    preps: t.preps.map((p) => ({ ...p })),
-    effect: t.effect,
+    preps: it.preps.map((p) => ({ ...p, label: t(p.label) })),
+    effect: it.effect,
     music: null,
     iconTouched: false,
     prepsTouched: false,
@@ -490,6 +498,8 @@ function renderAnniversaries(list: Anniversary[]): Node {
     if (draft.calendar === "lunar") return { calendar: "lunar", month: draft.lunar.month, day: draft.lunar.day, leap: draft.lunar.leap, nth: null, weekday: null };
     if (draft.calendar === "weekday")
       return { calendar: "weekday", month: draft.week.month, day: 1, leap: false, nth: draft.week.nth, weekday: draft.week.weekday };
+    if ((draft.calendar === "table" || draft.calendar === "easter") && draft.listed)
+      return { calendar: draft.calendar, month: draft.listed.month, day: 1, leap: false, nth: draft.listed.nth, weekday: null };
     const [, month, day] = draft.date.split("-").map(Number);
     return { calendar: "solar", month, day, leap: false, nth: null, weekday: null };
   };
@@ -498,6 +508,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
     draft.calendar = r.calendar ?? "solar";
     if (draft.calendar === "lunar") draft.lunar = { month: r.month, day: r.day, leap: r.leap === true };
     else if (draft.calendar === "weekday") draft.week = { month: r.month, nth: r.nth ?? 1, weekday: r.weekday ?? 0 };
+    else if (draft.calendar === "table" || draft.calendar === "easter") draft.listed = { month: r.month, nth: r.nth ?? 0 };
     else draft.date = `2000-${String(r.month).padStart(2, "0")}-${String(r.day).padStart(2, "0")}`;
   };
 
@@ -508,17 +519,17 @@ function renderAnniversaries(list: Anniversary[]): Node {
       class: "ann-type",
       onchange: (e: Event) => {
         const kind = (e.target as HTMLSelectElement).value as AnniversaryKind;
-        const t = TEMPLATES[kind];
+        const it = TEMPLATES[kind];
         draft.kind = kind;
-        if (!draft.iconTouched) draft.icon = t.icon;
-        if (!draft.prepsTouched) draft.preps = t.preps.map((p) => ({ ...p }));
-        if (!draft.effectTouched) draft.effect = t.effect;
+        if (!draft.iconTouched) draft.icon = it.icon;
+        if (!draft.prepsTouched) draft.preps = it.preps.map((p) => ({ ...p, label: t(p.label) }));
+        if (!draft.effectTouched) draft.effect = it.effect;
         // A happy piece doesn't carry over to a remembrance, nor the other way.
         if (!musicChoices(kind).some((p) => p.id === draft.music)) draft.music = null;
         redraw();
       },
     },
-    ...KINDS.map((k) => h("option", { value: k, selected: k === draft.kind }, `${TEMPLATES[k].icon} ${TEMPLATES[k].label}`)),
+    ...KINDS.map((k) => h("option", { value: k, selected: k === draft.kind }, `${TEMPLATES[k].icon} ${t(TEMPLATES[k].label)}`)),
   );
   const grid = h(
     "div",
@@ -539,11 +550,11 @@ function renderAnniversaries(list: Anniversary[]): Node {
       ),
     ),
   );
-  const iconButton = h("button", { class: "icon-pick", title: "Choose an icon", onclick: () => (grid.hidden = !grid.hidden) }, draft.icon);
+  const iconButton = h("button", { class: "icon-pick", title: t("Choose an icon"), onclick: () => (grid.hidden = !grid.hidden) }, draft.icon);
   const name = h("input", {
     type: "text",
     class: "ann-name",
-    placeholder: TEMPLATES[draft.kind].placeholder,
+    placeholder: t(TEMPLATES[draft.kind].placeholder),
     value: draft.name,
     oninput: (e: Event) => (draft.name = (e.target as HTMLInputElement).value),
   });
@@ -552,7 +563,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
   const showNext = () => {
     const on = nextAnniversary(formRule());
     nextLine.textContent = on
-      ? `Next: ${on.toLocaleDateString([], { weekday: "short", year: "numeric", month: "short", day: "numeric" })} (${untilText(daysUntil(on)).replace(" 🎉", "")})`
+      ? t("Next: {date} ({until})", { date: shortDateYear(on.getTime()), until: untilText(daysUntil(on)).replace(" 🎉", "") })
       : "";
   };
   const date = dateField(
@@ -561,7 +572,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
       draft.date = v;
       showNext();
     },
-    "Day",
+    t("Day"),
     { year: false },
   );
   const pick = (cls: string, options: [number, string][], value: number, set: (v: number) => void) =>
@@ -577,15 +588,15 @@ function renderAnniversaries(list: Anniversary[]): Node {
       ...options.map(([v, text]) => h("option", { value: String(v), selected: v === value }, text)),
     );
   const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
-  const MONTHS = range(1, 12).map((m): [number, string] => [m, new Date(2000, m - 1, 1).toLocaleDateString([], { month: "long" })]);
+  const MONTHS = range(1, 12).map((m): [number, string] => [m, monthName(m)]);
   const lunarFields = h(
     "span",
     { class: "lunar-fields" },
-    pick("lunar-month", range(1, 12).map((m) => [m, `${ordinal(m)} month`]), draft.lunar.month, (v) => (draft.lunar.month = v)),
+    pick("lunar-month", range(1, 12).map((m) => [m, isChinese() ? lunarMonthName(m) : t("{ord} month", { ord: ordinal(m) })]), draft.lunar.month, (v) => (draft.lunar.month = v)),
     pick("lunar-day", range(1, 30).map((d) => [d, String(d)]), draft.lunar.day, (v) => (draft.lunar.day = v)),
     h(
       "label",
-      { class: "check lunar-leap", title: "A leap month: in years without one, the regular month" },
+      { class: "check lunar-leap", title: t("A leap month: in years without one, the regular month") },
       h("input", {
         type: "checkbox",
         checked: draft.lunar.leap,
@@ -594,22 +605,25 @@ function renderAnniversaries(list: Anniversary[]): Node {
           showNext();
         },
       }),
-      "Leap",
+      t("Leap"),
     ),
   );
   const weekFields = h(
     "span",
     { class: "week-fields" },
-    pick("wd-nth", [[1, "1st"], [2, "2nd"], [3, "3rd"], [4, "4th"], [-1, "Last"]], draft.week.nth, (v) => (draft.week.nth = v)),
-    pick("wd-day", WEEKDAY_NAMES.map((n, i): [number, string] => [i, n]), draft.week.weekday, (v) => (draft.week.weekday = v)),
-    "of",
-    pick("wd-month", MONTHS, draft.week.month, (v) => (draft.week.month = v)),
+    // "2nd Sunday of May"; Chinese puts the month first: "5月 的 第2个 星期日".
+    ...(() => {
+      const nth = pick("wd-nth", [[1, t("1st")], [2, t("2nd")], [3, t("3rd")], [4, t("4th")], [-1, t("Last")]], draft.week.nth, (v) => (draft.week.nth = v));
+      const day = pick("wd-day", week().map((d): [number, string] => [d, weekdayName(d)]), draft.week.weekday, (v) => (draft.week.weekday = v));
+      const month = pick("wd-month", MONTHS, draft.week.month, (v) => (draft.week.month = v));
+      return isChinese() ? [month, t("of"), nth, day] : [nth, day, t("of"), month];
+    })(),
   );
   const calendar = h(
     "select",
     {
       class: "ann-calendar",
-      title: "How its day is kept each year",
+      title: t("How its day is kept each year"),
       onchange: (e: Event) => {
         draft.calendar = (e.target as HTMLSelectElement).value as CalendarKind;
         redraw();
@@ -617,37 +631,47 @@ function renderAnniversaries(list: Anniversary[]): Node {
     },
     ...(
       [
-        ["solar", "Date"],
-        ["lunar", "Lunar date"],
-        ["weekday", "Day of the week"],
+        ["solar", t("Date")],
+        ["lunar", t("Lunar date")],
+        ["weekday", t("Day of the week")],
+        // A holiday's own day only while one is picked (it can't be set by hand).
+        ...(draft.listed && (draft.calendar === "table" || draft.calendar === "easter") ? [[draft.calendar, t("The holiday's own day")] as const] : []),
       ] as const
     ).map(([v, text]) => h("option", { value: v, selected: draft.calendar === v }, text)),
   );
-  const dateInputs = draft.calendar === "lunar" ? lunarFields : draft.calendar === "weekday" ? weekFields : date;
-  // Holiday: pick one to fill in its name, icon, day and reminders.
+  const listedText = h("span", { class: "hint listed-day" }, ruleText(formRule()) ?? "");
+  const dateInputs =
+    draft.calendar === "lunar" ? lunarFields : draft.calendar === "weekday" ? weekFields : draft.calendar === "solar" ? date : listedText;
+  // Holiday: pick one of the region's to fill in its name, icon, day and reminders.
+  const holidays = holidaysFor(region());
   const holidayPick =
     draft.kind === "holiday"
       ? h(
           "div",
           { class: "row" },
-          h("span", { class: "lbl" }, "Holiday"),
+          h("span", { class: "lbl" }, t("Holiday")),
           h(
             "select",
             {
               class: "ann-holiday",
               onchange: (e: Event) => {
-                const hol = HOLIDAYS[Number((e.target as HTMLSelectElement).value)];
+                const hol = holidays[Number((e.target as HTMLSelectElement).value)];
                 if (!hol) return;
-                draft.name = hol.name;
+                // A day of remembrance is kept as a Remembrance: a candle, no fireworks.
+                if (hol.solemn) {
+                  draft.kind = "remembrance";
+                  if (!draft.effectTouched) draft.effect = TEMPLATES.remembrance.effect;
+                }
+                draft.name = t(hol.name);
                 draft.icon = hol.icon;
                 draft.music = hol.music;
                 setRule(hol.rule);
-                if (!draft.prepsTouched) draft.preps = hol.preps.map((p) => ({ ...p }));
+                if (!draft.prepsTouched) draft.preps = hol.preps.map((p) => ({ ...p, label: t(p.label) }));
                 redraw();
               },
             },
-            h("option", { value: "" }, "Choose one… (or name your own below)"),
-            ...HOLIDAYS.map((hol, i) => h("option", { value: String(i), selected: hol.name === draft.name }, `${hol.icon} ${hol.name}`)),
+            h("option", { value: "" }, t("Choose one… (or name your own below)")),
+            ...holidays.map((hol, i) => h("option", { value: String(i), selected: t(hol.name) === draft.name }, `${hol.icon} ${t(hol.name)}`)),
           ),
         )
       : null;
@@ -657,9 +681,9 @@ function renderAnniversaries(list: Anniversary[]): Node {
     class: "since",
     min: 1900,
     max: new Date().getFullYear(),
-    placeholder: "year",
+    placeholder: t("year"),
     value: draft.since,
-    title: "The year it began (optional), for “36th”",
+    title: t("The year it began (optional), for “36th”"),
     oninput: (e: Event) => (draft.since = (e.target as HTMLInputElement).value),
   });
   const prepRows = draft.preps.map((p, i) =>
@@ -672,11 +696,11 @@ function renderAnniversaries(list: Anniversary[]): Node {
           class: "lead",
           onchange: (e: Event) => ((p.lead = (e.target as HTMLSelectElement).value), (draft.prepsTouched = true)),
         },
-        ...LEADS.map(([k, label]) => h("option", { value: k, selected: k === p.lead }, label)),
+        ...LEADS.map(([k, label]) => h("option", { value: k, selected: k === p.lead }, t(label))),
       ),
       h("input", {
         type: "text",
-        placeholder: "e.g. Order a cake",
+        placeholder: t("e.g. Order a cake"),
         value: p.label,
         oninput: (e: Event) => ((p.label = (e.target as HTMLInputElement).value), (draft.prepsTouched = true)),
       }),
@@ -684,7 +708,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
         "button",
         {
           class: "mini",
-          title: "Remove",
+          title: t("Remove"),
           onclick: () => {
             draft.preps.splice(i, 1);
             draft.prepsTouched = true;
@@ -702,7 +726,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
   const offForAll = (what: string, where: string, patch: Partial<Settings["celebrate"]>) =>
     h(
       "small",
-      { class: "hint off-for-all", title: `${where} are off in Settings → To-do reminders` },
+      { class: "hint off-for-all", title: t("{what} are off in Settings → To-do reminders", { what: where }) },
       ` ⚠ ${what} · `,
       h(
         "a",
@@ -715,7 +739,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
             redraw();
           },
         },
-        "Turn on",
+        t("Turn on"),
       ),
     );
   const remembrance = draft.kind === "remembrance";
@@ -727,18 +751,18 @@ function renderAnniversaries(list: Anniversary[]): Node {
       checked: draft.effect,
       onchange: () => ((draft.effect = !draft.effect), (draft.effectTouched = true)),
     }),
-    remembrance ? "Candle and flowers on the day 🕯️" : "Fireworks on the day 🎆",
-    settings.celebrate.enabled ? null : offForAll("Off for all anniversaries", "On-screen celebrations", { enabled: true }),
+    remembrance ? t("Candle and flowers on the day 🕯️") : t("Fireworks on the day 🎆"),
+    settings.celebrate.enabled ? null : offForAll(t("Off for all anniversaries"), t("On-screen celebrations"), { enabled: true }),
   );
   // Music: Birthday and Wedding always play their own; the others choose by mood.
   const piece = musicFor(draft);
-  const musicOff = settings.celebrate.music ? null : offForAll("Music is off for all anniversaries", "Music with celebrations", { music: true });
+  const musicOff = settings.celebrate.music ? null : offForAll(t("Music is off for all anniversaries"), t("Music with celebrations"), { music: true });
   const music = TEMPLATES[draft.kind].musicFixed
-    ? h("div", { class: "row" }, h("span", { class: "lbl" }, "Music"), h("span", { class: "fixed-music" }, `🎵 ${piece.name}`), musicOff)
+    ? h("div", { class: "row" }, h("span", { class: "lbl" }, t("Music")), h("span", { class: "fixed-music" }, `🎵 ${t(piece.name)}`), musicOff)
     : h(
         "div",
         { class: "row" },
-        h("span", { class: "lbl" }, "Music"),
+        h("span", { class: "lbl" }, t("Music")),
         h(
           "select",
           {
@@ -749,7 +773,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
               if (previewing === "form") preview();
             },
           },
-          ...musicChoices(draft.kind).map((p) => h("option", { value: p.id, selected: p.id === piece.id }, p.name)),
+          ...musicChoices(draft.kind).map((p) => h("option", { value: p.id, selected: p.id === piece.id }, t(p.name))),
         ),
         musicOff,
       );
@@ -772,7 +796,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
   // borrows the template's name for it).
   const preview = () => {
     const a = formAnniversary();
-    void backend.previewCelebration({ ...a, name: a.name || TEMPLATES[draft.kind].label });
+    void backend.previewCelebration({ ...a, name: a.name || t(TEMPLATES[draft.kind].label) });
   };
   const save = async () => {
     const a = formAnniversary();
@@ -795,6 +819,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
       date: calendar === "solar" ? `2000-${String(a.month).padStart(2, "0")}-${String(a.day).padStart(2, "0")}` : newAnniversaryDraft().date,
       lunar: calendar === "lunar" ? { month: a.month, day: a.day, leap: a.leap === true } : { month: 1, day: 1, leap: false },
       week: calendar === "weekday" ? { month: a.month, nth: a.nth ?? 1, weekday: a.weekday ?? 0 } : { month: 5, nth: 2, weekday: 0 },
+      listed: calendar === "table" || calendar === "easter" ? { month: a.month, nth: a.nth ?? 0 } : null,
       since: a.since === null ? "" : String(a.since),
       preps: a.preps.map((p) => ({ ...p })),
       effect: a.effect,
@@ -809,15 +834,16 @@ function renderAnniversaries(list: Anniversary[]): Node {
 
   const upcoming = list
     .map((a) => ({ a, on: nextAnniversary(a) }))
-    // Past the lunar table (2099) there's no day to show.
-    .filter((x): x is { a: Anniversary; on: Date } => x.on !== null)
-    .sort((x, y) => x.on.getTime() - y.on.getTime() || x.a.id - y.a.id);
-  const row = ({ a, on }: { a: Anniversary; on: Date }) => {
-    const days = daysUntil(on);
-    const years = a.since !== null && on.getFullYear() - a.since > 0 ? on.getFullYear() - a.since : null;
+    // No day to show (a holiday whose next date isn't announced yet, or past the lunar
+    // table): last, saying so.
+    .sort((x, y) => (x.on?.getTime() ?? Infinity) - (y.on?.getTime() ?? Infinity) || x.a.id - y.a.id);
+  const row = ({ a, on }: { a: Anniversary; on: Date | null }) => {
+    const days = on ? daysUntil(on) : Infinity;
+    const years = on && a.since !== null && on.getFullYear() - a.since > 0 ? on.getFullYear() - a.since : null;
     // "Lunar 8/15 · Fri, Sep 25 · in 12 days"; a plain date just its day.
     const rule = ruleText(a);
-    const when = `${rule ? `${rule} · ` : ""}${on.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} · ${untilText(days)}`;
+    const day = on ? `${shortDate(on.getTime())} · ${untilText(days)}` : t("next date not announced yet");
+    const when = `${rule ? `${rule} · ` : ""}${day}`;
     return h(
       "li",
       { class: `ann ${a.id === draft.editing ? "editing" : ""}` },
@@ -828,12 +854,12 @@ function renderAnniversaries(list: Anniversary[]): Node {
         h("span", { class: "title" }, a.name),
         h("span", { class: "sub" }, h("span", { class: days <= 7 ? "soon" : "" }, when), years ? ` · ${yearsText(a.kind, years)}` : ""),
         a.preps.length
-          ? h("span", { class: "preps" }, a.preps.map((p) => `${leadLabel(p.lead)} before: ${p.label}`).join(" · "))
+          ? h("span", { class: "preps" }, a.preps.map((p) => t("{lead} before: {label}", { lead: leadLabel(p.lead), label: p.label })).join(" · "))
           : null,
       ),
-      previewButton(`ann-${a.id}`, "icon edit", "Preview its day's celebration", "", () => void backend.previewCelebration(a)),
-      h("button", { class: "icon edit", title: "Edit", onclick: () => startEdit(a) }, "✎"),
-      h("button", { class: "icon delete", title: "Delete (its to-dos stay)", onclick: () => void backend.deleteAnniversary(a.id) }, icon("close")),
+      previewButton(`ann-${a.id}`, "icon edit", t("Preview its day's celebration"), "", () => void backend.previewCelebration(a)),
+      h("button", { class: "icon edit", title: t("Edit"), onclick: () => startEdit(a) }, "✎"),
+      h("button", { class: "icon delete", title: t("Delete (its to-dos stay)"), onclick: () => void backend.deleteAnniversary(a.id) }, icon("close")),
     );
   };
 
@@ -845,26 +871,26 @@ function renderAnniversaries(list: Anniversary[]): Node {
       ? h(
           "div",
           { class: "edit-head" },
-          h("h3", {}, `Edit anniversary · ${editingAnn.name}`),
-          h("button", { class: "link", onclick: stopEdit }, "Cancel"),
+          h("h3", {}, t("Edit anniversary · {name}", { name: editingAnn.name })),
+          h("button", { class: "link", onclick: stopEdit }, t("Cancel")),
         )
-      : h("h3", {}, "New anniversary"),
+      : h("h3", {}, t("New anniversary")),
     h(
       "div",
       { class: "ann-form" },
-      h("div", { class: "row" }, h("span", { class: "lbl" }, "Type"), type),
+      h("div", { class: "row" }, h("span", { class: "lbl" }, t("Type")), type),
       holidayPick,
       h("div", { class: "row" }, iconButton, name),
       grid,
-      h("div", { class: "row wrap ann-date" }, h("span", { class: "lbl" }, "Date"), calendar, dateInputs),
+      h("div", { class: "row wrap ann-date" }, h("span", { class: "lbl" }, t("Date")), calendar, dateInputs),
       h(
         "div",
         { class: "row" },
         nextLine,
-        draft.kind === "holiday" ? null : h("span", { class: "lbl short" }, "Since"),
+        draft.kind === "holiday" ? null : h("span", { class: "lbl short" }, t("Since")),
         draft.kind === "holiday" ? null : since,
       ),
-      h("div", { class: "lbl" }, "Remind before"),
+      h("div", { class: "lbl" }, t("Remind before")),
       ...prepRows,
       draft.preps.length < 3
         ? h(
@@ -877,7 +903,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
                 redraw();
               },
             },
-            "+ Add another",
+            t("+ Add another"),
           )
         : null,
       effect,
@@ -885,13 +911,13 @@ function renderAnniversaries(list: Anniversary[]): Node {
       h(
         "div",
         { class: "row end" },
-        previewButton("form", "preview", "Play its day's celebration now", "Preview", preview),
-        h("button", { class: "primary", onclick: () => void save() }, editingAnn ? "Save" : "Add"),
+        previewButton("form", "preview", t("Play its day's celebration now"), t("Preview"), preview),
+        h("button", { class: "primary", onclick: () => void save() }, editingAnn ? t("Save") : t("Add")),
       ),
     ),
-    h("h3", {}, "Anniversaries"),
-    upcoming.length ? h("ul", { class: "list" }, ...upcoming.map(row)) : h("p", { class: "empty" }, "No anniversaries yet."),
-    h("p", { class: "hint" }, "Each reminder becomes a to-do on its day. On the day itself your pet celebrates."),
+    h("h3", {}, t("Anniversaries")),
+    upcoming.length ? h("ul", { class: "list" }, ...upcoming.map(row)) : h("p", { class: "empty" }, t("No anniversaries yet.")),
+    h("p", { class: "hint" }, t("Each reminder becomes a to-do on its day. On the day itself your pet celebrates.")),
   );
 }
 
@@ -915,16 +941,16 @@ async function renderAlarms(): Promise<Node> {
   };
   const label = h("input", {
     type: "text",
-    placeholder: "Label",
-    title: "A name for it (optional)",
+    placeholder: t("Label"),
+    title: t("A name for it (optional)"),
     value: draft.label,
     oninput: (e: Event) => (draft.label = (e.target as HTMLInputElement).value),
   });
   // Starts at the current time, so it's quick to set one for a little later.
-  const time = timeField(draft.time, (v) => (draft.time = v), "Alarm time");
+  const time = timeField(draft.time, (v) => (draft.time = v), t("Alarm time"));
   // Opened from "Set alarm…": start with the time field ready to type.
   focusWhenOpened(time);
-  const addButton = h("button", { class: "primary", onclick: () => void add() }, editingAlarm ? "Save" : "Add");
+  const addButton = h("button", { class: "primary", onclick: () => void add() }, editingAlarm ? t("Save") : t("Add"));
   // Only Weekdays, Weekends and Custom days show the days. Picking days by hand names them:
   // Mon–Fri is Weekdays, Sat + Sun is Weekends, anything else Custom days.
   const days = dayPicker(draft.days, (m) => {
@@ -953,11 +979,11 @@ async function renderAlarms(): Promise<Node> {
     },
     ...(
       [
-        ["none", "Once"],
-        ["daily", "Every day"],
-        ["weekdays", "Weekdays"],
-        ["weekends", "Weekends"],
-        ["days", "Custom days"],
+        ["none", t("Once")],
+        ["daily", t("Every day")],
+        ["weekdays", t("Weekdays")],
+        ["weekends", t("Weekends")],
+        ["days", t("Custom days")],
       ] as const
     ).map(([v, text]) => h("option", { value: v, selected: draft.choice === v }, text)),
   );
@@ -986,20 +1012,20 @@ async function renderAlarms(): Promise<Node> {
     "label",
     { class: "check auto-snooze-row" },
     retry,
-    "Try again if I don't answer",
+    t("Try again if I don't answer"),
     infoTip(
       a.autoSnoozeMax > 0
-        ? `Unanswered, it rings again every ${a.snoozeMinutes} min, up to ${a.autoSnoozeMax} times (Settings → Alarms & timers), then it's marked missed. Off: missed after one ring.`
-        : "Settings → Alarms & timers says “Mark as missed”: unanswered alarms don't try again.",
+        ? t("Unanswered, it rings again every {min} min, up to {max} times (Settings → Alarms & timers), then it's marked missed. Off: missed after one ring.", { min: a.snoozeMinutes, max: a.autoSnoozeMax })
+        : t("Settings → Alarms & timers says “Mark as missed”: unanswered alarms don't try again."),
     ),
   );
   const importantRow = h(
     "label",
     { class: "check important-row" },
     important,
-    "Important",
+    t("Important"),
     infoTip(
-      "Rings in full whatever the mode (no softer start in Quiet), and even when the pet has stepped aside for a call or a slide show: the pet comes out for it.",
+      t("Rings in full whatever the mode (no softer start in Quiet), and even when the pet has stepped aside for a call or a slide show: the pet comes out for it."),
     ),
   );
   const add = async () => {
@@ -1042,12 +1068,12 @@ async function renderAlarms(): Promise<Node> {
     h(
       "span",
       { class: "custom-chip" },
-      h("button", { class: "custom", title: "Your custom timer", onclick: () => void startTimer(m) }, short(m)),
+      h("button", { class: "custom", title: t("Your custom timer"), onclick: () => void startTimer(m) }, short(m)),
       h(
         "button",
         {
           class: "icon",
-          title: "Change this one",
+          title: t("Change this one"),
           onclick: () => {
             editing = m;
             customInput.value = durationInput(m);
@@ -1062,13 +1088,13 @@ async function renderAlarms(): Promise<Node> {
         "button",
         {
           class: "icon",
-          title: "Forget this one",
+          title: t("Forget this one"),
           onclick: () => void save({ recentTimers: forgetCustomTimer(settings.recentTimers, m) }),
         },
         icon("close"),
       ),
     );
-  const customInput = h("input", { type: "text", placeholder: "Custom: 20 · 1:30 · 90s", class: "custom-timer" });
+  const customInput = h("input", { type: "text", placeholder: t("Custom: 20 · 1:30 · 90s"), class: "custom-timer" });
   const customHint = h("span", { class: "hint" });
   const showHint = () => {
     const m = parseDuration(customInput.value);
@@ -1078,7 +1104,7 @@ async function renderAlarms(): Promise<Node> {
   const startCustom = () => {
     const m = parseDuration(customInput.value);
     if (m === null) {
-      customHint.textContent = "Try 20, 1:30 or 90s";
+      customHint.textContent = t("Try 20, 1:30 or 90s");
       return;
     }
     const replacing = editing;
@@ -1119,11 +1145,11 @@ async function renderAlarms(): Promise<Node> {
       h(
         "div",
         { class: "info" },
-        h("span", { class: "title" }, `⏱ ${timerName(a)} timer`),
+        h("span", { class: "title" }, `⏱ ${t("{name} timer", { name: timerName(a) })}`),
         h("span", { class: "sub" }, timerTimes(a)),
-        a.snoozes > 0 ? h("span", { class: "chip" }, `💤 snoozed ${a.snoozes}×`) : null,
+        a.snoozes > 0 ? h("span", { class: "chip" }, `💤 ${t("snoozed {n}×", { n: a.snoozes })}`) : null,
       ),
-      h("button", { onclick: () => void backend.deleteAlarm(a.id) }, "Cancel"),
+      h("button", { onclick: () => void backend.deleteAlarm(a.id) }, t("Cancel")),
     );
   };
 
@@ -1138,9 +1164,9 @@ async function renderAlarms(): Promise<Node> {
         h(
           "span",
           // "Try again if I don't answer": a 💤 after the label, drawn by CSS (the title's text stays the label).
-          a.autoSnooze !== false ? { class: "title retry", title: "💤 Tries again if you don't answer" } : { class: "title" },
-          a.label,
-          a.important ? h("span", { class: "chip important", title: "Rings even during calls and slide shows" }, "Important") : null,
+          a.autoSnooze !== false ? { class: "title retry", title: t("💤 Tries again if you don't answer") } : { class: "title" },
+          a.label === DEFAULT_ALARM_LABEL ? t(DEFAULT_ALARM_LABEL) : a.label,
+          a.important ? h("span", { class: "chip important", title: t("Rings even during calls and slide shows") }, t("Important")) : null,
         ),
         h("span", { class: "sub" }, alarmSubtitle(a)),
         a.enabled && a.snoozes > 0 && a.nextFire
@@ -1154,13 +1180,13 @@ async function renderAlarms(): Promise<Node> {
           ? h(
               "span",
               { class: "chip skip" },
-              `⏭ Skips ${skipWhen(a.skippedFire)} · `,
-              h("button", { class: "link", onclick: () => void backend.unskipAlarm(a.id) }, "Undo"),
+              `⏭ ${t("Skips {when}", { when: skipWhen(a.skippedFire) })} · `,
+              h("button", { class: "link", onclick: () => void backend.unskipAlarm(a.id) }, t("Undo")),
             )
           : null,
       ),
-      h("button", { class: "icon edit", title: "Edit", onclick: () => startEdit(a) }, "✎"),
-      h("button", { class: "icon delete", title: "Delete", onclick: () => void backend.deleteAlarm(a.id) }, icon("close")),
+      h("button", { class: "icon edit", title: t("Edit"), onclick: () => startEdit(a) }, "✎"),
+      h("button", { class: "icon delete", title: t("Delete"), onclick: () => void backend.deleteAlarm(a.id) }, icon("close")),
       toggle(a.enabled, a.label, (input) => {
         // Switching off a repeating alarm asks, like a phone: skip just the next ring, or all?
         if (a.enabled && a.repeat !== "none") {
@@ -1179,41 +1205,41 @@ async function renderAlarms(): Promise<Node> {
       h(
         "div",
         { class: "info" },
-        h("span", { class: "title" }, isTimer(a) ? `${timerName(a)} timer` : a.label),
+        h("span", { class: "title" }, isTimer(a) ? t("{name} timer", { name: timerName(a) }) : a.label === DEFAULT_ALARM_LABEL ? t(DEFAULT_ALARM_LABEL) : a.label),
         h("span", { class: `sub ${a.missedAt ? "missed" : ""}` }, finishedStatus(a)),
       ),
-      h("button", { class: "icon", title: "Delete", onclick: () => void backend.deleteAlarm(a.id) }, icon("close")),
+      h("button", { class: "icon", title: t("Delete"), onclick: () => void backend.deleteAlarm(a.id) }, icon("close")),
     );
 
   const section = h(
     "section",
     {},
-    h("h3", {}, "Quick timer"),
+    h("h3", {}, t("Quick timer")),
     h(
       "div",
       { class: "row wrap" },
       ...PRESET_MINUTES.map((m) => timer(m)),
       ...settings.recentTimers.filter((m) => !PRESET_MINUTES.includes(m)).map(customTimer),
     ),
-    h("div", { class: "row custom-row" }, customInput, h("button", { onclick: startCustom }, "Start"), customHint),
+    h("div", { class: "row custom-row" }, customInput, h("button", { onclick: startCustom }, t("Start")), customHint),
     editingAlarm
       ? h(
           "div",
           { class: "edit-head" },
-          h("h3", {}, `Edit alarm · ${alarmName(editingAlarm)}`),
-          h("button", { class: "link", onclick: stopEdit }, "Cancel"),
+          h("h3", {}, t("Edit alarm · {name}", { name: alarmName(editingAlarm) })),
+          h("button", { class: "link", onclick: stopEdit }, t("Cancel")),
         )
-      : h("h3", {}, "New alarm"),
+      : h("h3", {}, t("New alarm")),
     h("div", { class: "row" }, time, repeat, label, addButton),
     daysRow,
     importantRow,
     retryRow,
-    timers.length ? h("h3", {}, "Timers") : null,
+    timers.length ? h("h3", {}, t("Timers")) : null,
     timers.length ? h("ul", { class: "list clocks" }, ...timers.map(timerRow)) : null,
-    h("h3", {}, "Alarms"),
-    clocks.length ? h("ul", { class: "list clocks" }, ...clocks.map(alarmRow)) : h("p", { class: "empty" }, "No alarms set."),
-    finished.length ? finishedSection(`Finished (${finished.length})`, finished.map(finishedRow), () => backend.clearFinishedAlarms()) : null,
-    h("p", { class: "hint" }, "Finished alarms and timers are cleared automatically each day."),
+    h("h3", {}, t("Alarms")),
+    clocks.length ? h("ul", { class: "list clocks" }, ...clocks.map(alarmRow)) : h("p", { class: "empty" }, t("No alarms set.")),
+    finished.length ? finishedSection(t("Finished ({n})", { n: finished.length }), finished.map(finishedRow), () => backend.clearFinishedAlarms()) : null,
+    h("p", { class: "hint" }, t("Finished alarms and timers are cleared automatically each day.")),
   );
   tickCountdowns();
   return section;
@@ -1222,10 +1248,10 @@ async function renderAlarms(): Promise<Node> {
 /** "Every day", "Once · Tomorrow", "Weekdays · Off"… */
 function alarmSubtitle(a: Alarm): string {
   const parts = [repeatText(a)];
-  if (!a.enabled) parts.push("Off");
+  if (!a.enabled) parts.push(t("Off"));
   else if (a.nextFire && a.snoozes === 0) {
-    const day = formatWhen(a.nextFire).replace(/\s*\d{1,2}:\d{2}.*$/, "");
-    if (a.repeat === "none" || day !== "Today") parts.push(day);
+    const day = formatDay(a.nextFire);
+    if (a.repeat === "none" || day !== t("Today")) parts.push(day);
   }
   return parts.join(" · ");
 }
@@ -1258,7 +1284,7 @@ function ask(title: string, sub: string, choices: { text: string; action: () => 
     h("p", { class: "title" }, title),
     h("p", { class: "sub" }, sub),
     ...choices.map((c) => choice(c.text, c.action, c.primary ? "primary" : "")),
-    choice("Cancel", null, "cancel"),
+    choice(t("Cancel"), null, "cancel"),
   );
   const overlay = h("div", { class: "ask-overlay", onclick: (e: Event) => e.target === overlay && close() }, box);
   document.addEventListener("keydown", onKey);
@@ -1274,9 +1300,9 @@ function askTurnOff(a: Alarm): void {
   const skipped = a.skippedFire !== null && a.skippedFire > Date.now();
   ask(a.label, repeatText(a), [
     ...(!skipped && a.nextFire
-      ? [{ text: `Skip once · ${skipWhen(a.nextFire)}`, action: () => backend.skipAlarmOnce(a.id), primary: true }]
+      ? [{ text: t("Skip once · {when}", { when: skipWhen(a.nextFire) }), action: () => backend.skipAlarmOnce(a.id), primary: true }]
       : []),
-    { text: "Turn off repeating alarm", action: () => backend.setAlarmEnabled(a.id, false) },
+    { text: t("Turn off repeating alarm"), action: () => backend.setAlarmEnabled(a.id, false) },
   ]);
 }
 
@@ -1284,8 +1310,8 @@ function askTurnOff(a: Alarm): void {
 async function playGame(game: string): Promise<void> {
   const status = await backend.pomodoroStatus();
   if (!gameHeld(settings.pomodoro, status)) return backend.openGame(game);
-  ask(`Focusing until ${clock(status.endsAt ?? Date.now())}`, "Play anyway?", [
-    { text: "Play anyway", action: () => backend.openGame(game), primary: true },
+  ask(t("Focusing until {time}", { time: clock(status.endsAt ?? Date.now()) }), t("Play anyway?"), [
+    { text: t("Play anyway"), action: () => backend.openGame(game), primary: true },
   ]);
 }
 
@@ -1293,12 +1319,12 @@ async function playGame(game: string): Promise<void> {
 function toggle(on: boolean, name: string, onChange: (input: HTMLInputElement) => void): Node {
   return h(
     "label",
-    { class: "switch", title: on ? "On: will ring" : "Off" },
+    { class: "switch", title: on ? t("On: will ring") : t("Off") },
     h("input", {
       type: "checkbox",
       role: "switch",
       checked: on,
-      "aria-label": `${name} on/off`,
+      "aria-label": t("{name} on/off", { name }),
       onchange: (e: Event) => onChange(e.target as HTMLInputElement),
     }),
     h("span", { class: "slider" }),
@@ -1312,7 +1338,7 @@ const UPCOMING_OPEN_KEY = "todos.upcomingOpen";
  * To-dos from tomorrow on, folded away by default ("Upcoming (2) · next Tue, 6 Oct"); open or
  * closed is remembered on this computer.
  */
-function upcomingSection(list: Todo[], row: (t: Todo) => Node): Node {
+function upcomingSection(list: Todo[], row: (it: Todo) => Node): Node {
   let open = false;
   try {
     open = localStorage.getItem(UPCOMING_OPEN_KEY) === "1";
@@ -1320,11 +1346,11 @@ function upcomingSection(list: Todo[], row: (t: Todo) => Node): Node {
     // No storage: folded.
   }
   const first = list[0].dueAt;
-  const next = first === null ? "" : ` · next ${list[0].allDay ? formatDay(first) : formatWhen(first)}`;
+  const next = first === null ? "" : ` · ${t("next {when}", { when: list[0].allDay ? formatDay(first) : formatWhen(first) })}`;
   const section = h(
     "details",
     { class: "finished upcoming", open },
-    h("summary", {}, h("span", {}, `Upcoming (${list.length})${next}`)),
+    h("summary", {}, h("span", {}, `${t("Upcoming ({n})", { n: list.length })}${next}`)),
     h("ul", { class: "list" }, ...list.map(row)),
   );
   section.addEventListener("toggle", () => {
@@ -1354,7 +1380,7 @@ function finishedSection(title: string, rows: Node[], clear: () => Promise<numbe
             void clear();
           },
         },
-        "Clear",
+        t("Clear"),
       ),
     ),
     h("ul", { class: "list" }, ...rows),
@@ -1369,9 +1395,9 @@ async function renderFocus(): Promise<Node> {
   const c = settings.pomodoro;
   const clock = h("div", { class: "now-clock" });
   const label = h("div", { class: "now-phase" });
-  const names = { idle: "Ready when you are", focus: "Focus", short_break: "Short break", long_break: "Long break" };
+  const names = { idle: t("Ready when you are"), focus: t("Focus"), short_break: t("Short break"), long_break: t("Long break") };
   const tickClock = () => {
-    label.textContent = `${names[status.phase]}${status.phase !== "idle" ? ` · round ${status.round + (status.phase === "focus" ? 1 : 0)}/${settings.pomodoro.roundsBeforeLong}` : ""}`;
+    label.textContent = `${names[status.phase]}${status.phase !== "idle" ? ` · ${t("round {n}/{of}", { n: status.round + (status.phase === "focus" ? 1 : 0), of: settings.pomodoro.roundsBeforeLong })}` : ""}`;
     clock.textContent = status.endsAt ? formatRemaining(status.endsAt - Date.now()) : `${settings.pomodoro.focusMin}:00`;
   };
   tickClock();
@@ -1401,7 +1427,12 @@ async function renderFocus(): Promise<Node> {
     return h("label", {}, text, input);
   };
   const d = DEFAULT_SETTINGS.pomodoro;
-  const defaultTiming = `Focus ${d.focusMin} · Short break ${d.shortBreakMin} · Long break ${d.longBreakMin} · Long every ${d.roundsBeforeLong}`;
+  const defaultTiming = t("Focus {focus} · Short break {short} · Long break {long} · Long every {every}", {
+    focus: d.focusMin,
+    short: d.shortBreakMin,
+    long: d.longBreakMin,
+    every: d.roundsBeforeLong,
+  });
   const resetTiming = async () => {
     const timing = { focusMin: d.focusMin, shortBreakMin: d.shortBreakMin, longBreakMin: d.longBreakMin, roundsBeforeLong: d.roundsBeforeLong };
     await save({ pomodoro: { ...settings.pomodoro, ...timing } });
@@ -1431,39 +1462,39 @@ async function renderFocus(): Promise<Node> {
         "div",
         { class: "now-buttons" },
         ...(status.phase === "idle"
-          ? [h("button", { class: "primary", onclick: () => void backend.pomodoroStart() }, "Start focus")]
-          : [h("button", { onclick: () => void backend.pomodoroSkip() }, "Skip"), h("button", { onclick: () => void backend.pomodoroStop() }, "Stop")]),
+          ? [h("button", { class: "primary", onclick: () => void backend.pomodoroStart() }, t("Start focus"))]
+          : [h("button", { onclick: () => void backend.pomodoroSkip() }, t("Skip")), h("button", { onclick: () => void backend.pomodoroStop() }, t("Stop"))]),
       ),
     ),
-    h("h3", { class: "split" }, "Last 7 days", h("small", {}, `${sessions} session${sessions === 1 ? "" : "s"} · ${formatHoursMinutes(minutes)}`)),
+    h("h3", { class: "split" }, t("Last 7 days"), h("small", {}, `${sessions === 1 ? t("{n} session", { n: sessions }) : t("{n} sessions", { n: sessions })} · ${formatHoursMinutes(minutes)}`)),
     h(
       "div",
       { class: "bars" },
       ...stats.map((s) =>
         h(
           "div",
-          { class: "bar", title: `${s.completed} sessions · ${s.focusMinutes} min` },
+          { class: "bar", title: `${t("{n} sessions", { n: s.completed })} · ${t("{n} min", { n: s.focusMinutes })}` },
           h("div", { class: "fill", style: `height:${(s.completed / max) * 100}%` }),
-          h("span", {}, new Date(s.day + "T12:00").toLocaleDateString([], { weekday: "narrow" })),
+          h("span", {}, weekdayNarrow(new Date(s.day + "T12:00").getDay())),
         ),
       ),
     ),
     h(
       "h3",
       { class: "split" },
-      "Timing (minutes)",
-      h("button", { class: "link reset-timing", title: defaultTiming, onclick: () => void resetTiming() }, "Reset to defaults"),
+      t("Timing (minutes)"),
+      h("button", { class: "link reset-timing", title: defaultTiming, onclick: () => void resetTiming() }, t("Reset to defaults")),
     ),
     h(
       "div",
       { class: "timing" },
-      num("focusMin", "Focus", 1, 180),
-      num("shortBreakMin", "Short break", 1, 60),
-      num("longBreakMin", "Long break", 1, 90),
-      num("roundsBeforeLong", "Long every", 1, 12),
+      num("focusMin", t("Focus"), 1, 180),
+      num("shortBreakMin", t("Short break"), 1, 60),
+      num("longBreakMin", t("Long break"), 1, 90),
+      num("roundsBeforeLong", t("Long every"), 1, 12),
     ),
-    check("autoContinue", "Start the next round automatically"),
-    check("holdGames", "Ask before games during a focus session"),
+    check("autoContinue", t("Start the next round automatically")),
+    check("holdGames", t("Ask before games during a focus session")),
     focusSoundsRow(),
     workHoursSection(),
   );
@@ -1474,38 +1505,38 @@ async function renderFocus(): Promise<Node> {
  * by ear (the pet may be hidden or on another screen). Either can be off.
  */
 function focusSoundsRow(): Node {
-  const t = settings.pomodoro.sounds;
+  const it = settings.pomodoro.sounds;
   const update = (patch: Partial<FocusSounds>) =>
     void save({ pomodoro: { ...settings.pomodoro, sounds: { ...settings.pomodoro.sounds, ...patch } } });
   const pick = (what: "focus" | "break", text: string) => {
     const select = h(
       "select",
       { class: `focus-tone-${what}`, onchange: (e: Event) => update({ [what]: (e.target as HTMLSelectElement).value as FocusTone }) },
-      ...FOCUS_TONE_CHOICES.map((c) => h("option", { value: c.id, selected: c.id === t[what] }, c.name)),
+      ...FOCUS_TONE_CHOICES.map((c) => h("option", { value: c.id, selected: c.id === it[what] }, t(c.name))),
     );
     const play = () => playFocusTone(select.value as FocusTone, settings.pomodoro.sounds.volume, what);
     return h(
       "label",
       {},
       text,
-      h("span", { class: "row" }, select, h("button", { class: "mini", title: "Preview", onclick: (e: Event) => (e.preventDefault(), play()) }, icon("play"))),
+      h("span", { class: "row" }, select, h("button", { class: "mini", title: t("Preview"), onclick: (e: Event) => (e.preventDefault(), play()) }, icon("play"))),
     );
   };
   return h(
     "div",
     { class: "timing focus-sounds" },
-    pick("focus", "Sound: focus starts"),
-    pick("break", "Sound: break starts"),
+    pick("focus", t("Sound: focus starts")),
+    pick("break", t("Sound: break starts")),
     h(
       "label",
       {},
-      "Volume",
+      t("Volume"),
       h("input", {
         type: "range",
         min: 0,
         max: 1,
         step: 0.05,
-        value: t.volume,
+        value: it.volume,
         onchange: (e: Event) => update({ volume: Number((e.target as HTMLInputElement).value) }),
       }),
     ),
@@ -1515,7 +1546,7 @@ function focusSoundsRow(): Node {
 /** "5 h 0 min", "45 min". */
 function formatHoursMinutes(minutes: number): string {
   const m = Math.round(minutes);
-  return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`;
+  return m >= 60 ? `${t("{n} h", { n: Math.floor(m / 60) })} ${t("{n} min", { n: m % 60 })}` : t("{n} min", { n: m });
 }
 
 /**
@@ -1525,15 +1556,16 @@ function formatHoursMinutes(minutes: number): string {
 function workHoursSection(): Node {
   const w = settings.pomodoro.workHours;
   const span = workSpan(settings.modes);
-  const days = WEEK.filter((d) => (settings.modes.workDays >> d) & 1)
-    .map((d) => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d])
+  const days = week()
+    .filter((d) => (settings.modes.workDays >> d) & 1)
+    .map((d) => weekdayShort(d))
     .join(" ");
   const update = (patch: Partial<WorkHours>) =>
     save({ pomodoro: { ...settings.pomodoro, workHours: { ...settings.pomodoro.workHours, ...patch } } });
   return h(
     "div",
     { class: "work-hours" },
-    h("h3", {}, "Work hours"),
+    h("h3", {}, t("Work hours")),
     h(
       "div",
       { class: "box" },
@@ -1541,15 +1573,17 @@ function workHoursSection(): Node {
         "label",
         { class: "check" },
         h("input", { type: "checkbox", checked: w.enabled, onchange: () => void update({ enabled: !w.enabled }) }),
-        "Focus on work days: start by itself, stop after work",
+        t("Focus on work days: start by itself, stop after work"),
       ),
       h(
         "p",
         { class: "hint work-span" },
-        span ? `${days || "No work days"} · ${hmText(span.start)}–${hmText(span.end)} (the Work slots in the tab ` : "No Work slots yet (add one in the tab ",
-        h("a", { href: "#", onclick: (e: Event) => (e.preventDefault(), select("modes")) }, "Modes"),
-        ").",
-        w.enabled ? " Starts once a day when work starts (stopped by hand, it stays stopped). No new focus after work ends." : "",
+        span
+          ? t("{days} · {start}–{end} (the Work slots in the tab ", { days: days || t("No work days"), start: hmText(span.start), end: hmText(span.end) })
+          : t("No Work slots yet: add one in the tab "),
+        h("a", { href: "#", onclick: (e: Event) => (e.preventDefault(), select("modes")) }, t("Modes")),
+        span ? t(").") : t("."),
+        w.enabled ? t(" Starts once a day when work starts (stopped by hand, it stays stopped). No new focus after work ends.") : "",
       ),
     ),
   );
@@ -1567,7 +1601,7 @@ async function preview(c: LoadedCharacter): Promise<HTMLCanvasElement> {
   return canvas;
 }
 
-const TIER_TEXT = { adoring: "Adores you", content: "Content", grumpy: "Grumpy", sulking: "Sulking" } as const;
+const TIER_TEXT = { adoring: msg("Adores you"), content: msg("Content"), grumpy: msg("Grumpy"), sulking: msg("Sulking") } as const;
 
 function moodCard(m: Mood): Node {
   const bar = (label: string, value: number, cls: string) =>
@@ -1582,7 +1616,7 @@ function moodCard(m: Mood): Node {
     { class: "mood-card" },
     bar("♥", m.affection, "love"),
     bar("🍽", m.fullness, isHungry(m) ? "food hungry" : "food"),
-    h("span", { class: "tier" }, `${TIER_TEXT[moodTier(m)]}${isHungry(m) ? " · hungry" : ""}`),
+    h("span", { class: "tier" }, `${t(TIER_TEXT[moodTier(m)])}${isHungry(m) ? t(" · hungry") : ""}`),
   );
 }
 
@@ -1601,16 +1635,16 @@ async function renderCharacters(): Promise<Node> {
           "button",
           { class: `card ${c.def.id === settings.character ? "selected" : ""}`, onclick: () => void save({ character: c.def.id }) },
           await preview(c),
-          h("strong", {}, c.def.displayName, c.source === "user" ? h("em", {}, " (custom)") : null),
-          h("p", {}, c.def.description),
-          h("div", { class: "chips" }, ...c.def.abilities.map((a) => h("span", { class: "chip", title: ABILITIES[a.id]?.description ?? "" }, a.id))),
-          h("p", { class: "style" }, `🥊 ${c.def.moveset.style}`),
+          h("strong", {}, characterName(c.def), c.source === "user" ? h("em", {}, t(" (custom)")) : null),
+          h("p", {}, characterDescription(c.def)),
+          h("div", { class: "chips" }, ...c.def.abilities.map((a) => h("span", { class: "chip", title: t(ABILITIES[a.id]?.description ?? "") }, ABILITIES[a.id] ? t(ABILITIES[a.id].name) : a.id))),
+          h("p", { class: "style" }, `🥊 ${characterStyle(c.def)}`),
           moodCard(parseMood(await backend.loadMood(c.def.id))),
         ),
         h(
           "button",
-          { class: "link copy", title: "Copy it into your characters folder to make your own", onclick: () => copy(c) },
-          "⧉ Make a copy",
+          { class: "link copy", title: t("Copy it into your characters folder to make your own"), onclick: () => copy(c) },
+          t("⧉ Make a copy"),
         ),
       ),
     ),
@@ -1623,18 +1657,18 @@ async function renderCharacters(): Promise<Node> {
       ? h(
           "details",
           { class: "issues", open: true },
-          h("summary", {}, `${registry.issues.length} character(s) could not be loaded`),
+          h("summary", {}, t("{n} character(s) could not be loaded", { n: registry.issues.length })),
           ...registry.issues.map((i) => h("pre", {}, `${i.source}\n  ${i.errors.join("\n  ")}`)),
         )
       : null,
     h(
       "p",
       { class: "hint" },
-      "More animals are on the way. Make your own: “⧉ Make a copy” of one above, edit its character.json in ",
-      h("a", { href: "#", onclick: (e: Event) => (e.preventDefault(), void backend.openUserCharactersFolder()) }, "your characters folder"),
-      " (its README explains everything), then reload.",
+      t("More animals are on the way. Make your own: “⧉ Make a copy” of one above, edit its character.json in "),
+      h("a", { href: "#", onclick: (e: Event) => (e.preventDefault(), void backend.openUserCharactersFolder()) }, t("your characters folder")),
+      t(" (its README explains everything), then reload."),
     ),
-    h("button", { class: "reload", title: "Read your characters folder again", onclick: () => void backend.reloadCharacters() }, "⟳ Reload characters"),
+    h("button", { class: "reload", title: t("Read your characters folder again"), onclick: () => void backend.reloadCharacters() }, t("⟳ Reload characters")),
   );
 }
 
@@ -1647,8 +1681,8 @@ async function renderGames(): Promise<Node> {
       return h(
         "li",
         { class: "game" },
-        h("div", {}, h("strong", {}, g.name), h("p", {}, g.description), top.length ? h("p", { class: "hint" }, `🏆 ${top.map((s) => `${s.score} (${s.character})`).join(" · ")}`) : null),
-        g.available ? h("button", { class: "primary", onclick: () => void playGame(g.id) }, "Play") : h("span", { class: "soon" }, "Coming soon"),
+        h("div", {}, h("strong", {}, t(g.name)), h("p", {}, t(g.description)), top.length ? h("p", { class: "hint" }, `🏆 ${top.map((s) => `${s.score} (${s.character})`).join(" · ")}`) : null),
+        g.available ? h("button", { class: "primary", onclick: () => void playGame(g.id) }, t("Play")) : h("span", { class: "soon" }, t("Coming soon")),
       );
     }),
   );
@@ -1662,7 +1696,7 @@ async function renderModes(): Promise<Node> {
   return h(
     "section",
     { class: "modes-page" },
-    h("h3", {}, "Modes"),
+    h("h3", {}, t("Modes")),
     modesSection(() => settings, save, () => backend.getSettings()),
     avoidSection(backend, () => settings, save, () => backend.getSettings()),
   );
@@ -1674,7 +1708,7 @@ async function renderSettings(): Promise<Node> {
     return h(
       "label",
       { class: "row" },
-      h("span", { class: "label" }, key === "size" ? "Size" : "Speed"),
+      h("span", { class: "label" }, key === "size" ? t("Size") : t("Speed")),
       h("input", {
         type: "range",
         min: 0.5,
@@ -1687,11 +1721,13 @@ async function renderSettings(): Promise<Node> {
       out,
     );
   };
-  // Grouped by what they're about: the pet, alarms & timers, to-dos, then the rest.
+  // Grouped by what they're about: language first, the pet, alarms & timers, to-dos, then the rest.
   return h(
     "section",
     { class: "settings" },
-    h("h3", {}, "Pet"),
+    h("h3", {}, t("Language & region")),
+    localeBox(),
+    h("h3", {}, t("Pet")),
     h(
       "div",
       { class: "box" },
@@ -1702,16 +1738,16 @@ async function renderSettings(): Promise<Node> {
       h(
         "p",
         { class: "hint" },
-        "Quiet hours are now in ",
-        h("a", { href: "#", class: "to-modes", onclick: (e: Event) => (e.preventDefault(), select("modes")) }, "Modes"),
-        ": quieter at night and at work, by a weekly schedule.",
+        t("Quiet hours are now in "),
+        h("a", { href: "#", class: "to-modes", onclick: (e: Event) => (e.preventDefault(), select("modes")) }, t("Modes")),
+        t(": quieter at night and at work, by a weekly schedule."),
       ),
     ),
-    h("h3", {}, "Alarms & timers"),
+    h("h3", {}, t("Alarms & timers")),
     alertBox("alarm"),
-    h("h3", {}, "To-do reminders"),
+    h("h3", {}, t("To-do reminders")),
     alertBox("todo"),
-    h("h3", {}, "General"),
+    h("h3", {}, t("General")),
     h(
       "div",
       { class: "box" },
@@ -1726,23 +1762,66 @@ async function renderSettings(): Promise<Node> {
             await save({ autostart: !settings.autostart });
           },
         }),
-        "Start with my computer",
+        t("Start with my computer"),
       ),
       h(
         "label",
         { class: "check" },
         h("input", { type: "checkbox", checked: settings.sound, onchange: () => void save({ sound: !settings.sound }) }),
-        "Other sounds (petting)",
+        t("Other sounds (petting)"),
       ),
     ),
-    h("h3", {}, "Backup"),
+    h("h3", {}, t("Backup")),
     backupSection(backend),
     h(
       "footer",
       {},
-      `${product.productName} ${version} · ${product.publisher} · ${await backend.storefront()} build · `,
+      `${product.productName} ${version} · ${product.publisher} · ${t("{store} build", { store: await backend.storefront() })} · `,
       h("a", { href: product.website, target: "_blank" }, product.website),
     ),
+  );
+}
+
+/**
+ * Language & region (docs/INTERACTIONS.md, "Language and region"): the interface's language
+ * and the region whose holidays the Holiday template offers; Auto says what it found.
+ */
+function localeBox(): Node {
+  const sys = systemLocale();
+  const autoLanguage = LANGUAGE_NAMES[resolveLanguage("auto", sys.languages)];
+  const autoRegion = t(REGION_NAMES[resolveRegion("auto", sys.country)]);
+  const choose = <T extends string>(cls: string, label: string, value: T, options: [T, string][], patch: (v: T) => Partial<Settings["locale"]>) =>
+    h(
+      "label",
+      { class: "row spread" },
+      h("span", { class: "label" }, label),
+      h(
+        "select",
+        {
+          class: cls,
+          onchange: (e: Event) => void save({ locale: { ...settings.locale, ...patch((e.target as HTMLSelectElement).value as T) } }),
+        },
+        ...options.map(([v, text]) => h("option", { value: v, selected: v === value }, text)),
+      ),
+    );
+  return h(
+    "div",
+    { class: "box locale" },
+    choose<LanguageSetting>(
+      "language",
+      t("Language"),
+      settings.locale.language,
+      [["auto", t("Auto ({name})", { name: autoLanguage })], ...LANGUAGES.map((l): [LanguageSetting, string] => [l, LANGUAGE_NAMES[l]])],
+      (language) => ({ language }),
+    ),
+    choose<RegionSetting>(
+      "region",
+      t("Region"),
+      settings.locale.region,
+      [["auto", t("Auto ({name})", { name: autoRegion })], ...REGIONS.map((r): [RegionSetting, string] => [r, t(REGION_NAMES[r])])],
+      (region) => ({ region }),
+    ),
+    h("p", { class: "hint" }, t("The region decides which holidays the Holiday template offers.")),
   );
 }
 
@@ -1761,18 +1840,18 @@ function hiddenAlertsRows(): Node[] {
     );
   const warning = hiddenWarning(ha);
   return [
-    h("div", { class: "subhead" }, "When hidden, it comes out for"),
+    h("div", { class: "subhead" }, t("When hidden, it comes out for")),
     h(
       "div",
       { class: "pair hidden-alerts" },
-      box("alarms", "Alarms"),
-      box("timers", "Timers"),
-      box("todos", "To-do reminders"),
-      box("focus", "Focus sessions"),
-      box("anniversaries", "Anniversaries"),
+      box("alarms", t("Alarms")),
+      box("timers", t("Timers")),
+      box("todos", t("To-do reminders")),
+      box("focus", t("Focus sessions")),
+      box("anniversaries", t("Anniversaries")),
     ),
-    warning ? h("p", { class: "warning" }, h("strong", {}, `❗ ${warning}`), " Show your pet, or tick them above, to get them again.") : null,
-    h("p", { class: "hint" }, "It comes out, rings, and goes back once you answer. Anything nobody answered waits until you show it."),
+    warning ? h("p", { class: "warning" }, h("strong", {}, `❗ ${warning}`), t(" Show your pet, or tick them above, to get them again.")) : null,
+    h("p", { class: "hint" }, t("It comes out, rings, and goes back once you answer. Anything nobody answered waits until you show it.")),
   ].filter((n) => n !== null) as Node[];
 }
 
@@ -1783,7 +1862,7 @@ function alertBox(kind: "alarm" | "todo"): Node {
   const tone = h(
     "select",
     { onchange: (e: Event) => void update({ ringtone: (e.target as HTMLSelectElement).value as RingtoneId }) },
-    ...RINGTONE_IDS.map((id) => h("option", { value: id, selected: id === a.ringtone }, RINGTONES[id].name)),
+    ...RINGTONE_IDS.map((id) => h("option", { value: id, selected: id === a.ringtone }, t(RINGTONES[id].name))),
   );
   const volume = h("input", {
     type: "range",
@@ -1791,7 +1870,7 @@ function alertBox(kind: "alarm" | "todo"): Node {
     max: 1,
     step: 0.05,
     value: a.volume,
-    title: "Volume",
+    title: t("Volume"),
     onchange: (e: Event) => void update({ volume: Number((e.target as HTMLInputElement).value) }),
   });
   return h(
@@ -1800,9 +1879,9 @@ function alertBox(kind: "alarm" | "todo"): Node {
     h(
       "div",
       { class: "row" },
-      h("label", { class: "check" }, h("input", { type: "checkbox", checked: a.ring, onchange: () => void update({ ring: !a.ring }) }), "Ring"),
+      h("label", { class: "check" }, h("input", { type: "checkbox", checked: a.ring, onchange: () => void update({ ring: !a.ring }) }), t("Ring")),
       tone,
-      h("button", { title: "Preview", onclick: () => playRingtone(tone.value as RingtoneId, Number(volume.value)) }, icon("play")),
+      h("button", { title: t("Preview"), onclick: () => playRingtone(tone.value as RingtoneId, Number(volume.value)) }, icon("play")),
       h("span", { class: "hint" }, "🔈"),
       volume,
     ),
@@ -1811,19 +1890,19 @@ function alertBox(kind: "alarm" | "todo"): Node {
       "label",
       { class: "check" },
       h("input", { type: "checkbox", checked: a.petRuns, onchange: () => void update({ petRuns: !a.petRuns }) }),
-      "Pet comes to the middle of the screen",
+      t("Pet comes to the middle of the screen"),
     ),
     kind === "alarm" ? upcomingRow() : null,
     kind === "todo"
       ? h(
           "div",
           { class: "row day-time" },
-          "To-dos without a time remind you at",
-          timeField(settings.todoDayTime, debounced((todoDayTime: string) => void save({ todoDayTime })), "Day reminder time"),
+          t("To-dos without a time remind you at"),
+          timeField(settings.todoDayTime, debounced((todoDayTime: string) => void save({ todoDayTime })), t("Day reminder time")),
         )
       : null,
     kind === "todo" ? celebrateRow() : null,
-    kind === "alarm" ? h("p", { class: "hint" }, "Timers never snooze: a missed one leaves a quiet ⏱ note by the pet for an hour.") : null,
+    kind === "alarm" ? h("p", { class: "hint" }, t("Timers never snooze: a missed one leaves a quiet ⏱ note by the pet for an hour.")) : null,
   );
 }
 
@@ -1837,14 +1916,14 @@ function celebrateRow(): Node {
       "label",
       { class: "check celebrate" },
       h("input", { type: "checkbox", checked: c.enabled, onchange: () => void save({ celebrate: { ...c, enabled: !c.enabled } }) }),
-      "Celebrate anniversaries on screen for",
+      t("Celebrate anniversaries on screen for"),
       h("input", {
         type: "number",
         min: 10,
         max: 60,
         value: c.seconds,
         disabled: !c.enabled,
-        title: "10–60 seconds",
+        title: t("10–60 seconds"),
         onchange: (e: Event) => {
           const input = e.target as HTMLInputElement;
           const seconds = Math.min(60, Math.max(10, Math.round(Number(input.value)) || 15));
@@ -1852,7 +1931,7 @@ function celebrateRow(): Node {
           void save({ celebrate: { ...c, seconds } });
         },
       }),
-      "s",
+      t("s"),
     ),
     h(
       "div",
@@ -1861,7 +1940,7 @@ function celebrateRow(): Node {
         "label",
         { class: "check" },
         h("input", { type: "checkbox", checked: c.music, onchange: () => void save({ celebrate: { ...c, music: !c.music } }) }),
-        "Play music with it",
+        t("Play music with it"),
       ),
       h("span", { class: "hint" }, "🔈"),
       h("input", {
@@ -1871,15 +1950,15 @@ function celebrateRow(): Node {
         step: 0.05,
         value: c.musicVolume,
         disabled: !c.music,
-        title: "Music volume",
+        title: t("Music volume"),
         onchange: (e: Event) => void save({ celebrate: { ...c, musicVolume: Number((e.target as HTMLInputElement).value) } }),
       }),
     ),
     h(
       "p",
       { class: "hint" },
-      "Fireworks, or a candle and flowers for a remembrance. Each anniversary can turn its own off; when this is off, your pet just says it. " +
-        "The music is chosen with each anniversary (▶ Preview plays it).",
+      t("Fireworks, or a candle and flowers for a remembrance. Each anniversary can turn its own off; when this is off, your pet just says it. ") +
+        t("The music is chosen with each anniversary (▶ Preview plays it)."),
     ),
   );
 }
@@ -1891,14 +1970,14 @@ function upcomingRow(): Node {
     "label",
     { class: "check upcoming" },
     h("input", { type: "checkbox", checked: u.show, onchange: () => void save({ upcomingAlarms: { ...u, show: !u.show } }) }),
-    "Show alarms due within",
+    t("Show alarms due within"),
     h("input", {
       type: "number",
       min: 1,
       max: 120,
       value: u.minutes,
       disabled: !u.show,
-      title: "1–120 minutes",
+      title: t("1–120 minutes"),
       onchange: (e: Event) => {
         const input = e.target as HTMLInputElement;
         const minutes = clampUpcomingMinutes(input.value);
@@ -1906,23 +1985,23 @@ function upcomingRow(): Node {
         void save({ upcomingAlarms: { ...u, minutes } });
       },
     }),
-    "min by the pet",
+    t("min by the pet"),
   );
 }
 
 const RING_LENGTHS = [
-  [30, "30 seconds"],
-  [60, "1 minute"],
-  [120, "2 minutes"],
-  [300, "5 minutes"],
+  [30, msg("30 seconds")],
+  [60, msg("1 minute")],
+  [120, msg("2 minutes")],
+  [300, msg("5 minutes")],
 ] as const;
 
 /** Snooze length × automatic snoozes; 0 snoozes = just stop and mark it missed. */
 const UNANSWERED = [
-  [5, 3, "Snooze 5 min × 3"],
-  [10, 3, "Snooze 10 min × 3"],
-  [5, 5, "Snooze 5 min × 5"],
-  [5, 0, "Mark as missed"],
+  [5, 3, msg("Snooze 5 min × 3")],
+  [10, 3, msg("Snooze 10 min × 3")],
+  [5, 5, msg("Snooze 5 min × 5")],
+  [5, 0, msg("Mark as missed")],
 ] as const;
 
 /** Alarm-only: how long to ring and what happens when nobody answers, side by side. */
@@ -1934,11 +2013,11 @@ function unansweredRow(a: AlertSettings, update: (p: Partial<AlertSettings>) => 
     h(
       "label",
       {},
-      "Ring for",
+      t("Ring for"),
       h(
         "select",
         { onchange: (e: Event) => update({ ringSeconds: Number((e.target as HTMLSelectElement).value) }) },
-        ...RING_LENGTHS.map(([sec, text]) => h("option", { value: sec, selected: sec === a.ringSeconds }, text)),
+        ...RING_LENGTHS.map(([sec, text]) => h("option", { value: sec, selected: sec === a.ringSeconds }, t(text))),
       ),
     ),
     h(
@@ -1947,8 +2026,8 @@ function unansweredRow(a: AlertSettings, update: (p: Partial<AlertSettings>) => 
       h(
         "span",
         {},
-        "If nobody answers",
-        infoTip("For alarms with “Try again if I don't answer” ticked (in the Alarms tab: on for Important ones by default). Others are marked missed after one ring."),
+        t("If nobody answers"),
+        infoTip(t("For alarms with “Try again if I don't answer” ticked (in the Alarms tab: on for Important ones by default). Others are marked missed after one ring.")),
       ),
       h(
         "select",
@@ -1958,7 +2037,7 @@ function unansweredRow(a: AlertSettings, update: (p: Partial<AlertSettings>) => 
             update({ snoozeMinutes: minutes, autoSnoozeMax: max });
           },
         },
-        ...UNANSWERED.map(([, , text], i) => h("option", { value: i, selected: i === current }, text)),
+        ...UNANSWERED.map(([, , text], i) => h("option", { value: i, selected: i === current }, t(text))),
       ),
     ),
   );
@@ -1974,9 +2053,15 @@ async function main() {
   document.title = product.productName;
   registry = await loadAll(() => backend.listUserCharacters(), backend.assetUrl);
   settings = await backend.getSettings();
+  await followLocale(backend, settings);
+  // A new language: everything says it again (the tab names too).
+  onLanguage(() => {
+    nav.querySelectorAll<HTMLButtonElement>("button[data-tab]").forEach((b) => (b.textContent = t(TABS.find((x) => x.id === b.dataset.tab)!.label)));
+    void render();
+  });
   // End-to-end tests (debug builds): what the panel plays (ringtone previews).
   if (await backend.e2eEnabled()) Object.assign(window, { __epetSounds: [] });
-  for (const t of TABS) nav.append(h("button", { "data-tab": t.id, onclick: () => select(t.id) }, t.label));
+  for (const tab of TABS) nav.append(h("button", { "data-tab": tab.id, onclick: () => select(tab.id) }, t(tab.label)));
 
   await backend.on("todos-changed", () => current === "todos" && void render());
   await backend.on("anniversaries-changed", () => current === "todos" && void render());
@@ -2013,7 +2098,7 @@ async function main() {
   await backend.on("mood", () => current === "characters" && void render());
 
   const initial = location.hash.slice(1) as PanelTab;
-  select(TABS.some((t) => t.id === initial) ? initial : "todos");
+  select(TABS.some((it) => it.id === initial) ? initial : "todos");
 }
 
 void main();

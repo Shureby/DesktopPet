@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 import type { Backend } from "../../platform";
 
 export interface Keys {
@@ -145,11 +146,11 @@ export class GameHost {
     ctx.textAlign = "center";
     const lines =
       this.phase === "intro"
-        ? [this.game.title, ...this.game.controls, "Space to start · Esc to quit"]
+        ? [this.game.title, ...this.game.controls, t("Space to start · Esc to quit")]
         : [
             this.game.message,
-            `Score ${this.game.score}   ·   Best ${this.best}`,
-            "Space / R to play again · Esc to quit",
+            t("Score {score}   ·   Best {best}", { score: this.game.score, best: this.best }),
+            t("Space / R to play again · Esc to quit"),
           ];
     lines.forEach((line, i) => {
       ctx.font = i === 0 ? "800 42px Nunito, 'Segoe UI', system-ui, sans-serif" : "18px Nunito, 'Segoe UI', system-ui, sans-serif";

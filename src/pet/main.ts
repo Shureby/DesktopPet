@@ -1,4 +1,5 @@
 import { loadAll } from "../characters/registry";
+import { followLocale } from "../i18n/apply";
 import { backend } from "../platform";
 import { followTestClock } from "../platform/testClock";
 import { startMockScheduler } from "../platform/mock";
@@ -17,6 +18,7 @@ async function main() {
     enableFakeWindowDragging();
   }
   const settings = await backend.getSettings();
+  await followLocale(backend, settings);
   const host = new PetHost(
     backend,
     registry,

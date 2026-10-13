@@ -1,3 +1,4 @@
+import { msg } from "../../../i18n";
 import type { GameModifiers } from "../../../characters/abilities/types";
 import { createRng, range, type Rng } from "../../../engine/random";
 
@@ -148,7 +149,7 @@ export function stepSafeLanding(s: SafeLandingState, input: SafeLandingInput, dt
     if (Math.hypot(it.x - s.x, it.y - s.y) > it.r + s.radius * 0.8) continue;
     if (it.kind === "spike") {
       s.status = "crashed";
-      s.reason = "Ouch! Spikes.";
+      s.reason = msg("Ouch! Spikes.");
       return;
     }
     it.taken = true;
@@ -161,13 +162,13 @@ export function stepSafeLanding(s: SafeLandingState, input: SafeLandingInput, dt
     const onPad = Math.abs(s.x - s.pad.x) <= s.pad.w / 2;
     if (!onPad) {
       s.status = "crashed";
-      s.reason = "Missed the landing pad!";
+      s.reason = msg("Missed the landing pad!");
     } else if (s.vy > TUNING.safeSpeed) {
       s.status = "crashed";
-      s.reason = "Too fast! Slow down before touchdown.";
+      s.reason = msg("Too fast! Slow down before touchdown.");
     } else {
       s.status = "landed";
-      s.reason = "Perfect landing!";
+      s.reason = msg("Perfect landing!");
     }
     s.vy = 0;
   }

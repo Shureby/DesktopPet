@@ -3,10 +3,12 @@
  * file (with a password if you like), restore one here or on another computer, and the
  * backups ePet makes itself every day.
  */
+import { t } from "../i18n";
 import type { Backend, BackupSummary, RestoreParts, SavedBackup } from "../platform/types";
 import { formatWhen, h } from "./dom";
 
-const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
+/** "1 alarm", "3 alarms" (one text for each, as languages count differently). */
+const count = (n: number, one: string, many: string) => (n === 1 ? t(one, { n }) : t(many, { n }));
 
 /** "HOME-PC · Windows · Today 9:41 AM" */
 export function backupFrom(s: BackupSummary, now = Date.now()): string {
@@ -16,8 +18,12 @@ export function backupFrom(s: BackupSummary, now = Date.now()): string {
 
 /** "3 alarms · 12 to-dos · 2 anniversaries · 1 character" (what would be restored; timers never are). */
 export function backupContents(s: BackupSummary): string {
-  const parts = [plural(s.alarms, "alarm"), plural(s.todos, "to-do"), plural(s.anniversaries, "anniversary").replace("anniversarys", "anniversaries")];
-  if (s.characters) parts.push(plural(s.characters, "character"));
+  const parts = [
+    count(s.alarms, "{n} alarm", "{n} alarms"),
+    count(s.todos, "{n} to-do", "{n} to-dos"),
+    count(s.anniversaries, "{n} anniversary", "{n} anniversaries"),
+  ];
+  if (s.characters) parts.push(count(s.characters, "{n} character", "{n} characters"));
   return parts.join(" · ");
 }
 
@@ -34,7 +40,7 @@ function dialog(title: string, body: Node[], buttons: Node[]): () => void {
     h("p", { class: "title" }, title),
     ...body,
     ...buttons,
-    h("button", { class: "cancel", onclick: close }, "Cancel"),
+    h("button", { class: "cancel", onclick: close }, t("Cancel")),
   );
   const overlay = h("div", { class: "ask-overlay", onclick: (e: Event) => e.target === overlay && close() }, box);
   document.addEventListener("keydown", onKey);
@@ -51,16 +57,16 @@ export function backupSection(backend: Backend): Node {
   };
 
   const exportBackup = () => {
-    const pw = h("input", { type: "password", placeholder: "Password (optional)", autocomplete: "new-password", class: "backup-password" });
-    const again = h("input", { type: "password", placeholder: "Password again", autocomplete: "new-password", class: "backup-password-again" });
+    const pw = h("input", { type: "password", placeholder: t("Password (optional)"), autocomplete: "new-password", class: "backup-password" });
+    const again = h("input", { type: "password", placeholder: t("Password again"), autocomplete: "new-password", class: "backup-password-again" });
     const problem = h("p", { class: "warning" });
     const close = dialog(
-      "Export backup",
+      t("Export backup"),
       [
-        h("p", { class: "sub" }, "Everything ePet keeps, in one file: alarms, to-dos, anniversaries, settings, your pet and your characters."),
+        h("p", { class: "sub" }, t("Everything ePet keeps, in one file: alarms, to-dos, anniversaries, settings, your pet and your characters.")),
         pw,
         again,
-        h("p", { class: "sub" }, "With a password the file is encrypted. Forget it and the backup can't be opened — not even by us."),
+        h("p", { class: "sub" }, t("With a password the file is encrypted. Forget it and the backup can't be opened — not even by us.")),
         problem,
       ],
       [
@@ -70,19 +76,19 @@ export function backupSection(backend: Backend): Node {
             class: "primary",
             onclick: async () => {
               if (pw.value !== again.value) {
-                problem.textContent = "The passwords don't match.";
+                problem.textContent = t("The passwords don't match.");
                 return;
               }
               close();
               try {
                 const saved = await backend.backupExport(pw.value || null);
-                if (saved) say(`Saved${pw.value ? " (encrypted)" : ""}: ${saved}`);
+                if (saved) say(pw.value ? t("Saved (encrypted): {path}", { path: saved }) : t("Saved: {path}", { path: saved }));
               } catch (e) {
-                say(`Couldn't save the backup: ${String(e)}`, true);
+                say(t("Couldn't save the backup: {error}", { error: String(e) }), true);
               }
             },
           },
-          "Export",
+          t("Export"),
         ),
       ],
     );
@@ -94,25 +100,25 @@ export function backupSection(backend: Backend): Node {
     try {
       opened = await backend.backupOpen(path, password);
     } catch (e) {
-      say(`Couldn't open it: ${String(e)}`, true);
+      say(t("Couldn't open it: {error}", { error: String(e) }), true);
       return;
     }
     if (opened.status === "cancelled") return;
     if (opened.status === "needsPassword" || opened.status === "wrongPassword") {
-      const pw = h("input", { type: "password", placeholder: "Password", class: "backup-open-password" });
+      const pw = h("input", { type: "password", placeholder: t("Password"), class: "backup-open-password" });
       const go = () => {
         close();
         void openBackup(opened.path, pw.value, true);
       };
       pw.addEventListener("keydown", (e) => e.key === "Enter" && go());
       const close = dialog(
-        "This backup has a password",
+        t("This backup has a password"),
         [
           h("p", { class: "sub" }, opened.path ?? ""),
           pw,
-          ...(opened.status === "wrongPassword" || wrong ? [h("p", { class: "warning wrong-password" }, "Wrong password.")] : []),
+          ...(opened.status === "wrongPassword" || wrong ? [h("p", { class: "warning wrong-password" }, t("Wrong password."))] : []),
         ],
-        [h("button", { class: "primary", onclick: go }, "Open")],
+        [h("button", { class: "primary", onclick: go }, t("Open"))],
       );
       return;
     }
@@ -137,17 +143,17 @@ export function backupSection(backend: Backend): Node {
         h("span", {}, text, h("small", { class: "hint" }, ` — ${sub}`)),
       );
     const close = dialog(
-      "Restore backup",
+      t("Restore backup"),
       [
         h("p", { class: "sub backup-from" }, backupFrom(s)),
         h("p", { class: "sub backup-contents" }, backupContents(s)),
-        check("schedule", "Alarms, to-dos and anniversaries"),
-        check("settings", "Settings"),
-        check("pet", "Your pet: mood, scores, achievements"),
-        check("characters", s.characters ? "Your characters" : "Your characters (none in this backup)", !s.characters),
-        radio("merge", "Merge", "with what's here; where both changed one, the newer wins"),
-        radio("replace", "Replace", "what's here goes (timers stay)", "replace"),
-        h("p", { class: "sub" }, "ePet backs up this computer first, then restarts."),
+        check("schedule", t("Alarms, to-dos and anniversaries")),
+        check("settings", t("Settings")),
+        check("pet", t("Your pet: mood, scores, achievements")),
+        check("characters", s.characters ? t("Your characters") : t("Your characters (none in this backup)"), !s.characters),
+        radio("merge", t("Merge"), t("with what's here; where both changed one, the newer wins")),
+        radio("replace", t("Replace"), t("what's here goes (timers stay)"), "replace"),
+        h("p", { class: "sub" }, t("ePet backs up this computer first, then restarts.")),
       ],
       [
         h(
@@ -156,7 +162,7 @@ export function backupSection(backend: Backend): Node {
             class: "primary",
             onclick: async () => {
               close();
-              say("Restoring… ePet will restart.");
+              say(t("Restoring… ePet will restart."));
               try {
                 await backend.backupRestore(parts, mode);
               } catch (e) {
@@ -164,7 +170,7 @@ export function backupSection(backend: Backend): Node {
               }
             },
           },
-          "Restore",
+          t("Restore"),
         ),
       ],
     );
@@ -183,12 +189,12 @@ export function backupSection(backend: Backend): Node {
         h(
           "div",
           { class: "row spread saved-backup" },
-          h("span", {}, formatWhen(b.madeAt), h("small", { class: "hint" }, b.kind === "auto" ? " · daily" : " · before a restore")),
-          h("button", { onclick: () => void openBackup(b.path) }, "Restore…"),
+          h("span", {}, formatWhen(b.madeAt), h("small", { class: "hint" }, b.kind === "auto" ? t(" · daily") : t(" · before a restore"))),
+          h("button", { onclick: () => void openBackup(b.path) }, t("Restore…")),
         ),
       ),
     );
-    if (!list.length) saved.append(h("p", { class: "hint" }, "The first one is made a few seconds after ePet starts."));
+    if (!list.length) saved.append(h("p", { class: "hint" }, t("The first one is made a few seconds after ePet starts.")));
   };
   void listSaved();
 
@@ -198,13 +204,13 @@ export function backupSection(backend: Backend): Node {
     h(
       "div",
       { class: "row" },
-      h("button", { class: "backup-export", onclick: exportBackup }, "Export backup…"),
-      h("button", { class: "backup-restore", onclick: () => void openBackup(null) }, "Restore from backup…"),
+      h("button", { class: "backup-export", onclick: exportBackup }, t("Export backup…")),
+      h("button", { class: "backup-restore", onclick: () => void openBackup(null) }, t("Restore from backup…")),
     ),
     status,
     h("hr"),
-    h("div", { class: "subhead" }, "Automatic backups"),
-    h("p", { class: "hint" }, "One a day, the last 7 kept, on this computer."),
+    h("div", { class: "subhead" }, t("Automatic backups")),
+    h("p", { class: "hint" }, t("One a day, the last 7 kept, on this computer.")),
     saved,
   );
 }

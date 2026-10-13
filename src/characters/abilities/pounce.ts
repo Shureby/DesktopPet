@@ -1,3 +1,4 @@
+import { msg } from "../../i18n";
 import { z } from "zod";
 import type { AbilityModule } from "./types";
 
@@ -12,7 +13,8 @@ type Params = z.infer<typeof Params>;
 /** Crouches, wiggles, then leaps — at the cursor if it is close. Cats, tigers, foxes… */
 export const pounce: AbilityModule<Params> = {
   id: "pounce",
-  description: "Crouches and leaps at the cursor (or at nothing in particular).",
+  name: msg("Pouncing"),
+  description: msg("Crouches and leaps at the cursor (or at nothing in particular)."),
   params: Params,
   requiredAnimations: ["crouch", "pounce"],
   behaviors: {

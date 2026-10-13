@@ -3,6 +3,7 @@
  * aside"). Leaving it says why; back, with nothing to tell (no reminder to ring, nothing
  * missed), it chats about what you were doing — after 2 minutes away or more.
  */
+import { lines } from "../../i18n";
 import type { AvoidReason } from "./avoid";
 
 /** Away less than this: back without a word (a video leaving full screen for a moment). */
@@ -79,7 +80,7 @@ const pick = (lines: string[], random: () => number) => lines[Math.floor(random(
 
 /** Leaving: why. */
 export function leavingLine(reason: AvoidReason, random: () => number = Math.random): string {
-  return pick(LEAVING[reason], random);
+  return pick(lines(`avoid.leaving.${reason}`, LEAVING[reason]), random);
 }
 
 /**
@@ -87,10 +88,10 @@ export function leavingLine(reason: AvoidReason, random: () => number = Math.ran
  * Shown anyway from the tray: it just says it's back.
  */
 export function backLine(reason: AvoidReason, awayMs: number, shownAnyway: boolean, random: () => number = Math.random): string | null {
-  if (shownAnyway) return pick(SHOWN_ANYWAY, random);
+  if (shownAnyway) return pick(lines("avoid.shownAnyway", SHOWN_ANYWAY), random);
   if (awayMs < CHAT_AFTER_MS) return null;
-  const lines = BACK[reason];
-  return pick(awayMs >= LONG_MS[reason] ? lines.long : lines.short, random);
+  const long = awayMs >= LONG_MS[reason];
+  return pick(lines(`avoid.back.${reason}.${long ? "long" : "short"}`, long ? BACK[reason].long : BACK[reason].short), random);
 }
 
 /** Every line, for the tests (each case has at least three). */

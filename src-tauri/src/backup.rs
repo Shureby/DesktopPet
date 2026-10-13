@@ -11,6 +11,7 @@ use tauri::{AppHandle, Manager, Runtime, State};
 use tauri_plugin_dialog::DialogExt;
 
 use crate::commands::{characters_dir, e2e_enabled};
+use crate::locale::tr;
 use crate::state::{now_ms, AppState};
 
 type CmdResult<T> = Result<T, String>;
@@ -152,12 +153,13 @@ pub async fn backup_export(
     let path = match path.filter(|_| e2e_enabled()) {
         Some(p) => PathBuf::from(p),
         None => {
+            let lang = crate::locale::ui_lang(&app);
             let picked = app
                 .dialog()
                 .file()
-                .set_title("Export ePet backup")
-                .set_file_name(format!("ePet backup {}.{EXTENSION}", local_stamp("%Y-%m-%d")))
-                .add_filter("ePet backup", &[EXTENSION])
+                .set_title(tr(lang, "Export ePet backup"))
+                .set_file_name(format!("{} {}.{EXTENSION}", tr(lang, "ePet backup"), local_stamp("%Y-%m-%d")))
+                .add_filter(tr(lang, "ePet backup"), &[EXTENSION])
                 .blocking_save_file();
             match picked {
                 Some(p) => p.into_path().map_err(err)?,
@@ -190,11 +192,12 @@ pub async fn backup_open(
     let path = match path {
         Some(p) => PathBuf::from(p),
         None => {
+            let lang = crate::locale::ui_lang(&app);
             let picked = app
                 .dialog()
                 .file()
-                .set_title("Restore ePet backup")
-                .add_filter("ePet backup", &[EXTENSION])
+                .set_title(tr(lang, "Restore ePet backup"))
+                .add_filter(tr(lang, "ePet backup"), &[EXTENSION])
                 .blocking_pick_file();
             match picked {
                 Some(p) => p.into_path().map_err(err)?,

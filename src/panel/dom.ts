@@ -2,6 +2,8 @@ type Child = Node | string | number | null | undefined | false;
 type Props = Record<string, unknown> & { class?: string; style?: string };
 
 /** Minimal element builder: h("button", { onclick }, "Save"). */
+import { clock, shortDate } from "../i18n/format";
+import { t } from "../i18n";
 export function h<K extends keyof HTMLElementTagNameMap>(tag: K, props: Props = {}, ...children: Child[]): HTMLElementTagNameMap[K] {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(props)) {
@@ -24,18 +26,18 @@ export function formatWhen(ms: number, now = Date.now()): string {
   const today = new Date(now);
   const tomorrow = new Date(now + 86_400_000);
   const yesterday = new Date(now - 86_400_000);
-  const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  if (d.toDateString() === today.toDateString()) return `Today ${time}`;
-  if (d.toDateString() === tomorrow.toDateString()) return `Tomorrow ${time}`;
-  if (d.toDateString() === yesterday.toDateString()) return `Yesterday ${time}`;
-  return `${d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} ${time}`;
+  const time = clock(ms);
+  if (d.toDateString() === today.toDateString()) return t("Today {time}", { time });
+  if (d.toDateString() === tomorrow.toDateString()) return t("Tomorrow {time}", { time });
+  if (d.toDateString() === yesterday.toDateString()) return t("Yesterday {time}", { time });
+  return `${shortDate(ms)} ${time}`;
 }
 
 /** "Today", "Tomorrow", "Yesterday" or "Wed, Oct 15": a day without a time. */
 export function formatDay(ms: number, now = Date.now()): string {
   const d = new Date(ms).toDateString();
-  if (d === new Date(now).toDateString()) return "Today";
-  if (d === new Date(now + 86_400_000).toDateString()) return "Tomorrow";
-  if (d === new Date(now - 86_400_000).toDateString()) return "Yesterday";
-  return new Date(ms).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+  if (d === new Date(now).toDateString()) return t("Today");
+  if (d === new Date(now + 86_400_000).toDateString()) return t("Tomorrow");
+  if (d === new Date(now - 86_400_000).toDateString()) return t("Yesterday");
+  return shortDate(ms);
 }

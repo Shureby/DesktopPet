@@ -1,3 +1,4 @@
+import { msg } from "../../i18n";
 import { z } from "zod";
 import type { AbilityModule } from "./types";
 
@@ -14,7 +15,8 @@ type Params = z.infer<typeof Params>;
 /** Spreads wings (or an umbrella, or ears…) to float down slowly. Roosters, bats, flying squirrels… */
 export const glide: AbilityModule<Params> = {
   id: "glide",
-  description: "Floats down slowly instead of falling.",
+  name: msg("Gliding"),
+  description: msg("Floats down slowly instead of falling."),
   params: Params,
   requiredAnimations: ["glide"],
   onFalling(p, params) {

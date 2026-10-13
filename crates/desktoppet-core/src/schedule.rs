@@ -108,12 +108,49 @@ pub fn nth_weekday(year: i32, month: u32, nth: i32, weekday: u32) -> Option<Naiv
     first.checked_add_days(chrono::Days::new((ahead + (nth.max(1) as u32 - 1) * 7) as u64))
 }
 
+/// Holidays whose dates are announced (src/features/anniversary/holiday-dates.json).
+fn holiday_tables() -> &'static serde_json::Value {
+    static TABLES: std::sync::OnceLock<serde_json::Value> = std::sync::OnceLock::new();
+    TABLES.get_or_init(|| serde_json::from_str(include_str!("../../../src/features/anniversary/holiday-dates.json")).unwrap_or_default())
+}
+
+/// The day of holiday number `table` (1-based, in `tables`) in `year`; none if not announced.
+pub fn table_date(table: u32, year: i32) -> Option<NaiveDate> {
+    let t = holiday_tables();
+    let key = t["tables"].get(table.checked_sub(1)? as usize)?.as_str()?;
+    let md = t["dates"][key][year.to_string()].as_str()?;
+    let (m, d) = md.split_once('-')?;
+    NaiveDate::from_ymd_opt(year, m.parse().ok()?, d.parse().ok()?)
+}
+
+/// Easter Sunday (Gregorian; the anonymous Gregorian algorithm). Mirrors `easter` in
+/// src/features/anniversary/holidays.ts.
+pub fn easter(year: i32) -> Option<NaiveDate> {
+    let a = year % 19;
+    let b = year / 100;
+    let c = year % 100;
+    let d = b / 4;
+    let e = b % 4;
+    let f = (b + 8) / 25;
+    let g = (b - f + 1) / 3;
+    let h = (19 * a + b - d - g + 15) % 30;
+    let i = c / 4;
+    let k = c % 4;
+    let l = (32 + 2 * e + 2 * i - h - k) % 7;
+    let m = (a + 11 * h + 22 * l) / 451;
+    let month = (h + l - 7 * m + 114) / 31;
+    let day = (h + l - 7 * m + 114) % 31 + 1;
+    NaiveDate::from_ymd_opt(year, month as u32, day as u32)
+}
+
 /// Where an anniversary falls in a year: Gregorian `year` for a date or a day of the week,
 /// lunar `year` for a lunar date. Feb 29 is Feb 28 in other years.
 fn anniversary_in(rule: &DateRule, year: i32) -> Option<NaiveDate> {
     match rule.calendar {
         Calendar::Lunar => lunar_in_year(year, rule.month, rule.day, rule.leap),
         Calendar::Weekday => nth_weekday(year, rule.month, rule.nth, rule.weekday),
+        Calendar::Table => table_date(rule.month, year),
+        Calendar::Easter => easter(year)?.checked_add_signed(chrono::Duration::days(rule.nth as i64)),
         Calendar::Solar => NaiveDate::from_ymd_opt(year, rule.month, rule.day)
             .or_else(|| NaiveDate::from_ymd_opt(year, rule.month, rule.day - 1)),
     }
@@ -256,5 +293,25 @@ mod tests {
         assert_eq!(nth_weekday(2026, 5, -1, 1), Some(d(2026, 5, 25)));
         assert_eq!(nth_weekday(2026, 1, -1, 6), Some(d(2026, 1, 31)));
         assert_eq!(nth_weekday(2026, 12, -1, 4), Some(d(2026, 12, 31)));
+    }
+
+    #[test]
+    fn announced_holidays_and_easter() {
+        let d = |y, m, dd| NaiveDate::from_ymd_opt(y, m, dd).unwrap();
+        let rule = |calendar, month, nth| DateRule { calendar, month, day: 1, leap: false, nth, weekday: 0 };
+        // Qingming (table 1), Hari Raya Puasa (2): as listed; none once past the table.
+        assert_eq!(anniversary_on_or_after(&rule(Calendar::Table, 1, 1), d(2026, 1, 1)), Some(d(2026, 4, 5)));
+        assert_eq!(anniversary_on_or_after(&rule(Calendar::Table, 1, 1), d(2026, 4, 6)), Some(d(2027, 4, 5)));
+        assert_eq!(anniversary_on_or_after(&rule(Calendar::Table, 2, 1), d(2026, 10, 1)), Some(d(2027, 3, 10)));
+        assert_eq!(anniversary_on_or_after(&rule(Calendar::Table, 2, 1), d(2027, 4, 1)), None);
+        assert_eq!(table_date(99, 2026), None);
+        // Easter Sundays (the same as in src/features/anniversary/holidays.test.ts).
+        for (y, m, dd) in [(2008, 3, 23), (2024, 3, 31), (2025, 4, 20), (2026, 4, 5), (2027, 3, 28), (2028, 4, 16), (2035, 3, 25), (2038, 4, 25)] {
+            assert_eq!(easter(y), Some(d(y, m, dd)), "{y}");
+        }
+        // Good Friday: two days before.
+        assert_eq!(anniversary_on_or_after(&rule(Calendar::Easter, 1, -2), d(2026, 1, 1)), Some(d(2026, 4, 3)));
+        assert_eq!(Calendar::parse("table"), Calendar::Table);
+        assert_eq!(Calendar::Easter.as_str(), "easter");
     }
 }

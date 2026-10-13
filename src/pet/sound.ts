@@ -2,6 +2,7 @@
  * Synthesized sounds and ringtones (WebAudio), so the app needs no audio files.
  * Characters or skins can ship recorded sounds later.
  */
+import { msg } from "../i18n";
 import { playPiece, type Piece } from "../celebrate/music";
 import { rampVolume } from "../features/modes/modes";
 import type { FocusTone } from "../platform/types";
@@ -112,12 +113,12 @@ export interface Ringtone {
 
 export const RINGTONES = {
   classic: {
-    name: "Classic alarm",
+    name: msg("Classic alarm"),
     period: 1.6,
     notes: () => [0, 0.3, 0.6].flatMap((t) => [{ f: 988, at: t, dur: 0.16 }, { f: 1319, at: t + 0.1, dur: 0.14 }]),
   },
   chime: {
-    name: "Chime",
+    name: msg("Chime"),
     period: 2.5,
     notes: () => [
       { f: 880, at: 0, dur: 1.2, wave: "sine" },
@@ -125,24 +126,24 @@ export const RINGTONES = {
     ],
   },
   digital: {
-    name: "Digital watch",
+    name: msg("Digital watch"),
     period: 1.2,
     notes: () => [0, 0.12, 0.24, 0.36].map((t) => ({ f: 2000, at: t, dur: 0.07, wave: "square" as const, gain: 0.35 })),
   },
   gentle: {
-    name: "Gentle rise",
+    name: msg("Gentle rise"),
     period: 2.4,
     // Starts quiet and gets louder each time it repeats.
     notes: (rep) =>
       [C5, E5, G5, C6].map((f, i) => ({ f, at: i * 0.28, dur: 0.9, wave: "sine" as const, gain: Math.min(1, 0.25 + rep * 0.15) })),
   },
   marimba: {
-    name: "Marimba",
+    name: msg("Marimba"),
     period: 2,
     notes: () => [C5, E5, G5, E5, C6, E6].map((f, i) => ({ f, at: i * 0.14, dur: 0.35, wave: "sine" as const })),
   },
   rooster: {
-    name: "Rooster crow",
+    name: msg("Rooster crow"),
     period: 3,
     // "Cock-a-doodle-doo!"
     notes: () => [
@@ -153,7 +154,7 @@ export const RINGTONES = {
     ],
   },
   trill: {
-    name: "Office trill",
+    name: msg("Office trill"),
     period: 3,
     // The electronic office-phone ringer (AT&T Merlin style): three sine tones together,
     // switched on and off every 22 ms, 24 times (about a second).
@@ -208,7 +209,7 @@ const chirp = (at: number, tones: [number, number][]): Note[] =>
  * echoing in the room. It can be told from a break starting without seeing the pet.
  */
 const FIELD_PHONE: Ringtone = {
-  name: "Field phone",
+  name: msg("Field phone"),
   period: 2.5,
   notes: () => [
     ...[0, 0.049, 0.22, 0.27].flatMap((t) =>
@@ -238,7 +239,7 @@ const FIELD_PHONE: Ringtone = {
 export const FOCUS_TONE_CHOICES: { id: FocusTone; name: string }[] = [
   { id: "fieldPhone", name: FIELD_PHONE.name },
   ...RINGTONE_IDS.map((id) => ({ id, name: (RINGTONES[id] as Ringtone).name })),
-  { id: "off", name: "Off" },
+  { id: "off", name: msg("Off") },
 ];
 
 /** A focus starting or a break starting (Focus → Sounds); "off" plays nothing. */

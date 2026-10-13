@@ -1,3 +1,4 @@
+import { msg } from "../../i18n";
 import { z } from "zod";
 import { bottom, right } from "../../engine/geometry";
 import { areaIndexAt, nearestAreaIndex } from "../../engine/physics";
@@ -38,7 +39,8 @@ function move(anim: string, speed: (p: Pet) => number, min: number, max: number)
 /** The abilities every character has. Always resolved first. */
 export const core: AbilityModule<Record<string, never>> = {
   id: "core",
-  description: "Idle, walk, run, sit, sleep, jump, fall, land, be dragged, react.",
+  name: msg("Basics"),
+  description: msg("Idle, walk, run, sit, sleep, jump, fall, land, be dragged, react."),
   params: z.object({}).strict(),
   requiredAnimations: [],
   behaviors: {

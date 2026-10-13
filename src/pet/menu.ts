@@ -1,4 +1,6 @@
 import type { CharacterRegistry } from "../characters/registry";
+import { t } from "../i18n";
+import { careText, characterName } from "../characters/text";
 import type { CareAction, CharacterDef } from "../characters/schema";
 import { pick, type Rng } from "../engine/random";
 import { formatDuration, PRESET_MINUTES, timerName } from "../features/alarm/timers";
@@ -68,7 +70,7 @@ export interface Item {
 
 
 export function careLabel(action: CareAction, character: CharacterDef): string {
-  return action.label.replace(/\{name\}/g, character.displayName);
+  return careText(character, action);
 }
 
 /** One care action at random; feeding comes first when the pet is hungry. */
@@ -91,46 +93,46 @@ export function taskItems(c: MenuContext): (Item | "sep")[] {
   // Presets keep fixed positions (muscle memory); the user's own lengths sit below a separator.
   const recent = c.settings.recentTimers.filter((m) => !PRESET_MINUTES.includes(m));
   const items: (Item | "sep")[] = [
-    { text: "Add to-do…", action: () => void c.backend.openPanel("todos") },
-    { text: "Set alarm…", action: () => void c.backend.openPanel("alarms") },
+    { text: t("Add to-do…"), action: () => void c.backend.openPanel("todos") },
+    { text: t("Set alarm…"), action: () => void c.backend.openPanel("alarms") },
     {
-      text: "Set timer",
+      text: t("Set timer"),
       items: [
         ...PRESET_MINUTES.map((m) => ({ text: formatDuration(m), action: () => c.setTimer(m) })),
         "sep" as const,
-        ...recent.map((m) => ({ text: `${formatDuration(m)} (custom)`, action: () => c.setTimer(m) })),
-        { text: "Custom / Edit…", action: c.customTimer },
+        ...recent.map((m) => ({ text: t("{duration} (custom)", { duration: formatDuration(m) }), action: () => c.setTimer(m) })),
+        { text: t("Custom / Edit…"), action: c.customTimer },
       ],
     },
   ];
   if (c.timers.length === 1) {
-    const t = c.timers[0];
+    const timer = c.timers[0];
     items.push({
-      text: `Cancel timer: ${timerName(t)} (rings ${clock(t.nextFire)})`,
-      action: () => void c.backend.deleteAlarm(t.id),
+      text: t("Cancel timer: {name} (rings {time})", { name: timerName(timer), time: clock(timer.nextFire) }),
+      action: () => void c.backend.deleteAlarm(timer.id),
     });
   } else if (c.timers.length > 1) {
     items.push({
-      text: "Cancel timer",
-      items: c.timers.map((t) => ({
-        text: `${timerName(t)} (rings ${clock(t.nextFire)})`,
-        action: () => void c.backend.deleteAlarm(t.id),
+      text: t("Cancel timer"),
+      items: c.timers.map((timer) => ({
+        text: t("{name} (rings {time})", { name: timerName(timer), time: clock(timer.nextFire) }),
+        action: () => void c.backend.deleteAlarm(timer.id),
       })),
     });
   }
   for (const a of c.snoozed ?? []) {
     items.push({
-      text: `Cancel snooze: ${alarmName(a)} (next ring ${clock(a.nextFire)})`,
+      text: t("Cancel snooze: {name} (next ring {time})", { name: alarmName(a), time: clock(a.nextFire) }),
       action: () => void c.backend.dismissAlarm(a.id),
     });
   }
   items.push(
     c.pomodoro.phase !== "idle"
       ? {
-          text: `Stop focus session${c.pomodoro.endsAt ? ` (ends ${clock(c.pomodoro.endsAt)})` : ""}`,
+          text: c.pomodoro.endsAt ? t("Stop focus session (ends {time})", { time: clock(c.pomodoro.endsAt) }) : t("Stop focus session"),
           action: () => void c.backend.pomodoroStop(),
         }
-      : { text: "Start focus session 🍅", action: () => void c.backend.pomodoroStart() },
+      : { text: t("Start focus session 🍅"), action: () => void c.backend.pomodoroStart() },
   );
   return items;
 }
@@ -151,13 +153,14 @@ export function playItems(c: MenuContext): (Item | "sep")[] {
   return [
     {
       // Says so during a focus session: it will ask first.
-      text: `Play Safe Landing${gameHeld(c.settings.pomodoro, c.pomodoro) ? " (focusing)" : ""}`,
+      id: "play",
+      text: gameHeld(c.settings.pomodoro, c.pomodoro) ? t("Play Safe Landing (focusing)") : t("Play Safe Landing"),
       action: () => c.playGame("safe-landing"),
     },
     {
-      text: "Switch character",
+      text: t("Switch character"),
       items: c.registry.list().map((ch) => ({
-        text: ch.def.displayName,
+        text: characterName(ch.def),
         checked: ch.def.id === c.settings.character,
         action: () => void c.backend.setSettings({ character: ch.def.id }),
       })),
@@ -182,25 +185,27 @@ export function modeItem(c: MenuContext): Item {
   const until = overrideUntil(m, now);
   const morning = tomorrowMorning(m, now);
   return {
-    text: `Switch mode (now: ${MODE_ICONS[n.mode]} ${MODE_NAMES[n.mode]}${n.until ? ` until ${clock(n.until)}` : ""})`,
+    text: n.until
+      ? t("Switch mode (now: {mode} until {time})", { mode: `${MODE_ICONS[n.mode]} ${t(MODE_NAMES[n.mode])}`, time: clock(n.until) })
+      : t("Switch mode (now: {mode})", { mode: `${MODE_ICONS[n.mode]} ${t(MODE_NAMES[n.mode])}` }),
     items: [
-      { text: "Auto (schedule)", checked: m.choice === "auto" && n.why !== "override", action: () => set({ choice: "auto", override: null }) },
+      { text: t("Auto (schedule)"), checked: m.choice === "auto" && n.why !== "override", action: () => set({ choice: "auto", override: null }) },
       ...MODE_IDS.map((id) => ({
-        text: `${MODE_ICONS[id]} ${MODE_NAMES[id]} until ${clock(until)}`,
+        text: t("{mode} until {time}", { mode: `${MODE_ICONS[id]} ${t(MODE_NAMES[id])}`, time: clock(until) }),
         checked: n.why === "override" ? n.mode === id : m.choice === id,
         action: () => forAWhile(id, until),
       })),
       "sep",
       {
-        text: "Quiet for…",
+        text: t("Quiet for…"),
         items: [
-          { text: "30 minutes", action: () => forAWhile("quiet", Date.now() + 30 * 60_000) },
-          { text: "1 hour", action: () => forAWhile("quiet", Date.now() + 3_600_000) },
-          { text: "2 hours", action: () => forAWhile("quiet", Date.now() + 2 * 3_600_000) },
-          { text: `Until tomorrow ${clock(morning)}`, action: () => forAWhile("quiet", morning) },
+          { text: t("30 minutes"), action: () => forAWhile("quiet", Date.now() + 30 * 60_000) },
+          { text: t("1 hour"), action: () => forAWhile("quiet", Date.now() + 3_600_000) },
+          { text: t("2 hours"), action: () => forAWhile("quiet", Date.now() + 2 * 3_600_000) },
+          { text: t("Until tomorrow {time}", { time: clock(morning) }), action: () => forAWhile("quiet", morning) },
         ],
       },
-      { text: "Today is a day off", checked: m.dayOffOn === today, action: () => set({ dayOffOn: m.dayOffOn === today ? null : today }) },
+      { text: t("Today is a day off"), checked: m.dayOffOn === today, action: () => set({ dayOffOn: m.dayOffOn === today ? null : today }) },
     ],
   };
 }
@@ -216,8 +221,8 @@ export function buildItems(c: PetMenuContext): (Item | "sep")[] {
     ...playItems(c),
     "sep",
     modeItem(c),
-    { text: "Open panel…", action: () => void c.backend.openPanel(panelTabFor(c)) },
-    { text: "Hide pet", action: c.hide },
+    { text: t("Open panel…"), action: () => void c.backend.openPanel(panelTabFor(c)) },
+    { text: t("Hide pet"), action: c.hide },
   ];
 }
 
@@ -231,24 +236,24 @@ export function buildTrayItems(c: TrayMenuContext): (Item | "sep")[] {
   return [
     ...(ring
       ? [
-          { text: "⏰ Done (stop ringing)", action: ring.done },
-          { text: `💤 Snooze ${ring.snoozeMinutes} min`, action: ring.snooze },
+          { text: t("⏰ Done (stop ringing)"), action: ring.done },
+          { text: t("💤 Snooze {n} min", { n: ring.snoozeMinutes }), action: ring.snooze },
           "sep" as const,
         ]
       : []),
-    c.petVisible && !c.away ? { id: "hide", text: "Hide pet" } : { id: "show", text: "Show pet" },
+    c.petVisible && !c.away ? { id: "hide", text: t("Hide pet") } : { id: "show", text: t("Show pet") },
     "sep",
     ...taskItems(c),
     "sep",
     // The one difference in the shared part: with the pet hidden during a focus session there
     // is no pet to ask "Play anyway?", so the game is left out until the focus ends.
-    ...playItems(c).filter((i) => c.petVisible || !gameHeld(c.settings.pomodoro, c.pomodoro) || i === "sep" || !i.text.startsWith("Play")),
+    ...playItems(c).filter((i) => c.petVisible || !gameHeld(c.settings.pomodoro, c.pomodoro) || i === "sep" || i.id !== "play"),
     "sep",
     modeItem(c),
-    ...(c.away ? [{ text: `Stepped aside: ${AVOID_LABELS[c.away]}`, disabled: true }] : []),
-    { text: "Open panel…", action: () => void c.backend.openPanel(panelTabFor(c)) },
+    ...(c.away ? [{ text: t("Stepped aside: {why}", { why: t(AVOID_LABELS[c.away]) }), disabled: true }] : []),
+    { text: t("Open panel…"), action: () => void c.backend.openPanel(panelTabFor(c)) },
     "sep",
-    { id: "quit", text: "Quit" },
+    { id: "quit", text: t("Quit") },
   ];
 }
 

@@ -2,6 +2,7 @@
  * Settings → Modes → "Step aside automatically" (docs/INTERACTIONS.md, "Stepping aside"):
  * what the pet leaves the screen for, and whether ePet always stays out of screenshots.
  */
+import { msg, t } from "../i18n";
 import { AVOID_LABELS, type AvoidReason, type AvoidSettings } from "../features/avoid/avoid";
 import type { Backend, Settings } from "../platform/types";
 import { h } from "./dom";
@@ -10,23 +11,23 @@ import { infoTip } from "./modes";
 const OPTIONS: { key: keyof AvoidSettings; label: string; info: string }[] = [
   {
     key: "fullscreen",
-    label: "Full-screen apps (games, videos)",
-    info: "When an app covers the pet's whole screen, the pet leaves it. Alarms and timers still ring, softly at first; to-dos wait. It comes back about 10 seconds after.",
+    label: msg("Full-screen apps (games, videos)"),
+    info: msg("When an app covers the pet's whole screen, the pet leaves it. Alarms and timers still ring, softly at first; to-dos wait. It comes back about 10 seconds after."),
   },
   {
     key: "presenting",
-    label: "Presentations",
-    info: "During a PowerPoint or Keynote slide show the pet leaves and nothing rings, except important alarms. ePet is also left out of screen sharing.",
+    label: msg("Presentations"),
+    info: msg("During a PowerPoint or Keynote slide show the pet leaves and nothing rings, except important alarms. ePet is also left out of screen sharing."),
   },
   {
     key: "calls",
-    label: "Video calls (camera or microphone in use)",
-    info: "While any app uses the camera or the microphone, the pet leaves and nothing rings, except important alarms. ePet is also left out of screen sharing and recordings.",
+    label: msg("Video calls (camera or microphone in use)"),
+    info: msg("While any app uses the camera or the microphone, the pet leaves and nothing rings, except important alarms. ePet is also left out of screen sharing and recordings."),
   },
   {
     key: "alwaysHide",
-    label: "Always hide ePet from screenshots and recordings",
-    info: "ePet never shows in screenshots, recordings or screen sharing, even outside calls and slide shows. You still see it. Off: it's left out only during calls and slide shows.",
+    label: msg("Always hide ePet from screenshots and recordings"),
+    info: msg("ePet never shows in screenshots, recordings or screen sharing, even outside calls and slide shows. You still see it. Off: it's left out only during calls and slide shows."),
   },
 ];
 
@@ -36,7 +37,7 @@ let listening = false;
 
 function paintStatus(reason: AvoidReason | null): void {
   if (!statusLine) return;
-  statusLine.textContent = reason ? `Now: stepped aside (${AVOID_LABELS[reason]})` : "";
+  statusLine.textContent = reason ? t("Now: stepped aside ({why})", { why: t(AVOID_LABELS[reason]) }) : "";
   statusLine.hidden = !reason;
 }
 
@@ -52,8 +53,8 @@ export function avoidSection(backend: Backend, get: () => Settings, save: (patch
   return h(
     "div",
     { class: "box avoid" },
-    h("div", { class: "subhead" }, "Step aside automatically"),
-    h("p", { class: "hint" }, "The pet leaves the screen while you…"),
+    h("div", { class: "subhead" }, t("Step aside automatically")),
+    h("p", { class: "hint" }, t("The pet leaves the screen while you…")),
     ...OPTIONS.map((o) =>
       h(
         "label",
@@ -67,11 +68,11 @@ export function avoidSection(backend: Backend, get: () => Settings, save: (patch
             void load().then((s) => save({ avoid: { ...s.avoid, [o.key]: on } }));
           },
         }),
-        o.label,
-        infoTip(o.info),
+        t(o.label),
+        infoTip(t(o.info)),
       ),
     ),
-    h("p", { class: "hint" }, "Important alarms (tick “Important” on an alarm) always ring in full, and bring the pet out."),
+    h("p", { class: "hint" }, t("Important alarms (tick “Important” on an alarm) always ring in full, and bring the pet out.")),
     statusLine,
   );
 }

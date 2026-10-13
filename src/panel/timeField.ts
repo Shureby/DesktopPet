@@ -1,3 +1,4 @@
+import { isChinese, t } from "../i18n";
 import { clock } from "../features/alarm/ringing";
 
 /**
@@ -47,7 +48,7 @@ export function stepPart(value: string, part: Part, delta: number, twelveHour: b
 export function partText(value: string, part: Part, twelveHour: boolean): string {
   const { h, m } = parseHm(value);
   if (part === "minute") return String(m).padStart(2, "0");
-  if (part === "period") return h >= 12 ? "PM" : "AM";
+  if (part === "period") return h >= 12 ? t("PM") : t("AM");
   return twelveHour ? String(h % 12 || 12) : String(h).padStart(2, "0");
 }
 
@@ -78,14 +79,15 @@ export function typeDigit(
 export type TimeFieldElement = HTMLElement & { value: string };
 
 /** The field itself. `onChange` runs after each change (like "input"), `value` is "HH:MM". */
-export function timeField(initial: string, onChange?: (value: string) => void, label = "Time"): TimeFieldElement {
+export function timeField(initial: string, onChange?: (value: string) => void, label = t("Time")): TimeFieldElement {
   const twelve = uses12Hour();
   let value = formatHm(parseHm(initial).h, parseHm(initial).m);
   const root = document.createElement("span") as unknown as TimeFieldElement;
   root.className = "time-field";
   root.setAttribute("role", "group");
   root.setAttribute("aria-label", label);
-  const parts: Part[] = twelve ? ["hour", "minute", "period"] : ["hour", "minute"];
+  // Chinese puts 上午/下午 first: 下午 4:30.
+  const parts: Part[] = !twelve ? ["hour", "minute"] : isChinese() ? ["period", "hour", "minute"] : ["hour", "minute", "period"];
   const els = new Map<Part, HTMLElement>();
 
   const paint = () => {
@@ -107,8 +109,8 @@ export function timeField(initial: string, onChange?: (value: string) => void, l
     el.className = `part ${part}`;
     el.tabIndex = 0;
     el.setAttribute("role", "spinbutton");
-    el.setAttribute("aria-label", part === "period" ? "AM/PM" : part);
-    el.title = "Drag up or down, scroll, or type";
+    el.setAttribute("aria-label", part === "period" ? t("AM/PM") : part === "hour" ? t("hour") : t("minute"));
+    el.title = t("Drag up or down, scroll, or type");
     els.set(part, el);
     root.append(el);
 

@@ -8,3 +8,12 @@ body {
 canvas {
   display: block;
 }
+
+/* Chinese: the system's Chinese fonts after Nunito (which has no Chinese), in the glyph forms
+   of the language (src/i18n/index.ts sets lang). */
+:root:lang(zh-CN) {
+  font-family: "Nunito", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
+}
+:root:lang(zh-TW) {
+  font-family: "Nunito", "Microsoft JhengHei UI", "Microsoft JhengHei", "PingFang TC", "Heiti TC", system-ui, sans-serif;
+}

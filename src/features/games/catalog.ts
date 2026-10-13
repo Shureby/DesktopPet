@@ -6,23 +6,24 @@ export interface GameInfo {
 }
 
 /** Mini-games shown in the panel. Games read character abilities, so every character can play every game. */
+import { msg } from "../../i18n";
 export const GAMES: GameInfo[] = [
   {
     id: "safe-landing",
-    name: "Safe Landing",
-    description: "Drop from the top of the screen, dodge the spikes, grab umbrellas and land softly on the pad. Gliders get a head start.",
+    name: msg("Safe Landing"),
+    description: msg("Drop from the top of the screen, dodge the spikes, grab umbrellas and land softly on the pad. Gliders get a head start."),
     available: true,
   },
   {
     id: "jump-up",
-    name: "Jump Up",
-    description: "Bounce from platform to platform as high as you can, avoiding birds and falling sticky notes.",
+    name: msg("Jump Up"),
+    description: msg("Bounce from platform to platform as high as you can, avoiding birds and falling sticky notes."),
     available: false,
   },
   {
     id: "stickman-fight",
-    name: "Stickman Fight",
-    description: "Take on the stickman using your character's own fighting style.",
+    name: msg("Stickman Fight"),
+    description: msg("Take on the stickman using your character's own fighting style."),
     available: false,
   },
 ];

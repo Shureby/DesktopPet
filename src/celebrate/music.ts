@@ -5,6 +5,7 @@
  * Wagner's Bridal Chorus, Ode to Joy, Jasmine Flower, Chopin's funeral march, Taps) or written
  * for ePet.
  */
+import { msg } from "../i18n";
 
 export type Instrument =
   | "musicbox"
@@ -136,7 +137,7 @@ const birthdayTune = (start: number, oct = 0): Ev[] => {
 const BIRTHDAY: Piece = {
   id: "birthday",
   level: 0.363,
-  name: "Happy Birthday",
+  name: msg("Happy Birthday"),
   mood: "happy",
   seconds: 30,
   beats: 50,
@@ -163,7 +164,7 @@ const canonBass = (start: number) =>
 const CANON: Piece = {
   id: "canon",
   level: 0.954,
-  name: "Canon in D (Pachelbel)",
+  name: msg("Canon in D (Pachelbel)"),
   mood: "happy",
   seconds: 30,
   beats: 32,
@@ -205,7 +206,7 @@ const odeA = (end: "D" | "C"): Step[] => [
 const ODE: Piece = {
   id: "ode",
   level: 1.725,
-  name: "Ode to Joy (Beethoven)",
+  name: msg("Ode to Joy (Beethoven)"),
   mood: "happy",
   seconds: 30,
   beats: 64,
@@ -253,7 +254,7 @@ const jasmine = (): Step[] => {
 const JASMINE: Piece = {
   id: "jasmine",
   level: 0.621,
-  name: "Jasmine Flower",
+  name: msg("Jasmine Flower"),
   mood: "happy",
   seconds: 30,
   beats: 32,
@@ -291,7 +292,7 @@ const festiveChords = [
 const FESTIVE: Piece = {
   id: "festive",
   level: 0.701,
-  name: "Festive (original, Chinese style)",
+  name: msg("Festive (original, Chinese style)"),
   mood: "happy",
   seconds: 30,
   beats: 64,
@@ -306,7 +307,7 @@ const FESTIVE: Piece = {
 const WALTZ: Piece = {
   id: "waltz",
   level: 0.387,
-  name: "Music-box waltz (original)",
+  name: msg("Music-box waltz (original)"),
   mood: "happy",
   seconds: 30,
   beats: 60,
@@ -340,7 +341,7 @@ const WALTZ: Piece = {
 const AISI: Piece = {
   id: "aisi",
   level: 0.593,
-  name: "Remembrance (original, Chinese style)",
+  name: msg("Remembrance (original, Chinese style)"),
   mood: "mourning",
   seconds: 60,
   beats: 48,
@@ -394,7 +395,7 @@ const funeralBars = (lo: string[], hi: string[]): Step[] => [
 const CHOPIN: Piece = {
   id: "chopin",
   level: 0.429,
-  name: "Funeral March (Chopin)",
+  name: msg("Funeral March (Chopin)"),
   mood: "mourning",
   seconds: 30,
   beats: 32,
@@ -426,7 +427,7 @@ const CHOPIN: Piece = {
 const TAPS: Piece = {
   id: "taps",
   level: 1.583,
-  name: "Taps (bugle call)",
+  name: msg("Taps (bugle call)"),
   mood: "mourning",
   seconds: 30,
   beats: 30,
@@ -452,7 +453,7 @@ const TAPS: Piece = {
 const REFLECTION: Piece = {
   id: "reflection",
   level: 0.767,
-  name: "Reflection (original, piano)",
+  name: msg("Reflection (original, piano)"),
   mood: "mourning",
   seconds: 60,
   beats: 60,
@@ -495,7 +496,7 @@ const mendelssohnBars = (t: number): Ev[] =>
 const MENDELSSOHN: Piece = {
   id: "mendelssohn",
   level: 2.3,
-  name: "Wedding March (Mendelssohn)",
+  name: msg("Wedding March (Mendelssohn)"),
   mood: "happy",
   seconds: 30,
   beats: 49,
@@ -593,7 +594,7 @@ const EB = ["Bb3", "Eb4", "G4"];
 const WAGNER: Piece = {
   id: "wagner",
   level: 1.906,
-  name: "Bridal Chorus (Wagner)",
+  name: msg("Bridal Chorus (Wagner)"),
   mood: "happy",
   seconds: 30,
   beats: 33,

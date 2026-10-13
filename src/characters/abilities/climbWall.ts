@@ -1,3 +1,4 @@
+import { msg } from "../../i18n";
 import { z } from "zod";
 import type { Pet } from "../Pet";
 import { areaBounds } from "./core";
@@ -31,7 +32,8 @@ function startClimb(p: Pet, climb: Climb): string {
 /** Climbs screen edges and window sides; tops out onto windows. Cats, gorillas, geckos… */
 export const climbWall: AbilityModule<Params> = {
   id: "climbWall",
-  description: "Climbs up screen edges and the sides of windows.",
+  name: msg("Wall climbing"),
+  description: msg("Climbs up screen edges and the sides of windows."),
   params: Params,
   requiredAnimations: ["climb"],
   onHitWall(p, side, params) {

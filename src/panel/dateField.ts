@@ -1,3 +1,5 @@
+import { intlLocale } from "../i18n/format";
+import { t } from "../i18n";
 import { DRAG_STEP_PX } from "./timeField";
 
 /**
@@ -49,7 +51,7 @@ export function stepDate(value: string, part: DatePart, delta: number): string {
 }
 
 /** The parts in the system's order: ["day", "month", "year"] in Australia, month first in the US. */
-export function dateOrder(locale?: string): DatePart[] {
+export function dateOrder(locale = intlLocale()): DatePart[] {
   const parts = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric" }).formatToParts(
     new Date(2026, 9, 7),
   );
@@ -58,7 +60,7 @@ export function dateOrder(locale?: string): DatePart[] {
 }
 
 /** What a part shows: "7", "Oct", "2026"; and the weekday: "Tue". */
-export function datePartText(value: string, part: DatePart | "weekday", locale?: string): string {
+export function datePartText(value: string, part: DatePart | "weekday", locale = intlLocale()): string {
   const { y, m, d } = parseYmd(value);
   if (part === "day") return String(d);
   if (part === "year") return String(y);
@@ -101,7 +103,7 @@ export type DateFieldElement = HTMLElement & { value: string };
 export function dateField(
   initial: string,
   onChange?: (value: string) => void,
-  label = "Date",
+  label = t("Date"),
   opts: { year?: boolean } = {},
 ): DateFieldElement {
   const { y, m, d } = parseYmd(initial);
@@ -137,8 +139,8 @@ export function dateField(
     el.className = `part ${part}`;
     el.tabIndex = 0;
     el.setAttribute("role", "spinbutton");
-    el.setAttribute("aria-label", part);
-    el.title = "Drag up or down, scroll, or type";
+    el.setAttribute("aria-label", part === "day" ? t("day") : part === "month" ? t("month") : t("year"));
+    el.title = t("Drag up or down, scroll, or type");
     els.set(part, el);
     root.append(el);
 

@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { leapMonth, lunarInYear, lunarToDate, monthDays } from "./lunar";
-import { HOLIDAYS, nextAnniversary, nthWeekday, ruleText } from "./templates";
+import { HOLIDAYS } from "./holidays";
+import { nextAnniversary, nthWeekday, ruleText } from "./templates";
 
 /** [lunarYear, month, day, leap, "YYYY-MM-DD"]: the Hong Kong Observatory's tables (shared with Rust). */
 const { vectors } = JSON.parse(readFileSync(new URL("../../../crates/desktoppet-core/tests/lunar-vectors.json", import.meta.url), "utf8")) as {

@@ -848,6 +848,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "core-foundation",
+ "core-foundation-sys",
  "core-graphics 0.24.0",
  "desktoppet-core",
  "log",

@@ -42,6 +42,8 @@ export const BASE_GAME_MODIFIERS: GameModifiers = {
  */
 export interface AbilityModule<P = Record<string, unknown>> {
   id: string;
+  /** What the Characters page calls it ("Wall climbing"); shown through t(). */
+  name: string;
   description: string;
   /** Validates and fills defaults for the params a character passes in. */
   params: z.ZodType<P>;

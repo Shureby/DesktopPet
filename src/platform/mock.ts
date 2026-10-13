@@ -177,7 +177,11 @@ function checkAnniversary(a: NewAnniversary): NewAnniversary {
       ? a.month >= 1 && a.month <= 12 && a.day >= 1 && a.day <= 30
       : calendar === "weekday"
         ? a.month >= 1 && a.month <= 12 && [1, 2, 3, 4, -1].includes(a.nth ?? 0) && (a.weekday ?? -1) >= 0 && (a.weekday ?? 7) < 7
-        : new Date(2000, a.month - 1, a.day).getDate() === a.day;
+        : calendar === "table"
+          ? a.month >= 1
+          : calendar === "easter"
+            ? Math.abs(a.nth ?? 99) <= 60
+            : new Date(2000, a.month - 1, a.day).getDate() === a.day;
   if (!real) throw new Error("no such day");
   const preps = a.preps.filter((p) => p.label.trim()).slice(0, 3).map((p) => ({ lead: p.lead, label: p.label.trim() }));
   return {
@@ -187,7 +191,7 @@ function checkAnniversary(a: NewAnniversary): NewAnniversary {
     music: a.music ?? null,
     calendar,
     leap: calendar === "lunar" && a.leap === true,
-    nth: calendar === "weekday" ? (a.nth ?? null) : null,
+    nth: calendar === "weekday" || calendar === "easter" ? (a.nth ?? null) : null,
     weekday: calendar === "weekday" ? (a.weekday ?? null) : null,
   };
 }
@@ -661,6 +665,12 @@ export const mockBackend: Backend = {
   },
   async e2eEnabled() {
     return false;
+  },
+  async systemLocale() {
+    // ?lang=zh-TW tries a language in the browser preview.
+    const lang = new URLSearchParams(location.search).get("lang");
+    const languages = lang ? [lang] : [...navigator.languages];
+    return { languages, country: /-([A-Z]{2})\b/.exec(languages[0] ?? "")?.[1] ?? null };
   },
   async e2eTray() {},
   async markAlarmMissed(id) {

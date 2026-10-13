@@ -1,3 +1,6 @@
+import { longWeekday, shortDate, weekdayTime } from "../i18n/format";
+import { onLanguage, t } from "../i18n";
+import { characterLines } from "../characters/text";
 import { HoverTracker, RunStopper } from "../brain/hover";
 import { todoRemindsAt } from "../features/todo/repeat";
 import { celebrationEffect, celebrationLines, musicFor } from "../features/anniversary/templates";
@@ -38,8 +41,8 @@ import {
   rememberCustomTimer,
   replaceCustomTimer,
   timerLabel,
+  timerLabelName,
   timerName,
-  TIMER_PREFIX,
 } from "../features/alarm/timers";
 import { formatRemaining, gameHeld } from "../features/pomodoro/logic";
 import type { Alarm, Backend, Celebration, PetActivity, PomodoroStatus, ReminderEvent, Settings, Unseen } from "../platform";
@@ -331,6 +334,12 @@ export class PetHost {
       void this.applySettings(s);
       this.scheduleTray();
     });
+    // A new language: the tray, the badges and the mood meter say it again.
+    onLanguage(() => {
+      this.scheduleTray();
+      this.badges.dataset.text = "";
+      this.renderMoodMeter();
+    });
     await this.backend.on("pet-visibility", (visible) => {
       this.petVisible = visible;
       // Shown while out for a reminder: it just stays out.
@@ -409,7 +418,7 @@ export class PetHost {
     setInterval(() => void this.refreshWorld(), 500);
 
     this.pet.react({ type: "greet" });
-    requestAnimationFrame((t) => this.frame(t));
+    requestAnimationFrame((it) => this.frame(it));
   }
 
   private async setCharacter(id: string, x: number, y: number): Promise<void> {
@@ -512,11 +521,16 @@ export class PetHost {
     void this.backend.getSettings().then((s) => this.backend.setSettings({ modes: { ...s.modes, introduced: true } }));
     const n = this.modeState;
     this.say(
-      [`New: modes! I'm in ${MODE_ICONS[n.mode]} ${MODE_NAMES[n.mode]}${n.until ? ` until ${clock(n.until)}` : ""}.`, "Quieter at night and at work, by a weekly schedule."],
+      [
+        n.until
+          ? t("New: modes! I'm in {mode} until {time}.", { mode: `${MODE_ICONS[n.mode]} ${t(MODE_NAMES[n.mode])}`, time: clock(n.until) })
+          : t("New: modes! I'm in {mode}.", { mode: `${MODE_ICONS[n.mode]} ${t(MODE_NAMES[n.mode])}` }),
+        t("Quieter at night and at work, by a weekly schedule."),
+      ],
       30_000,
       [
-        { label: "Show me", run: () => void this.backend.openPanel("modes") },
-        { label: "OK", run: () => {} },
+        { label: t("Show me"), run: () => void this.backend.openPanel("modes") },
+        { label: t("OK"), run: () => {} },
       ],
       undefined,
       true,
@@ -533,13 +547,16 @@ export class PetHost {
     const list = this.missed;
     this.setMissed([]);
     const yesterday = dayKey(new Date(Date.now() - 86_400_000));
-    const when = (day: string) => (day === yesterday ? "yesterday" : `on ${new Date(day + "T12:00").toLocaleDateString([], { weekday: "long" })}`);
     this.say(
-      list.map((p) => `${p.c.anniversary.icon} You missed ${p.c.anniversary.name} ${when(p.day)}.`),
+      list.map((p) =>
+        p.day === yesterday
+          ? t("{icon} You missed {name} yesterday.", { icon: p.c.anniversary.icon, name: p.c.anniversary.name })
+          : t("{icon} You missed {name} on {day}.", { icon: p.c.anniversary.icon, name: p.c.anniversary.name, day: longWeekday(new Date(p.day + "T12:00").getTime()) }),
+      ),
       30_000,
       [
         {
-          label: "Celebrate now",
+          label: t("Celebrate now"),
           run: () =>
             setTimeout(() => {
               for (const p of list) {
@@ -548,7 +565,7 @@ export class PetHost {
               }
             }),
         },
-        { label: "OK", run: () => {} },
+        { label: t("OK"), run: () => {} },
       ],
       undefined,
       true,
@@ -571,12 +588,12 @@ export class PetHost {
     if (!this.postponed.length || this.activeRing || this.celebrating || !this.petVisible) return;
     const names = this.postponed.map((p) => `${p.c.anniversary.icon} ${p.c.anniversary.name}`);
     this.say(
-      [`🎉 Today: ${names.join(", ")}`, lastMinute ? "Celebrate before the day ends?" : "Celebrate now?"],
+      [t("🎉 Today: {names}", { names: names.join(t(", ")) }), lastMinute ? t("Celebrate before the day ends?") : t("Celebrate now?")],
       60_000,
       [
         // After the click has closed this bubble (the celebration's words come next).
-        { label: "Celebrate", run: () => setTimeout(() => this.celebratePostponed()) },
-        { label: "Skip", run: () => this.setPostponed([]) },
+        { label: t("Celebrate"), run: () => setTimeout(() => this.celebratePostponed()) },
+        { label: t("Skip"), run: () => this.setPostponed([]) },
       ],
       undefined,
       true,
@@ -596,12 +613,12 @@ export class PetHost {
   /** " · until 5:30 PM, then Auto", " · picked in Modes"… for the mode's icon. */
   private modeWhy(): string {
     const m = this.modeState;
-    if (m.why === "manual") return " · picked in Modes";
+    if (m.why === "manual") return t(" · picked in Modes");
     if (m.why === "override") {
       const after = baseMode(this.settings.modes, new Date());
-      return ` · until ${clock(m.until!)}, then ${after.why === "manual" ? MODE_NAMES[after.mode] : "Auto"}`;
+      return ` · ${t("until {time}, then {mode}", { time: clock(m.until!), mode: after.why === "manual" ? t(MODE_NAMES[after.mode]) : t("Auto") })}`;
     }
-    return m.until ? ` · until ${clock(m.until)}` : "";
+    return m.until ? ` · ${t("until {time}", { time: clock(m.until) })}` : "";
   }
 
   /** What the current mode changes (Normal: nothing). Works it out afresh. */
@@ -698,7 +715,7 @@ export class PetHost {
     }
     this.render();
     void this.syncWindow();
-    requestAnimationFrame((t) => this.frame(t));
+    requestAnimationFrame((it) => this.frame(it));
   }
 
   private render(): void {
@@ -785,10 +802,10 @@ export class PetHost {
       const icon = p.phase === "focus" ? "🍅" : "☕";
       const pc = this.settings.pomodoro;
       const minutes = p.phase === "focus" ? pc.focusMin : p.phase === "short_break" ? pc.shortBreakMin : pc.longBreakMin;
-      const name = p.phase === "focus" ? "Focus" : "Break";
+      const name = p.phase === "focus" ? t("Focus") : t("Break");
       rows.push({
         text: `${icon} ${formatRemaining(p.endsAt - now)}`,
-        title: info([`${name} · ${timeRange(p.endsAt - minutes * 60_000, p.endsAt)}`], "Open the Focus tab"),
+        title: info([`${name} · ${timeRange(p.endsAt - minutes * 60_000, p.endsAt)}`], t("Open the Focus tab")),
         onClick: () => void this.backend.openPanel("focus"),
         live: true,
       });
@@ -798,7 +815,7 @@ export class PetHost {
       rows.push({
         text: `⏱ ${formatRemaining(timers[0].nextFire - now)}${more(timers.length)}`,
         // Every running timer, so "+5" isn't a mystery.
-        title: info(timers.map(timerBadgeLine), "Open the Alarms tab"),
+        title: info(timers.map(timerBadgeLine), t("Open the Alarms tab")),
         onClick: () => void this.backend.openPanel("alarms"),
         live: true,
       });
@@ -811,7 +828,7 @@ export class PetHost {
       rows.push({
         // Clock times: it may be an hour away, a countdown would just be noise.
         text: `${first.snoozes > 0 ? "💤" : "🔔"} ${clock(first.nextFire)}${more(alarms.length)}`,
-        title: info(alarms.map(alarmBadgeLine), "Open the Alarms tab"),
+        title: info(alarms.map(alarmBadgeLine), t("Open the Alarms tab")),
         onClick: () => void this.backend.openPanel("alarms"),
       });
     }
@@ -820,9 +837,9 @@ export class PetHost {
       const m = missed[0];
       rows.push({
         // The alarm's own time (9:40), not when it was finally given up on (9:59).
-        text: `⏰ Missed ${clock(alarmTime(m) ?? m.missedAt)}${more(missed.length)}`,
+        text: `⏰ ${t("Missed {time}", { time: clock(alarmTime(m) ?? m.missedAt) })}${more(missed.length)}`,
         cls: "missed",
-        title: info([`${alarmName(m)}${m.snoozes ? ` · snoozed ${m.snoozes}×` : ""}`], "Mark as seen"),
+        title: info([`${alarmName(m)}${m.snoozes ? ` · ${t("snoozed {n}×", { n: m.snoozes })}` : ""}`], t("Mark as seen")),
         onClick: () => {
           // Seen: the badge goes (right away; the refresh confirms), the history keeps it.
           this.timers = this.timers.map((a) => (a.id === m.id ? { ...a, missedSeenAt: Date.now() } : a));
@@ -833,11 +850,11 @@ export class PetHost {
     const done = visibleDoneTimers(this.doneTimers, now);
     if (done.length) {
       rows.push({
-        text: `⏱ Done ${clock(done[0].at)}${more(done.length)}`,
+        text: `⏱ ${t("Done {time}", { time: clock(done[0].at) })}${more(done.length)}`,
         cls: "quiet",
         title: info(
-          done.map((t) => `${t.label.startsWith(TIMER_PREFIX) ? t.label.slice(TIMER_PREFIX.length) : t.label} timer · done ${clock(t.at)}`),
-          "Dismiss",
+          done.map((it) => t("{name} timer · done {time}", { name: timerLabelName(it.label), time: clock(it.at) })),
+          t("Dismiss"),
         ),
         onClick: () => (this.doneTimers = []),
       });
@@ -847,8 +864,8 @@ export class PetHost {
       rows.push({
         text: `${first.icon} ${first.name}${more(this.postponed.length)}`,
         title: info(
-          this.postponed.map((p) => `${p.c.anniversary.icon} ${p.c.anniversary.name} · put off (${MODE_NAMES[this.modeState.mode]} mode)`),
-          "Celebrate now",
+          this.postponed.map((p) => `${p.c.anniversary.icon} ${p.c.anniversary.name} · ${t("put off ({mode} mode)", { mode: t(MODE_NAMES[this.modeState.mode]) })}`),
+          t("Celebrate now"),
         ),
         onClick: () => this.celebratePostponed(),
       });
@@ -860,7 +877,7 @@ export class PetHost {
       rows.length && m.mode !== "normal"
         ? {
             text: MODE_ICONS[m.mode],
-            title: info([`${MODE_NAMES[m.mode]} mode${this.modeWhy()}`], "Open Modes"),
+            title: info([`${t("{mode} mode", { mode: t(MODE_NAMES[m.mode]) })}${this.modeWhy()}`], t("Open Modes")),
           }
         : null;
     const key = (mark ? `${mark.text}|${mark.title}\n` : "") + rows.map((r) => (r.live ? `live:${r.text.split(" ")[0]}` : r.text)).join("\n");
@@ -913,7 +930,7 @@ export class PetHost {
     this.moodMeter.textContent =
       `${"♥".repeat(hearts)}${"♡".repeat(5 - hearts)} ${Math.round(m.affection)}%\n` +
       `${"●".repeat(food)}${"○".repeat(5 - food)} ${Math.round(m.fullness)}%`;
-    this.moodMeter.title = `Affection ${Math.round(m.affection)}% · Fullness ${Math.round(m.fullness)}%`;
+    this.moodMeter.title = t("Affection {love}% · Fullness {food}%", { love: Math.round(m.affection), food: Math.round(m.fullness) });
     this.moodMeter.dataset.tier = moodTier(m);
     this.moodMeter.classList.toggle("hungry", isHungry(m));
   }
@@ -1189,10 +1206,12 @@ export class PetHost {
       this.pendingGame = game;
       return;
     }
-    const until = this.pomodoro.endsAt ? ` until ${clock(this.pomodoro.endsAt)}` : "";
-    this.say(`We're focusing${until}. Play anyway?`, 15_000, [
-      { label: "Play anyway", run: () => void this.backend.openGame(game) },
-      { label: "Cancel", run: () => {} },
+    const ask = this.pomodoro.endsAt
+      ? t("We're focusing until {time}. Play anyway?", { time: clock(this.pomodoro.endsAt) })
+      : t("We're focusing. Play anyway?");
+    this.say(ask, 15_000, [
+      { label: t("Play anyway"), run: () => void this.backend.openGame(game) },
+      { label: t("Cancel"), run: () => {} },
     ]);
   }
 
@@ -1359,8 +1378,9 @@ export class PetHost {
     const outline = JSON.stringify(items, (k, v) => (k === "action" ? undefined : v));
     // "ePet · 👔 Work until 5:30 PM": the mode even with the pet hidden.
     const m = this.modeState;
-    const aside = this.away ? ` · Stepped aside: ${AVOID_LABELS[this.away]}` : "";
-    const tooltip = `${product.productName} · ${MODE_ICONS[m.mode]} ${MODE_NAMES[m.mode]}${m.until ? ` until ${clock(m.until)}` : ""}${aside}`;
+    const aside = this.away ? ` · ${t("Stepped aside: {why}", { why: t(AVOID_LABELS[this.away]) })}` : "";
+    const mode = `${MODE_ICONS[m.mode]} ${t(MODE_NAMES[m.mode])}`;
+    const tooltip = `${product.productName} · ${m.until ? t("{mode} until {time}", { mode, time: clock(m.until) }) : mode}${aside}`;
     if (outline === this.trayOutline && tooltip === this.trayTooltip) return;
     try {
       const { TrayIcon } = await import("@tauri-apps/api/tray");
@@ -1450,11 +1470,11 @@ export class PetHost {
     try {
       await this.backend.snoozeAlarm(id, minutes);
       await this.refreshTimers();
-      const time = new Date(Date.now() + minutes * 60_000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-      this.say(`💤 Snoozed until ${time}. Right-click me to cancel.`, 4000);
+      const time = clock(Date.now() + minutes * 60_000);
+      this.say(t("💤 Snoozed until {time}. Right-click me to cancel.", { time }), 4000);
       this.announcedMissed.delete(id);
     } catch (e) {
-      this.say(`Couldn't snooze: ${e instanceof Error ? e.message : String(e)}`, 4000);
+      this.say(t("Couldn't snooze: {error}", { error: e instanceof Error ? e.message : String(e) }), 4000);
     }
   }
 
@@ -1478,7 +1498,7 @@ export class PetHost {
     if (this.activeRing) return;
     clearTimeout(this.bubbleTimer);
     this.prompting = true;
-    const EXAMPLES = "e.g. 20 · 1:30 · 90s";
+    const EXAMPLES = t("e.g. 20 · 1:30 · 90s");
     /** The saved length being edited, if any. */
     let editing: number | undefined;
     const close = () => {
@@ -1499,14 +1519,14 @@ export class PetHost {
     input.type = "text";
     input.placeholder = "20";
     input.className = "duration";
-    input.setAttribute("aria-label", "Timer length");
+    input.setAttribute("aria-label", t("Timer length"));
     const hint = document.createElement("div");
     hint.className = "hint";
     const showHint = () => {
       const minutes = parseDuration(input.value);
       hint.classList.remove("error");
       if (editing !== undefined) {
-        hint.textContent = `Change ${formatDuration(editing)} → ${minutes === null ? "…" : formatDuration(minutes)}`;
+        hint.textContent = t("Change {from} → {to}", { from: formatDuration(editing), to: minutes === null ? "…" : formatDuration(minutes) });
         return;
       }
       hint.textContent = input.value.trim() ? (minutes === null ? "…" : `= ${formatDuration(minutes)}`) : EXAMPLES;
@@ -1514,7 +1534,7 @@ export class PetHost {
     const submit = () => {
       const minutes = parseDuration(input.value);
       if (minutes === null) {
-        hint.textContent = "Try 20, 1:30 or 90s";
+        hint.textContent = t("Try 20, 1:30 or 90s");
         hint.classList.add("error");
         input.focus();
         return;
@@ -1538,7 +1558,7 @@ export class PetHost {
           chip.className = "chip" + (m === editing ? " editing" : "");
           chip.append(
             formatDuration(m),
-            button("✎", "Change this one", () => {
+            button("✎", t("Change this one"), () => {
               editing = m;
               input.value = durationInput(m);
               renderSaved();
@@ -1546,7 +1566,7 @@ export class PetHost {
               input.focus();
               input.select();
             }),
-            button(icon("close"), "Forget this one", () => {
+            button(icon("close"), t("Forget this one"), () => {
               if (editing === m) editing = undefined;
               const recentTimers = forgetCustomTimer(this.settings.recentTimers, m);
               this.settings = { ...this.settings, recentTimers };
@@ -1563,10 +1583,10 @@ export class PetHost {
     renderSaved();
     showHint();
     const title = document.createElement("div");
-    title.textContent = "How long?";
+    title.textContent = t("How long?");
     const row = document.createElement("div");
     row.className = "actions";
-    row.append(input, button("Start", "Start the timer", submit), button(icon("close"), "Cancel", close));
+    row.append(input, button(t("Start"), t("Start the timer"), submit), button(icon("close"), t("Cancel"), close));
     this.bubble.replaceChildren(title, row, hint, saved);
     this.bubble.hidden = false;
     // Give up quietly if left alone.
@@ -1581,9 +1601,9 @@ export class PetHost {
 
   private async setTimer(minutes: number): Promise<void> {
     const alarm = await this.backend.addAlarm(timerLabel(minutes), Date.now() + minutes * 60_000, "none");
-    this.timers = [...this.timers.filter((t) => t.id !== alarm.id), alarm];
-    const time = new Date(alarm.nextFire ?? Date.now()).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-    this.sayLine("timerSet", { duration: formatDuration(minutes), time }, `⏱ ${formatDuration(minutes)} timer set. I'll ring at ${time}.`);
+    this.timers = [...this.timers.filter((it) => it.id !== alarm.id), alarm];
+    const time = clock(alarm.nextFire ?? Date.now());
+    this.sayLine("timerSet", { duration: formatDuration(minutes), time }, t("⏱ {duration} timer set. I'll ring at {time}.", { duration: formatDuration(minutes), time }));
     if (this.pet.grounded && this.pet.state !== "sleep") this.pet.fsm.set("happy", true);
   }
 
@@ -1594,9 +1614,9 @@ export class PetHost {
         const when = !e.dueAt
           ? ""
           : e.allDay
-            ? ` · ${new Date(e.dueAt).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}`
-            : ` · ${new Date(e.dueAt).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}`;
-        this.sayLine("noted", { title: e.title, when }, `Got it: ${e.title}${when}`);
+            ? ` · ${shortDate(e.dueAt)}`
+            : ` · ${weekdayTime(e.dueAt)}`;
+        this.sayLine("noted", { title: e.title, when }, t("Got it: {title}{when}", { title: e.title, when }));
         break;
       }
       case "todoDone":
@@ -1612,7 +1632,7 @@ export class PetHost {
 
   /** Says a character line, or the fallback if the character has none for `key`. */
   private sayLine(key: string, vars: Record<string, string>, fallback: string): void {
-    if (this.pet.def.personality.lines[key]?.length) this.pet.say(key, vars, 5000);
+    if (characterLines(this.pet.def, key).length) this.pet.say(key, vars, 5000);
     else this.say(fallback, 5000);
   }
 
@@ -1772,12 +1792,10 @@ export class PetHost {
     const snoozeNote = (a: Alarm) => {
       if (isTimer(a) || a.snoozes === 0) return null;
       const first = alarmTime(a);
-      const note = `Snoozed ${a.snoozes}×${first !== null ? ` · first rang ${clock(first)}` : ""}`;
-      return a.snoozes >= alert.autoSnoozeMax && alert.autoSnoozeMax > 0
-        ? `${note} · last try before it's marked missed`
-        : note;
+      const note = first !== null ? t("Snoozed {n}× · first rang {time}", { n: a.snoozes, time: clock(first) }) : t("Snoozed {n}×", { n: a.snoozes });
+      return a.snoozes >= alert.autoSnoozeMax && alert.autoSnoozeMax > 0 ? `${note} · ${t("last try before it's marked missed")}` : note;
     };
-    const describe = (a: Alarm | undefined) => (!a ? "Alarm" : isTimer(a) ? `${timerName(a)} timer` : alarmName(a));
+    const describe = (a: Alarm | undefined) => (!a ? t("Alarm") : isTimer(a) ? t("{name} timer", { name: timerName(a) }) : alarmName(a));
     // Rung late (docs/INTERACTIONS.md, "Rung late"): when it was meant for, and why.
     const late = (id: number, a: Alarm | undefined) => {
       const due = this.ringDue.get(id);
@@ -1785,29 +1803,29 @@ export class PetHost {
     };
     if (items.length === 1) {
       const a = items[0];
-      const head = a && isTimer(a) ? `⏱ Time's up! (${timerName(a)} timer)` : this.ringHeadline || describe(a);
+      const head = a && isTimer(a) ? t("⏱ Time's up! ({name} timer)", { name: timerName(a) }) : this.ringHeadline || describe(a);
       const l = late(this.ringing[0], a);
       // Rung late after ePet wasn't running (or the computer slept): the snoozes that time
       // used are counted, but they weren't the user's: say how many tries are left instead.
       const offline = ["notRunning", "asleep"].includes(this.ringDue.get(this.ringing[0])?.late ?? "");
       if (l && a && a.snoozes > 0 && offline) {
         const left = alert.autoSnoozeMax - a.snoozes;
-        const tries = left > 0 ? `${left} more ${left === 1 ? "try" : "tries"}` : "last try before it's marked missed";
+        const tries = left > 1 ? t("{n} more tries", { n: left }) : left === 1 ? t("1 more try") : t("last try before it's marked missed");
         return [head, `${lateNote(l)} · ${tries}`];
       }
       const notes = [a ? snoozeNote(a) : null, l ? lateNote(l) : null].filter((n): n is string => !!n);
       return [head, ...notes];
     }
     const allTimers = items.every((a) => a && isTimer(a));
-    const head = allTimers ? `⏱ ${items.length} timers are up:` : `⏰ ${items.length} things are due:`;
+    const head = allTimers ? t("⏱ {n} timers are up:", { n: items.length }) : t("⏰ {n} things are due:", { n: items.length });
     const whys = new Set<string>();
     const lines = items.map((a, i) => {
-      const note = a && !isTimer(a) && a.snoozes ? ` (snoozed ${a.snoozes}×)` : "";
+      const note = a && !isTimer(a) && a.snoozes ? t(" (snoozed {n}×)", { n: a.snoozes }) : "";
       const l = late(this.ringing[i], a);
       if (l?.why) whys.add(l.why);
-      return `• ${describe(a)}${note}${l ? ` (${l.by} late)` : ""}`;
+      return `• ${describe(a)}${note}${l ? t(" ({by} late)", { by: l.by }) : ""}`;
     });
-    return [head, ...lines, ...(whys.size ? [`Late: ${[...whys].join("; ")}`] : [])];
+    return [head, ...lines, ...(whys.size ? [t("Late: {why}", { why: [...whys].join(t("; ")) })] : [])];
   }
 
   /**
@@ -1827,13 +1845,13 @@ export class PetHost {
     };
     const actions: BubbleAction[] = [
       {
-        label: `Snooze ${alert.snoozeMinutes} min`,
+        label: t("Snooze {n} min", { n: alert.snoozeMinutes }),
         run: () => {
           for (const id of ids()) void this.snooze(id, alert.snoozeMinutes);
         },
       },
       {
-        label: "Done",
+        label: t("Done"),
         run: () => {
           for (const id of ids()) void this.done(id);
         },
@@ -1875,11 +1893,11 @@ export class PetHost {
     const run = alert.petRuns && mode.petRuns && this.pomodoro.phase !== "focus";
     this.pet.react({ type: "reminder", kind: "todo", title: list.map((r) => r.title).join(", "), run });
     const actions: BubbleAction[] = [
-      { label: "Open To-dos", run: () => void this.backend.openPanel("todos") },
-      { label: "Later", run: () => list.forEach((r) => this.later(r)) },
+      { label: t("Open To-dos"), run: () => void this.backend.openPanel("todos") },
+      { label: t("Later"), run: () => list.forEach((r) => this.later(r)) },
     ];
     const late = lateness("day", list[0].dueAt, Date.now());
-    const lines = ["📅 Today:", ...list.map((r) => `• ${r.title}`), ...(late ? [lateNote(late)] : [])];
+    const lines = [t("📅 Today:"), ...list.map((r) => `• ${r.title}`), ...(late ? [lateNote(late)] : [])];
     this.say(lines, 60_000, actions, this.peek ? () => list.forEach((r) => void this.unansweredWhileHidden(r)) : undefined);
     if (alert.ring && mode.todoRing) playRingtone(alert.ringtone, alert.volume * mode.volume);
   }
@@ -1898,13 +1916,13 @@ export class PetHost {
     const text = this.bubble.firstElementChild?.textContent || r.title;
     const actions: BubbleAction[] = [
       {
-        label: "✓ Done",
+        label: t("✓ Done"),
         run: () => {
           void this.backend.updateTodo(r.id, { done: true });
           this.onActivity({ type: "todoDone" });
         },
       },
-      { label: "Later", run: () => this.later(r) },
+      { label: t("Later"), run: () => this.later(r) },
     ];
     // Out of hiding for it, an unanswered reminder is recorded for when you show the pet.
     // Rung late: when it was meant for, and why (a day's to-do: just its time).
@@ -2097,7 +2115,12 @@ export class PetHost {
     if (next.action === "autoSnooze") {
       await this.backend.snoozeAlarm(id, next.minutes);
       this.say(
-        `💤 No answer… I'll try ${alarmName(alarm)} again at ${clock(Date.now() + next.minutes * 60_000)} (${next.attempt}/${next.max}).`,
+        t("💤 No answer… I'll try {name} again at {time} ({n}/{max}).", {
+          name: alarmName(alarm),
+          time: clock(Date.now() + next.minutes * 60_000),
+          n: next.attempt,
+          max: next.max,
+        }),
         8000,
       );
     } else if (next.action === "missed") {
@@ -2121,9 +2144,9 @@ export class PetHost {
     } else {
       const a = item as Alarm;
       entry = isTimer(a)
-        ? { kind: "timer", refId: a.id, title: `${timerName(a)} timer`, at: a.rangAt ?? Date.now(), snoozes: 0 }
+        ? { kind: "timer", refId: a.id, title: t("{name} timer", { name: timerName(a) }), at: a.rangAt ?? Date.now(), snoozes: 0 }
         : // The label, not alarmName: the line adds the date and time itself.
-          { kind: "alarm", refId: a.id, title: a.label || "Alarm", at: alarmTime(a) ?? Date.now(), snoozes: a.snoozes };
+          { kind: "alarm", refId: a.id, title: a.label || t("Alarm"), at: alarmTime(a) ?? Date.now(), snoozes: a.snoozes };
     }
     await this.backend.recordUnseen(entry);
   }
@@ -2135,7 +2158,7 @@ export class PetHost {
    */
   private async unansweredWhileHidden(r: ReminderEvent): Promise<void> {
     if (r.kind === "todo") {
-      const todo = (await this.backend.listTodos()).find((t) => t.id === r.id);
+      const todo = (await this.backend.listTodos()).find((it) => it.id === r.id);
       // A day's to-do is listed at its reminder time, not its midnight.
       await this.recordUnseen(r, (todo && todoRemindsAt(todo, this.settings.todoDayTime)) ?? undefined);
       return;
@@ -2265,7 +2288,7 @@ export class PetHost {
       const a = this.timers.find((x) => x.id === id);
       const due = this.ringDue.get(id);
       this.ringDue.delete(id);
-      const item: ReminderEvent = { kind: "alarm", id, title: a?.label ?? "Alarm", dueAt: due?.dueAt, late: due?.late ?? this.away };
+      const item: ReminderEvent = { kind: "alarm", id, title: a?.label ?? t("Alarm"), dueAt: due?.dueAt, late: due?.late ?? this.away };
       this.held.push({ item, at: now, todo: false });
     }
     this.ringing = [];
@@ -2308,9 +2331,9 @@ export class PetHost {
     // Its alarms are told here, not again on hover (welcomeBack).
     for (const u of list) if (u.kind === "alarm") this.announcedMissed.add(u.refId);
     this.say(
-      unseenLines(list, Date.now(), 5, busy ? "While you were busy you missed:" : undefined),
+      unseenLines(list, Date.now(), 5, busy ? t("While you were busy you missed:") : undefined),
       24 * 60 * 60_000,
-      [{ label: "Done", run: () => void this.backend.clearUnseen().then(() => this.refreshTimers()) }],
+      [{ label: t("Done"), run: () => void this.backend.clearUnseen().then(() => this.refreshTimers()) }],
       undefined,
       true,
     );    return true;
@@ -2400,20 +2423,20 @@ export class PetHost {
     if (missed.length) {
       for (const a of missed) this.announcedMissed.add(a.id);
       const a = missed[0];
-      const tries = a.snoozes ? ` (I tried ${a.snoozes} more time${a.snoozes > 1 ? "s" : ""})` : "";
-      const others = missed.length > 1 ? ` and ${missed.length - 1} more` : "";
-      this.say(`You missed ${alarmName(a)}${tries}${others}. Click ⏰ when you've seen it.`, 8000, [], undefined, true);
+      const tries = !a.snoozes ? "" : a.snoozes === 1 ? t(" (I tried 1 more time)") : t(" (I tried {n} more times)", { n: a.snoozes });
+      const others = missed.length > 1 ? t(" and {n} more", { n: missed.length - 1 }) : "";
+      this.say(t("You missed {name}{tries}{others}. Click ⏰ when you've seen it.", { name: alarmName(a), tries, others }), 8000, [], undefined, true);
       return;
     }
-    const done = visibleDoneTimers(this.doneTimers).filter((t) => !this.announcedDone.has(t.id));
+    const done = visibleDoneTimers(this.doneTimers).filter((it) => !this.announcedDone.has(it.id));
     if (done.length) {
-      for (const t of done) this.announcedDone.add(t.id);
-      const t = done[done.length - 1];
-      const name = t.label.startsWith(TIMER_PREFIX) ? t.label.slice(TIMER_PREFIX.length) : t.label;
+      for (const it of done) this.announcedDone.add(it.id);
+      const it = done[done.length - 1];
+      const name = timerLabelName(it.label);
       this.say(
         done.length === 1
-          ? `While you were away, your ${name} timer finished at ${clock(t.at)}.`
-          : `While you were away, ${done.length} timers finished (last at ${clock(t.at)}).`,
+          ? t("While you were away, your {name} timer finished at {time}.", { name, time: clock(it.at) })
+          : t("While you were away, {n} timers finished (last at {time}).", { n: done.length, time: clock(it.at) }),
         6000,
         [],
         undefined,

@@ -1,3 +1,5 @@
+import { t } from "../../i18n";
+import { clock as formatClock } from "../../i18n/format";
 import type { Alarm, AlertSettings, Unseen } from "../../platform/types";
 import { formatWhen } from "../../panel/dom";
 import { isTimer, timerName, timerStartedAt } from "./timers";
@@ -69,7 +71,7 @@ export function missedAlarms(alarms: Alarm[]): (Alarm & { missedAt: number })[] 
  * format of the day it was written.
  */
 export function clock(ms: number): string {
-  return new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return formatClock(ms);
 }
 
 /**
@@ -79,7 +81,10 @@ export function clock(ms: number): string {
 export function timeRange(start: number, end: number): string {
   const a = clock(start);
   const b = clock(end);
+  // "8:19 → 8:20 PM"; in Chinese the 上午/下午 comes first: "下午8:19 → 8:20".
   const suffix = /\s*[^\d\s:.]+$/.exec(a)?.[0];
+  const prefix = /^[^\d\s:.]+\s*/.exec(a)?.[0];
+  if (prefix && b.startsWith(prefix)) return `${a} → ${b.slice(prefix.length)}`;
   const shared = suffix && b.endsWith(suffix) ? a.slice(0, -suffix.length) : a;
   return `${shared} → ${b}`;
 }
@@ -90,7 +95,7 @@ export function timeRange(start: number, end: number): string {
  */
 export function timerBadgeLine(a: Alarm & { nextFire: number }): string {
   const started = timerStartedAt(a);
-  const when = started === null ? `rings ${clock(a.nextFire)}` : timeRange(started, a.nextFire);
+  const when = started === null ? t("rings {time}", { time: clock(a.nextFire) }) : timeRange(started, a.nextFire);
   return [timerName(a), a.snoozes > 0 ? `💤×${a.snoozes}` : null, when].filter(Boolean).join(" · ");
 }
 
@@ -117,8 +122,8 @@ export function alarmTime(a: Alarm, now = Date.now()): number | null {
 export function alarmName(a: Alarm): string {
   const label = a.label.trim();
   if (label && label !== DEFAULT_ALARM_LABEL) return label;
-  const t = alarmTime(a);
-  return t === null ? DEFAULT_ALARM_LABEL : `${DEFAULT_ALARM_LABEL} ${clock(t)}`;
+  const at = alarmTime(a);
+  return at === null ? t(DEFAULT_ALARM_LABEL) : t("Alarm {time}", { time: clock(at) });
 }
 
 /**
@@ -142,7 +147,7 @@ export function badgeAlarms(
 export function alarmBadgeLine(a: Alarm & { nextFire: number }): string {
   const name = alarmName(a);
   const at = clock(a.nextFire);
-  if (a.snoozes > 0) return `${name} · 💤×${a.snoozes} · next ${at}`;
+  if (a.snoozes > 0) return `${name} · 💤×${a.snoozes} · ${t("next {time}", { time: at })}`;
   return name.endsWith(at) ? name : `${name} · ${at}`;
 }
 
@@ -152,11 +157,11 @@ const UNSEEN_ICON: Record<Unseen["kind"], string> = { alarm: "⏰", timer: "⏱"
  * "While I was hidden you missed:" and one line per item, oldest first, each with its own
  * date ("Fri, Sep 26 8:55 PM"): the list may wait days for the pet to be shown.
  */
-export function unseenLines(list: Unseen[], now = Date.now(), max = 5, heading = "While I was hidden you missed:"): string[] {
+export function unseenLines(list: Unseen[], now = Date.now(), max = 5, heading = t("While I was hidden you missed:")): string[] {
   const sorted = [...list].sort((a, b) => a.at - b.at || a.id - b.id);
   const lines = sorted
     .slice(0, max)
-    .map((u) => `• ${UNSEEN_ICON[u.kind]} ${u.title} · ${formatWhen(u.at, now)}${u.snoozes ? ` (snoozed ${u.snoozes}×)` : ""}`);
-  if (sorted.length > max) lines.push(`…and ${sorted.length - max} more`);
+    .map((u) => `• ${UNSEEN_ICON[u.kind]} ${u.title} · ${formatWhen(u.at, now)}${u.snoozes ? t(" (snoozed {n}×)", { n: u.snoozes }) : ""}`);
+  if (sorted.length > max) lines.push(t("…and {n} more", { n: sorted.length - max }));
   return [heading, ...lines];
 }

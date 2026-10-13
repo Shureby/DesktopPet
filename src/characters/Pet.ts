@@ -8,6 +8,7 @@ import { resolveAbilities, type ResolvedAbility } from "./abilities";
 import { pendingVigil } from "./abilities/core";
 import { BASE_GAME_MODIFIERS, type BehaviorDef, type GameModifiers } from "./abilities/types";
 import { frameSize, type CharacterDef } from "./schema";
+import { characterLines } from "./text";
 
 export interface PetOptions {
   brain: Brain;
@@ -160,7 +161,7 @@ export class Pet {
 
   /** Say a random line for `key` from the character's personality, if it has any. */
   say(key: string, vars: Record<string, string> = {}, ms = 4000): void {
-    const line = pick(this.rng, this.def.personality.lines[key] ?? []);
+    const line = pick(this.rng, characterLines(this.def, key));
     if (line) this.onSay(line.replace(/\{(\w+)\}/g, (_, k: string) => vars[k] ?? ""), ms);
   }
 

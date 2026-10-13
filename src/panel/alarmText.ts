@@ -1,3 +1,5 @@
+import { longWeekday, monthDay, weekdayShort, weekOrder } from "../i18n/format";
+import { t } from "../i18n";
 import { alarmTime, clock, DEFAULT_ALARM_LABEL } from "../features/alarm/ringing";
 import { isTimer, timerStartedAt } from "../features/alarm/timers";
 import { EVERY_DAY, repeatMask, WEEKDAYS, type Alarm, type DayMask, type HiddenAlerts, type Repeat } from "../platform/types";
@@ -5,8 +7,8 @@ import { formatWhen } from "./dom";
 
 /** The time the alarm is set for, shown big like a phone clock app (the same through snoozes). */
 export function bigTime(a: Alarm): string {
-  const t = alarmTime(a);
-  return t === null ? "--:--" : clock(t);
+  const at = alarmTime(a);
+  return at === null ? "--:--" : clock(at);
 }
 
 /** When a finished item happened, for sorting: its own time, not a later snoozed ring. */
@@ -16,10 +18,10 @@ export function finishedAt(a: Alarm): number | null {
 
 /** "Started 4:29 PM · rings at 4:41 PM", so identical timers can be told apart. */
 export function timerTimes(a: Alarm): string {
-  const rings = a.nextFire ? `rings at ${clock(a.nextFire)}` : "";
   const started = timerStartedAt(a);
-  if (started === null) return rings.replace(/^r/, "R");
-  return rings ? `Started ${clock(started)} · ${rings}` : `Started ${clock(started)}`;
+  if (started === null) return a.nextFire ? t("Rings at {time}", { time: clock(a.nextFire) }) : "";
+  const begun = t("Started {time}", { time: clock(started) });
+  return a.nextFire ? `${begun} · ${t("rings at {time}", { time: clock(a.nextFire) })}` : begun;
 }
 
 /**
@@ -28,13 +30,13 @@ export function timerTimes(a: Alarm): string {
  */
 export function finishedStatus(a: Alarm, now = Date.now()): string {
   // Due while ePet wasn't running: it didn't ring, and that isn't missing it.
-  if (a.offAt && a.rangAt === null) return `Didn't ring · ${formatWhen(a.offAt, now)} · ePet wasn't running`;
+  if (a.offAt && a.rangAt === null) return t("Didn't ring · {when} · ePet wasn't running", { when: formatWhen(a.offAt, now) });
   const at = isTimer(a) ? a.rangAt : alarmTime(a, now);
-  const word = a.missedAt ? "Missed" : isTimer(a) ? "Done" : "Rang";
+  const word = a.missedAt ? t("Missed") : isTimer(a) ? t("Done") : t("Rang");
   const parts = [word];
   if (at !== null) parts.push(formatWhen(at, now));
   else if (a.missedAt) parts.push(formatWhen(a.missedAt, now));
-  if (a.snoozes > 0) parts.push(`snoozed ${a.snoozes}×`);
+  if (a.snoozes > 0) parts.push(t("snoozed {n}×", { n: a.snoozes }));
   return parts.join(" · ");
 }
 
@@ -46,28 +48,26 @@ export function skipWhen(ms: number, now = Date.now()): string {
   const d = new Date(ms);
   const day =
     d.toDateString() === new Date(now).toDateString()
-      ? "Today"
+      ? t("Today")
       : d.toDateString() === new Date(now + 86_400_000).toDateString()
-        ? "Tomorrow"
-        : d.toLocaleDateString([], { weekday: "long" });
-  return `${d.toLocaleDateString([], { month: "short", day: "numeric" })} ${clock(ms)} (${day})`;
+        ? t("Tomorrow")
+        : longWeekday(ms);
+  return t("{date} {time} ({day})", { date: monthDay(ms), time: clock(ms), day });
 }
-
-const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 /** "Every day", "Weekdays", "Weekends", "Mon, Wed, Fri" (Monday first); "No days" for none. */
 export function daysText(mask: DayMask): string {
   const m = mask & EVERY_DAY;
-  if (m === EVERY_DAY) return "Every day";
-  if (m === WEEKDAYS) return "Weekdays";
-  if (m === WEEKENDS) return "Weekends";
-  const days = [1, 2, 3, 4, 5, 6, 0].filter((d) => m & (1 << d)).map((d) => SHORT_DAYS[d]);
-  return days.length ? days.join(", ") : "No days";
+  if (m === EVERY_DAY) return t("Every day");
+  if (m === WEEKDAYS) return t("Weekdays");
+  if (m === WEEKENDS) return t("Weekends");
+  const days = weekOrder().filter((d) => m & (1 << d)).map((d) => weekdayShort(d));
+  return days.length ? days.join(t(", ")) : t("No days");
 }
 
 /** How an alarm repeats: "Once", "Every day", "Weekdays", "Mon, Wed, Fri". */
 export function repeatText(a: Pick<Alarm, "repeat" | "repeatDays">): string {
-  return a.repeat === "none" ? "Once" : daysText(repeatMask(a.repeat, a.repeatDays ?? 0));
+  return a.repeat === "none" ? t("Once") : daysText(repeatMask(a.repeat, a.repeatDays ?? 0));
 }
 
 /** What the New alarm "Repeat" menu offers. Weekends and custom days are saved as "days". */
@@ -118,8 +118,8 @@ export interface AlarmDraft {
 
 /** The form filled in from an alarm, for editing it (✎). An unnamed alarm leaves Label empty. */
 export function draftFor(a: Alarm, now = Date.now()): AlarmDraft {
-  const t = new Date(alarmTime(a, now) ?? now);
-  const time = `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
+  const at = new Date(alarmTime(a, now) ?? now);
+  const time = `${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`;
   const choice: RepeatChoice = a.repeat === "days" ? choiceForDays(a.repeatDays) : a.repeat;
   const days = a.repeat === "days" ? a.repeatDays : WEEKDAYS;
   return { time, choice, days, label: a.label === DEFAULT_ALARM_LABEL ? "" : a.label, important: a.important === true, autoSnooze: a.autoSnooze !== false, autoSnoozeTouched: true, editing: a.id };
@@ -130,12 +130,12 @@ export function draftFor(a: Alarm, now = Date.now()): AlarmDraft {
  * to-do reminders are unticked: they can't reach you while the pet is hidden.
  */
 export function hiddenWarning(h: HiddenAlerts): string | null {
-  const off = [h.alarms ? null : "alarms", h.timers ? null : "timers", h.todos ? null : "to-do reminders"].filter(
+  const off = [h.alarms ? null : t("alarms"), h.timers ? null : t("timers"), h.todos ? null : t("to-do reminders")].filter(
     (x): x is string => x !== null,
   );
   if (!off.length) return null;
-  const list = off.length === 1 ? off[0] : `${off.slice(0, -1).join(", ")} and ${off[off.length - 1]}`;
-  return `While your pet is hidden, ${list} will not alert you.`;
+  const list = off.length === 1 ? off[0] : t("{list} and {last}", { list: off.slice(0, -1).join(t(", ")), last: off[off.length - 1] });
+  return t("While your pet is hidden, {list} will not alert you.", { list });
 }
 
 /**

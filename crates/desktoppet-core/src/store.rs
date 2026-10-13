@@ -491,6 +491,9 @@ impl Store {
                     && matches!(a.nth, Some(1..=4) | Some(-1))
                     && a.weekday.is_some_and(|w| w < 7)
             }
+            // A listed holiday (its dates may not be announced yet: that's fine).
+            Calendar::Table => a.month >= 1,
+            Calendar::Easter => a.nth.is_some_and(|n| (-60..=60).contains(&n)),
         };
         if !real {
             return Err(StoreError::Invalid("no such day".into()));

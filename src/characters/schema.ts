@@ -106,6 +106,19 @@ export const MovesetSchema = z.object({
   moves: z.array(MoveSchema).min(2),
 });
 
+/**
+ * A character's words in another language (docs/CHARACTERS.md, "Translations"): its name,
+ * description, care actions (in the order of `personality.care`) and speech lines. What's
+ * left out is shown in English.
+ */
+export const TranslationSchema = z.object({
+  displayName: z.string().min(1).max(40).optional(),
+  description: z.string().max(200).optional(),
+  style: z.string().max(120).optional(),
+  care: z.array(z.string().min(1).max(40)).optional(),
+  lines: z.record(z.string(), z.array(z.string().max(80)).min(1)).optional(),
+});
+
 export const CharacterSchema = z.object({
   schemaVersion: z.literal(1),
   id: z.string().regex(/^[a-z][a-z0-9-]{1,31}$/, "lowercase letters, digits and dashes"),
@@ -117,6 +130,8 @@ export const CharacterSchema = z.object({
   abilities: z.array(AbilityRefSchema).default([]),
   personality: PersonalitySchema,
   moveset: MovesetSchema,
+  /** By language: "zh-CN" (Simplified Chinese), "zh-TW" (Traditional Chinese). */
+  translations: z.partialRecord(z.enum(["zh-CN", "zh-TW"]), TranslationSchema).default({}),
 });
 
 export type PixelSprite = z.infer<typeof PixelSpriteSchema>;
@@ -128,6 +143,7 @@ export type Moveset = z.infer<typeof MovesetSchema>;
 export type Personality = z.infer<typeof PersonalitySchema>;
 export type CareAction = z.infer<typeof CareActionSchema>;
 export type CharacterDef = z.infer<typeof CharacterSchema>;
+export type Translation = z.infer<typeof TranslationSchema>;
 
 /** Animations every character must provide; abilities may require more. */
 export const CORE_ANIMATIONS = [

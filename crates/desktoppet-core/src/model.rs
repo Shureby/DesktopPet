@@ -411,6 +411,11 @@ pub enum Calendar {
     Lunar,
     /// The nth day of the week of a month ("2nd Sunday of May").
     Weekday,
+    /// A holiday found by its dates as announced (Hari Raya, Deepavali…): `month` numbers it
+    /// in src/features/anniversary/holiday-dates.json (1 = the first of `tables`).
+    Table,
+    /// Days from Easter Sunday (`nth`: Good Friday is -2).
+    Easter,
 }
 
 impl Calendar {
@@ -419,6 +424,8 @@ impl Calendar {
             Calendar::Solar => "solar",
             Calendar::Lunar => "lunar",
             Calendar::Weekday => "weekday",
+            Calendar::Table => "table",
+            Calendar::Easter => "easter",
         }
     }
 
@@ -426,6 +433,8 @@ impl Calendar {
         match s {
             "lunar" => Calendar::Lunar,
             "weekday" => Calendar::Weekday,
+            "table" => Calendar::Table,
+            "easter" => Calendar::Easter,
             _ => Calendar::Solar,
         }
     }

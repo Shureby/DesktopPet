@@ -1,3 +1,4 @@
+import { msg, t } from "../../i18n";
 import type { Alarm } from "../../platform/types";
 
 /**
@@ -11,13 +12,22 @@ export const PRESET_MINUTES = [1, 5, 10, 15, 30, 45, 60];
 /** How many custom timer lengths are remembered. */
 export const MAX_RECENT_TIMERS = 3;
 
+/** The stored label ("Timer: 12 min"): always in English, as it's read back by parseDuration. */
 export function timerLabel(minutes: number): string {
-  return `${TIMER_PREFIX}${formatDuration(minutes)}`;
+  return `${TIMER_PREFIX}${formatDuration(minutes, true)}`;
 }
 
-/** "12 min" for "Timer: 12 min" (what timers are called in lists, menus and badges). */
+/** "12 min" for "Timer: 12 min" (what timers are called in lists, menus and badges), in the interface's language. */
 export function timerName(a: Alarm): string {
-  return a.label.startsWith(TIMER_PREFIX) ? a.label.slice(TIMER_PREFIX.length) : a.label;
+  return timerLabelName(a.label);
+}
+
+/** The same for a stored label: "Timer: 12 min" → "12 min" (in Chinese, in Chinese). */
+export function timerLabelName(label: string): string {
+  if (!label.startsWith(TIMER_PREFIX)) return label;
+  const length = label.slice(TIMER_PREFIX.length);
+  const minutes = parseDuration(length);
+  return minutes === null ? length : formatDuration(minutes);
 }
 
 /**
@@ -26,21 +36,25 @@ export function timerName(a: Alarm): string {
  */
 export function timerStartedAt(a: Alarm): number | null {
   if (a.createdAt) return a.createdAt;
-  const minutes = parseDuration(timerName(a));
+  const minutes = parseDuration(a.label.slice(TIMER_PREFIX.length));
   return a.nextFire !== null && a.snoozes === 0 && minutes !== null ? a.nextFire - minutes * 60_000 : null;
 }
 
-/** "45 min", "1 hour", "1 h 30 min", "1 min 30 s", "90 s"… (accepts fractional minutes). */
-export function formatDuration(minutes: number): string {
+/**
+ * "45 min", "1 hour", "1 h 30 min", "1 min 30 s", "90 s"… (accepts fractional minutes), in
+ * the interface's language ("1 小时 30 分钟"); `english` for stored labels.
+ */
+export function formatDuration(minutes: number, english = false): string {
+  const tr = english ? (en: string, p: Record<string, number>) => en.replace("{n}", String(p.n)) : t;
   const total = Math.round(minutes * 60);
   const h = Math.floor(total / 3600);
   const m = Math.floor((total % 3600) / 60);
   const sec = total % 60;
-  if (h === 0 && m === 0) return `${sec} s`;
-  if (h === 0) return sec ? `${m} min ${sec} s` : `${m} min`;
-  const parts = [h === 1 && !m && !sec ? "1 hour" : m || sec ? `${h} h` : `${h} hours`];
-  if (m) parts.push(`${m} min`);
-  if (sec) parts.push(`${sec} s`);
+  if (h === 0 && m === 0) return tr(msg("{n} s"), { n: sec });
+  if (h === 0) return sec ? `${tr(msg("{n} min"), { n: m })} ${tr(msg("{n} s"), { n: sec })}` : tr(msg("{n} min"), { n: m });
+  const parts = [h === 1 && !m && !sec ? tr(msg("1 hour"), { n: 1 }) : m || sec ? tr(msg("{n} h"), { n: h }) : tr(msg("{n} hours"), { n: h })];
+  if (m) parts.push(tr(msg("{n} min"), { n: m }));
+  if (sec) parts.push(tr(msg("{n} s"), { n: sec }));
   return parts.join(" ");
 }
 

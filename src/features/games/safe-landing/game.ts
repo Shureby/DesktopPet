@@ -1,3 +1,5 @@
+import { characterName } from "../../../characters/text";
+import { t } from "../../../i18n";
 import type { Pet } from "../../../characters/Pet";
 import { AnimationPlayer } from "../../../engine/animation";
 import type { SpriteAtlas } from "../../../engine/sprites";
@@ -7,7 +9,7 @@ import { createSafeLanding, scoreSafeLanding, stepSafeLanding, TUNING, type Safe
 /** Renders Safe Landing and adapts it to the GameHost. */
 export class SafeLandingGame implements MiniGame {
   readonly id = "safe-landing";
-  readonly title = "Safe Landing";
+  readonly title = t("Safe Landing");
   readonly controls: string[];
   private s!: SafeLandingState;
   private readonly anim: AnimationPlayer;
@@ -22,10 +24,10 @@ export class SafeLandingGame implements MiniGame {
     this.anim = new AnimationPlayer(pet.def.animations);
     this.scale = pet.def.sprite.scale * 1.5;
     this.controls = [
-      "← → to steer",
-      this.mods.glideFallFactor !== null ? `Hold Space to glide — ${pet.def.displayName}s float!` : "Grab ☂ umbrellas to slow down",
-      ...(this.mods.wallGrab ? ["Push into a wall to cling and slide"] : []),
-      `Touch down on the pad slower than ${TUNING.safeSpeed} px/s`,
+      t("← → to steer"),
+      this.mods.glideFallFactor !== null ? t("Hold Space to glide — {name} floats!", { name: characterName(pet.def) }) : t("Grab ☂ umbrellas to slow down"),
+      ...(this.mods.wallGrab ? [t("Push into a wall to cling and slide")] : []),
+      t("Touch down on the pad slower than {n} px/s", { n: TUNING.safeSpeed }),
     ];
   }
 
@@ -36,7 +38,7 @@ export class SafeLandingGame implements MiniGame {
     return scoreSafeLanding(this.s);
   }
   get message() {
-    return this.s.reason;
+    return t(this.s.reason);
   }
 
   reset(seed: number, width: number, height: number): void {
@@ -131,7 +133,7 @@ export class SafeLandingGame implements MiniGame {
     ctx.fillRect(16, 40, Math.min(160, (s.vy / TUNING.maxFall) * 160), 10);
     ctx.fillStyle = "#fff";
     ctx.fillRect(16 + (TUNING.safeSpeed / TUNING.maxFall) * 160, 36, 2, 18);
-    ctx.fillText(safe ? "speed OK" : "too fast!", 184, 50);
+    ctx.fillText(safe ? t("speed OK") : t("too fast!"), 184, 50);
   }
 }
 

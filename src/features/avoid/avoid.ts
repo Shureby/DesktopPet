@@ -1,3 +1,4 @@
+import { msg } from "../../i18n";
 import type { Rect } from "../../engine/geometry";
 
 /**
@@ -48,9 +49,9 @@ export function othersPresent(reason: AvoidReason): boolean {
 
 /** "in a call": the tray's "Stepped aside: in a call". */
 export const AVOID_LABELS: Record<AvoidReason, string> = {
-  fullscreen: "full screen",
-  presenting: "presenting",
-  call: "in a call",
+  fullscreen: msg("full screen"),
+  presenting: msg("presenting"),
+  call: msg("in a call"),
 };
 
 /**

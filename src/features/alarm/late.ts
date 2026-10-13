@@ -3,6 +3,7 @@
  * or more after it was meant to, the pet says when it was meant for, how late it is and why.
  */
 import type { AvoidReason } from "../avoid/avoid";
+import { t } from "../../i18n";
 import { clock } from "./ringing";
 
 /**
@@ -28,7 +29,9 @@ export function lateBy(ms: number): string {
   const min = Math.max(1, Math.round(ms / 60_000));
   const h = Math.floor(min / 60);
   const m = min % 60;
-  return h === 0 ? `${m} min` : m === 0 ? `${h} h` : `${h} h ${m} min`;
+  const hours = t("{n} h", { n: h });
+  const mins = t("{n} min", { n: m });
+  return h === 0 ? mins : m === 0 ? hours : `${hours} ${mins}`;
 }
 
 export type LateKind = "alarm" | "timer" | "todo" | "day";
@@ -50,12 +53,12 @@ export function lateness(kind: LateKind, dueAt: number | undefined, now: number,
   if (!dueAt || now - dueAt < LATE_AFTER_MS) return null;
   const by = lateBy(now - dueAt);
   const at = clock(dueAt);
-  if (kind === "day") return { what: `Meant for ${at}`, by, why: null };
-  const what = kind === "timer" ? `Ran out at ${at} · ${by} ago` : `Due ${at} · ${by} late`;
-  return { what, by, why: reason ? WHY[reason] : null };
+  if (kind === "day") return { what: t("Meant for {time}", { time: at }), by, why: null };
+  const what = kind === "timer" ? t("Ran out at {time} · {by} ago", { time: at, by }) : t("Due {time} · {by} late", { time: at, by });
+  return { what, by, why: reason ? t(WHY[reason]) : null };
 }
 
 /** The bubble's small line: "Due 4:30 PM · 7 min late — you were presenting". */
 export function lateNote(late: Late): string {
-  return late.why ? `${late.what} — ${late.why}` : late.what;
+  return late.why ? t("{what} — {why}", { what: late.what, why: late.why }) : late.what;
 }

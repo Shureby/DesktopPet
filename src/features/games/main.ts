@@ -3,6 +3,7 @@ import { Pet } from "../../characters/Pet";
 import { loadBundled, loadUser } from "../../characters/registry";
 import { createRng } from "../../engine/random";
 import { SpriteAtlas } from "../../engine/sprites";
+import { followLocale } from "../../i18n/apply";
 import { backend } from "../../platform";
 import { followTestClock } from "../../platform/testClock";
 import "../../styles/game.css";
@@ -19,6 +20,7 @@ async function main() {
     // No user characters.
   }
   const settings = await backend.getSettings();
+  await followLocale(backend, settings);
   const character = registry.pick(settings.character, "cat");
   const atlas = await SpriteAtlas.load(character.def.sprite, character.asset);
   const pet = new Pet(character.def, { brain: new RulesBrain(), rng: createRng(1), unit: 1, x: 0, y: 0 });

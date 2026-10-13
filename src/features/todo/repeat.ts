@@ -1,3 +1,4 @@
+import { msg, t } from "../../i18n";
 import type { Todo, TodoRepeat } from "../../platform/types";
 
 /**
@@ -7,32 +8,32 @@ import type { Todo, TodoRepeat } from "../../platform/types";
  */
 
 export const TODO_REPEATS: [TodoRepeat, string][] = [
-  ["none", "No repeat"],
-  ["daily", "Daily"],
-  ["weekly", "Weekly"],
-  ["fortnightly", "Fortnightly"],
-  ["monthly", "Monthly"],
-  ["quarterly", "Quarterly"],
-  ["yearly", "Yearly"],
+  ["none", msg("No repeat")],
+  ["daily", msg("Daily")],
+  ["weekly", msg("Weekly")],
+  ["fortnightly", msg("Fortnightly")],
+  ["monthly", msg("Monthly")],
+  ["quarterly", msg("Quarterly")],
+  ["yearly", msg("Yearly")],
 ];
 
 /** "Weekly", "Fortnightly"… for a list row ("" when it doesn't repeat). */
 export function repeatLabel(r: TodoRepeat): string {
-  return r === "none" ? "" : (TODO_REPEATS.find(([k]) => k === r)?.[1] ?? "");
+  return r === "none" ? "" : t(TODO_REPEATS.find(([k]) => k === r)?.[1] ?? "");
 }
 
 /** "every week", "every 2 weeks"… for the hint under the form. */
 export function repeatPhrase(r: TodoRepeat): string {
   const phrases: Record<TodoRepeat, string> = {
     none: "",
-    daily: "every day",
-    weekly: "every week",
-    fortnightly: "every 2 weeks",
-    monthly: "every month",
-    quarterly: "every 3 months",
-    yearly: "every year",
+    daily: msg("every day"),
+    weekly: msg("every week"),
+    fortnightly: msg("every 2 weeks"),
+    monthly: msg("every month"),
+    quarterly: msg("every 3 months"),
+    yearly: msg("every year"),
   };
-  return phrases[r];
+  return phrases[r] && t(phrases[r]);
 }
 
 const STEP_DAYS: Partial<Record<TodoRepeat, number>> = { daily: 1, weekly: 7, fortnightly: 14 };

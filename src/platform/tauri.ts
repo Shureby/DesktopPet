@@ -1,6 +1,6 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
-import { mergeSettings, type Backend, type BackendEvents, type PanelTab, type Settings, type TestClock, type AvoidStatus } from "./types";
+import { mergeSettings, type Backend, type BackendEvents, type PanelTab, type Settings, type TestClock, type AvoidStatus, type SystemLocale } from "./types";
 
 /** Settings are owned by the UI: Rust stores the JSON blob and reads only what it needs. */
 async function getSettings(): Promise<Settings> {
@@ -58,6 +58,7 @@ export const tauriBackend: Backend = {
   avoidShow: () => invoke("avoid_show"),
   avoidStay: () => invoke("avoid_stay"),
   e2eEnabled: () => invoke<boolean>("e2e_enabled").catch(() => false),
+  systemLocale: () => invoke<SystemLocale>("system_locale").catch(() => ({ languages: [...navigator.languages], country: null })),
   e2eTray: (id) => invoke("e2e_tray", { id }),
   backupExport: (password, path) => invoke("backup_export", { password, path: path ?? null }),
   backupOpen: (path, password) => invoke("backup_open", { path, password }),

@@ -6,6 +6,7 @@ mod avoid;
 mod backup;
 mod commands;
 mod desktop;
+mod locale;
 mod scheduler;
 mod state;
 mod storefront;
@@ -83,6 +84,7 @@ pub fn run() {
             commands::end_peek,
             commands::pet_ready,
             commands::e2e_enabled,
+            locale::system_locale,
             commands::e2e_tray,
             commands::e2e_close,
             commands::e2e_present,

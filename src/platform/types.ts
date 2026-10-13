@@ -4,6 +4,8 @@ import type { RingtoneId } from "../pet/sound";
 import { DEFAULT_MODES, modeSettings, type ModeSettings } from "../features/modes/modes";
 import type { CalendarKind } from "../features/anniversary/templates";
 import type { LateReason } from "../features/alarm/late";
+import { LANGUAGES, type LanguageSetting } from "../i18n";
+import { REGIONS, type RegionSetting } from "../i18n/region";
 import { avoidSettings, DEFAULT_AVOID, type AvoidReason, type AvoidSettings, type Busy } from "../features/avoid/avoid";
 
 export interface PomodoroConfig {
@@ -60,6 +62,13 @@ export interface AlertSettings {
   autoSnoozeMax: number;
 }
 
+export interface SystemLocale {
+  /** BCP 47 tags, e.g. ["zh-Hant-TW", "en-US"]. */
+  languages: string[];
+  /** ISO 3166 country code, e.g. "SG" (null when the system doesn't say). */
+  country: string | null;
+}
+
 export interface Settings {
   character: string;
   /** Pet size multiplier. */
@@ -89,6 +98,8 @@ export interface Settings {
   celebrate: { enabled: boolean; seconds: number; music: boolean; musicVolume: number };
   pomodoro: PomodoroConfig;
   autostart: boolean;
+  /** The interface's language and the region for holidays ("auto": the system's). */
+  locale: { language: LanguageSetting; region: RegionSetting };
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -119,6 +130,7 @@ export const DEFAULT_SETTINGS: Settings = {
     sounds: { focus: "fieldPhone", break: "trill", volume: 0.5 },
   },
   autostart: false,
+  locale: { language: "auto", region: "auto" },
 };
 
 /** The 🔔 badge's look-ahead: whole minutes, 1–120 (60 if it isn't a number). */
@@ -179,6 +191,10 @@ export function mergeSettings(stored: Partial<Settings> | null | undefined): Set
       ...s.pomodoro,
       workHours: { ...d.pomodoro.workHours, ...s.pomodoro?.workHours },
       sounds: focusSounds(s),
+    },
+    locale: {
+      language: ["auto", ...LANGUAGES].includes(s.locale?.language as string) ? s.locale!.language : "auto",
+      region: ["auto", ...REGIONS].includes(s.locale?.region as string) ? s.locale!.region : "auto",
     },
     alerts: {
       alarm: { ...d.alerts.alarm, ...s.alerts?.alarm },
@@ -555,6 +571,8 @@ export interface Backend {
   avoidStay(): Promise<void>;
   /** A debug build started for the end-to-end tests: the windows offer test hooks (e2e/). */
   e2eEnabled(): Promise<boolean>;
+  /** The system's languages (first preferred) and country, for "auto" language and region. */
+  systemLocale(): Promise<SystemLocale>;
   /**
    * "Export backup…": asks where to save it (end-to-end tests may pass `path`), encrypted if
    * a password is given. Returns where it was saved, or null if cancelled.

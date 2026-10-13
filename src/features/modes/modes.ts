@@ -6,6 +6,7 @@
  *
  * Pure functions on the settings and a date, so they can be tested without the app.
  */
+import { msg } from "../../i18n";
 import type { DayMask } from "../../platform/types";
 
 export type ModeId = "lively" | "normal" | "work" | "quiet";
@@ -13,7 +14,7 @@ export type ModeChoice = "auto" | ModeId;
 /** In this order everywhere (menus, lists, the table): from your settings as they are to the quietest. */
 export const MODE_IDS: ModeId[] = ["normal", "lively", "work", "quiet"];
 
-export const MODE_NAMES: Record<ModeId, string> = { lively: "Lively", normal: "Normal", work: "Work", quiet: "Quiet" };
+export const MODE_NAMES: Record<ModeId, string> = { lively: msg("Lively"), normal: msg("Normal"), work: msg("Work"), quiet: msg("Quiet") };
 export const MODE_ICONS: Record<ModeId, string> = { lively: "✨", normal: "🙂", work: "👔", quiet: "🌙" };
 
 /** "HH:MM" to "HH:MM" (an end at or before the start is the next day) in one mode. */
