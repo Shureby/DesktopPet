@@ -789,6 +789,50 @@ mood, game scores, achievements, focus history) and the user's own characters.
   password in the app's data folder (`backups/`), the last 7 kept. Each is listed with
   "Restore…".
 
+## Language and region (since 0.43.0)
+
+- **Three languages:** English, 简体中文 (Simplified Chinese, as written in mainland China)
+  and 繁體中文 (Traditional Chinese, as written in Taiwan). Settings → **Language & region**,
+  the first card:
+  - **Language:** Auto, English, 简体中文 or 繁體中文. Auto follows the system's language:
+    zh-CN, zh-SG (zh-Hans) → Simplified; zh-TW, zh-HK, zh-MO (zh-Hant) → Traditional;
+    anything else → English. "Auto (简体中文)" says what it found.
+  - **Region:** Auto, Mainland China, Taiwan, Hong Kong, Singapore, Malaysia or Other. Auto
+    follows the system's country (Windows: its region, macOS: its locale); Macau counts as
+    Hong Kong. The region is apart from the language: an English interface in Singapore has
+    Singapore's holidays.
+  - A change shows everywhere at once, without a restart: the panel, both menus, the tray,
+    the badges, the pet's words.
+- **Dates and times follow the language,** not the system, for Chinese: the mainland writes
+  16:30 and 10月13日周二, a week starting on Monday; Taiwan writes 下午4:30 and 10月13日週二,
+  a week starting on Sunday, and its time fields put 上午/下午 first. English keeps the
+  system's own settings (12 or 24 hours, day or month first). Lunar dates read 农历八月十五.
+- **What's translated:** everything ePet writes. What you write (to-do and alarm names,
+  anniversaries) stays as you wrote it. To-dos made from a template's reminders ("Buy a
+  gift") are written in the language of the day they were made. Timers' stored labels stay
+  English ("Timer: 12 min") and show in the interface's language ("12 分钟"). The ePet Test
+  menus (🧪) stay English.
+- **The pet's words** are written for each language, not translated word for word, and a
+  character can have its own (character.json `translations`: name, description, style,
+  care actions, lines). A character without them speaks English.
+- **Holidays by region** (the Holiday template): each region's own, e.g. Taiwan's 國慶日
+  (10/10), Father's Day on 8/8 and Teachers' Day on 9/28; Singapore's Hari Raya Puasa,
+  Deepavali and Vesak; Malaysia's Thaipusam, Merdeka and Malaysia Day; Hong Kong's Buddha's
+  Birthday and Easter; Other: Thanksgiving, Christmas…
+  - Days of remembrance (Qingming, Peace Memorial Day, the Ghost Festival, Good Friday) are
+    added as Remembrances: candle and flowers, no fireworks.
+  - Holidays whose day can't be worked out are listed by year as announced
+    (src/features/anniversary/holiday-dates.json: Singapore's and Malaysia's 2026–2027;
+    Qingming and the winter solstice by the solar-term formula to 2050). Past what's listed
+    the anniversary stays in the list, last, saying "next date not announced yet", and
+    nothing reminds. Each year's dates are added when announced.
+  - Easter and Good Friday are computed (days from Easter Sunday).
+- **Fonts:** the system's Chinese fonts after Nunito (Microsoft YaHei / PingFang SC for
+  Simplified, Microsoft JhengHei / PingFang TC for Traditional), in that language's glyph
+  forms.
+- **The installer** speaks English, Simplified or Traditional Chinese, as Windows does; macOS
+  shows its own dialogs (open and save a backup) in the app's languages.
+
 ## Showing when things happened (since 0.13.0)
 
 - **Anything finished says when,** so identical items can be told apart ("1 min timer"

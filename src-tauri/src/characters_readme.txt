@@ -81,6 +81,12 @@ personality
     Leave out any line you don't want to change: it falls back to a neutral
     one.
 
+translations
+    Optional: its name, description, care actions and lines in Simplified
+    ("zh-CN") or Traditional ("zh-TW") Chinese, shown when the app is in
+    that language. Anything left out is shown in English. The cat's
+    character.json has an example.
+
 moveset
     Its fighting style in the Stickman Fight game. Moves must stay within a
     shared power budget; the Characters page says if they don't.

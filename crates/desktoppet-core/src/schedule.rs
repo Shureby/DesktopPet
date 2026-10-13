@@ -111,7 +111,9 @@ pub fn nth_weekday(year: i32, month: u32, nth: i32, weekday: u32) -> Option<Naiv
 /// Holidays whose dates are announced (src/features/anniversary/holiday-dates.json).
 fn holiday_tables() -> &'static serde_json::Value {
     static TABLES: std::sync::OnceLock<serde_json::Value> = std::sync::OnceLock::new();
-    TABLES.get_or_init(|| serde_json::from_str(include_str!("../../../src/features/anniversary/holiday-dates.json")).unwrap_or_default())
+    TABLES.get_or_init(|| {
+        serde_json::from_str(include_str!("../../../src/features/anniversary/holiday-dates.json")).unwrap_or_default()
+    })
 }
 
 /// The day of holiday number `table` (1-based, in `tables`) in `year`; none if not announced.
@@ -306,7 +308,16 @@ mod tests {
         assert_eq!(anniversary_on_or_after(&rule(Calendar::Table, 2, 1), d(2027, 4, 1)), None);
         assert_eq!(table_date(99, 2026), None);
         // Easter Sundays (the same as in src/features/anniversary/holidays.test.ts).
-        for (y, m, dd) in [(2008, 3, 23), (2024, 3, 31), (2025, 4, 20), (2026, 4, 5), (2027, 3, 28), (2028, 4, 16), (2035, 3, 25), (2038, 4, 25)] {
+        for (y, m, dd) in [
+            (2008, 3, 23),
+            (2024, 3, 31),
+            (2025, 4, 20),
+            (2026, 4, 5),
+            (2027, 3, 28),
+            (2028, 4, 16),
+            (2035, 3, 25),
+            (2038, 4, 25),
+        ] {
             assert_eq!(easter(y), Some(d(y, m, dd)), "{y}");
         }
         // Good Friday: two days before.

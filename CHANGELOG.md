@@ -16,6 +16,26 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.43.0] - 2026-10-13
+
+### Added
+- **Simplified and Traditional Chinese**: the whole app (panel, menus, tray, the pet's words,
+  reminders, the installer) in English, 简体中文 (as written in mainland China) or 繁體中文
+  (as written in Taiwan). Settings → Language & region: Auto follows the system, or pick one;
+  every window switches at once. Dates and times follow the language: 16:30 and Monday first
+  on the mainland, 下午4:30 and Sunday first in Taiwan; English keeps the system's settings.
+  The cat and the rooster speak each language in their own words.
+- **Holidays by region**: Settings → Region (Auto from the system) decides which holidays the
+  Holiday template offers: mainland China, Taiwan, Hong Kong, Singapore, Malaysia or other.
+  Days of remembrance (Qingming, Peace Memorial Day…) are added as remembrances. Holidays with
+  announced dates (Hari Raya, Deepavali, Vesak, Thaipusam) carry the official 2026–2027 dates
+  and say "next date not announced yet" beyond them; Easter and Good Friday are computed.
+
+### Changed (development)
+- Every text the interface shows goes through `t()` (src/i18n); dates and times through
+  src/i18n/format.ts. Characters can carry their own translations (`translations` in
+  character.json).
+
 ## [0.42.0] - 2026-10-12
 
 ### Added

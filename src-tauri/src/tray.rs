@@ -12,7 +12,8 @@ use crate::app_windows::{self, product_name};
 /// on the pet window's script; its other items run their actions there.
 pub fn create<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let lang = crate::locale::ui_lang(app);
-    let item = |id: &str, text: &'static str| MenuItem::with_id(app, id, crate::locale::tr(lang, text), true, None::<&str>);
+    let item =
+        |id: &str, text: &'static str| MenuItem::with_id(app, id, crate::locale::tr(lang, text), true, None::<&str>);
     let menu = Menu::with_items(
         app,
         &[

@@ -45,6 +45,7 @@ Point `"$schema"` at `schema/character.schema.json` for autocompletion. The main
 | mood lines | `fed`, `full`, `enough` (petting capped for the hour), `hungry`, `grumpy`, `adoring`, `sulk`, `praise`, `timerSet` (`{duration}`, `{time}`), `noted` (`{title}`, `{when}`). Missing lines fall back to neutral text. |
 | hover lines | `dodgeHungry`, `dodgeGrumpy` (stepping away from the mouse), `noticed`, `noticedHappy` (after 2 s of hovering), `release` (moving on from a parked mouse). See [INTERACTIONS.md](INTERACTIONS.md). Missing lines just stay silent. |
 | `moveset` | Fighting style for Stickman Fight: light/heavy/special/aerial moves with timings, damage, range and knockback. |
+| `translations` | Its words in other languages (since 0.43.0): `{ "zh-CN": { … }, "zh-TW": { … } }`, each with any of `displayName`, `description`, `style` (the moveset's), `care` (the care labels, in the order of `personality.care`) and `lines` (as in `personality`). Whatever is left out shows in English. See the cat for an example. |
 
 ## Abilities (shared special movements)
 

@@ -28,15 +28,16 @@ fn system() -> SystemLocale {
         let (mut count, mut len) = (0u32, 0u32);
         if GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &mut count, None, &mut len).is_ok() && len > 0 {
             let mut buf = vec![0u16; len as usize];
-            if GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &mut count, Some(windows::core::PWSTR(buf.as_mut_ptr())), &mut len)
-                .is_ok()
+            if GetUserPreferredUILanguages(
+                MUI_LANGUAGE_NAME,
+                &mut count,
+                Some(windows::core::PWSTR(buf.as_mut_ptr())),
+                &mut len,
+            )
+            .is_ok()
             {
                 // Null-separated, ending in two nulls.
-                languages = buf
-                    .split(|&c| c == 0)
-                    .filter(|s| !s.is_empty())
-                    .map(String::from_utf16_lossy)
-                    .collect();
+                languages = buf.split(|&c| c == 0).filter(|s| !s.is_empty()).map(String::from_utf16_lossy).collect();
             }
         }
     }
@@ -53,7 +54,9 @@ fn system() -> SystemLocale {
     use core_foundation::array::CFArray;
     use core_foundation::base::TCFType;
     use core_foundation::string::{CFString, CFStringRef};
-    use core_foundation_sys::locale::{kCFLocaleCountryCode, CFLocaleCopyCurrent, CFLocaleCopyPreferredLanguages, CFLocaleGetValue};
+    use core_foundation_sys::locale::{
+        kCFLocaleCountryCode, CFLocaleCopyCurrent, CFLocaleCopyPreferredLanguages, CFLocaleGetValue,
+    };
     unsafe {
         let preferred = CFLocaleCopyPreferredLanguages();
         let languages = if preferred.is_null() {
