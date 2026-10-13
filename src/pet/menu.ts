@@ -61,6 +61,8 @@ export interface Item {
   /** Fixed id for items the app handles natively (the tray's show/hide, panel, quit). */
   id?: string;
   text: string;
+  /** Opens a game (the tray leaves it out while a hidden pet is focusing). */
+  game?: boolean;
   action?: () => void;
   checked?: boolean;
   /** Shown greyed out: a line of information, not something to click. */
@@ -153,7 +155,7 @@ export function playItems(c: MenuContext): (Item | "sep")[] {
   return [
     {
       // Says so during a focus session: it will ask first.
-      id: "play",
+      game: true,
       text: gameHeld(c.settings.pomodoro, c.pomodoro) ? t("Play Safe Landing (focusing)") : t("Play Safe Landing"),
       action: () => c.playGame("safe-landing"),
     },
@@ -247,7 +249,7 @@ export function buildTrayItems(c: TrayMenuContext): (Item | "sep")[] {
     "sep",
     // The one difference in the shared part: with the pet hidden during a focus session there
     // is no pet to ask "Play anyway?", so the game is left out until the focus ends.
-    ...playItems(c).filter((i) => c.petVisible || !gameHeld(c.settings.pomodoro, c.pomodoro) || i === "sep" || i.id !== "play"),
+    ...playItems(c).filter((i) => c.petVisible || !gameHeld(c.settings.pomodoro, c.pomodoro) || i === "sep" || !i.game),
     "sep",
     modeItem(c),
     ...(c.away ? [{ text: t("Stepped aside: {why}", { why: t(AVOID_LABELS[c.away]) }), disabled: true }] : []),
