@@ -1,7 +1,7 @@
 import { easter, tableDate } from "./holidays";
-import { lunarDayName, lunarMonthName } from "../../i18n/chinese";
+import { chineseYears, lunarDayName, lunarMonthName } from "../../i18n/chinese";
 import { monthName, weekdayName } from "../../i18n/format";
-import { msg, t } from "../../i18n";
+import { isChinese, msg, t } from "../../i18n";
 import type { Anniversary, AnniversaryPrep } from "../../platform/types";
 import { PIECES, pieceById, type Piece } from "../../celebrate/music";
 import { lunarInYear } from "./lunar";
@@ -138,9 +138,11 @@ export function ordinal(n: number): string {
 
 /** "36th" for birthdays and the like, "7 years" where a count reads better. */
 export function yearsText(kind: string, years: number): string {
+  // Chinese counts by the kind: 67 岁 for a birthday, 3 周年 for the others.
+  if (isChinese()) return chineseYears(kind, years);
   if (kind === "dating" || kind === "remembrance" || kind === "work" || kind === "home")
     return years === 1 ? t("{n} year", { n: years }) : t("{n} years", { n: years });
-  return t("{ord}", { ord: ordinal(years), n: years });
+  return ordinal(years);
 }
 
 /** The pet's words on the day: a line, and a smaller one under it (or ""). */

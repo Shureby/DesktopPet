@@ -70,10 +70,13 @@ export function msg<T extends string>(en: T): T {
   return en;
 }
 
-/** The text in the interface's language. */
+/**
+ * The text in the interface's language. A key may end in "|context" when one English word
+ * needs two translations ("Date|calendar": 公历); the English shown leaves it out.
+ */
 export function t(en: string, params?: Record<string, string | number>): string {
   const dict = current === "en" ? undefined : DICTIONARIES[current];
-  return fill(dict?.text[en] ?? en, params);
+  return fill(dict?.text[en] ?? en.replace(/\|[a-z]+$/, ""), params);
 }
 
 /** A set of lines in the interface's language (the English ones if it has none). */

@@ -1312,3 +1312,18 @@ button.preview .ic {
 :root:lang(zh-TW) {
   font-family: "Nunito", "Microsoft JhengHei UI", "Microsoft JhengHei", "PingFang TC", "Heiti TC", system-ui, sans-serif;
 }
+
+/* Chinese dates read as one word, 2026年10月14日（周三）: the parts close up. */
+:lang(zh) .date-field {
+  gap: 0;
+}
+:lang(zh) .date-field .part {
+  min-width: 0;
+  padding-inline: 0;
+}
+:lang(zh) .ann-form .since {
+  width: 104px;
+}
+:lang(zh) .date-field .weekday {
+  margin: 0 0 0 1px;
+}

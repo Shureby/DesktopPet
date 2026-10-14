@@ -1,5 +1,5 @@
 import { intlLocale } from "../i18n/format";
-import { t } from "../i18n";
+import { isChinese, t } from "../i18n";
 import { DRAG_STEP_PX } from "./timeField";
 
 /**
@@ -62,8 +62,10 @@ export function dateOrder(locale = intlLocale()): DatePart[] {
 /** What a part shows: "7", "Oct", "2026"; and the weekday: "Tue". */
 export function datePartText(value: string, part: DatePart | "weekday", locale = intlLocale()): string {
   const { y, m, d } = parseYmd(value);
-  if (part === "day") return String(d);
-  if (part === "year") return String(y);
+  // Chinese writes the units: 2026年10月14日.
+  const zh = (locale ?? "").startsWith("zh");
+  if (part === "day") return zh ? `${d}${t("day")}` : String(d);
+  if (part === "year") return zh ? `${y}${t("year")}` : String(y);
   const opts: Intl.DateTimeFormatOptions = part === "month" ? { month: "short" } : { weekday: "short" };
   return new Date(y, m - 1, d).toLocaleDateString(locale, opts);
 }
@@ -114,14 +116,16 @@ export function dateField(
   root.setAttribute("aria-label", label);
   const weekday = document.createElement("span");
   weekday.className = "weekday";
-  root.append(weekday);
+  // Chinese puts the weekday after the date, in brackets: 2026年10月14日（周三）.
+  const weekdayLast = isChinese();
+  if (!weekdayLast) root.append(weekday);
   const withYear = opts.year !== false;
   if (!withYear) weekday.hidden = true;
   const parts = dateOrder().filter((p) => withYear || p !== "year");
   const els = new Map<DatePart, HTMLElement>();
 
   const paint = () => {
-    weekday.textContent = datePartText(value, "weekday");
+    weekday.textContent = weekdayLast ? `（${datePartText(value, "weekday")}）` : datePartText(value, "weekday");
     for (const [part, el] of els) {
       el.textContent = datePartText(value, part);
       el.setAttribute("aria-valuetext", el.textContent);
@@ -203,5 +207,6 @@ export function dateField(
     },
   });
   root.focus = () => els.get(parts[0])?.focus();
+  if (weekdayLast) root.append(weekday);
   return root;
 }

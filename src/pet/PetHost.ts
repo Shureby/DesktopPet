@@ -1,5 +1,5 @@
-import { longWeekday, shortDate, weekdayTime } from "../i18n/format";
-import { onLanguage, t } from "../i18n";
+import { longWeekday, shortDate, weekdayShort, weekdayTime } from "../i18n/format";
+import { isChinese, onLanguage, t } from "../i18n";
 import { characterLines } from "../characters/text";
 import { HoverTracker, RunStopper } from "../brain/hover";
 import { todoRemindsAt } from "../features/todo/repeat";
@@ -551,7 +551,12 @@ export class PetHost {
       list.map((p) =>
         p.day === yesterday
           ? t("{icon} You missed {name} yesterday.", { icon: p.c.anniversary.icon, name: p.c.anniversary.name })
-          : t("{icon} You missed {name} on {day}.", { icon: p.c.anniversary.icon, name: p.c.anniversary.name, day: longWeekday(new Date(p.day + "T12:00").getTime()) }),
+          : t("{icon} You missed {name} on {day}.", {
+              icon: p.c.anniversary.icon,
+              name: p.c.anniversary.name,
+              // "on Saturday", 周六.
+              day: isChinese() ? weekdayShort(new Date(p.day + "T12:00").getDay()) : longWeekday(new Date(p.day + "T12:00").getTime()),
+            }),
       ),
       30_000,
       [

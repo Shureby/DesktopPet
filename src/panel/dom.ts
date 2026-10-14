@@ -2,7 +2,7 @@ type Child = Node | string | number | null | undefined | false;
 type Props = Record<string, unknown> & { class?: string; style?: string };
 
 /** Minimal element builder: h("button", { onclick }, "Save"). */
-import { clock, shortDate } from "../i18n/format";
+import { clock, dateTime, shortDate } from "../i18n/format";
 import { t } from "../i18n";
 export function h<K extends keyof HTMLElementTagNameMap>(tag: K, props: Props = {}, ...children: Child[]): HTMLElementTagNameMap[K] {
   const el = document.createElement(tag);
@@ -30,7 +30,7 @@ export function formatWhen(ms: number, now = Date.now()): string {
   if (d.toDateString() === today.toDateString()) return t("Today {time}", { time });
   if (d.toDateString() === tomorrow.toDateString()) return t("Tomorrow {time}", { time });
   if (d.toDateString() === yesterday.toDateString()) return t("Yesterday {time}", { time });
-  return `${shortDate(ms)} ${time}`;
+  return dateTime(shortDate(ms), time);
 }
 
 /** "Today", "Tomorrow", "Yesterday" or "Wed, Oct 15": a day without a time. */

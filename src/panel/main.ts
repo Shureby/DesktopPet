@@ -3,7 +3,7 @@ import { region, REGION_NAMES, REGIONS, resolveRegion, type RegionSetting } from
 import { characterDescription, characterName, characterStyle } from "../characters/text";
 import { version } from "../../package.json";
 import { isChinese, LANGUAGE_NAMES, LANGUAGES, msg, onLanguage, resolveLanguage, t, type LanguageSetting } from "../i18n";
-import { monthName, shortDate, shortDateYear, weekdayName, weekdayNarrow, weekdayShort } from "../i18n/format";
+import { joinDot, monthName, shortDate, shortDateYear, weekdayName, weekdayNarrow, weekdayShort } from "../i18n/format";
 import { lunarMonthName } from "../i18n/chinese";
 import { followLocale, systemLocale } from "../i18n/apply";
 import product from "../../product.config.json";
@@ -631,7 +631,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
     },
     ...(
       [
-        ["solar", t("Date")],
+        ["solar", t("Date|calendar")],
         ["lunar", t("Lunar date")],
         ["weekday", t("Day of the week")],
         // A holiday's own day only while one is picked (it can't be set by hand).
@@ -681,7 +681,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
     class: "since",
     min: 1900,
     max: new Date().getFullYear(),
-    placeholder: t("year"),
+    placeholder: t("e.g. 1990"),
     value: draft.since,
     title: t("The year it began (optional), for “36th”"),
     oninput: (e: Event) => (draft.since = (e.target as HTMLInputElement).value),
@@ -842,8 +842,8 @@ function renderAnniversaries(list: Anniversary[]): Node {
     const years = on && a.since !== null && on.getFullYear() - a.since > 0 ? on.getFullYear() - a.since : null;
     // "Lunar 8/15 · Fri, Sep 25 · in 12 days"; a plain date just its day.
     const rule = ruleText(a);
-    const day = on ? `${shortDate(on.getTime())} · ${untilText(days)}` : t("next date not announced yet");
-    const when = `${rule ? `${rule} · ` : ""}${day}`;
+    const day = on ? joinDot(shortDate(on.getTime()), untilText(days)) : t("next date not announced yet");
+    const when = joinDot(rule, day);
     return h(
       "li",
       { class: `ann ${a.id === draft.editing ? "editing" : ""}` },
@@ -1346,11 +1346,11 @@ function upcomingSection(list: Todo[], row: (it: Todo) => Node): Node {
     // No storage: folded.
   }
   const first = list[0].dueAt;
-  const next = first === null ? "" : ` · ${t("next {when}", { when: list[0].allDay ? formatDay(first) : formatWhen(first) })}`;
+  const next = first === null ? null : t("next {when}", { when: list[0].allDay ? formatDay(first) : formatWhen(first) });
   const section = h(
     "details",
     { class: "finished upcoming", open },
-    h("summary", {}, h("span", {}, `${t("Upcoming ({n})", { n: list.length })}${next}`)),
+    h("summary", {}, h("span", {}, joinDot(t("Upcoming ({n})", { n: list.length }), next))),
     h("ul", { class: "list" }, ...list.map(row)),
   );
   section.addEventListener("toggle", () => {

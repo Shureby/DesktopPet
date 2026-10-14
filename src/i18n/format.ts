@@ -18,19 +18,36 @@ function fmt(ms: number, opts: Intl.DateTimeFormatOptions): string {
   return new Date(ms).toLocaleString(intlLocale(), opts);
 }
 
-/** "4:30 PM", "16:30", "下午4:30". */
+/** "4:30 PM", "07:05" (the mainland's 24 hours, two digits), "下午4:30". */
 export function clock(ms: number): string {
-  return new Date(ms).toLocaleTimeString(intlLocale(), { hour: "numeric", minute: "2-digit" });
+  const hour = language() === "zh-CN" ? "2-digit" : "numeric";
+  return new Date(ms).toLocaleTimeString(intlLocale(), { hour, minute: "2-digit" });
 }
 
-/** "Tue, Oct 13", "10月13日周二", "10月13日 週二". */
+/** The weekday after a Chinese date, set apart: "10月13日（周二）". */
+const withWeekday = (date: string, ms: number) => `${date}（${fmt(ms, { weekday: "short" })}）`;
+
+/** "Tue, Oct 13", "10月13日（周二）", "10月13日（週二）". */
 export function shortDate(ms: number): string {
+  if (language() !== "en") return withWeekday(monthDay(ms), ms);
   return fmt(ms, { weekday: "short", month: "short", day: "numeric" });
 }
 
-/** "Tue, Oct 13, 2026" (with the year). */
+/** "Tue, Oct 13, 2026" (with the year), "2026年10月13日（周二）". */
 export function shortDateYear(ms: number): string {
+  if (language() !== "en") return withWeekday(fmt(ms, { year: "numeric", month: "long", day: "numeric" }), ms);
   return fmt(ms, { weekday: "short", year: "numeric", month: "short", day: "numeric" });
+}
+
+/** "a · b · c"; in Chinese no space after a closing "）": "10月17日（周六）· 3 天后". */
+export function joinDot(...parts: (string | null | undefined)[]): string {
+  const zh = language() !== "en";
+  return parts.filter((p): p is string => !!p).reduce((a, b) => `${a}${zh && a.endsWith("）") ? "· " : " · "}${b}`);
+}
+
+/** A date and a time: "Tue, Oct 13 4:30 PM", "10月13日（周二）16:30" (no space after the bracket). */
+export function dateTime(date: string, time: string): string {
+  return language() === "en" ? `${date} ${time}` : `${date}${time}`;
 }
 
 /** "Oct 13", "10月13日". */

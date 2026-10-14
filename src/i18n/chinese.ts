@@ -19,3 +19,11 @@ export function lunarDayName(d: number): string {
   if (d < 30) return `廿${DIGITS[d - 20]}`;
   return "三十";
 }
+
+/** Years since an anniversary began: 67 岁 (歲) for a birthday, 第 3 年 for a holiday, 3 周年 (週年) otherwise. */
+export function chineseYears(kind: string, n: number): string {
+  const tw = language() === "zh-TW";
+  if (kind === "birthday" || kind === "pet") return `${n} ${tw ? "歲" : "岁"}`;
+  if (kind === "holiday" || kind === "custom") return `第 ${n} 年`;
+  return `${n} ${tw ? "週年" : "周年"}`;
+}

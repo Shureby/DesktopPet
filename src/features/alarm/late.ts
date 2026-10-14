@@ -3,7 +3,7 @@
  * or more after it was meant to, the pet says when it was meant for, how late it is and why.
  */
 import type { AvoidReason } from "../avoid/avoid";
-import { t } from "../../i18n";
+import { msg, t } from "../../i18n";
 import { clock } from "./ringing";
 
 /**
@@ -16,12 +16,12 @@ export type LateReason = "notRunning" | "asleep" | "queued" | AvoidReason;
 export const LATE_AFTER_MS = 60_000;
 
 const WHY: Record<LateReason, string> = {
-  notRunning: "ePet wasn't running",
-  asleep: "the computer was asleep",
-  queued: "another reminder was ringing",
-  fullscreen: "an app was full screen",
-  presenting: "you were presenting",
-  call: "you were in a call",
+  notRunning: msg("ePet wasn't running"),
+  asleep: msg("the computer was asleep"),
+  queued: msg("another reminder was ringing"),
+  fullscreen: msg("an app was full screen"),
+  presenting: msg("you were presenting"),
+  call: msg("you were in a call"),
 };
 
 /** "7 min", "1 h", "1 h 5 min". */

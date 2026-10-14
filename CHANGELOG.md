@@ -16,6 +16,14 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.43.1] - 2026-10-14
+
+### Fixed
+- **Chinese dates read as Chinese writes them**: 10月14日 and 2026年10月14日 in the date
+  fields too (no "10 月 14"), the weekday after the date in brackets — 10月17日（周六）,
+  then "· 3 天后" — and 2-digit hours on the mainland (07:05). Years by kind: 67 岁,
+  100 周年, 第 3 年. Why an alarm rang late is translated too.
+
 ## [0.43.0] - 2026-10-13
 
 ### Added
