@@ -59,8 +59,9 @@ nav button {
   cursor: pointer;
   white-space: nowrap;
 }
-/* Seven tabs (Modes since 0.37.1): all fit down to the panel's narrowest (380 px). */
-@media (max-width: 440px) {
+/* Seven tabs (Modes since 0.37.1): all fit down to the panel's narrowest (380 px), and at
+   its default 460 px in English too. */
+@media (max-width: 480px) {
   nav {
     gap: 0;
     padding: 8px 4px 0;
@@ -168,12 +169,14 @@ button.icon {
 }
 .list .title {
   flex: 1;
+  min-width: 6em;
   overflow-wrap: anywhere;
 }
+/* Whole pieces ("Overdue · Yesterday 4:41 AM"): when it's narrow they stack, the title keeps its room. */
 .list .when {
   color: var(--accent);
   font-size: 12px;
-  white-space: nowrap;
+  text-align: right;
 }
 .list li.done .title {
   text-decoration: line-through;
@@ -196,6 +199,8 @@ label.check {
 }
 .card {
   text-align: left;
+  /* A card is a button holding sentences: they wrap. */
+  white-space: normal;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -767,7 +772,7 @@ h3.split small {
   margin: 5px 0;
 }
 .timing.focus-sounds {
-  grid-template-columns: 1fr 1fr 0.7fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.7fr);
   margin: 2px 0 4px;
 }
 .focus-sounds .row {
@@ -964,7 +969,7 @@ details.upcoming summary > :first-child {
   flex: 1;
 }
 .ann-form .since {
-  width: 78px;
+  width: 92px;
 }
 .ann-form .prep input {
   flex: 1;
@@ -1326,4 +1331,77 @@ button.preview .ic {
 }
 :lang(zh) .date-field .weekday {
   margin: 0 0 0 1px;
+}
+
+/* ----- Narrow panels and longer words (380 px, Chinese): nothing breaks mid-word ----- */
+/* A button, a date, a time, a number and its unit stay whole; the row wraps instead. */
+button,
+.nobr,
+.time-field,
+.ann-form .ann-next {
+  white-space: nowrap;
+}
+.time-field,
+.time-field .part,
+.add-when {
+  flex-shrink: 0;
+}
+.game button {
+  flex-shrink: 0;
+}
+.when-row,
+.alarm-new {
+  row-gap: 6px;
+}
+/* The label and Add go to the next line together when it's narrow. */
+.alarm-new .label-add {
+  flex: 1 1 150px;
+}
+.ann-form .ann-music {
+  flex: 1 1 auto;
+}
+/* "⚠ Music is off for all anniversaries · Turn on" under the music, not squeezing it. */
+.ann-form .row.wrap > .off-for-all {
+  flex-basis: 100%;
+  padding-left: 60px;
+}
+@media (max-width: 480px) {
+  /* Chinese tabs are short: room to space them out. */
+  :lang(zh) nav button {
+    padding-inline: 6px;
+  }
+}
+@media (max-width: 440px) {
+  /* The modes table: each row's name above its four settings. */
+  table.presets,
+  table.presets tbody {
+    display: block;
+  }
+  table.presets tr {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    align-items: center;
+  }
+  table.presets tr:first-child th:first-child {
+    display: none;
+  }
+  table.presets td:first-child {
+    grid-column: 1 / -1;
+    padding-top: 6px;
+  }
+  table.presets select {
+    max-width: none;
+    width: 100%;
+  }
+  /* The ringtone's name before the volume. */
+  .box.alert input[type="range"] {
+    width: 48px;
+  }
+  /* Focus page sounds: the two sounds side by side, the volume under them. */
+  .timing.focus-sounds {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .timing.focus-sounds > label:last-child {
+    grid-column: 1 / -1;
+  }
 }

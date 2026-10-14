@@ -667,6 +667,18 @@ pub fn e2e_close(app: AppHandle, label: String) -> CmdResult<()> {
     Ok(())
 }
 
+/// Resizes a window (e.g. the panel to its narrowest), in logical pixels.
+#[tauri::command]
+pub fn e2e_resize(app: AppHandle, label: String, width: f64, height: f64) -> CmdResult<()> {
+    if !e2e_enabled() {
+        return Err("only in end-to-end tests".into());
+    }
+    if let Some(w) = app.get_webview_window(&label) {
+        w.set_size(tauri::LogicalSize::new(width, height)).map_err(err)?;
+    }
+    Ok(())
+}
+
 /// As if the mouse had moved: today's anniversaries are celebrated on the next check (they
 /// wait for you to be at the computer, see scheduler.rs).
 #[tauri::command]

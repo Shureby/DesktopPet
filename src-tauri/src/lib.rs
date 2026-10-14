@@ -87,6 +87,7 @@ pub fn run() {
             locale::system_locale,
             commands::e2e_tray,
             commands::e2e_close,
+            commands::e2e_resize,
             commands::e2e_present,
             commands::test_clock,
             commands::shift_clock,

@@ -98,3 +98,63 @@ check("region.holidays", "Settings → Region: the Holiday template offers that 
     await app.closeWindow("panel");
   }
 });
+
+/** Short texts broken over lines (a button, a date, a time, a tab) and a page wider than the window. */
+function layoutProblems() {
+  const found = [];
+  if (document.documentElement.scrollWidth > innerWidth + 1) found.push(`page ${document.documentElement.scrollWidth}px wide`);
+  // The modes table's row names may take two lines, never a word or a character per line.
+  for (const td of document.querySelectorAll("table.presets td:first-child")) {
+    if (td.getBoundingClientRect().width < 4 * parseFloat(getComputedStyle(td).fontSize)) found.push(`“${td.textContent.trim()}” squeezed`);
+  }
+  // Character cards are buttons holding sentences: those wrap.
+  for (const el of document.querySelectorAll("button:not(.card), .nobr, .time-field, nav, .chip, .soon, table.presets th")) {
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height) continue;
+    const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const ys = [];
+    while (walk.nextNode()) {
+      if (!walk.currentNode.textContent.trim()) continue;
+      const range = document.createRange();
+      range.selectNodeContents(walk.currentNode);
+      for (const q of range.getClientRects()) if (q.width > 1) ys.push(q.top + q.height / 2);
+    }
+    const size = parseFloat(getComputedStyle(el).fontSize) || 14;
+    if (ys.length > 1 && Math.max(...ys) - Math.min(...ys) > size * 0.7) found.push(`“${el.textContent.trim().slice(0, 30)}” on two lines`);
+  }
+  return found;
+}
+
+check("panel.layout", "In each language, at the panel's default width and its narrowest: no button, date or time broken over two lines, the modes table readable, and nothing wider than the window", async () => {
+  const app = ctx.app;
+  const at = new Date();
+  at.setDate(at.getDate() + 3);
+  at.setHours(16, 30, 0, 0);
+  await app.invoke("add_alarm", { label: "Layout", at: at.getTime(), repeat: "none", days: null });
+  await app.invoke("add_todo", { todo: { title: "Layout check", dueAt: at.getTime(), allDay: false, repeat: "none" } });
+  await app.invoke("add_anniversary", { anniversary: { kind: "remembrance", icon: "🕯️", name: "Layout", month: at.getMonth() + 1, day: at.getDate(), since: 1926, preps: [], effect: true, music: null } });
+  const problems = [];
+  try {
+    for (const language of ["en", "zh-CN", "zh-TW"]) {
+      await locale(language);
+      await app.closeWindow("panel");
+      for (const width of [460, 380]) {
+        for (const [tab, open] of [["todos", ".add-when"], ["todos", ".subtabs button:nth-child(2)"], ["alarms"], ["focus"], ["modes"], ["characters"], ["games"], ["settings"]]) {
+          await app.panel(tab);
+          await app.invoke("e2e_resize", { label: "panel", width, height: 640 });
+          await app.sleep(300);
+          if (open) await app.b.execute((s) => document.querySelector(s)?.click(), open);
+          await app.sleep(300);
+          for (const p of await app.b.execute(layoutProblems)) problems.push(`${language} ${width}px ${tab}: ${p}`);
+        }
+      }
+    }
+  } finally {
+    await locale("auto");
+    await app.closeWindow("panel");
+    for (const a of await app.invoke("list_alarms")) if (a.label === "Layout") await app.invoke("delete_alarm", { id: a.id });
+    for (const it of await app.invoke("list_todos")) if (it.title === "Layout check") await app.invoke("delete_todo", { id: it.id });
+    for (const a of await app.invoke("list_anniversaries")) if (a.name === "Layout") await app.invoke("delete_anniversary", { id: a.id });
+  }
+  assert.deepEqual([...new Set(problems)], []);
+}, { timeout: 300_000 });

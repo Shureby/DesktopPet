@@ -289,7 +289,7 @@ export function modesSection(get: () => Settings, save: (patch: Partial<Settings
         notes.push({ which, i, nextDay, overlap });
         const row = h(
           "div",
-          { class: "row slot-row" },
+          { class: "row wrap slot-row" },
           timeField(slot.start, laterStart, t("From")),
           "–",
           timeField(slot.end, laterEnd, t("Until")),

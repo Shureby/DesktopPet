@@ -93,7 +93,7 @@ import { avoidSection } from "./avoid";
 import { dayPicker, week } from "./dayPicker";
 import { workSpan } from "../features/modes/modes";
 import { formatHm, parseHm, timeField } from "./timeField";
-import { formatDay, formatWhen, h } from "./dom";
+import { dotted, formatDay, formatWhen, h } from "./dom";
 import { dateField, ymdOf, ymdToMs } from "./dateField";
 import { repeatBadge, splitTodos, todoHint, todoWhen } from "./todoText";
 
@@ -268,7 +268,7 @@ async function renderTodos(): Promise<Node> {
     value: draft.text,
   });
   const hint = h("div", { class: "hint" });
-  const whenRow = h("div", { class: "row when-row" });
+  const whenRow = h("div", { class: "row wrap when-row" });
   const showHint = () => {
     hint.textContent = todoHint(title(), dueAt(), allDay(), repeat(), settings.todoDayTime);
   };
@@ -368,7 +368,7 @@ async function renderTodos(): Promise<Node> {
             "span",
             { class: `when ${when?.overdue ? "overdue" : ""}` },
             badge ? h("span", { class: "rep" }, badge) : null,
-            when?.text ?? "",
+            ...dotted(when?.text ?? ""),
           )
         : null,
       it.done && it.doneAt ? h("span", { class: "when" }, t("Done · {when}", { when: formatWhen(it.doneAt) })) : null,
@@ -758,10 +758,10 @@ function renderAnniversaries(list: Anniversary[]): Node {
   const piece = musicFor(draft);
   const musicOff = settings.celebrate.music ? null : offForAll(t("Music is off for all anniversaries"), t("Music with celebrations"), { music: true });
   const music = TEMPLATES[draft.kind].musicFixed
-    ? h("div", { class: "row" }, h("span", { class: "lbl" }, t("Music")), h("span", { class: "fixed-music" }, `🎵 ${t(piece.name)}`), musicOff)
+    ? h("div", { class: "row wrap" }, h("span", { class: "lbl" }, t("Music")), h("span", { class: "fixed-music nobr" }, `🎵 ${t(piece.name)}`), musicOff)
     : h(
         "div",
-        { class: "row" },
+        { class: "row wrap" },
         h("span", { class: "lbl" }, t("Music")),
         h(
           "select",
@@ -852,7 +852,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
         "span",
         { class: "main" },
         h("span", { class: "title" }, a.name),
-        h("span", { class: "sub" }, h("span", { class: days <= 7 ? "soon" : "" }, when), years ? ` · ${yearsText(a.kind, years)}` : ""),
+        h("span", { class: "sub" }, h("span", { class: days <= 7 ? "soon" : "" }, ...dotted(when)), ...(years ? [" · ", h("span", { class: "nobr" }, yearsText(a.kind, years))] : [])),
         a.preps.length
           ? h("span", { class: "preps" }, a.preps.map((p) => t("{lead} before: {label}", { lead: leadLabel(p.lead), label: p.label })).join(" · "))
           : null,
@@ -885,10 +885,10 @@ function renderAnniversaries(list: Anniversary[]): Node {
       h("div", { class: "row wrap ann-date" }, h("span", { class: "lbl" }, t("Date")), calendar, dateInputs),
       h(
         "div",
-        { class: "row" },
+        { class: "row wrap" },
         nextLine,
-        draft.kind === "holiday" ? null : h("span", { class: "lbl short" }, t("Since")),
-        draft.kind === "holiday" ? null : since,
+        // "Since [1990]" together, on the next line if need be.
+        draft.kind === "holiday" ? null : h("span", { class: "row since-group" }, h("span", { class: "lbl short" }, t("Since")), since),
       ),
       h("div", { class: "lbl" }, t("Remind before")),
       ...prepRows,
@@ -1168,7 +1168,7 @@ async function renderAlarms(): Promise<Node> {
           a.label === DEFAULT_ALARM_LABEL ? t(DEFAULT_ALARM_LABEL) : a.label,
           a.important ? h("span", { class: "chip important", title: t("Rings even during calls and slide shows") }, t("Important")) : null,
         ),
-        h("span", { class: "sub" }, alarmSubtitle(a)),
+        h("span", { class: "sub" }, ...dotted(alarmSubtitle(a))),
         a.enabled && a.snoozes > 0 && a.nextFire
           ? h(
               "span",
@@ -1230,7 +1230,7 @@ async function renderAlarms(): Promise<Node> {
           h("button", { class: "link", onclick: stopEdit }, t("Cancel")),
         )
       : h("h3", {}, t("New alarm")),
-    h("div", { class: "row" }, time, repeat, label, addButton),
+    h("div", { class: "row wrap alarm-new" }, time, repeat, h("span", { class: "row label-add" }, label, addButton)),
     daysRow,
     importantRow,
     retryRow,

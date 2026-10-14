@@ -4,6 +4,16 @@ type Props = Record<string, unknown> & { class?: string; style?: string };
 /** Minimal element builder: h("button", { onclick }, "Save"). */
 import { clock, dateTime, shortDate } from "../i18n/format";
 import { t } from "../i18n";
+/**
+ * "10月17日（周六）· 3 天后 · 100 周年" as pieces that wrap only at the dots, so a date, a
+ * number and its unit stay whole.
+ */
+export function dotted(text: string): Node[] {
+  return text
+    .split(/(?<= ?· )|(?= ?· )/)
+    .map((piece) => (/^ ?· $/.test(piece) ? document.createTextNode(piece) : h("span", { class: "nobr" }, piece)));
+}
+
 export function h<K extends keyof HTMLElementTagNameMap>(tag: K, props: Props = {}, ...children: Child[]): HTMLElementTagNameMap[K] {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(props)) {

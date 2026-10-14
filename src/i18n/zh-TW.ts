@@ -309,7 +309,7 @@ const zhTW: Dictionary = {
     "🎂 Anniversaries": "🎂 紀念日",
     "To-do": "待辦",
     "e.g. bins every tue · call mom at 3pm · pay bills monthly 1st":
-      "例如：bins every tue · call mom at 3pm · pay bills monthly 1st",
+      "寫下要做的事，按 Enter 新增",
     "+ Date": "+ 日期",
     Day: "日期",
     "No date": "不設日期",
@@ -468,7 +468,7 @@ const zhTW: Dictionary = {
       "裡編輯它的 character.json（README 裡有詳細說明），然後重新載入。",
     "Read your characters folder again": "重新讀取你的角色資料夾",
     "⟳ Reload characters": "⟳ 重新載入角色",
-    Play: "開始玩",
+    Play: "開始遊戲",
     "Coming soon": "即將推出",
     Size: "大小",
     Speed: "速度",
@@ -510,9 +510,9 @@ const zhTW: Dictionary = {
       "煙火，忌日則是蠟燭和鮮花。每個紀念日都可以單獨關掉；這裡關掉後，寵物只會說一句。",
     "The music is chosen with each anniversary (▶ Preview plays it).":
       "音樂在每個紀念日裡選（▶ 預覽 可以試聽）。",
-    "Show alarms due within": "在寵物旁邊顯示",
+    "Show alarms due within": "寵物旁顯示",
     "1–120 minutes": "1–120 分鐘",
-    "min by the pet": "分鐘內要響的鬧鐘",
+    "min by the pet": "分鐘內的鬧鐘",
     "30 seconds": "30 秒",
     "1 minute": "1 分鐘",
     "2 minutes": "2 分鐘",
@@ -555,7 +555,7 @@ const zhTW: Dictionary = {
     "Talks on its own": "自己說話",
     "The pet says things now and then without being asked: bored, hungry, happy to see you. Reminders and replies to petting still show.":
       "寵物時不時會主動說幾句：無聊了、餓了、見到你很高興。提醒和摸它時的回應照常顯示。",
-    "Petting & focus sounds": "摸寵物和專注提示音",
+    "Petting & focus sounds": "摸寵物/專注音",
     "The little sound when you pet it, and the sounds when a focus or a break starts.":
       "摸它時的小聲音，以及開始專注、開始休息時的提示音。",
     "Keeps calm": "保持安靜",

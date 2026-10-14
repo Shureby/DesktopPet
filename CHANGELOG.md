@@ -16,6 +16,17 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.43.2] - 2026-10-14
+
+### Fixed
+- **Tidy at any width, in every language**: buttons, dates, times and numbers with their unit
+  (“100 周年”) no longer break in the middle; when the panel is narrow the next piece moves to
+  the next line instead (the repeat menu, the alarm's label with Add, "Since"). The Modes table
+  at the narrowest puts each setting's name above its four choices. No page is wider than the
+  window, and all seven tabs show in full in English at the default width.
+- Chinese: “开始游戏 / 開始遊戲” for Play, and the to-do box no longer shows English examples
+  (“写下要做的事，按回车添加”).
+
 ## [0.43.1] - 2026-10-14
 
 ### Fixed
