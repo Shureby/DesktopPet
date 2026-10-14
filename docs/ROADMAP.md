@@ -47,9 +47,10 @@ Comes after 0.24.0 (repeating to-dos and editing to-dos) and 0.25.0 (Today / Upc
   PNG sprite sheet with a frame-grid preview.
 - Optionally publish to the Steam Workshop from the editor.
 
-## Localisation (i18n) for the whole app (later)
+## Localisation (i18n) for the whole app (shipped in 0.43.0)
 
-> **Status: idea for later.** Recorded 2026-10-06.
+> **Status: shipped in 0.43.0** (English, 简体中文, 繁體中文; regions CN, TW, HK, SG, MY, other).
+> Still to do: typing to-dos in Chinese (below), and more languages. Recorded 2026-10-06.
 
 The app is English only. Translate everything at once rather than piecemeal: panel,
 pet lines and menus, tray, celebration words, the characters README, the installer and
@@ -133,6 +134,45 @@ store listings under the new name.
 - **If we do it:** a native Linux build that forces X11, a tray fallback (open the panel
   from the pet's menu), WebKitGTK bundled for the Steam runtime, and a "Linux (X11)"
   note on the store page.
+
+## Typing to-dos in Chinese (later)
+
+> **Status: idea for later.** Recorded 2026-10-14. Quick add reads English only
+> (“call mom at 3pm”, “bins every tue”); in Chinese the box just says “写下要做的事，按回车添加”.
+
+- Read 明天下午三点交水费, 周五 9:30 开会, 每周二倒垃圾, 每月1号交房租, 农历八月十五
+  (a lunar date as an anniversary or a day's to-do), in 简体 and 繁體 (下午3點, 星期二, 禮拜二).
+- Then show Chinese examples in the box again.
+
+## Solar terms and the lunar calendar (later)
+
+> **Status: idea for later.** Recorded 2026-10-14. Data in hand: the 24 solar terms
+> 1900–2050 and the leap months, from a Taiwanese 閏月節氣表 (dates in UTC+8),
+> checked against ePet: all 55 leap months and Qingming / the winter solstice 2026–2050
+> agree. Saved as `docs/reference/solar-terms-1900-2050.json` (notes in its README).
+
+- **Qingming and the winter solstice from the solar terms**, not a table of their own:
+  the same data serves every solar-term day, back to 1900 and (by formula, tested against
+  the table) up to 2099, where the lunar data ends.
+- **More days by the solar terms**, as Holiday templates per region: 立春, 夏至, and the
+  counted ones: 三伏 (初伏 the third 庚 day from 夏至, 末伏 the first 庚 day from 立秋),
+  数九 from 冬至, 入梅 / 出梅. Each is a day, not a celebration: the pet mentions it.
+- **The pet knows the day:** on a solar term, a line of its own in its own words, by
+  region (立秋 “贴秋膘” on the mainland; 冬至 tangyuan or dumplings), seasonal costumes later.
+- **A month calendar in the panel:** each day with its Gregorian date and, in Chinese, its
+  lunar day under it (初一, 十五; the month's name on 初一, 闰 marked), solar terms and
+  holidays by name, and dots for what's on that day (to-dos, alarms, anniversaries). Click
+  a day to add something. Could replace the to-dos' Upcoming list on wide panels.
+- **Lunar dates where dates are shown:** the date field (“10月14日（周三）· 九月初五”),
+  today's lunar date in the tray tooltip and the pet's hover card.
+- **A lunar ↔ Gregorian look-up:** “Mum's 农历 birthday in each of the next 10 years”, a
+  date's lunar day; copy or add as an anniversary from there.
+- **Lunar anniversaries in phone calendars:** export (ICS file or a subscribed feed) of
+  each lunar anniversary's next 20 years of dates, since Google / Apple calendars can't
+  repeat by the lunar calendar. A selling point for Chinese users.
+- Not planned: 黄历 宜忌 (lucky and unlucky days).
+- Note: a solar term near midnight falls on a different day in other time zones; ePet uses
+  China time (UTC+8, also Taiwan, HK, SG, MY), as calendars there do.
 
 ## Personality
 
