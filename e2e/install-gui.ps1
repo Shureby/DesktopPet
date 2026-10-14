@@ -25,9 +25,11 @@ $deadline = (Get-Date).AddMinutes($Minutes)
 while (-not $p.HasExited -and (Get-Date) -lt $deadline) {
   Start-Sleep -Milliseconds 800
   try {
-    $cond = New-Object System.Windows.Automation.PropertyCondition($A::ProcessIdProperty, $p.Id)
-    # Its windows: the wizard, or a message box over it.
-    foreach ($win in $A::RootElement.FindAll($scope::Children, $cond)) {
+    # Its windows (the wizard, or a message box over it), and the old version's uninstaller's,
+    # which an upgrade runs: a question there would otherwise go unseen.
+    $ids = @($p.Id) + @(Get-Process -Name uninstall, "Au_" -ErrorAction SilentlyContinue | ForEach-Object { $_.Id })
+    $wins = foreach ($id in $ids) { $A::RootElement.FindAll($scope::Children, (New-Object System.Windows.Automation.PropertyCondition($A::ProcessIdProperty, $id))) }
+    foreach ($win in $wins) {
       $all = $win.FindAll($scope::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
       $texts = @($all | ForEach-Object { $_.Current.Name } | Where-Object { $_ -and $_.Trim() })
       $page = ($texts -join " | ")

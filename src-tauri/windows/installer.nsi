@@ -382,6 +382,9 @@ Function PageLeaveReinstall
         StrCpy $R1 "$R1 /P"
       ${EndIf}
       StrCpy $R1 "$R1 _?=$4" ; append uninstall directory
+      ; ePet: the old uninstaller (0.43.0 and 0.43.1) asks for a language unless one is saved;
+      ; save this installer's, so an upgrade asks nothing.
+      WriteRegStr ${MUI_LANGDLL_REGISTRY_ROOT} "${MUI_LANGDLL_REGISTRY_KEY}" "${MUI_LANGDLL_REGISTRY_VALUENAME}" $LANGUAGE
       ExecWait '$R1' $0
     ${EndIf}
 
@@ -710,6 +713,9 @@ Section Install
   ; Create uninstaller
   WriteUninstaller "$INSTDIR\uninstall.exe"
 
+  ; ePet: the language it was installed in, for the uninstaller (src/i18n; it never asks)
+  WriteRegStr ${MUI_LANGDLL_REGISTRY_ROOT} "${MUI_LANGDLL_REGISTRY_KEY}" "${MUI_LANGDLL_REGISTRY_VALUENAME}" $LANGUAGE
+
   ; Save $INSTDIR in registry for future installations
   WriteRegStr SHCTX "${MANUPRODUCTKEY}" "" $INSTDIR
 
@@ -792,7 +798,12 @@ Function un.onInit
     !insertmacro MULTIUSER_UNINIT
   !endif
 
-  !insertmacro MUI_UNGETLANGUAGE
+  ; ePet: the language it was installed in, else the system's (as the installer picks it);
+  ; never the "Installer Language" question, which an upgrade's quiet uninstall would hang on.
+  ReadRegStr $0 ${MUI_LANGDLL_REGISTRY_ROOT} "${MUI_LANGDLL_REGISTRY_KEY}" "${MUI_LANGDLL_REGISTRY_VALUENAME}"
+  ${If} $0 != ""
+    StrCpy $LANGUAGE $0
+  ${EndIf}
 
   ${GetOptions} $CMDLINE "/P" $PassiveMode
   ${IfNot} ${Errors}

@@ -65,7 +65,7 @@ if (process.platform === "win32" && OLD && NEW) {
       const run = JSON.parse(readFileSync(out, "utf8").replace(/^﻿/, ""));
       assert.equal(run.timedOut, false, `installer stuck on: ${run.pages.at(-1)} (clicked: ${run.clicks?.join(" / ")}; errors: ${run.errors?.join(" / ")})`);
       assert.equal(run.exitCode, 0);
-      const asked = run.pages.filter((p) => /Already Installed|Uninstall before installing|is running/i.test(p));
+      const asked = run.pages.filter((p) => /Already Installed|Uninstall before installing|is running|Installer Language/i.test(p));
       assert.deepEqual(asked, [], "no question about the installed version or the running ePet");
       assert.equal(installed("DisplayVersion"), versionOf(NEW));
 

@@ -16,6 +16,14 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.43.3] - 2026-10-14
+
+### Fixed
+- **Upgrading from 0.43.x asked for a language and stopped**: the older version's
+  uninstaller, run quietly by the upgrade, showed an “Installer Language” question nobody
+  saw. The installer now saves its language first, and uninstalling never asks (it uses the
+  language ePet was installed in, else the system's).
+
 ## [0.43.2] - 2026-10-14
 
 ### Fixed
