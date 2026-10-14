@@ -16,6 +16,20 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.43.4] - 2026-10-14
+
+### Changed
+- **Chinese wording, after review**: clearer names and hints in the Modes table (音量逐渐增强,
+  主动搭话, 立即庆祝 / 稍后庆祝), the alarm switch says 闹钟已开启 / 已关闭, snooze reads
+  推迟提醒 in Simplified Chinese, a holiday's day is 按节日自动设置, the mode's end reads
+  “17:30 结束”, and the rooster calls himself 本大爷. In English: the Preview button's hint
+  (“See how it will be celebrated on the day”), the alarm switch (“Alarm on / off”), the
+  Modes table's “Celebrations” row and its music hint.
+
+### Fixed
+- **Copied characters had the same Chinese name**: a copy is now 猫咪（副本）, 猫咪（副本 2）…
+  in Chinese too, and your own characters carry a small “custom” tag instead of “(custom)”.
+
 ## [0.43.3] - 2026-10-14
 
 ### Fixed

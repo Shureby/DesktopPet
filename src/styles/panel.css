@@ -1211,6 +1211,8 @@ table.presets td:first-child {
 table.presets select {
   font-size: 11px;
   max-width: 78px;
+  /* Room for four Chinese characters (立即庆祝) beside the arrow. */
+  padding: 5px 2px 5px 5px;
 }
 .modes .nowrap {
   white-space: nowrap;
@@ -1404,4 +1406,12 @@ button,
   .timing.focus-sounds > label:last-child {
     grid-column: 1 / -1;
   }
+}
+
+/* A character's name with its "custom" tag. */
+.card .name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }

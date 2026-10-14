@@ -116,6 +116,9 @@ describe("validation", () => {
     const second = copyOf(reg.get("cat-copy")!, reg);
     expect(second.id).toBe("cat-copy-2");
     expect(JSON.parse(second.json).displayName).toBe("Cat (copy 2)");
+    // And in Chinese, so copies can be told apart there too.
+    expect(copy.translations["zh-CN"].displayName).toBe("猫咪（副本）");
+    expect(JSON.parse(second.json).translations["zh-TW"].displayName).toBe("貓咪（副本 2）");
     expect(copyOf(reg.get("cat")!, reg).id).toBe("cat-copy-2");
   });
 });

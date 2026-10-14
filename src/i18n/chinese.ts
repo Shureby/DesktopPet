@@ -20,6 +20,11 @@ export function lunarDayName(d: number): string {
   return "三十";
 }
 
+/** A copied character's Chinese name: 猫咪（副本）, 猫咪（副本 2）… (an earlier copy's mark replaced). */
+export function chineseCopyName(name: string, n: string): string {
+  return `${name.replace(/（副本( \d+)?）$/, "")}（副本${n ? ` ${n}` : ""}）`;
+}
+
 /** Years since an anniversary began: 67 岁 (歲) for a birthday, 第 3 年 for a holiday, 3 周年 (週年) otherwise. */
 export function chineseYears(kind: string, n: number): string {
   const tw = language() === "zh-TW";

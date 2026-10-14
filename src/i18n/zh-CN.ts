@@ -27,7 +27,7 @@ const zhCN: Dictionary = {
     "Crouches and leaps at the cursor (or at nothing in particular).":
       "伏低身子扑向鼠标（或者扑个空）。",
     "ePet wasn't running": "ePet 当时没在运行",
-    "the computer was asleep": "电脑在睡眠",
+    "the computer was asleep": "电脑当时在睡眠",
     "another reminder was ringing": "另一个提醒正在响",
     "an app was full screen": "有应用在全屏",
     "you were presenting": "你在演示",
@@ -42,7 +42,7 @@ const zhCN: Dictionary = {
     "Alarm {time}": "闹钟 {time}",
     "next {time}": "下次 {time}",
     "While I was hidden you missed:": "我藏起来时你错过了：",
-    " (snoozed {n}×)": "（已稍后提醒 {n} 次）",
+    " (snoozed {n}×)": "（已推迟提醒 {n} 次）",
     "…and {n} more": "……还有 {n} 项",
     "{n} s": "{n} 秒",
     "1 hour": "1 小时",
@@ -212,7 +212,7 @@ const zhCN: Dictionary = {
     Missed: "错过",
     Done: "完成",
     Rang: "已响",
-    "snoozed {n}×": "已稍后提醒 {n} 次",
+    "snoozed {n}×": "已推迟提醒 {n} 次",
     Today: "今天",
     "{date} {time} ({day})": "{date} {time}（{day}）",
     "Every day": "每天",
@@ -229,7 +229,7 @@ const zhCN: Dictionary = {
       "宠物藏起来时，{list}不会提醒你。",
     "Full-screen apps (games, videos)": "全屏应用（游戏、视频）",
     "When an app covers the pet's whole screen, the pet leaves it. Alarms and timers still ring, softly at first; to-dos wait. It comes back about 10 seconds after.":
-      "当某个应用占满宠物所在的整个屏幕时，宠物会离开。闹钟和计时器照样响，开头会轻一点；待办会等一等。应用退出全屏约 10 秒后它就回来。",
+      "当某个应用占满宠物所在的整个屏幕时，宠物会离开。闹钟和计时器照样响，开头会轻一点；待办会等一等。应用退出全屏约 10 秒后它会回来。",
     Presentations: "演示",
     "During a PowerPoint or Keynote slide show the pet leaves and nothing rings, except important alarms. ePet is also left out of screen sharing.":
       "PowerPoint 或 Keynote 放映时，宠物会离开，也不会响铃，重要闹钟除外。共享屏幕时也不会出现 ePet。",
@@ -346,7 +346,7 @@ const zhCN: Dictionary = {
     "Date|calendar": "公历",
     "Lunar date": "农历",
     "Day of the week": "星期几",
-    "The holiday's own day": "节日自己的日子",
+    "The holiday's own day": "按节日自动设置",
     "Choose one… (or name your own below)": "选一个……（或在下面自己起名）",
     "e.g. 1990": "例如 1990",
     "The year it began (optional), for “36th”":
@@ -365,7 +365,7 @@ const zhCN: Dictionary = {
     Music: "音乐",
     "next date not announced yet": "下次日期尚未公布",
     "{lead} before: {label}": "提前 {lead}：{label}",
-    "Preview its day's celebration": "预览当天的庆祝",
+    "See how it will be celebrated on the day": "看看当天会怎么庆祝",
     "Delete (its to-dos stay)": "删除（它的待办会保留）",
     "Edit anniversary · {name}": "编辑纪念日 · {name}",
     "New anniversary": "新纪念日",
@@ -373,7 +373,6 @@ const zhCN: Dictionary = {
     Since: "起始年份",
     "Remind before": "提前提醒",
     "+ Add another": "+ 再加一个",
-    "Play its day's celebration now": "马上播放当天的庆祝",
     Preview: "预览",
     Anniversaries: "纪念日",
     "No anniversaries yet.": "还没有纪念日。",
@@ -390,7 +389,7 @@ const zhCN: Dictionary = {
       "“设置 → 闹钟和计时器”选的是“标记为错过”：没回应的闹钟不会再响。",
     Important: "重要",
     "Rings in full whatever the mode (no softer start in Quiet), and even when the pet has stepped aside for a call or a slide show: the pet comes out for it.":
-      "无论什么模式都完整地响（安静模式下也不会先轻后响），宠物因为通话或放映躲开时也一样：宠物会出来提醒你。",
+      "无论什么模式都完整地响（安静模式下音量也不会逐渐增强），宠物因为通话或放映躲开时也一样：宠物会出来提醒你。",
     "Your custom timer": "你的自定义计时",
     "Change this one": "修改这个",
     "Forget this one": "不要这个了",
@@ -416,7 +415,8 @@ const zhCN: Dictionary = {
     "Focusing until {time}": "专注到 {time}",
     "Play anyway?": "还是要玩吗？",
     "Play anyway": "还是要玩",
-    "On: will ring": "开：会响",
+    "Alarm on": "闹钟已开启",
+    "Alarm off": "闹钟已关闭",
     "{name} on/off": "{name} 开/关",
     "next {when}": "下一个：{when}",
     "Upcoming ({n})": "即将到来（{n}）",
@@ -456,7 +456,7 @@ const zhCN: Dictionary = {
     Grumpy: "闹脾气",
     Sulking: "生闷气",
     " · hungry": " · 饿了",
-    " (custom)": "（自制）",
+    "custom|character": "自制",
     "Copy it into your characters folder to make your own":
       "复制到你的角色文件夹，做一个你自己的",
     "⧉ Make a copy": "⧉ 复制一份",
@@ -500,7 +500,7 @@ const zhCN: Dictionary = {
     "To-dos without a time remind you at": "没设时间的待办在这个时间提醒你",
     "Day reminder time": "当天提醒时间",
     "Timers never snooze: a missed one leaves a quiet ⏱ note by the pet for an hour.":
-      "计时器不会稍后提醒：错过的会在宠物旁边留一个安静的 ⏱ 标记，保留一小时。",
+      "计时器不会推迟提醒：错过的会在宠物旁边留一个安静的 ⏱ 标记，保留一小时。",
     "Celebrate anniversaries on screen for": "屏幕上的纪念日庆祝持续",
     "10–60 seconds": "10–60 秒",
     s: "秒",
@@ -528,7 +528,7 @@ const zhCN: Dictionary = {
     "Ring volume": "铃声音量",
     "How loud alarms, timers and to-do reminders ring in this mode, as a share of the volume set under Alarms & timers / To-do reminders.":
       "在这个模式下，闹钟、计时器和待办提醒的音量，按“闹钟和计时器”/“待办提醒”里设定音量的比例算。",
-    "Start soft, get louder": "先轻后响",
+    "Start soft, get louder": "音量逐渐增强",
     "Alarms and timers start at a quarter of their volume and get louder over 30 seconds, up to the Ring volume.":
       "闹钟和计时器先以四分之一的音量开始，30 秒内渐渐变大，直到铃声音量。",
     "Alarms ring for": "闹钟响铃时长",
@@ -540,19 +540,20 @@ const zhCN: Dictionary = {
     "1 min": "1 分钟",
     "Comes to the middle": "跑到屏幕中间",
     "When something rings, the pet runs to the middle of the screen (if that's on for alarms or to-dos). Off: it perks up where it is.":
-      "有提醒响起时，宠物跑到屏幕中间（如果闹钟或待办开启了这一项）。关闭时：它在原地打起精神。",
+      "有提醒响起时，宠物会先跑到屏幕中间（需在设置里为闹钟或待办开启这一项）。不勾选时，它就在原地提醒。",
     "To-dos ring": "待办响铃",
     "To-do reminders play their ringtone. Off: just the bubble. Alarms and timers always ring.":
       "待办提醒会播放铃声。关闭时：只弹出气泡。闹钟和计时器总会响。",
+    Celebrations: "纪念日",
     "Now: fireworks or the candle play on the day. Later: they wait with a 🎉 badge by the pet; when a mode with “Now” begins, the pet asks whether to celebrate.":
-      "现在：纪念日当天播放烟花或蜡烛。稍后：在宠物旁边留一个 🎉 标记等着；到了设为“现在”的模式时，宠物会问要不要庆祝。",
-    Now: "现在",
-    Later: "稍后",
+      "立即庆祝：纪念日当天直接放烟花或点蜡烛。稍后庆祝：先在宠物旁留一个 🎉 标记；切换到设为“立即庆祝”的模式时，宠物会问要不要庆祝。",
+    "Now|celebrate": "立即庆祝",
+    "Later|celebrate": "稍后庆祝",
     "Anniversary music": "纪念日音乐",
-    "On: anniversaries play their music even if music is off under To-do reminders. “As set”: as set there.":
-      "开：即使“待办提醒”里关了音乐，纪念日也播放音乐。“按设置”：照那里的设置。",
+    "On: anniversaries play their music in this mode even if “Play music with it” is off in Settings. “As set”: follows that setting.":
+      "开：即使设置里没勾“同时播放音乐”，这个模式下纪念日也会放音乐。按设置：跟设置里的“同时播放音乐”一致。",
     On: "开",
-    "Talks on its own": "自己说话",
+    "Talks on its own": "主动搭话",
     "The pet says things now and then without being asked: bored, hungry, happy to see you. Reminders and replies to petting still show.":
       "宠物时不时会主动说几句：无聊了、饿了、见到你很高兴。提醒和摸它时的回应照常显示。",
     "Petting & focus sounds": "摸宠物/专注音",
@@ -637,10 +638,10 @@ const zhCN: Dictionary = {
       "我们在专注，到 {time}。还是要玩吗？",
     "We're focusing. Play anyway?": "我们在专注。还是要玩吗？",
     "Stepped aside: {why}": "已躲开：{why}",
-    "{mode} until {time}": "{mode}，到 {time}",
+    "{mode} until {time}": "{mode}，{time} 结束",
     "💤 Snoozed until {time}. Right-click me to cancel.":
       "💤 {time} 再提醒你。右键点我可以取消。",
-    "Couldn't snooze: {error}": "没能稍后提醒：{error}",
+    "Couldn't snooze: {error}": "没能推迟提醒：{error}",
     "e.g. 20 · 1:30 · 90s": "例如：20 · 1:30 · 90s",
     "Timer length": "计时时长",
     "Change {from} → {to}": "修改 {from} → {to}",
@@ -649,8 +650,8 @@ const zhCN: Dictionary = {
     "⏱ {duration} timer set. I'll ring at {time}.":
       "⏱ {duration}计时开始了，我会在 {time} 响。",
     "Got it: {title}{when}": "记下了：{title}{when}",
-    "Snoozed {n}× · first rang {time}": "已稍后提醒 {n} 次 · 第一次 {time} 响",
-    "Snoozed {n}×": "已稍后提醒 {n} 次",
+    "Snoozed {n}× · first rang {time}": "已推迟提醒 {n} 次 · 第一次 {time} 响",
+    "Snoozed {n}×": "已推迟提醒 {n} 次",
     "last try before it's marked missed": "最后一次，再不回应就标记为错过",
     Alarm: "闹钟",
     "⏱ Time's up! ({name} timer)": "⏱ 时间到！（{name}计时器）",
@@ -663,6 +664,7 @@ const zhCN: Dictionary = {
     "; ": "；",
     "Snooze {n} min": "{n} 分钟后再提醒",
     "Open To-dos": "打开待办",
+    Later: "稍后",
     "📅 Today:": "📅 今天：",
     "✓ Done": "✓ 完成",
     "💤 No answer… I'll try {name} again at {time} ({n}/{max}).":
@@ -686,7 +688,7 @@ const zhCN: Dictionary = {
     "Cancel timer": "取消计时器",
     "{name} (rings {time})": "{name}（{time} 响）",
     "Cancel snooze: {name} (next ring {time})":
-      "取消稍后提醒：{name}（下次 {time} 响）",
+      "取消推迟提醒：{name}（下次 {time} 响）",
     "Stop focus session (ends {time})": "停止专注（{time} 结束）",
     "Stop focus session": "停止专注",
     "Start focus session 🍅": "开始专注 🍅",

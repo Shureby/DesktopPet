@@ -127,13 +127,13 @@ check("characters.copy", "“Make a copy” makes cat-copy (then cat-copy-2, “
   const app = await charactersPage();
   const copyOf = (name) => app.b.execute((n) => [...document.querySelectorAll(".card-wrap")].find((w) => w.querySelector("strong").textContent === n).querySelector("button.copy").click(), name);
   await copyOf("Cat");
-  await app.waitText(".cards .card strong", "Cat (copy) (custom)");
+  await app.waitText(".cards .card strong", "Cat (copy)");
   const json = JSON.parse(readFileSync(join(chars(), "cat-copy", "character.json"), "utf8"));
   assert.deepEqual([json.id, json.displayName, json.$schema], ["cat-copy", "Cat (copy)", "../character.schema.json"]);
   await copyOf("Cat");
-  await app.waitText(".cards .card strong", "Cat (copy 2) (custom)");
+  await app.waitText(".cards .card strong", "Cat (copy 2)");
   assert.ok(existsSync(join(chars(), "cat-copy-2", "character.json")));
-  await copyOf("Cat (copy) (custom)");
+  await copyOf("Cat (copy)");
   await app.until(() => document.querySelectorAll(".cards .card").length >= 5);
   const ids = (await app.invoke("list_user_characters")).map((c) => JSON.parse(c.json).id).sort();
   assert.equal(new Set(ids).size, ids.length);

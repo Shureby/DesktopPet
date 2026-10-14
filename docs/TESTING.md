@@ -2,7 +2,7 @@
 
 <!-- Generated from test-checklist.json by `npm run test-checklist`. Edit the JSON, not this file. -->
 
-当前版本 `0.43.3`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
+当前版本 `0.43.4`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
 标 🤖 的项目由 CI 自动测（Windows），不用手动测；标 🤖+👀 的项目逻辑由 CI 测，你只看 👀 后面写的部分；标 🌙 的每晚测一次（太久，不在每次推送时测）。
 macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码，在 Windows 上测过就行。
 在线勾选页面（保存结果，自动标出需要重测的项目）：https://claude.ai/artifact/XQVzPKq4w2MThVnTLYCGy1
@@ -11,9 +11,9 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 
 - [ ] 1.1 🍎 安装包安装 → **开始菜单/启动台里有应用，图标和名字正常**
 - [ ] 1.2 🍎 🤖+👀 首次启动 → **宠物从屏幕上方掉下来，落在任务栏/Dock 上方** 👀 你只看掉落的样子（窗口出现、宠物落在任务栏上方由 CI 测）
-- [ ] 1.3 🤖 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.43.3 · …`，与安装包版本一致**
+- [ ] 1.3 🤖 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.43.4 · …`，与安装包版本一致**
 - [ ] 1.4 🍎 🤖 已经运行时再启动一次 → **不会出现第二只宠物（只打开面板）**
-- [ ] 1.5 🤖 **【新】** 装着旧版本、ePet 正在运行时，双击新版本的安装包，一路点 Next / Install / Finish → **不再出现“已安装（Already Installed）/ 是否先卸载”那一页，也不提示 ePet 正在运行（会自动关掉它）；旧版被安静地卸载后装上新版；之前的待办、闹钟、纪念日、设置、心情值都还在。重装同一版本或装更旧的版本时仍会询问**
+- [ ] 1.5 🤖 装着旧版本、ePet 正在运行时，双击新版本的安装包，一路点 Next / Install / Finish → **不再出现“已安装（Already Installed）/ 是否先卸载”那一页，也不提示 ePet 正在运行（会自动关掉它）；旧版被安静地卸载后装上新版；之前的待办、闹钟、纪念日、设置、心情值都还在。重装同一版本或装更旧的版本时仍会询问**
 - [ ] 1.6 正式版 ePet 开着时安装 ePet Test；装好后两个都开着，再重装一次 ePet Test；最后在 ePet 开着时重装正式版 → **装 ePet Test 时不弹 “is running”、不关正式版，装完两个可以同时运行（任务管理器里是 desktoppet.exe 和 epet-test.exe）；重装哪一个都不弹框，正在运行的那一个被悄悄关掉、装完重新打开即可，另一个不受影响**
 - [ ] 1.7 🍎 🤖+👀 Settings → 勾选 Start with my computer，重启电脑；再取消并重启 → **勾选时自动启动，取消后不启动** 👀 你只看真的重启电脑后 ePet 会自己启动（写入和删除系统启动项由 CI 测）
 
@@ -233,7 +233,7 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 
 - [ ] 17.1 🤖+👀 右键 → Switch character → Rooster，再切回 Cat → **换成公鸡，菜单打勾正确；切回后 Cat 的心情值还在** 👀 你只看右键菜单 Switch character 的打勾（切换和心情保留由 CI 测）
 - [ ] 17.2 🍎 🤖 Characters 页点 “your characters folder”；删掉里面的 README.txt 再点一次；把 README.txt 改几个字再点一次 → **打开用户角色文件夹，里面有 README.txt（英文说明）、character.schema.json 和 example-cat/character.json.example（id 是 example-cat）；example-cat 不会出现在 Characters 页；删掉的 README 会重新生成，改过的 README 不会被覆盖**
-- [ ] 17.3 🤖 Characters 页在 Cat 卡片下点 “⧉ Make a copy”；再点一次；在 “Cat (copy)” 下也点一次 → **文件夹里出现 cat-copy 文件夹并自动打开，里面有 character.json（id 是 cat-copy，名字 “Cat (copy)”）；面板马上多出 “Cat (copy) (custom)”，不用重启；第二次得到 cat-copy-2，名字 “Cat (copy 2)”，复制 copy 也得到下一个不重复的 id 和名字**
+- [ ] 17.3 🤖 **【新】** Characters 页在 Cat 卡片下点 “⧉ Make a copy”；再点一次；在 “Cat (copy)” 下也点一次 → **文件夹里出现 cat-copy 文件夹并自动打开，里面有 character.json（id 是 cat-copy，名字 “Cat (copy)”）；面板马上多出 “Cat (copy)”，名字旁有 custom 小标签，不用重启；第二次得到 cat-copy-2，名字 “Cat (copy 2)”，复制 copy 也得到下一个不重复的 id 和名字；中文界面下分别叫“猫咪（副本）”“猫咪（副本 2）”，标签是“自制”**
 - [ ] 17.4 🤖 选用 Cat (copy)；用记事本把它 character.json 里 palette 的 "o" 改成 "#9e9e9e"、"d" 改成 "#6d6d6d"，把 greet 台词改成自己的话，保存；点 “⟳ Reload characters”；再故意删掉一个逗号保存后 Reload → **不重启，桌面上的宠物立刻变成灰猫，心情值还在，打招呼说的是新台词；JSON 写错时 Characters 页展开显示 “1 character(s) could not be loaded” 和出错的文件、原因，其他角色照常可用**
 
 ## 18. 小游戏 Safe Landing

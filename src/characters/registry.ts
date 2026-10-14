@@ -1,3 +1,4 @@
+import { chineseCopyName } from "../i18n/chinese";
 import type { CharacterDef } from "./schema";
 import { validateCharacter } from "./validate";
 
@@ -130,6 +131,15 @@ export function copyOf(c: LoadedCharacter, registry: CharacterRegistry): { id: s
   // Named like its id, so copies can be told apart: "Cat (copy)", "Cat (copy 2)"…
   const n = id.slice(base.length + 1);
   const name = c.def.displayName.replace(/ \(copy( \d+)?\)$/, "");
+  // Its Chinese names too ("猫咪（副本 2）"), or the copies look alike in Chinese.
+  const translations = rest.translations as Record<string, { displayName?: string }> | undefined;
+  if (translations && typeof translations === "object")
+    rest.translations = Object.fromEntries(
+      Object.entries(translations).map(([lang, tr]) => [
+        lang,
+        tr && typeof tr.displayName === "string" ? { ...tr, displayName: chineseCopyName(tr.displayName, n) } : tr,
+      ]),
+    );
   const copy = { $schema: "../character.schema.json", id, displayName: `${name} (copy${n ? ` ${n}` : ""})`, ...rest };
   return { id, json: JSON.stringify(copy, null, 2) + "\n" };
 }

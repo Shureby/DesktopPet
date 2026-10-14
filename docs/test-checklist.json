@@ -1421,10 +1421,10 @@
         },
         {
           "id": "characters.copy",
-          "rev": "0.32.2",
+          "rev": "0.43.4",
           "ci": "auto",
           "do": "Characters 页在 Cat 卡片下点 “⧉ Make a copy”；再点一次；在 “Cat (copy)” 下也点一次",
-          "expect": "文件夹里出现 cat-copy 文件夹并自动打开，里面有 character.json（id 是 cat-copy，名字 “Cat (copy)”）；面板马上多出 “Cat (copy) (custom)”，不用重启；第二次得到 cat-copy-2，名字 “Cat (copy 2)”，复制 copy 也得到下一个不重复的 id 和名字"
+          "expect": "文件夹里出现 cat-copy 文件夹并自动打开，里面有 character.json（id 是 cat-copy，名字 “Cat (copy)”）；面板马上多出 “Cat (copy)”，名字旁有 custom 小标签，不用重启；第二次得到 cat-copy-2，名字 “Cat (copy 2)”，复制 copy 也得到下一个不重复的 id 和名字；中文界面下分别叫“猫咪（副本）”“猫咪（副本 2）”，标签是“自制”"
         },
         {
           "id": "characters.reload",

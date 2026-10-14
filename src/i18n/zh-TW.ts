@@ -27,7 +27,7 @@ const zhTW: Dictionary = {
     "Crouches and leaps at the cursor (or at nothing in particular).":
       "壓低身子撲向滑鼠游標（或是撲個空）。",
     "ePet wasn't running": "ePet 當時沒在執行",
-    "the computer was asleep": "電腦在睡眠",
+    "the computer was asleep": "電腦當時在睡眠",
     "another reminder was ringing": "另一個提醒正在響",
     "an app was full screen": "有應用程式在全螢幕",
     "you were presenting": "你在簡報",
@@ -229,7 +229,7 @@ const zhTW: Dictionary = {
       "寵物藏起來時，{list}不會提醒你。",
     "Full-screen apps (games, videos)": "全螢幕應用程式（遊戲、影片）",
     "When an app covers the pet's whole screen, the pet leaves it. Alarms and timers still ring, softly at first; to-dos wait. It comes back about 10 seconds after.":
-      "當某個應用程式佔滿寵物所在的整個螢幕時，寵物會離開。鬧鐘和計時器照樣響，開頭會輕一點；待辦會等一等。應用程式退出全螢幕約 10 秒後它就回來。",
+      "當某個應用程式佔滿寵物所在的整個螢幕時，寵物會離開。鬧鐘和計時器照樣響，開頭會輕一點；待辦會等一等。應用程式退出全螢幕約 10 秒後它會回來。",
     Presentations: "簡報",
     "During a PowerPoint or Keynote slide show the pet leaves and nothing rings, except important alarms. ePet is also left out of screen sharing.":
       "PowerPoint 或 Keynote 放映時，寵物會離開，也不會響鈴，重要鬧鐘除外。分享螢幕時也不會出現 ePet。",
@@ -346,7 +346,7 @@ const zhTW: Dictionary = {
     "Date|calendar": "國曆",
     "Lunar date": "農曆",
     "Day of the week": "星期幾",
-    "The holiday's own day": "節日自己的日子",
+    "The holiday's own day": "按節日自動設定",
     "Choose one… (or name your own below)": "選一個……（或在下面自己取名）",
     "e.g. 1990": "例如 1990",
     "The year it began (optional), for “36th”":
@@ -365,7 +365,7 @@ const zhTW: Dictionary = {
     Music: "音樂",
     "next date not announced yet": "下次日期尚未公佈",
     "{lead} before: {label}": "提前 {lead}：{label}",
-    "Preview its day's celebration": "預覽當天的慶祝",
+    "See how it will be celebrated on the day": "看看當天會怎麼慶祝",
     "Delete (its to-dos stay)": "刪除（它的待辦會保留）",
     "Edit anniversary · {name}": "編輯紀念日 · {name}",
     "New anniversary": "新紀念日",
@@ -373,7 +373,6 @@ const zhTW: Dictionary = {
     Since: "起始年份",
     "Remind before": "提前提醒",
     "+ Add another": "+ 再加一個",
-    "Play its day's celebration now": "馬上播放當天的慶祝",
     Preview: "預覽",
     Anniversaries: "紀念日",
     "No anniversaries yet.": "還沒有紀念日。",
@@ -390,7 +389,7 @@ const zhTW: Dictionary = {
       "「設定 → 鬧鐘和計時器」選的是「標記為錯過」：沒回應的鬧鐘不會再響。",
     Important: "重要",
     "Rings in full whatever the mode (no softer start in Quiet), and even when the pet has stepped aside for a call or a slide show: the pet comes out for it.":
-      "無論什麼模式都完整地響（安靜模式下也不會先輕後響），寵物因為通話或放映躲開時也一樣：寵物會出來提醒你。",
+      "無論什麼模式都完整地響（安靜模式下音量也不會逐漸增強），寵物因為通話或放映躲開時也一樣：寵物會出來提醒你。",
     "Your custom timer": "你的自訂計時",
     "Change this one": "修改這個",
     "Forget this one": "不要這個了",
@@ -416,7 +415,8 @@ const zhTW: Dictionary = {
     "Focusing until {time}": "專注到{time}",
     "Play anyway?": "還是要玩嗎？",
     "Play anyway": "還是要玩",
-    "On: will ring": "開：會響",
+    "Alarm on": "鬧鐘已開啟",
+    "Alarm off": "鬧鐘已關閉",
     "{name} on/off": "{name} 開/關",
     "next {when}": "下一個：{when}",
     "Upcoming ({n})": "即將到來（{n}）",
@@ -456,7 +456,7 @@ const zhTW: Dictionary = {
     Grumpy: "鬧脾氣",
     Sulking: "生悶氣",
     " · hungry": " · 餓了",
-    " (custom)": "（自製）",
+    "custom|character": "自製",
     "Copy it into your characters folder to make your own":
       "複製到你的角色資料夾，做一個你自己的",
     "⧉ Make a copy": "⧉ 複製一份",
@@ -528,7 +528,7 @@ const zhTW: Dictionary = {
     "Ring volume": "鈴聲音量",
     "How loud alarms, timers and to-do reminders ring in this mode, as a share of the volume set under Alarms & timers / To-do reminders.":
       "在這個模式下，鬧鐘、計時器和待辦提醒的音量，按「鬧鐘和計時器」/「待辦提醒」裡設定音量的比例算。",
-    "Start soft, get louder": "先輕後響",
+    "Start soft, get louder": "音量逐漸增強",
     "Alarms and timers start at a quarter of their volume and get louder over 30 seconds, up to the Ring volume.":
       "鬧鐘和計時器先以四分之一的音量開始，30 秒內漸漸變大，直到鈴聲音量。",
     "Alarms ring for": "鬧鐘響鈴時長",
@@ -540,19 +540,20 @@ const zhTW: Dictionary = {
     "1 min": "1 分鐘",
     "Comes to the middle": "跑到螢幕中間",
     "When something rings, the pet runs to the middle of the screen (if that's on for alarms or to-dos). Off: it perks up where it is.":
-      "有提醒響起時，寵物跑到螢幕中間（如果鬧鐘或待辦開啟了這一項）。關閉時：它在原地打起精神。",
+      "有提醒響起時，寵物會先跑到螢幕中間（需在設定裡為鬧鐘或待辦開啟這一項）。不勾選時，它就在原地提醒。",
     "To-dos ring": "待辦響鈴",
     "To-do reminders play their ringtone. Off: just the bubble. Alarms and timers always ring.":
       "待辦提醒會播放鈴聲。關閉時：只彈出氣泡。鬧鐘和計時器總會響。",
+    Celebrations: "紀念日",
     "Now: fireworks or the candle play on the day. Later: they wait with a 🎉 badge by the pet; when a mode with “Now” begins, the pet asks whether to celebrate.":
-      "現在：紀念日當天播放煙火或蠟燭。稍後：在寵物旁邊留一個 🎉 標記等著；到了設為「現在」的模式時，寵物會問要不要慶祝。",
-    Now: "現在",
-    Later: "稍後",
+      "立即慶祝：紀念日當天直接放煙火或點蠟燭。稍後慶祝：先在寵物旁留一個 🎉 標記；切換到設為「立即慶祝」的模式時，寵物會問要不要慶祝。",
+    "Now|celebrate": "立即慶祝",
+    "Later|celebrate": "稍後慶祝",
     "Anniversary music": "紀念日音樂",
-    "On: anniversaries play their music even if music is off under To-do reminders. “As set”: as set there.":
-      "開：即使「待辦提醒」裡關了音樂，紀念日也播放音樂。「按設定」：照那裡的設定。",
+    "On: anniversaries play their music in this mode even if “Play music with it” is off in Settings. “As set”: follows that setting.":
+      "開：即使設定裡沒勾「同時播放音樂」，這個模式下紀念日也會播放音樂。按設定：跟設定裡的「同時播放音樂」一致。",
     On: "開",
-    "Talks on its own": "自己說話",
+    "Talks on its own": "主動搭話",
     "The pet says things now and then without being asked: bored, hungry, happy to see you. Reminders and replies to petting still show.":
       "寵物時不時會主動說幾句：無聊了、餓了、見到你很高興。提醒和摸它時的回應照常顯示。",
     "Petting & focus sounds": "摸寵物/專注音",
@@ -637,7 +638,7 @@ const zhTW: Dictionary = {
       "我們在專注，到{time}。還是要玩嗎？",
     "We're focusing. Play anyway?": "我們在專注。還是要玩嗎？",
     "Stepped aside: {why}": "已躲開：{why}",
-    "{mode} until {time}": "{mode}，到{time}",
+    "{mode} until {time}": "{mode}，{time}結束",
     "💤 Snoozed until {time}. Right-click me to cancel.":
       "💤 {time}再提醒你。右鍵點我可以取消。",
     "Couldn't snooze: {error}": "無法貪睡：{error}",
@@ -663,6 +664,7 @@ const zhTW: Dictionary = {
     "; ": "；",
     "Snooze {n} min": "{n} 分鐘後再提醒",
     "Open To-dos": "開啟待辦",
+    Later: "稍後",
     "📅 Today:": "📅 今天：",
     "✓ Done": "✓ 完成",
     "💤 No answer… I'll try {name} again at {time} ({n}/{max}).":

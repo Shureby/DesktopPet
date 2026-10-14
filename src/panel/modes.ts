@@ -135,15 +135,15 @@ const PRESET_ROWS: PresetRow[] = [
   },
   { label: msg("To-dos ring"), key: "todoRing", info: msg("To-do reminders play their ringtone. Off: just the bubble. Alarms and timers always ring.") },
   {
-    label: msg("Anniversaries"),
+    label: msg("Celebrations"),
     key: "celebrate",
     info: msg("Now: fireworks or the candle play on the day. Later: they wait with a 🎉 badge by the pet; when a mode with “Now” begins, the pet asks whether to celebrate."),
-    options: [[msg("Now"), "play"], [msg("Later"), "postpone"]],
+    options: [[msg("Now|celebrate"), "play"], [msg("Later|celebrate"), "postpone"]],
   },
   {
     label: msg("Anniversary music"),
     key: "music",
-    info: msg("On: anniversaries play their music even if music is off under To-do reminders. “As set”: as set there."),
+    info: msg("On: anniversaries play their music in this mode even if “Play music with it” is off in Settings. “As set”: follows that setting."),
     options: [[msg("As set"), false], [msg("On"), true]],
   },
   {

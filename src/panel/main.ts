@@ -857,7 +857,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
           ? h("span", { class: "preps" }, a.preps.map((p) => t("{lead} before: {label}", { lead: leadLabel(p.lead), label: p.label })).join(" · "))
           : null,
       ),
-      previewButton(`ann-${a.id}`, "icon edit", t("Preview its day's celebration"), "", () => void backend.previewCelebration(a)),
+      previewButton(`ann-${a.id}`, "icon edit", t("See how it will be celebrated on the day"), "", () => void backend.previewCelebration(a)),
       h("button", { class: "icon edit", title: t("Edit"), onclick: () => startEdit(a) }, "✎"),
       h("button", { class: "icon delete", title: t("Delete (its to-dos stay)"), onclick: () => void backend.deleteAnniversary(a.id) }, icon("close")),
     );
@@ -911,7 +911,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
       h(
         "div",
         { class: "row end" },
-        previewButton("form", "preview", t("Play its day's celebration now"), t("Preview"), preview),
+        previewButton("form", "preview", t("See how it will be celebrated on the day"), t("Preview"), preview),
         h("button", { class: "primary", onclick: () => void save() }, editingAnn ? t("Save") : t("Add")),
       ),
     ),
@@ -1319,7 +1319,7 @@ async function playGame(game: string): Promise<void> {
 function toggle(on: boolean, name: string, onChange: (input: HTMLInputElement) => void): Node {
   return h(
     "label",
-    { class: "switch", title: on ? t("On: will ring") : t("Off") },
+    { class: "switch", title: on ? t("Alarm on") : t("Alarm off") },
     h("input", {
       type: "checkbox",
       role: "switch",
@@ -1635,7 +1635,8 @@ async function renderCharacters(): Promise<Node> {
           "button",
           { class: `card ${c.def.id === settings.character ? "selected" : ""}`, onclick: () => void save({ character: c.def.id }) },
           await preview(c),
-          h("strong", {}, characterName(c.def), c.source === "user" ? h("em", {}, t(" (custom)")) : null),
+          // A character of your own: a "custom" tag by its name (Chinese copies are named 猫咪（副本）).
+          h("div", { class: "name" }, h("strong", {}, characterName(c.def)), c.source === "user" ? h("span", { class: "chip custom" }, t("custom|character")) : null),
           h("p", {}, characterDescription(c.def)),
           h("div", { class: "chips" }, ...c.def.abilities.map((a) => h("span", { class: "chip", title: t(ABILITIES[a.id]?.description ?? "") }, ABILITIES[a.id] ? t(ABILITIES[a.id].name) : a.id))),
           h("p", { class: "style" }, `🥊 ${characterStyle(c.def)}`),
