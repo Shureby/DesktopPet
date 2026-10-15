@@ -66,8 +66,13 @@ check("post.enable", "ticking it in Settings → Pet Post starts it on LocalSend
 
 check("post.discover", "a LocalSend device announcing itself is answered (over HTTPS, its certificate checked) and listed", async () => {
   const app = ctx.app;
-  await peer.announce();
-  const reg = await until("ePet answers the announcement", () => peer.registered.find((r) => r.fingerprint === fingerprint), 20_000);
+  // Announced again until answered, as LocalSend does: a multicast packet can be lost.
+  let reg;
+  for (let i = 0; i < 6 && !reg; i++) {
+    await peer.announce();
+    reg = await until("ePet answers the announcement", () => peer.registered.find((r) => r.fingerprint === fingerprint), 5000).catch(() => null);
+  }
+  assert.ok(reg, `no answer to 6 announcements; registered: ${JSON.stringify(peer.registered)}`);
   assert.match(reg.alias, /^Cat on /);
   assert.equal(reg.protocol, "https");
   await app.toPet();
