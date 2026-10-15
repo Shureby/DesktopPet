@@ -88,6 +88,7 @@ import {
 } from "./alarmText";
 import { icon } from "../ui/icons";
 import { backupSection } from "./backup";
+import { postSection } from "./postSettings";
 import { hmText, infoTip, modesSection } from "./modes";
 import { avoidSection } from "./avoid";
 import { dayPicker, week } from "./dayPicker";
@@ -1772,6 +1773,8 @@ async function renderSettings(): Promise<Node> {
         t("Other sounds (petting)"),
       ),
     ),
+    h("h3", {}, t("Pet Post")),
+    postSection(backend, () => settings, save, () => characterName(registry.pick(settings.character, "cat").def)),
     h("h3", {}, t("Backup")),
     backupSection(backend),
     h(

@@ -151,7 +151,7 @@ export function alarmBadgeLine(a: Alarm & { nextFire: number }): string {
   return name.endsWith(at) ? name : `${name} · ${at}`;
 }
 
-const UNSEEN_ICON: Record<Unseen["kind"], string> = { alarm: "⏰", timer: "⏱", todo: "📝" };
+const UNSEEN_ICON: Record<Unseen["kind"], string> = { alarm: "⏰", timer: "⏱", todo: "📝", post: "📦" };
 
 /**
  * "While I was hidden you missed:" and one line per item, oldest first, each with its own

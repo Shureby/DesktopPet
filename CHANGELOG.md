@@ -16,6 +16,22 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.44.0] - 2026-10-15
+
+### Added
+- **Pet Post (宠物驿站 / 寵物驛站)**: send and receive files, folders and text with phones
+  and computers on the same network. Works with LocalSend (Android, iOS, Windows, macOS,
+  Linux) and with ePet on another computer. Off until turned on in Settings → Pet Post.
+  Drop files on the pet to send them, or use the new Pet Post window (pet or tray menu →
+  "Open Pet Post…"). When someone sends you files the pet asks (Accept / Decline / Always
+  accept); trusted devices, an optional PIN and the save folder are in Settings.
+- macOS: the "local network" permission says what Pet Post uses it for.
+
+### Changed (development)
+- New dependencies for the network: tokio, hyper, rustls (ring), rcgen, socket2, if-addrs
+  (see docs/THIRD_PARTY.md). Tests: two Pet Posts talking to each other, end-to-end tests
+  against a pretend LocalSend device, and (by hand) against the official LocalSend CLI.
+
 ## [0.43.4] - 2026-10-14
 
 ### Changed

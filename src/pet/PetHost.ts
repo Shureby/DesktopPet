@@ -1,6 +1,6 @@
 import { longWeekday, shortDate, weekdayShort, weekdayTime } from "../i18n/format";
 import { isChinese, onLanguage, t } from "../i18n";
-import { characterLines } from "../characters/text";
+import { characterLines, characterName } from "../characters/text";
 import { HoverTracker, RunStopper } from "../brain/hover";
 import { todoRemindsAt } from "../features/todo/repeat";
 import { celebrationEffect, celebrationLines, musicFor } from "../features/anniversary/templates";
@@ -64,6 +64,7 @@ import {
 } from "../features/avoid/avoid";
 import { baseMode, dayKey, MODE_ICONS, MODE_NAMES, modeNow, presetOf, type ModeNow, type ModePreset } from "../features/modes/modes";
 import { playFocusTone, playMusic, playRingtone, ringAlarm, sounds } from "./sound";
+import { Courier, type CourierHost } from "./courier";
 
 /** Stepping aside, it dashes off the screen in about this long (the app hides it after 3 s anyway). */
 const LEAVE_SECONDS = 1.2;
@@ -270,6 +271,8 @@ export class PetHost {
   private celebrateAllowed: boolean | null = null;
   /** Celebrations asked for now (the 🎉 badge, "Celebrate"): played whatever the mode. */
   private readonly celebrateAnyway = new WeakSet<Celebration>();
+  /** Pet Post: the pet carries files to and from devices nearby (courier.ts). */
+  private readonly courier: Courier;
 
   constructor(
     private readonly backend: Backend,
@@ -285,6 +288,7 @@ export class PetHost {
     this.ctx = canvas.getContext("2d", { willReadFrequently: false })!;
     this.windowed = backend.kind === "tauri";
     this.settings = settings;
+    this.courier = new Courier(this.courierHost());
   }
 
   async start(): Promise<void> {
@@ -370,6 +374,14 @@ export class PetHost {
     await this.backend.on("alarms-changed", () => void this.refreshTimers());
     await this.backend.on("characters-changed", () => void this.reloadCharacters());
     await this.backend.on("pet-event", (e) => this.onActivity(e));
+    await this.courier.start();
+    // Files dropped on the pet (the window only takes them while the mouse is over it).
+    if (this.windowed) {
+      const { getCurrentWebview } = await import("@tauri-apps/api/webview");
+      await getCurrentWebview().onDragDropEvent((e) => {
+        if (e.payload.type === "drop") this.courier.dropped(e.payload.paths);
+      });
+    }
     const clock = await this.backend.testClock().catch(() => null);
     this.clockInTray = clock?.inTray ?? false;
     this.clockShift = clock?.shift ?? 0;
@@ -466,6 +478,8 @@ export class PetHost {
       this.pet.speed = s.speed;
     }
     this.updateMode();
+    // Pet Post: on or off, its name (the pet's), who's trusted.
+    void this.courier.configure();
   }
 
   /**
@@ -802,6 +816,8 @@ export class PetHost {
     // Hovering a badge shows what it stands for (updateBadgeInfo): what, then when, then
     // what a click does, on its own last line. Same shape for every badge.
     const info = (lines: string[], action: string) => [...lines, action].join("\n");
+    const parcel = this.courier.badge();
+    if (parcel) rows.push({ text: parcel.text, title: info([parcel.title], t("Open Pet Post")), onClick: parcel.onClick, live: true });
     const p = this.pomodoro;
     if (p.phase !== "idle" && p.endsAt) {
       const icon = p.phase === "focus" ? "🍅" : "☕";
@@ -1705,6 +1721,87 @@ export class PetHost {
       this.hideBubble();
       ring?.onTimeout();
     }, ms);
+  }
+
+  /** What Pet Post's courier (courier.ts) may do with the pet. */
+  private courierHost(): CourierHost {
+    const host = this;
+    return {
+      get backend() {
+        return host.backend;
+      },
+      settings: () => this.settings,
+      petName: () => characterName(this.pet.def),
+      say: (text, ms, actions, onTimeout, important) => this.say(text, ms, actions, onTimeout, important),
+      unsay: (first) => {
+        if (this.bubble.hidden || this.bubble.firstElementChild?.textContent !== first) return;
+        this.activeRing = null;
+        this.importantUntil = 0;
+        clearTimeout(this.bubbleTimer);
+        this.hideBubble();
+      },
+      ask: (title, label, submit) => void this.askLine(title, label, submit),
+      free: () => !this.activeRing && !this.prompting,
+      hidden: () => !this.petVisible,
+      away: () => this.away !== null,
+      quiet: () => this.modeState.mode === "quiet",
+      comeOut: async () => {
+        const out = await this.backend.postPeek();
+        if (out || this.hidden) this.enterPeek();
+      },
+      chime: () => {
+        const mode = this.preset();
+        if (mode.sounds) playRingtone("chime", this.settings.alerts.todo.volume * mode.volume);
+      },
+      recordMissed: (title) => this.backend.recordUnseen({ kind: "post", refId: 0, title, at: Date.now(), snoozes: 0 }),
+      redraw: () => delete this.badges.dataset.text,
+    };
+  }
+
+  /** Asks for a line of text in the bubble (Pet Post's PIN). */
+  private async askLine(title: string, label: string, submit: (value: string) => void): Promise<void> {
+    if (this.activeRing) return;
+    clearTimeout(this.bubbleTimer);
+    this.prompting = true;
+    const close = () => {
+      this.prompting = false;
+      this.hideBubble();
+    };
+    const input = Object.assign(document.createElement("input"), { type: "text", className: "duration", placeholder: label });
+    input.setAttribute("aria-label", label);
+    const ok = () => {
+      const value = input.value.trim();
+      if (!value) return input.focus();
+      close();
+      submit(value);
+    };
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") ok();
+      if (e.key === "Escape") close();
+    });
+    const button = (text: string | Node, tip: string, onClick: () => void) => {
+      const b = document.createElement("button");
+      b.append(text);
+      b.title = tip;
+      b.addEventListener("click", (e) => {
+        e.stopPropagation();
+        onClick();
+      });
+      return b;
+    };
+    const head = document.createElement("div");
+    head.textContent = title;
+    const row = document.createElement("div");
+    row.className = "actions";
+    row.append(input, button(t("OK"), t("OK"), ok), button(icon("close"), t("Cancel"), close));
+    this.bubble.replaceChildren(head, row);
+    this.bubble.hidden = false;
+    this.bubbleTimer = setTimeout(close, 60_000);
+    if (this.windowed) {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      await getCurrentWindow().setFocus();
+    }
+    input.focus();
   }
 
   /** A bubble's button pressed (or the tray's Done / Snooze while ringing). */

@@ -224,6 +224,7 @@ export function buildItems(c: PetMenuContext): (Item | "sep")[] {
     "sep",
     modeItem(c),
     { text: t("Open panel…"), action: () => void c.backend.openPanel(panelTabFor(c)) },
+    { text: t("Open Pet Post…"), action: () => void c.backend.openPostWindow() },
     { text: t("Hide pet"), action: c.hide },
   ];
 }
@@ -254,6 +255,7 @@ export function buildTrayItems(c: TrayMenuContext): (Item | "sep")[] {
     modeItem(c),
     ...(c.away ? [{ text: t("Stepped aside: {why}", { why: t(AVOID_LABELS[c.away]) }), disabled: true }] : []),
     { text: t("Open panel…"), action: () => void c.backend.openPanel(panelTabFor(c)) },
+    { text: t("Open Pet Post…"), action: () => void c.backend.openPostWindow() },
     "sep",
     { id: "quit", text: t("Quit") },
   ];

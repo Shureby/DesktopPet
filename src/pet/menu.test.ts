@@ -139,7 +139,7 @@ describe("tray menu", () => {
   it("[tray.items] differs only in show/hide on top and Quit at the bottom", () => {
     expect(outline(buildTrayItems(trayCtx())).slice(0, 2)).toEqual(["Hide pet", "—"]);
     expect(outline(buildTrayItems(trayCtx({ petVisible: false })))[0]).toBe("Show pet");
-    expect(outline(buildTrayItems(trayCtx())).slice(-3)).toEqual(["Open panel…", "—", "Quit"]);
+    expect(outline(buildTrayItems(trayCtx())).slice(-4)).toEqual(["Open panel…", "Open Pet Post…", "—", "Quit"]);
     expect(texts(buildItems(ctx()))).not.toContain("Quit");
   });
 

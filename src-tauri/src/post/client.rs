@@ -1,0 +1,420 @@
+//! Pet Post's client: introducing ourselves to a device (`register`) and sending it
+//! files or a text (`prepare-upload`, then each file's `upload`; `cancel` to stop).
+
+use std::collections::{BTreeMap, HashMap};
+use std::net::IpAddr;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, AtomicI64, AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+
+use bytes::Bytes;
+use desktoppet_core::post::{mime_type, random_id, DeviceInfo, FileInfo, PrepareUpload, PrepareUploadResponse, API};
+use http_body_util::combinators::BoxBody;
+use http_body_util::{BodyExt, Full, Limited, StreamBody};
+use hyper::body::Frame;
+use hyper::{Method, Request};
+use hyper_util::rt::TokioIo;
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite};
+use tokio::net::TcpStream;
+use tokio_rustls::TlsConnector;
+
+use super::{lock, tls, Device, Inner, Transfer};
+use crate::state::now_ms;
+
+type ReqBody = BoxBody<Bytes, std::io::Error>;
+
+/// At most this many files in one delivery (a folder of a whole drive is a mistake).
+const MAX_FILES: usize = 10_000;
+
+/// The delivery being sent.
+pub(crate) struct Sending {
+    task: tauri::async_runtime::JoinHandle<()>,
+    device: Device,
+    /// Known once the receiver accepted.
+    session: Arc<Mutex<Option<String>>>,
+    /// Set just before the last word on it (done, declined…), so the next one may start.
+    over: Arc<AtomicBool>,
+}
+
+/// Where a file's data comes from.
+enum Source {
+    File(PathBuf),
+    Text(Bytes),
+}
+
+pub(crate) struct Reply {
+    pub status: u16,
+    pub body: Bytes,
+    /// The server certificate's fingerprint (HTTPS).
+    pub cert: Option<String>,
+}
+
+fn json_body(value: &impl serde::Serialize) -> ReqBody {
+    let bytes = serde_json::to_vec(value).unwrap_or_default();
+    Full::new(Bytes::from(bytes)).map_err(|never| match never {}).boxed()
+}
+
+/// Where a request goes. `expected`: the fingerprint its certificate must have (HTTPS).
+#[derive(Clone)]
+pub(crate) struct Peer {
+    pub ip: IpAddr,
+    pub port: u16,
+    pub https: bool,
+    pub expected: Option<String>,
+}
+
+impl Peer {
+    fn of(d: &Device) -> Self {
+        Peer { ip: d.ip, port: d.port, https: d.https, expected: d.https.then(|| d.fingerprint.clone()) }
+    }
+}
+
+/// One request to a device.
+pub(crate) async fn request(
+    inner: &Inner,
+    peer: &Peer,
+    path: &str,
+    body: ReqBody,
+    length: Option<u64>,
+    connect: Duration,
+) -> Result<Reply, String> {
+    let (ip, port) = (peer.ip, peer.port);
+    let stream = tokio::time::timeout(connect, TcpStream::connect((ip, port)))
+        .await
+        .map_err(|_| "timeout".to_string())?
+        .map_err(|e| e.to_string())?;
+    if !peer.https {
+        return exchange(TokioIo::new(stream), ip, port, path, body, length, None).await;
+    }
+    let id = inner.identity().ok_or("Pet Post is off")?;
+    let seen = tls::SeenCert::default();
+    let config = tls::client_config(&id, peer.expected.clone(), seen.clone())?;
+    let name = rustls::pki_types::ServerName::IpAddress(ip.into());
+    let tls = tokio::time::timeout(Duration::from_secs(10), TlsConnector::from(Arc::new(config)).connect(name, stream))
+        .await
+        .map_err(|_| "timeout".to_string())?
+        .map_err(|e| e.to_string())?;
+    let cert = lock(&seen).clone();
+    exchange(TokioIo::new(tls), ip, port, path, body, length, cert).await
+}
+
+async fn exchange<S>(
+    io: TokioIo<S>,
+    ip: IpAddr,
+    port: u16,
+    path: &str,
+    body: ReqBody,
+    length: Option<u64>,
+    cert: Option<String>,
+) -> Result<Reply, String>
+where
+    S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+{
+    let (mut sender, conn) = hyper::client::conn::http1::handshake(io).await.map_err(|e| e.to_string())?;
+    tauri::async_runtime::spawn(async move {
+        let _ = conn.await;
+    });
+    let host = match ip {
+        IpAddr::V6(v6) => format!("[{v6}]:{port}"),
+        v4 => format!("{v4}:{port}"),
+    };
+    let mut req = Request::builder().method(Method::POST).uri(path).header(hyper::header::HOST, host);
+    req = match length {
+        Some(n) => {
+            req.header(hyper::header::CONTENT_LENGTH, n).header(hyper::header::CONTENT_TYPE, "application/octet-stream")
+        }
+        None => req.header(hyper::header::CONTENT_TYPE, "application/json"),
+    };
+    let req = req.body(body).map_err(|e| e.to_string())?;
+    let res = sender.send_request(req).await.map_err(|e| e.to_string())?;
+    let status = res.status().as_u16();
+    let body = Limited::new(res.into_body(), 1024 * 1024).collect().await.map(|b| b.to_bytes()).unwrap_or_default();
+    Ok(Reply { status, body, cert })
+}
+
+/// Introduces this device to the one at `ip:port` and learns who it is. Over HTTPS its
+/// fingerprint is its certificate's (and must be the one it announced, if `expected`).
+pub(crate) async fn register(
+    inner: &Inner,
+    ip: IpAddr,
+    port: u16,
+    https: bool,
+    expected: Option<String>,
+) -> Option<Device> {
+    let path = format!("{API}/register");
+    let peer = Peer { ip, port, https, expected };
+    let call = request(inner, &peer, &path, json_body(&inner.info(true)), None, Duration::from_millis(800));
+    let reply = tokio::time::timeout(Duration::from_secs(3), call).await.ok()?.ok()?;
+    if reply.status != 200 {
+        return None;
+    }
+    let mut info: DeviceInfo = serde_json::from_slice(&reply.body).ok()?;
+    if let Some(cert) = reply.cert {
+        if !info.fingerprint.is_empty() && !info.fingerprint.eq_ignore_ascii_case(&cert) {
+            return None;
+        }
+        info.fingerprint = cert;
+    }
+    info.port = Some(port);
+    info.protocol = Some(if https { "https" } else { "http" }.into());
+    Some(Device::from_info(&info, ip))
+}
+
+/// The files to send: each path a file, or a folder sent with what's in it.
+fn collect(paths: &[PathBuf]) -> Result<Vec<(FileInfo, Source)>, String> {
+    let mut out = Vec::new();
+    for p in paths {
+        let name = p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| "file".into());
+        walk(p, &name, 0, &mut out)?;
+    }
+    if out.is_empty() {
+        return Err("empty".into());
+    }
+    Ok(out)
+}
+
+fn walk(path: &Path, rel: &str, depth: u32, out: &mut Vec<(FileInfo, Source)>) -> Result<(), String> {
+    let meta = std::fs::metadata(path).map_err(|e| e.to_string())?;
+    if meta.is_dir() {
+        if depth > 32 {
+            return Ok(());
+        }
+        let mut entries: Vec<_> = std::fs::read_dir(path).map_err(|e| e.to_string())?.flatten().collect();
+        entries.sort_by_key(|e| e.file_name());
+        for e in entries {
+            let name = e.file_name().to_string_lossy().into_owned();
+            walk(&e.path(), &format!("{rel}/{name}"), depth + 1, out)?;
+        }
+        return Ok(());
+    }
+    if out.len() >= MAX_FILES {
+        return Err("too many files".into());
+    }
+    let modified = meta.modified().ok().map(|t| chrono::DateTime::<chrono::Utc>::from(t).to_rfc3339());
+    let id = random_id();
+    let info = FileInfo {
+        id: id.clone(),
+        file_name: rel.to_string(),
+        size: meta.len(),
+        file_type: mime_type(rel).into(),
+        sha256: None,
+        preview: None,
+        metadata: modified.map(|m| serde_json::json!({ "modified": m })),
+    };
+    out.push((info, Source::File(path.to_path_buf())));
+    Ok(())
+}
+
+fn text_file(text: &str) -> (FileInfo, Source) {
+    let id = random_id();
+    let bytes = Bytes::from(text.as_bytes().to_vec());
+    let info = FileInfo {
+        id: id.clone(),
+        file_name: format!("{id}.txt"),
+        size: bytes.len() as u64,
+        file_type: "text/plain".into(),
+        sha256: None,
+        preview: Some(text.to_string()),
+        metadata: None,
+    };
+    (info, Source::Text(bytes))
+}
+
+/// Starts sending to `device`; "post-transfer" events say how it goes.
+pub(crate) fn send(
+    inner: Arc<Inner>,
+    device: Device,
+    paths: Vec<PathBuf>,
+    text: Option<String>,
+    pin: Option<String>,
+) -> Result<(), String> {
+    let mut sending = lock(&inner.sending);
+    if sending.as_ref().is_some_and(|s| !s.over.load(Ordering::SeqCst)) {
+        return Err("busy".into());
+    }
+    let session = Arc::new(Mutex::new(None));
+    let over = Arc::new(AtomicBool::new(false));
+    let job = Job { device: device.clone(), session: session.clone(), over: over.clone() };
+    let task = tauri::async_runtime::spawn(run(inner.clone(), job, paths, text, pin));
+    *sending = Some(Sending { task, device, session, over });
+    Ok(())
+}
+
+/// Stops sending, and tells the receiver.
+pub(crate) fn cancel(inner: Arc<Inner>) {
+    let Some(s) = lock(&inner.sending).take() else { return };
+    if s.over.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    s.task.abort();
+    let session = lock(&s.session).clone().unwrap_or_default();
+    let peer = s.device.alias.clone();
+    inner.transfer(Transfer { direction: "out", state: "cancelled", peer, ..Default::default() });
+    tauri::async_runtime::spawn(async move {
+        let d = s.device;
+        let path = format!("{API}/cancel?sessionId={session}");
+        let _ = request(&inner, &Peer::of(&d), &path, json_body(&()), Some(0), Duration::from_secs(3)).await;
+    });
+}
+
+fn pin_query(pin: &Option<String>) -> String {
+    match pin.as_deref().filter(|p| !p.is_empty()) {
+        Some(p) => format!(
+            "?pin={}",
+            p.bytes()
+                .map(|b| if b.is_ascii_alphanumeric() { (b as char).to_string() } else { format!("%{b:02X}") })
+                .collect::<String>()
+        ),
+        None => String::new(),
+    }
+}
+
+/// What `run` shares with `cancel`.
+struct Job {
+    device: Device,
+    session: Arc<Mutex<Option<String>>>,
+    over: Arc<AtomicBool>,
+}
+
+async fn run(inner: Arc<Inner>, job: Job, paths: Vec<PathBuf>, text: Option<String>, pin: Option<String>) {
+    let Job { device: d, session, over } = job;
+    let report = |state: &'static str, done: u64, total: u64, files: usize, error: Option<String>| {
+        if !matches!(state, "waiting" | "sending") && over.swap(true, Ordering::SeqCst) {
+            // Cancelled meanwhile: that was the last word.
+            return;
+        }
+        inner.transfer(Transfer {
+            direction: "out",
+            state,
+            peer: d.alias.clone(),
+            done,
+            total,
+            files,
+            error,
+            ..Default::default()
+        });
+    };
+    let items = match text.as_deref() {
+        Some(t) => Ok(vec![text_file(t)]),
+        None => {
+            tauri::async_runtime::spawn_blocking(move || collect(&paths)).await.unwrap_or_else(|e| Err(e.to_string()))
+        }
+    };
+    let items = match items {
+        Ok(items) => items,
+        Err(e) => return report("failed", 0, 0, 0, Some(e)),
+    };
+    let total: u64 = items.iter().map(|(f, _)| f.size).sum();
+    let count = items.len();
+    report("waiting", 0, total, count, None);
+    let files: BTreeMap<String, FileInfo> = items.iter().map(|(f, _)| (f.id.clone(), f.clone())).collect();
+    let mut sources: HashMap<String, (u64, Source)> = items.into_iter().map(|(f, s)| (f.id, (f.size, s))).collect();
+    let body = json_body(&PrepareUpload { info: inner.info(true), files });
+    let path = format!("{API}/prepare-upload{}", pin_query(&pin));
+    let peer = Peer::of(&d);
+    // The receiver's owner decides meanwhile (LocalSend waits as long as it takes).
+    let reply = tokio::time::timeout(
+        Duration::from_secs(600),
+        request(&inner, &peer, &path, body, None, Duration::from_secs(5)),
+    )
+    .await
+    .unwrap_or_else(|_| Err("timeout".into()));
+    let reply = match reply {
+        Ok(r) => r,
+        Err(e) => return report("failed", 0, total, count, Some(e)),
+    };
+    let state = match reply.status {
+        200 => "",
+        204 => "done",
+        401 => "pin",
+        403 => "declined",
+        409 => "busy",
+        429 => "tooMany",
+        _ => "failed",
+    };
+    if !state.is_empty() {
+        let error = (state == "failed").then(|| format!("HTTP {}", reply.status));
+        return report(state, if state == "done" { total } else { 0 }, total, count, error);
+    }
+    let Ok(accepted) = serde_json::from_slice::<PrepareUploadResponse>(&reply.body) else {
+        return report("failed", 0, total, count, Some("bad answer".into()));
+    };
+    *lock(&session) = Some(accepted.session_id.clone());
+    // Only the files the receiver wants (it may have skipped some).
+    let total: u64 = accepted.files.keys().filter_map(|id| sources.get(id).map(|(n, _)| *n)).sum();
+    let sent = Arc::new(AtomicU64::new(0));
+    let last_emit = Arc::new(AtomicI64::new(0));
+    report("sending", 0, total, count, None);
+    for (file_id, token) in &accepted.files {
+        let Some((size, source)) = sources.remove(file_id) else { continue };
+        let is_text = matches!(source, Source::Text(_));
+        let body: ReqBody = match source {
+            Source::Text(b) => Full::new(b).map_err(|never| match never {}).boxed(),
+            Source::File(p) => match tokio::fs::File::open(&p).await {
+                Ok(f) => file_body(f, inner.clone(), d.alias.clone(), sent.clone(), last_emit.clone(), total, count),
+                Err(e) => return report("failed", sent.load(Ordering::Relaxed), total, count, Some(e.to_string())),
+            },
+        };
+        let path = format!("{API}/upload?sessionId={}&fileId={}&token={}", accepted.session_id, file_id, token);
+        let reply = request(&inner, &peer, &path, body, Some(size), Duration::from_secs(5)).await;
+        match reply {
+            Ok(r) if r.status == 200 || r.status == 204 => {}
+            other => {
+                let error = match other {
+                    Ok(r) => format!("HTTP {}", r.status),
+                    Err(e) => e,
+                };
+                let cancel = format!("{API}/cancel?sessionId={}", accepted.session_id);
+                let _ = request(&inner, &peer, &cancel, json_body(&()), Some(0), Duration::from_secs(3)).await;
+                return report("failed", sent.load(Ordering::Relaxed), total, count, Some(error));
+            }
+        }
+        if is_text {
+            sent.fetch_add(size, Ordering::Relaxed);
+        }
+    }
+    report("done", total, total, count, None);
+}
+
+/// A file's data for an upload, counting what's sent (and saying so a few times a second).
+fn file_body(
+    file: tokio::fs::File,
+    inner: Arc<Inner>,
+    peer: String,
+    sent: Arc<AtomicU64>,
+    last_emit: Arc<AtomicI64>,
+    total: u64,
+    files: usize,
+) -> ReqBody {
+    let stream = futures_util::stream::unfold(Some(file), move |file| {
+        let (inner, peer, sent, last_emit) = (inner.clone(), peer.clone(), sent.clone(), last_emit.clone());
+        async move {
+            let mut f = file?;
+            let mut buf = vec![0u8; 64 * 1024];
+            match f.read(&mut buf).await {
+                Ok(0) => None,
+                Ok(n) => {
+                    buf.truncate(n);
+                    let done = sent.fetch_add(n as u64, Ordering::Relaxed) + n as u64;
+                    let now = now_ms();
+                    if now - last_emit.load(Ordering::Relaxed) >= 200 {
+                        last_emit.store(now, Ordering::Relaxed);
+                        inner.transfer(Transfer {
+                            direction: "out",
+                            state: "sending",
+                            peer,
+                            done,
+                            total,
+                            files,
+                            ..Default::default()
+                        });
+                    }
+                    Some((Ok(Frame::data(Bytes::from(buf))), Some(f)))
+                }
+                Err(e) => Some((Err(e), None)),
+            }
+        }
+    });
+    StreamBody::new(stream).boxed()
+}

@@ -34,7 +34,7 @@ fn backups_dir<R: Runtime>(app: &AppHandle<R>) -> CmdResult<PathBuf> {
 }
 
 /// This computer's name ("HOME-PC") and system, to tell backups apart.
-fn device() -> Device {
+pub(crate) fn device() -> Device {
     let name = std::env::var("COMPUTERNAME")
         .ok()
         .or_else(|| {

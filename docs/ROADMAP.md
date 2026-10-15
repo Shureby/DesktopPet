@@ -12,7 +12,7 @@
   SteamOS unticked.
 - **Direct build**: auto-updater feed, code signing, license keys.
 
-## Pet Post: send files on the local network (0.44)
+## Pet Post: send files on the local network (shipped in 0.44.0)
 
 Chinese name 宠物驿站 / 寵物驛站. Store and in-app line: "Works with LocalSend" /
 “可与 LocalSend 互传”.
@@ -26,7 +26,8 @@ Chinese name 宠物驿站 / 寵物驛站. Store and in-app line: "Works with Loc
 - The pet is the courier: drop files on the pet to send; when files arrive the pet
   carries a parcel and asks whether to accept.
 - Off until turned on; receiving asks every time unless the sender is trusted.
-- Detailed plan: written for 0.44 before any code.
+- Shipped as planned; see docs/INTERACTIONS.md, "Pet Post". Tested against the official
+  LocalSend command-line app in both directions (files, folders, text, discovery).
 
 ## Pet Post over Tailscale (0.45)
 

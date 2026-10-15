@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!-- Merged into the app's Info.plist by Tauri. The languages ePet speaks (src/i18n), so macOS
-     shows its own dialogs (open and save a backup) in them too. -->
+     shows its own dialogs (open and save a backup) in them too; and why Pet Post uses the
+     local network (macOS asks the first time it's turned on). -->
 <plist version="1.0">
 <dict>
   <key>CFBundleDevelopmentRegion</key>
@@ -12,5 +13,7 @@
     <string>zh-Hans</string>
     <string>zh-Hant</string>
   </array>
+  <key>NSLocalNetworkUsageDescription</key>
+  <string>Pet Post sends and receives files with phones and computers on your network (works with LocalSend).</string>
 </dict>
 </plist>

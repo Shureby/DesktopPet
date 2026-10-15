@@ -1,0 +1,301 @@
+/**
+ * The pet as Pet Post's courier (docs/INTERACTIONS.md, "Pet Post"): drop files on it to
+ * send them; when someone sends you files it carries the parcel and asks; a text message
+ * shows in its bubble. The network side is the app's (src-tauri/src/post/).
+ */
+import { t } from "../i18n";
+import type { Backend, Settings } from "../platform";
+import {
+  DEVICE_ICONS,
+  missedOfferTitle,
+  offerLines,
+  percent,
+  postAlias,
+  postConfig,
+  transferLine,
+  transferOver,
+  type PostDevice,
+  type PostOffer,
+  type PostStatus,
+  type PostText,
+  type PostTransfer,
+} from "../features/post/post";
+
+export interface CourierAction {
+  label: string;
+  run: () => void;
+}
+
+/** What the courier needs from the pet (PetHost). */
+export interface CourierHost {
+  readonly backend: Backend;
+  settings(): Settings;
+  petName(): string;
+  /** A bubble (see PetHost.say): with `onTimeout` it waits for an answer like an alarm. */
+  say(text: string | string[], ms: number, actions?: CourierAction[], onTimeout?: () => void, important?: boolean): void;
+  /** Takes the bubble down if it still starts with `first`. */
+  unsay(first: string): void;
+  /** Asks for a line of text in the bubble (a PIN). */
+  ask(title: string, label: string, submit: (value: string) => void): void;
+  /** Nothing is ringing or being asked: a question can be shown now. */
+  free(): boolean;
+  /** Hidden by the user. */
+  hidden(): boolean;
+  /** Stepped aside (a presentation, a call, a full-screen app). */
+  away(): boolean;
+  /** Quiet mode: no sounds, and the hidden pet doesn't come out. */
+  quiet(): boolean;
+  /** The hidden pet comes out for a delivery. */
+  comeOut(): Promise<void>;
+  /** A short sound for a delivery (unless the mode is silent). */
+  chime(): void;
+  /** Into "While I was hidden you missed:". */
+  recordMissed(title: string): Promise<void>;
+  /** The badges changed. */
+  redraw(): void;
+}
+
+/** A 📦 badge by the pet while something is on its way. */
+export interface CourierBadge {
+  text: string;
+  title: string;
+  onClick: () => void;
+}
+
+/** How long the app waits for an answer (src-tauri/src/post/server.rs, ANSWER_SECONDS). */
+const ANSWER_MS = 60_000;
+
+export class Courier {
+  private status: PostStatus | null = null;
+  private devices: PostDevice[] = [];
+  private transfer: PostTransfer | null = null;
+  /** A delivery the pet started (it asks for a PIN and reports how it went). */
+  private mine: { to: string; paths: string[]; text: string | null } | null = null;
+  /** The offer being asked about (its bubble's first line). */
+  private asking: { offer: PostOffer; first: string } | null = null;
+  /** Offers waiting for the bubble (an alarm is ringing). */
+  private waiting: PostOffer[] = [];
+  private lastConfig = "";
+
+  constructor(private readonly host: CourierHost) {}
+
+  async start(): Promise<void> {
+    const b = this.host.backend;
+    await b.on("post-status", (s) => (this.status = s));
+    await b.on("post-devices", (d) => (this.devices = d));
+    await b.on("post-offer", (o) => void this.onOffer(o));
+    await b.on("post-offer-closed", (c) => this.onClosed(c.id, c.reason));
+    await b.on("post-text", (m) => void this.onText(m));
+    await b.on("post-transfer", (tr) => this.onTransfer(tr));
+    this.status = await b.postStatus().catch(() => null);
+    await this.configure();
+    setInterval(() => this.askWaiting(), 1000);
+  }
+
+  /** Tells the app the settings (when they or the pet's name change). */
+  async configure(): Promise<void> {
+    const s = this.host.settings();
+    const computer = this.status?.computer ?? "";
+    const config = postConfig(s.post, postAlias(s.post, this.host.petName(), computer));
+    const key = JSON.stringify(config);
+    if (key === this.lastConfig) return;
+    this.lastConfig = key;
+    try {
+      this.status = await this.host.backend.postConfigure(config);
+      if (s.post.enabled) this.devices = await this.host.backend.postDevices();
+    } catch (e) {
+      console.warn("Pet Post:", e);
+    }
+  }
+
+  badge(): CourierBadge | null {
+    const tr = this.transfer;
+    if (!tr) return null;
+    return {
+      text: tr.state === "waiting" ? "📦 …" : `📦 ${percent(tr)}%`,
+      title: transferLine(tr),
+      onClick: () => void this.host.backend.openPostWindow(),
+    };
+  }
+
+  // --- Sending ------------------------------------------------------------------------
+
+  /** Files dropped on the pet. */
+  dropped(paths: string[]): void {
+    if (!paths.length) return;
+    if (!this.host.settings().post.enabled) {
+      this.host.say(
+        [t("Pet Post is off."), t("Turn it on to send files to phones and computers nearby (works with LocalSend).")],
+        15_000,
+        [
+          { label: t("Turn on"), run: () => void this.enable().then(() => this.deliver(paths)) },
+          { label: t("Not now"), run: () => {} },
+        ],
+      );
+      return;
+    }
+    void this.deliver(paths);
+  }
+
+  private async enable(): Promise<void> {
+    const b = this.host.backend;
+    const s = await b.getSettings();
+    await b.setSettings({ post: { ...s.post, enabled: true } });
+  }
+
+  /** Who to deliver to: up to four devices as buttons. */
+  private async deliver(paths: string[], looked = false): Promise<void> {
+    const b = this.host.backend;
+    // Turned on just now: the settings reach the app first.
+    await this.configure();
+    this.devices = await b.postDevices().catch(() => []);
+    if (!this.devices.length) {
+      if (!looked) {
+        void b.postRefresh();
+        this.host.say(t("Looking for someone to deliver to…"), 4000);
+        setTimeout(() => void this.deliver(paths, true), 3500);
+        return;
+      }
+      this.host.say([t("I can't find anyone nearby."), t("The other device needs LocalSend or ePet open, on the same network.")], 15_000, [
+        { label: t("Look again"), run: () => void this.deliver(paths) },
+        { label: t("Pet Post…"), run: () => void b.openPostWindow() },
+      ]);
+      return;
+    }
+    const name = paths[0].split(/[\\/]/).pop() ?? paths[0];
+    const what = paths.length === 1 ? `“${name}”` : t("{n} items", { n: paths.length });
+    const shown = this.devices.slice(0, 4);
+    this.host.say(t("Deliver {what} to…", { what }), 30_000, [
+      ...shown.map((d) => ({ label: `${DEVICE_ICONS[d.deviceType] ?? "💻"} ${d.alias}`, run: () => this.send(d.fingerprint, paths, null) })),
+      ...(this.devices.length > shown.length ? [{ label: t("More…"), run: () => void b.openPostWindow() }] : []),
+      { label: t("Cancel"), run: () => {} },
+    ]);
+  }
+
+  private send(to: string, paths: string[], text: string | null, pin: string | null = null): void {
+    this.mine = { to, paths, text };
+    this.host.backend.postSend(to, paths, text, pin).catch(() => {
+      this.mine = null;
+      this.host.say(t("I'm still delivering something else."), 5000);
+    });
+  }
+
+  // --- Receiving ----------------------------------------------------------------------
+
+  private async onOffer(o: PostOffer): Promise<void> {
+    // Not now (a presentation, a call; or hidden in Quiet mode): declined, and you're told later.
+    if (this.host.away() || (this.host.hidden() && this.host.quiet())) {
+      void this.host.backend.postAnswer(o.id, false);
+      void this.host.recordMissed(missedOfferTitle(o));
+      return;
+    }
+    if (this.host.hidden()) await this.host.comeOut();
+    this.waiting.push(o);
+    this.askWaiting();
+  }
+
+  private askWaiting(): void {
+    if (this.asking || !this.waiting.length || !this.host.free()) return;
+    this.ask(this.waiting.shift()!);
+  }
+
+  private ask(o: PostOffer): void {
+    const lines = offerLines(o);
+    this.asking = { offer: o, first: lines[0] };
+    const answer = (accept: boolean) => {
+      this.asking = null;
+      void this.host.backend.postAnswer(o.id, accept);
+    };
+    const s = this.host.settings();
+    const trusted = s.post.trusted.some((d) => d.fingerprint === o.fingerprint);
+    const actions: CourierAction[] = [
+      { label: t("Accept"), run: () => answer(true) },
+      { label: t("Decline"), run: () => answer(false) },
+    ];
+    // Only a device that proved who it is can be trusted (its certificate).
+    if (o.fingerprint && !trusted) {
+      actions.push({
+        label: t("Always accept"),
+        run: () => {
+          answer(true);
+          void this.host.backend.getSettings().then((cur) =>
+            this.host.backend.setSettings({
+              post: { ...cur.post, trusted: [...cur.post.trusted, { fingerprint: o.fingerprint, alias: o.alias }] },
+            }),
+          );
+        },
+      });
+    }
+    // Answered by the app's own timeout if nobody does (post-offer-closed).
+    this.host.say(lines, ANSWER_MS + 5000, actions, () => (this.asking = null), true);
+    this.host.chime();
+  }
+
+  private onClosed(id: string, reason: "cancelled" | "timeout"): void {
+    const waiting = this.waiting.find((o) => o.id === id);
+    this.waiting = this.waiting.filter((o) => o.id !== id);
+    const offer = this.asking?.offer.id === id ? this.asking.offer : waiting;
+    if (this.asking?.offer.id === id) {
+      this.host.unsay(this.asking.first);
+      this.asking = null;
+    }
+    if (offer && reason === "timeout") void this.host.recordMissed(missedOfferTitle(offer));
+  }
+
+  private async onText(m: PostText): Promise<void> {
+    const short = m.text.length > 280 ? `${m.text.slice(0, 280)}…` : m.text;
+    if (this.host.away() || (this.host.hidden() && this.host.quiet())) {
+      void this.host.recordMissed(t("{who}: “{text}”", { who: m.alias, text: short.length > 60 ? `${short.slice(0, 60)}…` : short }));
+      return;
+    }
+    if (this.host.hidden()) await this.host.comeOut();
+    this.host.say([t("💬 {who} says:", { who: m.alias }), short], 60_000, [
+      { label: t("Copy"), run: () => copyText(m.text) },
+      { label: t("OK"), run: () => {} },
+    ], undefined, true);
+    this.host.chime();
+  }
+
+  private onTransfer(tr: PostTransfer): void {
+    const before = this.transfer;
+    this.transfer = transferOver(tr) ? null : tr;
+    this.host.redraw();
+    const b = this.host.backend;
+    if (tr.direction === "in") {
+      if (tr.state === "receiving" && !before) this.host.say(transferLine(tr), 4000);
+      else if (tr.state === "done")
+        this.host.say(transferLine(tr), 20_000, [
+          { label: t("Show"), run: () => void b.postOpen(tr.first) },
+          { label: t("OK"), run: () => {} },
+        ], undefined, true);
+      else if (transferOver(tr)) this.host.say(transferLine(tr), 6000);
+      return;
+    }
+    // Sent from the Pet Post window: the window says how it goes (the badge shows it too).
+    const mine = this.mine;
+    if (!mine) return;
+    if (tr.state === "waiting") {
+      this.host.say(transferLine(tr), ANSWER_MS, [{ label: t("Cancel"), run: () => void b.postCancelSend() }]);
+    } else if (tr.state === "sending" && before?.state === "waiting") {
+      this.host.say(transferLine(tr), 3000);
+    } else if (tr.state === "pin") {
+      this.host.ask(transferLine(tr), t("PIN"), (pin) => this.send(mine.to, mine.paths, mine.text, pin));
+    } else if (transferOver(tr)) {
+      this.mine = null;
+      this.host.say(transferLine(tr), 6000);
+    }
+  }
+}
+
+/** Copies to the clipboard (with the old way as a fallback). */
+export function copyText(text: string): void {
+  const fallback = () => {
+    const area = Object.assign(document.createElement("textarea"), { value: text });
+    document.body.append(area);
+    area.select();
+    document.execCommand("copy");
+    area.remove();
+  };
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).catch(fallback);
+  else fallback();
+}

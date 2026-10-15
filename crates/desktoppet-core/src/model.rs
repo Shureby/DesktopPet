@@ -318,6 +318,8 @@ pub enum UnseenKind {
     Alarm,
     Timer,
     Todo,
+    /// A Pet Post delivery nobody answered (`ref_id` 0).
+    Post,
 }
 
 impl UnseenKind {
@@ -326,6 +328,7 @@ impl UnseenKind {
             UnseenKind::Alarm => "alarm",
             UnseenKind::Timer => "timer",
             UnseenKind::Todo => "todo",
+            UnseenKind::Post => "post",
         }
     }
 
@@ -333,6 +336,7 @@ impl UnseenKind {
         match s {
             "alarm" => UnseenKind::Alarm,
             "timer" => UnseenKind::Timer,
+            "post" => UnseenKind::Post,
             _ => UnseenKind::Todo,
         }
     }

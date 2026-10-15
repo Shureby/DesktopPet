@@ -11,6 +11,7 @@ pub const PET: &str = "pet";
 pub const PANEL: &str = "panel";
 pub const GAME: &str = "game";
 pub const CELEBRATE: &str = "celebrate";
+pub const POST: &str = "post";
 
 /// Extra WebView2 arguments asked for through `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS`, as
 /// Edge WebDriver does for the end-to-end tests (it needs `--remote-debugging-port`).
@@ -80,6 +81,23 @@ pub fn open_panel<R: Runtime>(app: &AppHandle<R>, tab: Option<&str>) -> tauri::R
         .title(product_name(app))
         .inner_size(460.0, 640.0)
         .min_inner_size(380.0, 420.0)
+        .center()
+        .build()?;
+    Ok(())
+}
+
+/// Opens the Pet Post window (devices, sending files and text).
+pub fn open_post<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
+    if let Some(w) = app.get_webview_window(POST) {
+        w.show()?;
+        w.unminimize()?;
+        w.set_focus()?;
+        return Ok(());
+    }
+    window(app, POST, "post.html".into())
+        .title(product_name(app))
+        .inner_size(420.0, 560.0)
+        .min_inner_size(360.0, 420.0)
         .center()
         .build()?;
     Ok(())

@@ -7,6 +7,7 @@ mod backup;
 mod commands;
 mod desktop;
 mod locale;
+mod post;
 mod scheduler;
 mod state;
 mod storefront;
@@ -35,6 +36,7 @@ pub fn run() {
             let storefront = storefront::init();
             log::info!("storefront: {}", storefront.name());
             app.manage(AppState::new(store, storefront));
+            app.manage(post::Post::new(app.handle().clone()));
 
             // A desktop pet lives in the tray, not the Dock.
             #[cfg(target_os = "macos")]
@@ -122,6 +124,18 @@ pub fn run() {
             backup::backup_open,
             backup::backup_restore,
             backup::backup_list_auto,
+            post::post_configure,
+            post::post_status,
+            post::post_devices,
+            post::post_refresh,
+            post::post_send,
+            post::post_cancel_send,
+            post::post_answer,
+            post::post_pick,
+            post::post_pick_save_dir,
+            post::post_open,
+            post::post_peek,
+            post::open_post_window,
         ])
         .run(tauri::generate_context!())
         .expect("error while running the desktop pet");

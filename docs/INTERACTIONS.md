@@ -789,6 +789,49 @@ mood, game scores, achievements, focus history) and the user's own characters.
   password in the app's data folder (`backups/`), the last 7 kept. Each is listed with
   "Restore…".
 
+## Pet Post (since 0.44.0)
+
+宠物驿站 / 寵物驛站. Files and text between ePet and phones or computers on the same network:
+it works with the LocalSend apps (Android, iOS, Windows, macOS, Linux) and with ePet on
+another computer. It speaks the public LocalSend protocol v2 (our own implementation:
+src-tauri/src/post/, crates/desktoppet-core/src/post.rs).
+
+- **Off until turned on** (Settings → Pet Post → "Send and receive files on this network").
+  Off, ePet doesn't listen on the network at all. The first time it's on, the system may ask
+  whether ePet can use the network (Windows Firewall, macOS "local network"): it must be
+  allowed for other devices to reach it.
+- **Its name** for others: as set, or "<pet> on <computer>" ("<computer>的<pet>").
+- **Finding devices:** announces itself on LocalSend's multicast group when it starts (and
+  answers others' announcements); "Look again" also asks every address of the network
+  (a /24), for networks that block multicast. Devices are known by the fingerprint of
+  their certificate (HTTPS with a self-signed certificate kept in the app's data folder).
+- **Sending:** drop files or folders on the pet: it asks "Deliver “x” to…" with the devices
+  found (up to four, then "More…"). Or the Pet Post window (right-click the pet, or the
+  tray → "Open Pet Post…"): pick a device, then "Send files…", "Send a folder…" or a text.
+  - "Waiting for X to accept…" (with Cancel), a 📦 badge with the percentage while
+    sending, then "Delivered to X!" — or "X didn't accept it.", "X is busy receiving
+    something else", "Couldn't deliver to X".
+  - The other side asks for a PIN: the pet (or the window) asks you for it.
+- **Receiving:** the pet comes out (also when hidden, like an alarm) and asks "📦 X wants to
+  send you 3 files (12 MB)" with the first names: **Accept**, **Decline**, and **Always
+  accept** (only for a device whose certificate proves who it is: it becomes trusted).
+  - Nobody answers in a minute: declined, and listed in "While I was hidden you missed:".
+  - Hidden in Quiet mode, or stepped aside (a presentation, a call): declined at once and
+    listed there, without coming out.
+  - Accepted: a 📦 badge with the percentage, then "Got 3 files from X!" with **Show** (the
+    file in its folder). Files go to Downloads/ePet (Settings → "Save to"); a folder keeps
+    its folders; a name already taken becomes "name (2).jpg". Names can't reach outside
+    the save folder (no "..", drives or reserved names).
+  - One delivery at a time: another sender meanwhile is told it's busy.
+  - A text message shows in the bubble ("💬 X says: …") with **Copy**; the Pet Post window
+    lists it too while it's open.
+- **Trusted devices** (Settings → Pet Post): taken without asking while "Accept from trusted
+  devices without asking" is ticked; each can be removed.
+- **PIN** (optional): senders must give it; five wrong PINs from one address lock it out
+  for a minute.
+- **Not in this version:** LocalSend's "share via link" (browsers download over plain
+  HTTP), sending to devices on other networks (Tailscale: 0.45).
+
 ## Language and region (since 0.43.0)
 
 - **Three languages:** English, 简体中文 (Simplified Chinese, as written in mainland China)

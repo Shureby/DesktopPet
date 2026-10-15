@@ -7,6 +7,17 @@ import type { LateReason } from "../features/alarm/late";
 import { LANGUAGES, type LanguageSetting } from "../i18n";
 import { REGIONS, type RegionSetting } from "../i18n/region";
 import { avoidSettings, DEFAULT_AVOID, type AvoidReason, type AvoidSettings, type Busy } from "../features/avoid/avoid";
+import {
+  DEFAULT_POST,
+  postSettings,
+  type PostConfig,
+  type PostDevice,
+  type PostOffer,
+  type PostSettings,
+  type PostStatus,
+  type PostText,
+  type PostTransfer,
+} from "../features/post/post";
 
 export interface PomodoroConfig {
   focusMin: number;
@@ -100,6 +111,8 @@ export interface Settings {
   autostart: boolean;
   /** The interface's language and the region for holidays ("auto": the system's). */
   locale: { language: LanguageSetting; region: RegionSetting };
+  /** Pet Post: files to and from devices on the network (src/features/post/post.ts). */
+  post: PostSettings;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -131,6 +144,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   autostart: false,
   locale: { language: "auto", region: "auto" },
+  post: DEFAULT_POST,
 };
 
 /** The 🔔 badge's look-ahead: whole minutes, 1–120 (60 if it isn't a number). */
@@ -200,6 +214,7 @@ export function mergeSettings(stored: Partial<Settings> | null | undefined): Set
       alarm: { ...d.alerts.alarm, ...s.alerts?.alarm },
       todo: { ...d.alerts.todo, ...s.alerts?.todo },
     },
+    post: postSettings(s.post),
   };
 }
 
@@ -375,8 +390,8 @@ export interface Celebration {
 /** "While I was hidden you missed…": something the hidden pet rang that nobody answered. */
 export interface Unseen {
   id: number;
-  kind: "alarm" | "timer" | "todo";
-  /** The alarm, timer or to-do. */
+  kind: "alarm" | "timer" | "todo" | "post";
+  /** The alarm, timer or to-do (0 for a Pet Post delivery). */
   refId: number;
   title: string;
   /** When it was due (an alarm's own time, a timer's end, a to-do's reminder time). */
@@ -431,6 +446,14 @@ export interface BackendEvents {
   "avoid-slideshows": Rect[];
   /** "Show pet" while it stepped aside: it comes back before what it stepped aside for is over. */
   "avoid-shown-anyway": null;
+  /** Pet Post: the devices found, whether it's listening, and what's sent and received. */
+  "post-devices": PostDevice[];
+  "post-status": PostStatus;
+  "post-offer": PostOffer;
+  /** The offer is gone unanswered: the sender cancelled, or nobody answered in time. */
+  "post-offer-closed": { id: string; reason: "cancelled" | "timeout" };
+  "post-text": PostText;
+  "post-transfer": PostTransfer;
 }
 
 /** Stepping aside, as the app sees it now. */
@@ -589,6 +612,27 @@ export interface Backend {
   backupListAuto(): Promise<SavedBackup[]>;
   /** End-to-end tests only: a tray item the app handles itself ("show", "hide", "quit"). */
   e2eTray(id: string): Promise<void>;
+
+  /** Pet Post (src/features/post/post.ts): the pet window sends the settings. */
+  postConfigure(config: PostConfig): Promise<PostStatus>;
+  postStatus(): Promise<PostStatus>;
+  postDevices(): Promise<PostDevice[]>;
+  /** Looks for devices again. */
+  postRefresh(): Promise<void>;
+  /** Sends files and folders, or a text, to a device (by fingerprint). */
+  postSend(to: string, paths: string[], text?: string | null, pin?: string | null): Promise<void>;
+  postCancelSend(): Promise<void>;
+  /** Accepts or declines a "post-offer". */
+  postAnswer(id: string, accept: boolean): Promise<void>;
+  /** Asks for files (or folders) to send; null if cancelled. */
+  postPick(folder: boolean): Promise<string[] | null>;
+  /** Asks for the folder received files go to; null if cancelled. */
+  postPickSaveDir(): Promise<string | null>;
+  /** Shows a received file in its folder, or opens the save folder. */
+  postOpen(path?: string | null): Promise<void>;
+  openPostWindow(): Promise<void>;
+  /** The hidden pet comes out for a delivery; whether it was out of sight. */
+  postPeek(): Promise<boolean>;
   /** The user saw a missed alarm (clicked its badge): the badge goes, the history keeps it. */
   acknowledgeMissed(id: number): Promise<void>;
 

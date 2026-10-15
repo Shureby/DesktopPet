@@ -3,6 +3,7 @@ import { currentWorkPeriod, runCutoff } from "../features/pomodoro/workHours";
 import { endOfDay, nextAfterTick, todoRemindsAt } from "../features/todo/repeat";
 import { nextAnniversary, prepDay } from "../features/anniversary/templates";
 import { NOT_BUSY, othersPresent, type AvoidReason, type Busy } from "../features/avoid/avoid";
+import type { PostDevice, PostStatus } from "../features/post/post";
 import {
   DEFAULT_SETTINGS,
   EVERY_DAY,
@@ -127,6 +128,24 @@ function mutate<T>(fn: (s: MockState) => T): T {
   const out = fn(s);
   save(s);
   return out;
+}
+
+// --- Pet Post: pretend devices (the browser can't reach the network) ---------------
+
+let postEnabled = false;
+let mockSending: ReturnType<typeof setInterval> | undefined;
+const MOCK_DEVICES: PostDevice[] = [
+  { fingerprint: "A1", alias: "Pixel 8", deviceModel: "Google", deviceType: "mobile", ip: "192.168.1.20", port: 53317, https: true, lastSeen: 0 },
+  { fingerprint: "B2", alias: "Mum's MacBook", deviceModel: "macOS", deviceType: "desktop", ip: "192.168.1.31", port: 53317, https: true, lastSeen: 0 },
+];
+
+/** On (the pet page tells it; a Pet Post page alone reads the settings). */
+function mockPostOn(): boolean {
+  return postEnabled || load().settings.post?.enabled === true;
+}
+
+function mockPostStatus(alias: string): PostStatus {
+  return { running: mockPostOn(), port: 53317, alias, fingerprint: "MOCK", error: null, saveDir: "Downloads/ePet", computer: "This browser" };
 }
 
 function fire<K extends keyof BackendEvents>(event: K, payload: BackendEvents[K]) {
@@ -673,6 +692,54 @@ export const mockBackend: Backend = {
     return { languages, country: /-([A-Z]{2})\b/.exec(languages[0] ?? "")?.[1] ?? null };
   },
   async e2eTray() {},
+  async postConfigure(config) {
+    postEnabled = config.enabled;
+    const status = mockPostStatus(config.alias);
+    fire("post-status", status);
+    fire("post-devices", postEnabled ? MOCK_DEVICES : []);
+    return status;
+  },
+  async postStatus() {
+    return mockPostStatus("");
+  },
+  async postDevices() {
+    return mockPostOn() ? MOCK_DEVICES : [];
+  },
+  async postRefresh() {
+    fire("post-devices", mockPostOn() ? MOCK_DEVICES : []);
+  },
+  async postSend(to, paths, text) {
+    // A pretend delivery: asked, then a few seconds of progress.
+    const peer = MOCK_DEVICES.find((d) => d.fingerprint === to)?.alias ?? "?";
+    const files = text ? 1 : Math.max(1, paths.length);
+    const total = text ? text.length : 3_400_000 * files;
+    const base = { direction: "out" as const, peer, files, total, folder: null, first: null, error: null };
+    fire("post-transfer", { ...base, state: "waiting", done: 0 });
+    let done = 0;
+    clearInterval(mockSending);
+    mockSending = setInterval(() => {
+      done = Math.min(total, done + total / 8);
+      fire("post-transfer", { ...base, state: done < total ? "sending" : "done", done });
+      if (done >= total) clearInterval(mockSending);
+    }, 400);
+  },
+  async postCancelSend() {
+    clearInterval(mockSending);
+  },
+  async postAnswer() {},
+  async postPick() {
+    return ["C:/Users/me/Pictures/cat.jpg", "C:/Users/me/Pictures/dog.jpg"];
+  },
+  async postPickSaveDir() {
+    return null;
+  },
+  async postOpen() {},
+  async postPeek() {
+    return false;
+  },
+  async openPostWindow() {
+    window.open("post.html", "_blank");
+  },
   async markAlarmMissed(id) {
     mutate((s) => {
       const a = s.alarms.find((x) => x.id === id);
