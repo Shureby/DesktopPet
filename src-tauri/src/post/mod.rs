@@ -502,7 +502,8 @@ pub fn post_peek(app: AppHandle) -> bool {
     crate::app_windows::peek(&app)
 }
 
+/// Async: a WebView2 window made from a sync command (the main thread) deadlocks on Windows.
 #[tauri::command]
-pub fn open_post_window(app: AppHandle) -> CmdResult<()> {
+pub async fn open_post_window(app: AppHandle) -> CmdResult<()> {
     crate::app_windows::open_post(&app).map_err(err)
 }

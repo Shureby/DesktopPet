@@ -148,17 +148,23 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
   };
 
   // Until it says it's listening (or why not): the pet window starts it after the save.
+  // The panel may build the page a moment before showing it, so this keeps going until
+  // the section has been shown and then replaced (or for half a minute).
+  let shown = false;
+  let tries = 0;
   const poll = async () => {
     status = await backend.postStatus().catch(() => status);
-    if (root.isConnected || !status) draw();
+    shown ||= root.isConnected;
+    draw();
     const starting = get().post.enabled && !status?.running && !status?.error;
     const stopping = !get().post.enabled && status?.running;
-    if ((starting || stopping) && (root.isConnected || !root.parentNode)) setTimeout(() => void poll(), 500);
+    const gone = shown && !root.isConnected;
+    if ((starting || stopping) && !gone && ++tries < 60) setTimeout(() => void poll(), 500);
   };
   void poll();
   void backend.on("post-status", (st) => {
     status = st;
-    if (root.isConnected) draw();
+    draw();
   });
   draw();
   return root;
