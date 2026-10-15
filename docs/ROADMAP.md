@@ -12,6 +12,49 @@
   SteamOS unticked.
 - **Direct build**: auto-updater feed, code signing, license keys.
 
+## Pet Post: send files on the local network (0.44)
+
+Chinese name 宠物驿站 / 寵物驛站. Store and in-app line: "Works with LocalSend" /
+“可与 LocalSend 互传”.
+
+- Sends and receives files between ePet and any device on the same network that runs
+  LocalSend (Windows, macOS, Linux, Android, iOS), or another ePet.
+- Speaks the public LocalSend protocol v2 (HTTPS with a self-signed certificate,
+  multicast discovery with an HTTP fallback, prepare-upload → upload → cancel, optional
+  PIN). Our own Rust implementation; no LocalSend code is copied. Their name and logo
+  are not used as our branding; "LocalSend" appears only to say what we work with.
+- The pet is the courier: drop files on the pet to send; when files arrive the pet
+  carries a parcel and asks whether to accept.
+- Off until turned on; receiving asks every time unless the sender is trusted.
+- Detailed plan: written for 0.44 before any code.
+
+## Pet Post over Tailscale (0.45)
+
+"Send across networks via Tailscale" / “支持经 Tailscale 跨网传送”.
+
+- If Tailscale is installed and signed in, ePet lists the devices in the same tailnet
+  (and nodes shared with it) by asking the local Tailscale client, and sends to their
+  100.x addresses with the same protocol. Tailscale doesn't carry multicast, so this
+  replaces discovery.
+- Add a device by hand: a Tailscale MagicDNS name or any IP address and port. This also
+  helps on networks that block multicast.
+- Tailscale is not built in: ePet only talks to an installed client. Reaches only
+  devices the user's tailnet already reaches; the other side needs LocalSend or ePet.
+- "Tailscale" is a trademark: no logo, wording as above.
+
+## Networking route
+
+1. **Local, no account (0.35–0.45):** backup and moving to a new computer (0.35),
+   Pet Post on the LAN (0.44), Pet Post over Tailscale (0.45), plus features that work
+   alone.
+2. **Peer to peer with identity (later):** a device identity and pairing (QR code or
+   short code), hole punching with a relay fallback (iroh, or Steam friends and Steam's
+   relay in the Steam build). Brings 1-to-1 chat, files across networks without
+   Tailscale, and pets visiting a friend's desktop.
+3. **Subscription services (later):** sync between one user's computers through our
+   server, relay quota for large files, then group chat. Group chat needs a compliance
+   check (content rules in each market) before it's built.
+
 ## Anniversaries (shipped in 0.26.0)
 
 Comes after 0.24.0 (repeating to-dos and editing to-dos) and 0.25.0 (Today / Upcoming sections).
