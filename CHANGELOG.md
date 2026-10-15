@@ -26,6 +26,13 @@ affected items' `rev` to the new version so the online checklist asks for a rete
   The devices of your Tailscale network are listed if Tailscale is installed.
 - **Verify** in Pet Post and in the pet's question about a delivery: the same icons (or
   text) LocalSend shows, to check on both screens that it's the right device.
+- The Pet Post window shows this computer's addresses and port (with Copy), for adding it
+  by address on another device.
+
+### Changed
+- Pet Post: when LocalSend's port (53317) is taken by another app (LocalSend on this
+  computer), ePet takes the next free one of 53318–53327 (the same each time, where it was
+  any free port), and says so in Pet Post and Settings.
 
 ### Fixed
 - Pet Post: a device that reaches this computer from behind a router (NAT) no longer has

@@ -801,6 +801,11 @@ src-tauri/src/post/, crates/desktoppet-core/src/post.rs).
   whether ePet can use the network (Windows Firewall, macOS "local network"): it must be
   allowed for other devices to reach it.
 - **Its name** for others: as set, or "<pet> on <computer>" ("<computer>的<pet>").
+- **Its port:** LocalSend's, 53317. If another app holds it (LocalSend on this computer),
+  the next free one of 53318–53327, the same each time (since 0.45.0); then Settings says
+  "(port 53318: 53317 is taken by another app)" and the Pet Post window says a device
+  adding it by address needs that port. The window lists this computer's addresses with
+  the port ("192.168.31.5:53317", and its Tailscale one), each with Copy.
 - **Finding devices:** announces itself on LocalSend's multicast group when it starts (and
   answers others' announcements); "Look again" also asks every address of the network
   (a /24), for networks that block multicast. Devices are known by the fingerprint of

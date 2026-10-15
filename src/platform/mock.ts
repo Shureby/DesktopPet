@@ -170,7 +170,11 @@ function mockPostOn(): boolean {
 }
 
 function mockPostStatus(alias: string): PostStatus {
-  return { running: mockPostOn(), port: 53317, alias, fingerprint: "MOCK", error: null, saveDir: "Downloads/ePet", computer: "This browser" };
+  const on = mockPostOn();
+  const addresses = on ? [{ ip: "192.168.31.5", tailnet: false }, { ip: "100.101.2.9", tailnet: true }] : [];
+  // ?port=53318 pretends LocalSend holds 53317 on this computer.
+  const port = Number(new URLSearchParams(location.search).get("port")) || 53317;
+  return { running: on, port, alias, fingerprint: "MOCK", error: null, saveDir: "Downloads/ePet", computer: "This browser", addresses };
 }
 
 function fire<K extends keyof BackendEvents>(event: K, payload: BackendEvents[K]) {

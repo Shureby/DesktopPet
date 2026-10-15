@@ -35,21 +35,33 @@ pub const ANSWER_SECONDS: u64 = 60;
 /// A delivery with no data for this long is given up.
 const IDLE_MS: i64 = 120_000;
 
-/// Starts listening on `port` (0: LocalSend's, or any free one if another app holds it).
-/// Returns the port.
+/// Starts listening on `port` (0: LocalSend's or, if another app holds it (LocalSend on
+/// this computer), the next free one of the ten after it, so the same one each time; any
+/// free one as a last resort). Returns the port.
+/// Listens on the first of `ports` that's free.
+pub(crate) async fn bind_first(ports: impl IntoIterator<Item = u16>) -> Option<TcpListener> {
+    for p in ports {
+        match TcpListener::bind(("0.0.0.0", p)).await {
+            Ok(l) => return Some(l),
+            Err(e) => log::warn!("Pet Post: port {p} is taken ({e})"),
+        }
+    }
+    None
+}
+
 pub async fn spawn(
     inner: Arc<Inner>,
     port: u16,
     tls: Arc<rustls::ServerConfig>,
     mut stop: watch::Receiver<bool>,
 ) -> Result<u16, String> {
-    let listener = match TcpListener::bind(("0.0.0.0", if port == 0 { DEFAULT_PORT } else { port })).await {
-        Ok(l) => l,
-        Err(e) if port == 0 => {
-            log::warn!("Pet Post: port {DEFAULT_PORT} is taken ({e}), using another");
-            TcpListener::bind(("0.0.0.0", 0)).await.map_err(|e| e.to_string())?
+    let listener = if port == 0 {
+        match bind_first(DEFAULT_PORT..=DEFAULT_PORT + 10).await {
+            Some(l) => l,
+            None => TcpListener::bind(("0.0.0.0", 0)).await.map_err(|e| e.to_string())?,
         }
-        Err(e) => return Err(e.to_string()),
+    } else {
+        TcpListener::bind(("0.0.0.0", port)).await.map_err(|e| e.to_string())?
     };
     let port = listener.local_addr().map_err(|e| e.to_string())?.port();
     let acceptor = TlsAcceptor::from(tls);

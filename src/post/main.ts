@@ -140,6 +140,8 @@ function lookAgain(): void {
   looking = true;
   render();
   void backend.postRefresh();
+  // (Its own addresses may have changed too.)
+  void backend.postStatus().then((s) => ((status = s), render()), () => {});
   setTimeout(() => {
     looking = false;
     render();
@@ -201,6 +203,37 @@ function deviceList(): Node {
   const usable = devices.filter(sendable);
   if (!selected || !usable.some((d) => d.fingerprint === selected)) selected = usable[0]?.fingerprint ?? null;
   return h("ul", { class: "post-devices" }, ...devices.map(deviceRow));
+}
+
+/** This computer's addresses and port: what others type to add it by address. */
+function ownAddresses(): Node | null {
+  if (!status?.running || !status.addresses.length) return null;
+  const port = status.port;
+  return h(
+    "div",
+    { class: "post-own" },
+    h("p", { class: "hint" }, t("To add this computer by address on another device:")),
+    h(
+      "ul",
+      { class: "post-addresses" },
+      ...status.addresses.map((a) =>
+        h(
+          "li",
+          { class: "row" },
+          h("code", { class: "post-address" }, `${a.ip}:${port}`),
+          a.tailnet ? h("span", { class: "hint" }, t("Tailscale")) : null,
+          h("button", { class: "small", onclick: () => copyText(`${a.ip}:${port}`) }, t("Copy")),
+        ),
+      ),
+    ),
+    port !== LOCALSEND_PORT
+      ? h(
+          "p",
+          { class: "warning post-port-moved" },
+          t("Port {usual} is taken by another app (LocalSend?), so this computer uses {port}: a device adding it by address needs this port.", { usual: LOCALSEND_PORT, port }),
+        )
+      : null,
+  );
 }
 
 /** "+ Add by address": behind another router, on Tailscale, or where multicast doesn't get through. */
@@ -339,6 +372,7 @@ function render(): void {
     ),
     deviceList(),
     addForm(),
+    ...[ownAddresses()].filter((n): n is Node => n !== null),
     h(
       "div",
       { class: "row wrap post-send" },

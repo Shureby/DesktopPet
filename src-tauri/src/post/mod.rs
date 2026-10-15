@@ -165,6 +165,16 @@ pub struct Status {
     pub save_dir: String,
     /// This computer's name (for the default name others see).
     pub computer: String,
+    /// Where others can reach it (to add it by address), with `port`.
+    pub addresses: Vec<Address>,
+}
+
+/// One of this computer's addresses.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct Address {
+    pub ip: String,
+    /// On the Tailscale network.
+    pub tailnet: bool,
 }
 
 /// A delivery or transfer's progress ("post-transfer").
@@ -401,6 +411,14 @@ impl Inner {
             error: lock(&self.error).clone(),
             save_dir: self.save_dir().to_string_lossy().into_owned(),
             computer: crate::backup::device().name,
+            addresses: if running {
+                discovery::own_addresses()
+                    .into_iter()
+                    .map(|(ip, tailnet)| Address { ip: ip.to_string(), tailnet })
+                    .collect()
+            } else {
+                Vec::new()
+            },
         }
     }
 

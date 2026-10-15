@@ -28,9 +28,10 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
     showTailnet();
     const state = h("p", { class: "hint post-state" });
     if (s.enabled && status?.running)
-      state.textContent = t("On: others see this computer as “{name}”.", {
-        name: status.alias,
-      });
+      state.textContent =
+        status.port === 53317
+          ? t("On: others see this computer as “{name}”.", { name: status.alias })
+          : t("On: others see this computer as “{name}” (port {port}: {usual} is taken by another app).", { name: status.alias, port: status.port, usual: 53317 });
     else if (s.enabled && status?.error) {
       state.textContent = t("Couldn't start: {error}", { error: status.error });
       state.classList.add("warning");

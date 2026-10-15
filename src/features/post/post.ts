@@ -189,6 +189,8 @@ export interface PostStatus {
   saveDir: string;
   /** This computer's name. */
   computer: string;
+  /** Where others can reach it (with `port`), to add it by address. */
+  addresses: { ip: string; tailnet: boolean }[];
 }
 
 export type TransferState = "waiting" | "receiving" | "sending" | "done" | "declined" | "busy" | "pin" | "tooMany" | "failed" | "cancelled";

@@ -234,6 +234,19 @@ check("post.send", "the Pet Post window lists the device; a file and a text reac
   await app.waitText(".post-progress", "Delivered to Mock Phone!");
 });
 
+check("post.own-address", "the Pet Post window shows this computer's addresses and port, to add it by address elsewhere", async () => {
+  const app = ctx.app;
+  const status = await app.invoke("post_status");
+  assert.ok(status.addresses.length > 0, "no address");
+  await app.toWindow("post.html");
+  const shown = await app.until(() => {
+    const list = [...document.querySelectorAll(".post-address")].map((e) => e.textContent);
+    return list.length && list;
+  });
+  assert.deepEqual(shown, status.addresses.map((a) => `${a.ip}:53317`));
+  assert.equal(await app.b.execute(() => !!document.querySelector(".post-port-moved")), false);
+});
+
 /** The pretend device as the app lists it now. */
 const listed = async (fp = peer.fingerprint) => (await ctx.app.invoke("post_devices")).find((d) => d.fingerprint === fp);
 
@@ -419,4 +432,32 @@ check("post.off-again", "turned off: it stops listening", async () => {
   await app.click(".post-settings .post-enabled");
   await until("stopped", async () => !(await app.invoke("post_status")).running);
   assert.equal(await listening(LOCALSEND_PORT), false);
+});
+
+check("post.port-taken", "LocalSend's port taken by another app: the next free one, said in Pet Post and Settings", async () => {
+  const app = ctx.app;
+  const other = net.createServer();
+  await new Promise((r) => other.listen(LOCALSEND_PORT, "0.0.0.0", r));
+  try {
+    await app.panel("settings");
+    await app.click(".post-settings .post-enabled");
+    const status = await until("running", async () => {
+      const st = await app.invoke("post_status");
+      return st.running && st;
+    });
+    // The next free one after 53317 (the pretend device holds 53318).
+    assert.ok(status.port > LOCALSEND_PORT && status.port <= LOCALSEND_PORT + 10, `port ${status.port}`);
+    assert.equal(await listening(status.port), true);
+    await app.waitText(".post-settings .post-state", `(port ${status.port}: 53317 is taken by another app)`);
+    await app.invoke("open_post_window");
+    await app.toWindow("post.html");
+    await app.waitText(".post-port-moved", `so this computer uses ${status.port}`);
+    await app.until((p) => [...document.querySelectorAll(".post-address")].every((e) => e.textContent.endsWith(`:${p}`)), [status.port]);
+    await app.closeWindow("post");
+    await app.panel("settings");
+    await app.click(".post-settings .post-enabled");
+    await until("stopped", async () => !(await app.invoke("post_status")).running);
+  } finally {
+    await new Promise((r) => other.close(r));
+  }
 });

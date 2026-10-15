@@ -302,6 +302,23 @@ fn an_address_that_works_is_kept_when_the_device_calls_from_a_router() {
     );
 }
 
+#[test]
+fn a_taken_port_moves_to_the_next_free_one() {
+    tauri::async_runtime::block_on(async {
+        // Two free ports in a row: the first taken by "another app".
+        let (taken, base) = loop {
+            let a = std::net::TcpListener::bind("0.0.0.0:0").unwrap();
+            let p = a.local_addr().unwrap().port();
+            if p < 65000 && std::net::TcpListener::bind(("0.0.0.0", p + 1)).is_ok() {
+                break (a, p);
+            }
+        };
+        let l = super::server::bind_first(base..=base + 3).await.expect("a free one");
+        assert_eq!(l.local_addr().unwrap().port(), base + 1);
+        drop(taken);
+    });
+}
+
 /// Interoperability with the LocalSend app: run with `LOCALSEND_CLI=<path to localsend-cli>`
 /// (built from https://github.com/localsend/localsend, folder `cli`).
 #[test]

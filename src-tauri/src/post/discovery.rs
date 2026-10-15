@@ -32,6 +32,20 @@ fn interfaces() -> Vec<(Ipv4Addr, Ipv4Addr)> {
         .collect()
 }
 
+/// This computer's addresses others can reach it at (IPv4, not loopback or link-local),
+/// and whether each is on the Tailscale network (100.64.0.0/10).
+pub fn own_addresses() -> Vec<(Ipv4Addr, bool)> {
+    let mut list: Vec<(Ipv4Addr, bool)> = interfaces()
+        .into_iter()
+        .map(|(ip, _)| ip)
+        .filter(|ip| !ip.is_link_local())
+        .map(|ip| (ip, ip.octets()[0] == 100 && (ip.octets()[1] & 0xC0) == 64))
+        .collect();
+    list.sort_by_key(|(ip, tailnet)| (*tailnet, *ip));
+    list.dedup();
+    list
+}
+
 /// Joins the multicast group on every network and listens for announcements.
 pub async fn spawn(inner: Arc<Inner>, mut stop: watch::Receiver<bool>) -> Result<Arc<UdpSocket>, String> {
     let e = |e: std::io::Error| e.to_string();

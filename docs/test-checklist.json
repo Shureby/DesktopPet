@@ -1640,6 +1640,15 @@
           "expect": "互相能找到并收发；信任一次后 Always accept 生效"
         },
         {
+          "id": "post.own-address",
+          "rev": "0.45.0",
+          "ci": "partial",
+          "mac": true,
+          "human": "在手机 LocalSend 里照着窗口显示的地址手动添加这台电脑",
+          "do": "打开 Pet Post 窗口，看 To add this computer by address on another device: 下面",
+          "expect": "列出这台电脑的地址和端口（如 192.168.31.5:53317；有 Tailscale 时另有一行 100.x…:53317，标 Tailscale），每行有 Copy；在手机 LocalSend 里按这个地址手动添加能连上"
+        },
+        {
           "id": "post.verify",
           "rev": "0.45.0",
           "ci": "partial",
@@ -1723,6 +1732,15 @@
           "ci": "auto",
           "do": "取消勾选 Send and receive files on this network",
           "expect": "状态变回 Off；手机的 LocalSend 列表里 ePet 不再出现（刷新后），也发不过来"
+        },
+        {
+          "id": "post.port-taken",
+          "rev": "0.45.0",
+          "ci": "partial",
+          "mac": true,
+          "human": "同一台电脑先开 LocalSend 再开 ePet 的宠物驿站",
+          "do": "先在这台电脑上打开 LocalSend，再在 ePet 里勾上 Send and receive files on this network；打开 Pet Post 窗口",
+          "expect": "设置里写 On: … (port 53318: 53317 is taken by another app).；窗口的地址都是 …:53318，下面红字说明 53317 被占用、别的设备按地址添加时要填 53318；关掉重开 ePet 端口不变（还是 53318）；手机照这个地址手动添加能连上"
         }
       ]
     },

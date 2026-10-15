@@ -650,6 +650,8 @@ const zhTW: Dictionary = {
     "What each mode changes": "每個模式會改變什麼",
     "On: others see this computer as “{name}”.":
       "已開啟：其他裝置看到這台電腦叫「{name}」。",
+    "On: others see this computer as “{name}” (port {port}: {usual} is taken by another app).":
+      "已開啟：其他裝置看到這台電腦叫「{name}」（連接埠 {port}：{usual} 被別的程式佔用）。",
     "Couldn't start: {error}": "無法啟動：{error}",
     "Starting…": "正在啟動…",
     "Off: ePet doesn't listen on the network.":
@@ -835,6 +837,11 @@ const zhTW: Dictionary = {
     "No one found yet.": "還沒找到裝置。",
     "The other device needs LocalSend or ePet open, on the same network (Wi-Fi).":
       "對方需要在同一網路（Wi-Fi）中打開 LocalSend 或 ePet。",
+    "To add this computer by address on another device:":
+      "在其他裝置上依位址加入這台電腦時，填：",
+    Tailscale: "Tailscale",
+    "Port {usual} is taken by another app (LocalSend?), so this computer uses {port}: a device adding it by address needs this port.":
+      "連接埠 {usual} 被別的程式佔用了（可能是 LocalSend），這台電腦改用 {port}。其他裝置依位址加入它時，要填這個連接埠。",
     "Add by address…": "依位址加入…",
     "192.168.8.20 or a name": "192.168.8.20 或名稱",
     Port: "連接埠",

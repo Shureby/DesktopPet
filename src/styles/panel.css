@@ -1547,3 +1547,15 @@ button,
 .post-verify-view .row {
   justify-content: center;
 }
+.post-addresses {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 6px;
+}
+.post-addresses li {
+  gap: 8px;
+}
+.post-address {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  user-select: text;
+}
