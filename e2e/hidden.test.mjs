@@ -63,7 +63,10 @@ check("hidden.peek-alarm", "hidden, the pet comes out for an alarm (tray still s
   await waitOut();
   await app.waitBubble("Alarm", 5000);
   const p = await app.pet();
-  assert.ok(p.target && Math.abs(p.target.x - (p.area.x + p.area.w / 2)) < 2, "out for something, it goes to the middle");
+  // Heading for the middle, or already there (a fast pet may have arrived by now).
+  const mid = p.area.x + p.area.w / 2;
+  const heading = p.target && Math.abs(p.target.x - mid) < 2;
+  assert.ok(heading || Math.abs(p.x - mid) < 80, `out for something, it goes to the middle: ${JSON.stringify({ x: p.x, target: p.target, mid })}`);
   await app.answer("Done");
   await waitBack();
   // Snooze: back, and out again for the next ring.
