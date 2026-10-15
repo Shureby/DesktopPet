@@ -195,6 +195,7 @@ const zhCN: Dictionary = {
     "Receiving from {who}… {pct}%": "正在接收 {who} 发来的… {pct}%",
     "Got {files} from {who}!": "收到 {who} 发来的 {files}！",
     "{who} stopped sending.": "{who} 停止了发送。",
+    "Stopped receiving from {who}.": "已停止接收 {who} 发来的文件。",
     "Receiving from {who} didn't work.": "没能收下 {who} 发来的文件。",
     "Waiting for {who} to accept…": "等 {who} 接收…",
     "Delivering to {who}… {pct}%": "正在送给 {who}… {pct}%",
@@ -859,8 +860,17 @@ const zhCN: Dictionary = {
       "和另一台设备上显示的一样吗？",
     "In LocalSend: the device (or the delivery from this computer), then Verify. In ePet: Pet Post → Verify.":
       "在 LocalSend 里：点这台设备（或这台电脑发来的内容），再点 Verify。在 ePet 里：宠物驿站 → 核对。",
+    "Declined in {s} s if you don't answer.": "{s} 秒内不回答就自动拒绝。",
+    "{who} wants to send you {files} ({size})":
+      "{who} 想给你发 {files}（{size}）",
+    "Stop receiving": "停止接收",
+    "{files} from {who}": "{who} 发来的 {files}",
+    "Not there any more (moved or deleted).":
+      "文件已不在原处（被移动或删除了）。",
+    "Show in folder": "在文件夹中显示",
     Send: "发送",
-    "This computer is “{name}”.": "这台电脑叫“{name}”。",
+    "📥 Ready to receive: nearby devices see this computer as “{name}”.":
+      "📥 正在等待接收：附近的设备看到这台电脑叫“{name}”。",
     "Settings…": "设置…",
     "Send files and text to phones and computers nearby, and get theirs.":
       "给附近的手机和电脑发文件和文字，也能收下它们发来的。",
@@ -874,7 +884,6 @@ const zhCN: Dictionary = {
     Paste: "粘贴",
     "Send text": "发送文字",
     Received: "已收到",
-    "{files} from {who}": "{who} 发来的 {files}",
     "Open the received files folder": "打开收件文件夹",
   },
   lines: {

@@ -209,7 +209,30 @@ pub struct Offer {
     pub bytes: u64,
     /// The first few names.
     pub names: Vec<String>,
+    /// When it's declined if nobody answers (ms).
+    pub until: i64,
 }
+
+/// Something received, as the Pet Post window lists it ("post-history"; kept, the latest
+/// first, in the app's data folder).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Received {
+    pub id: String,
+    pub at: i64,
+    /// Who sent it.
+    pub from: String,
+    /// A text message (else files).
+    pub text: Option<String>,
+    pub files: usize,
+    pub bytes: u64,
+    /// Where they were saved (the first 20).
+    pub paths: Vec<String>,
+    pub folder: Option<String>,
+}
+
+/// How many things received are kept.
+const HISTORY: usize = 50;
 
 /// A text message ("post-text").
 #[derive(Debug, Clone, Serialize)]
@@ -228,6 +251,8 @@ pub(crate) enum Receive {
         ip: IpAddr,
         answer: Option<oneshot::Sender<bool>>,
         cancel: Option<oneshot::Sender<()>>,
+        /// For a window opened meanwhile (`post_pending_offer`).
+        offer: Box<Offer>,
     },
     Active(Box<Active>),
 }
@@ -269,6 +294,8 @@ pub struct Inner {
     pub(crate) sending: Mutex<Option<client::Sending>>,
     /// What Tailscale said last.
     pub(crate) tailnet: Mutex<Tailnet>,
+    /// What was received (read from its file when first needed).
+    pub(crate) history: Mutex<Option<Vec<Received>>>,
 }
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -422,6 +449,38 @@ impl Inner {
         }
     }
 
+    fn history_file(&self) -> PathBuf {
+        self.data_dir.join("post-history.json")
+    }
+
+    /// What was received, the latest first.
+    pub(crate) fn history(&self) -> Vec<Received> {
+        let mut h = lock(&self.history);
+        h.get_or_insert_with(|| {
+            std::fs::read(self.history_file()).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default()
+        })
+        .clone()
+    }
+
+    fn set_history(&self, list: Vec<Received>) {
+        if let Ok(bytes) = serde_json::to_vec(&list) {
+            let _ = std::fs::create_dir_all(&self.data_dir);
+            if let Err(e) = std::fs::write(self.history_file(), bytes) {
+                log::warn!("Pet Post: can't keep what was received: {e}");
+            }
+        }
+        *lock(&self.history) = Some(list.clone());
+        self.emit("post-history", list);
+    }
+
+    /// Keeps something received (the latest first, at most HISTORY).
+    pub(crate) fn remember(&self, entry: Received) {
+        let mut list = self.history();
+        list.insert(0, entry);
+        list.truncate(HISTORY);
+        self.set_history(list);
+    }
+
     fn emit_status(&self) {
         self.emit("post-status", self.status());
     }
@@ -461,6 +520,7 @@ impl Post {
             receive: Mutex::new(Receive::Idle),
             sending: Mutex::new(None),
             tailnet: Mutex::new(Tailnet::default()),
+            history: Mutex::new(None),
         }))
     }
 }
@@ -648,9 +708,76 @@ pub(crate) fn answer(inner: &Inner, id: &str, accept: bool) {
         if *offered == id {
             if let Some(tx) = answer.take() {
                 let _ = tx.send(accept);
+                drop(receive);
+                // Asked in the pet's bubble and the Pet Post window: answered in one, gone from both.
+                inner
+                    .emit("post-offer-closed", serde_json::json!({ "id": id, "reason": "answered", "accept": accept }));
             }
         }
     }
+}
+
+/// The delivery being asked about, if any (for the Pet Post window opened meanwhile).
+#[tauri::command]
+pub fn post_pending_offer(post: State<'_, Post>) -> Option<Offer> {
+    match &*lock(&post.0.receive) {
+        Receive::Offered { offer, answer: Some(_), .. } => Some((**offer).clone()),
+        _ => None,
+    }
+}
+
+/// Stops receiving (the files in so far stay; the sender is told no on its next upload).
+#[tauri::command]
+pub fn post_stop_receiving(post: State<'_, Post>) {
+    stop_receiving(&post.0);
+}
+
+pub(crate) fn stop_receiving(inner: &Inner) {
+    let mut receive = lock(&inner.receive);
+    if let Receive::Active(a) = &*receive {
+        let peer = a.session.from.alias.clone();
+        let (done, total, files) = (a.done_bytes, a.session.total_bytes(), a.session.files.len());
+        *receive = Receive::Idle;
+        drop(receive);
+        inner.transfer(Transfer { direction: "in", state: "stopped", peer, done, total, files, ..Default::default() });
+    }
+}
+
+/// What was received, the latest first.
+#[tauri::command]
+pub fn post_history(post: State<'_, Post>) -> Vec<Received> {
+    post.0.history()
+}
+
+#[tauri::command]
+pub fn post_clear_history(post: State<'_, Post>) {
+    post.0.set_history(Vec::new());
+}
+
+/// Opens something received (by its id in the history): the file itself, or (`reveal`, or
+/// several files) the first one in its folder. Only what's in the history.
+#[tauri::command]
+pub fn post_open_received(app: AppHandle, post: State<'_, Post>, id: String, reveal: bool) -> CmdResult<()> {
+    let entry = post.0.history().into_iter().find(|e| e.id == id).ok_or("gone")?;
+    let first = entry.paths.first().map(PathBuf::from).filter(|p| p.exists()).ok_or("gone")?;
+    if reveal || entry.files > 1 {
+        app.opener().reveal_item_in_dir(&first).map_err(err)
+    } else {
+        app.opener().open_path(first.to_string_lossy(), None::<&str>).map_err(err)
+    }
+}
+
+/// Whether the Pet Post window is open (and not minimized): then it asks about deliveries
+/// itself, and the hidden pet needn't come out.
+#[tauri::command]
+pub fn post_window_shown(app: AppHandle) -> bool {
+    crate::app_windows::post_shown(&app)
+}
+
+/// The Pet Post window, open behind others: its taskbar button flashes (Dock icon bounces).
+#[tauri::command]
+pub fn post_attention(app: AppHandle) {
+    crate::app_windows::post_attention(&app);
 }
 
 /// Picks files (or a folder) to send.

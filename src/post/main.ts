@@ -9,7 +9,7 @@ import { t, onLanguage } from "../i18n";
 import { followLocale } from "../i18n/apply";
 import { followTestClock } from "../platform/testClock";
 import product from "../../product.config.json";
-import { h } from "../panel/dom";
+import { formatWhen, h } from "../panel/dom";
 import { copyText } from "../pet/courier";
 import { VERIFY_ICONS } from "../features/post/verifyIcons";
 import {
@@ -28,7 +28,10 @@ import {
   type PostStatus,
   type PostTransfer,
   type PostVerify,
+  type PostOffer,
+  type PostReceived,
   type SavedDevice,
+  namesLine,
 } from "../features/post/post";
 import "../styles/panel.css";
 
@@ -40,8 +43,14 @@ let selected: string | null = null;
 /** Sending from this window: what, so a PIN can be given (and how it goes is shown here). */
 let mine: { to: string; paths: string[]; text: string | null } | null = null;
 let transfer: PostTransfer | null = null;
-/** Files and texts received while the window is open, newest first. */
-const received: ({ files: PostTransfer } | { text: string; from: string })[] = [];
+/** Someone wants to send files: asked here as well as by the pet (answered in one, gone from both). */
+let offer: PostOffer | null = null;
+/** A delivery coming in. */
+let incoming: PostTransfer | null = null;
+/** What was received (kept by the app), the latest first. */
+let history: PostReceived[] = [];
+/** Received entries whose files aren't there any more. */
+const gone = new Set<string>();
 let looking = false;
 let draft = "";
 /** Adding a device by address: the form is open, and how it went. */
@@ -305,6 +314,97 @@ function verifyView(): Node {
   );
 }
 
+function answer(accept: boolean, always = false): void {
+  const o = offer;
+  if (!o) return;
+  offer = null;
+  render();
+  void backend.postAnswer(o.id, accept);
+  if (always) {
+    void backend.getSettings().then((cur) =>
+      cur.post.trusted.some((d) => d.fingerprint === o.fingerprint)
+        ? undefined
+        : backend.setSettings({ post: { ...cur.post, trusted: [...cur.post.trusted, { fingerprint: o.fingerprint, alias: o.alias }] } }),
+    );
+  }
+}
+
+/** "Declined in 42 s if you don't answer." */
+function countdown(o: PostOffer): string {
+  return t("Declined in {s} s if you don't answer.", { s: Math.max(0, Math.ceil((o.until - Date.now()) / 1000)) });
+}
+
+/** Someone wants to send files: the same question the pet asks. */
+function offerCard(): Node | null {
+  const o = offer;
+  if (!o) return null;
+  const trusted = settings.post.trusted.some((d) => d.fingerprint === o.fingerprint);
+  return h(
+    "div",
+    { class: "box post-offer" },
+    h("p", { class: "post-offer-title" }, `📦 ${t("{who} wants to send you {files} ({size})", { who: o.alias, files: fileCount(o.files), size: formatSize(o.bytes) })}`),
+    h("p", { class: "hint" }, namesLine(o.names, o.files)),
+    h("p", { class: "hint post-offer-countdown" }, countdown(o)),
+    h(
+      "div",
+      { class: "row wrap" },
+      h("button", { class: "primary post-accept", onclick: () => answer(true) }, t("Accept")),
+      h("button", { class: "post-decline", onclick: () => answer(false) }, t("Decline")),
+      o.fingerprint && !trusted ? h("button", { class: "post-always", onclick: () => answer(true, true) }, t("Always accept")) : null,
+      o.fingerprint ? h("button", { class: "small post-offer-verify", onclick: () => verify(o.fingerprint) }, `🛡 ${t("Verify")}`) : null,
+    ),
+  );
+}
+
+/** A delivery coming in: how far, and Stop receiving. */
+function incomingCard(): Node | null {
+  const tr = incoming;
+  if (!tr) return null;
+  const over = transferOver(tr);
+  const rows: Node[] = [h("p", { class: over && tr.state !== "done" ? "warning" : "" }, transferLine(tr))];
+  if (!over) {
+    rows.push(
+      h("progress", { max: 100, value: percent(tr) }),
+      h("p", { class: "hint" }, `${formatSize(tr.done)} / ${formatSize(tr.total)} · ${fileCount(tr.files)}`),
+      h("button", { class: "post-stop-receiving", onclick: () => void backend.postStopReceiving() }, t("Stop receiving")),
+    );
+  }
+  return h("div", { class: "box post-incoming" }, ...rows);
+}
+
+/** One thing received: files (Open, Show in folder) or a text (Copy). */
+function receivedRow(r: PostReceived): Node {
+  const when = h("span", { class: "hint" }, formatWhen(r.at));
+  const open = (reveal: boolean) =>
+    backend.postOpenReceived(r.id, reveal).catch(() => {
+      gone.add(r.id);
+      render();
+    });
+  if (r.text !== null) {
+    return h(
+      "li",
+      { class: "post-received-item" },
+      h("div", { class: "row" }, h("strong", { class: "grow" }, `💬 ${r.from}`), when),
+      h("div", { class: "row" }, h("span", { class: "grow post-received-text" }, r.text), h("button", { class: "small", onclick: () => copyText(r.text!) }, t("Copy"))),
+    );
+  }
+  const names = r.paths.map((p) => p.split(/[\\/]/).pop() ?? p);
+  return h(
+    "li",
+    { class: "post-received-item" },
+    h("div", { class: "row" }, h("strong", { class: "grow" }, `📦 ${t("{files} from {who}", { files: fileCount(r.files), who: r.from })} · ${formatSize(r.bytes)}`), when),
+    h("div", { class: "hint post-received-names" }, namesLine(names.slice(0, 3), r.files)),
+    gone.has(r.id)
+      ? h("p", { class: "hint warning" }, t("Not there any more (moved or deleted)."))
+      : h(
+          "div",
+          { class: "row" },
+          r.files === 1 ? h("button", { class: "small post-open-file", onclick: () => void open(false) }, t("Open")) : null,
+          h("button", { class: "small post-show-file", onclick: () => void open(true) }, t("Show in folder")),
+        ),
+  );
+}
+
 function progress(): Node | null {
   const tr = transfer;
   if (!tr) return null;
@@ -341,7 +441,11 @@ function render(): void {
     h(
       "p",
       { class: "hint" },
-      on && status?.running ? t("This computer is “{name}”.", { name: status.alias }) : on ? t("Starting…") : t("Pet Post is off."),
+      on && status?.running
+        ? t("📥 Ready to receive: nearby devices see this computer as “{name}”.", { name: status.alias })
+        : on
+          ? t("Starting…")
+          : t("Pet Post is off."),
       " ",
       h("a", { href: "#", onclick: (e: Event) => (e.preventDefault(), void backend.openPanel("settings")) }, t("Settings…")),
     ),
@@ -362,8 +466,10 @@ function render(): void {
   const text = h("textarea", { class: "post-text", rows: 3, placeholder: t("A message, a link…") }) as HTMLTextAreaElement;
   text.value = draft;
   text.addEventListener("input", () => (draft = text.value));
+  const focus = remember();
   root.replaceChildren(
     head,
+    ...[offerCard(), incomingCard()].filter((n): n is Node => n !== null),
     h(
       "div",
       { class: "row spread" },
@@ -409,32 +515,38 @@ function render(): void {
       ),
     ),
     ...[sendFailed ? h("p", { class: "warning post-send-failed" }, sendFailed) : null, progress()].filter((n): n is Node => n !== null),
-    ...(received.length
+    ...(history.length
       ? [
-          h("h3", {}, t("Received")),
           h(
-            "ul",
-            { class: "post-received" },
-            ...received.map((r) =>
-              "files" in r
-                ? h(
-                    "li",
-                    { class: "row" },
-                    h("span", { class: "grow" }, t("{files} from {who}", { files: fileCount(r.files.files), who: r.files.peer })),
-                    h("button", { class: "small", onclick: () => void backend.postOpen(r.files.first) }, t("Show")),
-                  )
-                : h(
-                    "li",
-                    { class: "row" },
-                    h("span", { class: "grow post-received-text" }, `💬 ${r.from}: ${r.text}`),
-                    h("button", { class: "small", onclick: () => copyText(r.text) }, t("Copy")),
-                  ),
-            ),
+            "div",
+            { class: "row spread" },
+            h("h3", {}, t("Received")),
+            h("button", { class: "small post-clear-history", onclick: () => void backend.postClearHistory() }, t("Clear")),
           ),
+          h("ul", { class: "post-received" }, ...history.map(receivedRow)),
         ]
       : []),
     h("p", { class: "row" }, h("button", { class: "small", onclick: () => void backend.postOpen(null) }, t("Open the received files folder"))),
   );
+  focus();
+}
+
+/** Where the cursor is (an input, by its class), to put it back after redrawing. */
+function remember(): () => void {
+  const el = document.activeElement;
+  if (!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) || !el.className) return () => {};
+  const css = `.${el.className.split(/\s+/)[0]}`;
+  const [start, end] = [el.selectionStart, el.selectionEnd];
+  return () => {
+    const again = root.querySelector<HTMLInputElement | HTMLTextAreaElement>(css);
+    if (!again) return;
+    again.focus();
+    try {
+      again.setSelectionRange(start, end);
+    } catch {
+      // (Number inputs have no selection.)
+    }
+  };
 }
 
 async function main(): Promise<void> {
@@ -455,23 +567,44 @@ async function main(): Promise<void> {
   });
   await backend.on("post-devices", (d) => {
     devices = d;
-    // Typing in the add form: not redrawn under the cursor.
-    if (!adding || !(document.activeElement instanceof HTMLInputElement)) render();
+    // (Typing meanwhile: the cursor is put back, see remember().)
+    render();
   });
   await backend.on("post-verify", (fp) => verify(fp));
-  await backend.on("post-text", (m) => {
-    // The pet shows it too; here it stays, to copy.
-    received.unshift({ text: m.text, from: m.alias });
+  await backend.on("post-history", (list) => {
+    history = list;
+    render();
+  });
+  await backend.on("post-offer", (o) => {
+    offer = o;
+    render();
+  });
+  await backend.on("post-offer-closed", (c) => {
+    if (offer?.id !== c.id) return;
+    offer = null;
     render();
   });
   await backend.on("post-transfer", (tr) => {
-    if (tr.direction === "in" && tr.state === "done") received.unshift({ files: tr });
+    if (tr.direction === "in") {
+      incoming = tr;
+      render();
+      // Done or stopped: said for a moment, then the card goes.
+      if (transferOver(tr)) setTimeout(() => incoming === tr && ((incoming = null), render()), 6000);
+      return;
+    }
     // How a delivery from the pet goes is the pet's to say; this window shows its own.
-    if (tr.direction === "out" && !mine) return;
+    if (!mine) return;
     transfer = tr;
     if (tr.direction === "out" && transferOver(tr) && tr.state !== "pin") mine = null;
     render();
   });
+  offer = await backend.postPendingOffer().catch(() => null);
+  history = await backend.postHistory().catch(() => []);
+  // The offer's countdown (only its line).
+  setInterval(() => {
+    const line = root.querySelector(".post-offer-countdown");
+    if (offer && line) line.textContent = countdown(offer);
+  }, 1000);
   render();
   if (settings.post.enabled && !devices.length) lookAgain();
   // Opened for Verify (the pet's "Verify…" on a delivery).

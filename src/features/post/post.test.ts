@@ -171,7 +171,7 @@ describe("Pet Post: what the pet and the window say", () => {
   });
 
   it("an offer", () => {
-    const o = { id: "1", alias: "Pixel 8", deviceModel: null, fingerprint: "", files: 2, bytes: 2_500_000, names: ["a.jpg", "b.jpg"] };
+    const o = { id: "1", alias: "Pixel 8", deviceModel: null, fingerprint: "", files: 2, bytes: 2_500_000, names: ["a.jpg", "b.jpg"], until: 0 };
     expect(offerLines(o)).toEqual(["📦 Pixel 8 wants to send you 2 files (2.4 MB)", "a.jpg, b.jpg"]);
     expect(missedOfferTitle(o)).toBe("Pixel 8: 2 files");
   });

@@ -3,7 +3,7 @@ import { currentWorkPeriod, runCutoff } from "../features/pomodoro/workHours";
 import { endOfDay, nextAfterTick, todoRemindsAt } from "../features/todo/repeat";
 import { nextAnniversary, prepDay } from "../features/anniversary/templates";
 import { NOT_BUSY, othersPresent, type AvoidReason, type Busy } from "../features/avoid/avoid";
-import type { PostDevice, PostStatus } from "../features/post/post";
+import type { PostDevice, PostReceived, PostStatus } from "../features/post/post";
 import {
   DEFAULT_SETTINGS,
   EVERY_DAY,
@@ -139,6 +139,11 @@ const MOCK_DEVICES: PostDevice[] = [
   { ...found, fingerprint: "A1", alias: "Pixel 8", deviceModel: "Google", deviceType: "mobile", ip: "192.168.1.20" },
   { ...found, fingerprint: "B2", alias: "Mum's MacBook", deviceModel: "macOS", deviceType: "desktop", ip: "192.168.1.31" },
   { ...found, fingerprint: "C3", alias: "Work laptop", deviceModel: "Windows", deviceType: "desktop", ip: "100.101.2.3", source: "tailnet" },
+];
+
+const mockHistory: PostReceived[] = [
+  { id: "h2", at: Date.now() - 600_000, from: "Pixel 8", text: "Dinner at 7? 🍜", files: 0, bytes: 0, paths: [], folder: null },
+  { id: "h1", at: Date.now() - 3_600_000, from: "Mum's MacBook", text: null, files: 1, bytes: 2_400_000, paths: ["Downloads/ePet/trip.pdf"], folder: "Downloads/ePet" },
 ];
 
 /** The pretend devices, and the ones added by address (in the settings). */
@@ -773,7 +778,40 @@ export const mockBackend: Backend = {
   async postCancelSend() {
     clearInterval(mockSending);
   },
-  async postAnswer() {},
+  async postAnswer(id, accept) {
+    fire("post-offer-closed", { id, reason: "answered", accept });
+    if (!accept) return;
+    // A pretend delivery coming in, then kept in what was received.
+    const base = { direction: "in" as const, peer: "Pixel 8", files: 3, total: 4_200_000, folder: "Downloads/ePet", first: null, error: null };
+    let done = 0;
+    const tick = setInterval(() => {
+      done = Math.min(base.total, done + base.total / 6);
+      fire("post-transfer", { ...base, state: done < base.total ? "receiving" : "done", done });
+      if (done >= base.total) {
+        clearInterval(tick);
+        mockHistory.unshift({ id: `r${Date.now()}`, at: Date.now(), from: "Pixel 8", text: null, files: 3, bytes: base.total, paths: ["Downloads/ePet/a.jpg"], folder: "Downloads/ePet" });
+        fire("post-history", mockHistory);
+      }
+    }, 500);
+  },
+  async postPendingOffer() {
+    // ?offer: pretend someone is sending files (to see the window ask).
+    if (!new URLSearchParams(location.search).has("offer")) return null;
+    return { id: "o1", alias: "Pixel 8", deviceModel: "Google", fingerprint: "A1", files: 3, bytes: 4_200_000, names: ["IMG_2041.jpg", "IMG_2042.jpg", "notes.pdf"], until: Date.now() + 60_000 };
+  },
+  async postStopReceiving() {},
+  async postHistory() {
+    return mockHistory;
+  },
+  async postClearHistory() {
+    mockHistory.length = 0;
+    fire("post-history", []);
+  },
+  async postOpenReceived() {},
+  async postWindowShown() {
+    return false;
+  },
+  async postAttention() {},
   async postPick() {
     return ["C:/Users/me/Pictures/cat.jpg", "C:/Users/me/Pictures/dog.jpg"];
   },

@@ -25,7 +25,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{oneshot, watch};
 use tokio_rustls::TlsAcceptor;
 
-use super::{lock, Active, Device, Inner, Offer, Receive, TextMessage, Transfer};
+use super::{lock, Active, Device, Inner, Offer, Receive, Received, TextMessage, Transfer};
 use crate::state::now_ms;
 
 type Body = Full<Bytes>;
@@ -55,13 +55,29 @@ pub async fn spawn(
     tls: Arc<rustls::ServerConfig>,
     mut stop: watch::Receiver<bool>,
 ) -> Result<u16, String> {
-    let listener = if port == 0 {
-        match bind_first(DEFAULT_PORT..=DEFAULT_PORT + 10).await {
+    // Turned off and on again: the last listener may take a moment to let its port go.
+    let wanted = if port == 0 { DEFAULT_PORT } else { port };
+    let mut listener = None;
+    let mut error = String::new();
+    for _ in 0..10 {
+        match TcpListener::bind(("0.0.0.0", wanted)).await {
+            Ok(l) => {
+                listener = Some(l);
+                break;
+            }
+            Err(e) => {
+                error = e.to_string();
+                tokio::time::sleep(Duration::from_millis(100)).await;
+            }
+        }
+    }
+    let listener = match listener {
+        Some(l) => l,
+        None if port != 0 => return Err(error),
+        None => match bind_first(DEFAULT_PORT + 1..=DEFAULT_PORT + 10).await {
             Some(l) => l,
             None => TcpListener::bind(("0.0.0.0", 0)).await.map_err(|e| e.to_string())?,
-        }
-    } else {
-        TcpListener::bind(("0.0.0.0", port)).await.map_err(|e| e.to_string())?
+        },
     };
     let port = listener.local_addr().map_err(|e| e.to_string())?.port();
     let acceptor = TlsAcceptor::from(tls);
@@ -211,10 +227,16 @@ impl Drop for OfferGuard {
             return;
         }
         let mut receive = lock(&self.inner.receive);
-        if matches!(&*receive, Receive::Offered { id, .. } if *id == self.id) {
-            *receive = Receive::Idle;
-            drop(receive);
-            self.inner.emit("post-offer-closed", serde_json::json!({ "id": self.id, "reason": "cancelled" }));
+        if let Receive::Offered { id, answer, .. } = &*receive {
+            if *id == self.id {
+                // Answered: that was said already ("answered").
+                let unanswered = answer.is_some();
+                *receive = Receive::Idle;
+                drop(receive);
+                if unanswered {
+                    self.inner.emit("post-offer-closed", serde_json::json!({ "id": self.id, "reason": "cancelled" }));
+                }
+            }
         }
     }
 }
@@ -241,6 +263,13 @@ async fn prepare_upload(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, c
     let alias: String = info.alias.chars().take(64).collect();
     if let Some(text) = text_message(&files) {
         let text: String = text.chars().take(10_000).collect();
+        inner.remember(Received {
+            id: random_id(),
+            at: now_ms(),
+            from: alias.clone(),
+            text: Some(text.clone()),
+            ..Default::default()
+        });
         inner.emit("post-text", TextMessage { alias, text });
         return status(204);
     }
@@ -248,27 +277,34 @@ async fn prepare_upload(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, c
     let id = random_id();
     let (answer_tx, answer_rx) = oneshot::channel();
     let (cancel_tx, cancel_rx) = oneshot::channel();
+    let fingerprint = if verified { info.fingerprint.to_ascii_uppercase() } else { String::new() };
+    let offer = Offer {
+        id: id.clone(),
+        alias: alias.clone(),
+        device_model: info.device_model.clone(),
+        fingerprint: fingerprint.clone(),
+        files: files.len(),
+        bytes: files.values().map(|f| f.size).sum(),
+        names: files.values().take(3).map(|f| f.file_name.clone()).collect(),
+        until: now_ms() + ANSWER_SECONDS as i64 * 1000,
+    };
     {
         let mut receive = lock(&inner.receive);
         if !matches!(*receive, Receive::Idle) {
             return status(PostError::Busy.status());
         }
-        *receive = Receive::Offered { id: id.clone(), ip, answer: Some(answer_tx), cancel: Some(cancel_tx) };
+        *receive = Receive::Offered {
+            id: id.clone(),
+            ip,
+            answer: Some(answer_tx),
+            cancel: Some(cancel_tx),
+            offer: Box::new(offer.clone()),
+        };
     }
     let mut guard = OfferGuard { inner: inner.clone(), id: id.clone(), armed: true };
-    let fingerprint = if verified { info.fingerprint.to_ascii_uppercase() } else { String::new() };
     let trusted =
         verified && config.auto_accept_trusted && config.trusted.iter().any(|t| t.eq_ignore_ascii_case(&fingerprint));
     let accepted = trusted || {
-        let offer = Offer {
-            id: id.clone(),
-            alias: alias.clone(),
-            device_model: info.device_model.clone(),
-            fingerprint,
-            files: files.len(),
-            bytes: files.values().map(|f| f.size).sum(),
-            names: files.values().take(3).map(|f| f.file_name.clone()).collect(),
-        };
         inner.emit("post-offer", offer);
         tokio::select! {
             a = answer_rx => a.unwrap_or(false),
@@ -492,9 +528,23 @@ fn finish_file(inner: &Inner, session_id: &str, file_id: &str, path: PathBuf) {
         first: first.map(|p| p.to_string_lossy().into_owned()),
         error: None,
     };
+    let mut paths: Vec<String> =
+        a.session.files.values().filter_map(|f| f.saved.as_ref().map(|p| p.to_string_lossy().into_owned())).collect();
+    paths.sort();
+    let entry = Received {
+        id: random_id(),
+        at: now_ms(),
+        from: t.peer.clone(),
+        text: None,
+        files: t.files,
+        bytes: t.total,
+        paths: paths.into_iter().take(20).collect(),
+        folder: t.folder.clone(),
+    };
     *receive = Receive::Idle;
     drop(receive);
     inner.transfer(t);
+    inner.remember(entry);
 }
 
 /// The sender cancels: before the answer (the pet stops asking) or while sending.

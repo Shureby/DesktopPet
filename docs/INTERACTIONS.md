@@ -828,6 +828,19 @@ src-tauri/src/post/, crates/desktoppet-core/src/post.rs).
     its folders; a name already taken becomes "name (2).jpg". Names can't reach outside
     the save folder (no "..", drives or reserved names).
   - One delivery at a time: another sender meanwhile is told it's busy.
+  - A short, soft sound when it's in (since 0.45.0; the chime asks, this says it's done;
+    neither in silent modes).
+  - **In the Pet Post window** (since 0.45.0): it says "📥 Ready to receive: nearby devices
+    see this computer as “X”." A delivery is asked about there too, at the top (the same
+    question, the time left, Accept / Decline / Always accept / 🛡 Verify); answered in
+    either place, it's gone from both. While the window is open (and not minimized) the
+    hidden pet doesn't come out for it, and the window's taskbar button flashes (the Dock
+    icon bounces) if it's behind others. A delivery coming in shows its progress there
+    with **Stop receiving** (what's in so far stays; the sender is told no).
+  - **Received** (the Pet Post window): the last 50 deliveries and messages, kept in the
+    app's data folder (post-history.json), the latest first, with when and from whom:
+    files with **Open** (one file) and **Show in folder**, texts with **Copy**; **Clear**
+    empties it.
   - A text message shows in the bubble ("💬 X says: …") with **Copy**; the Pet Post window
     lists it too while it's open.
 - **Trusted devices** (Settings → Pet Post): taken without asking while "Accept from trusted

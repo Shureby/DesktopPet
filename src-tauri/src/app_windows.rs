@@ -111,6 +111,20 @@ pub fn open_post<R: Runtime>(app: &AppHandle<R>, verify: Option<&str>) -> tauri:
     Ok(())
 }
 
+/// Whether the Pet Post window is open, shown and not minimized.
+pub fn post_shown<R: Runtime>(app: &AppHandle<R>) -> bool {
+    app.get_webview_window(POST).is_some_and(|w| w.is_visible().unwrap_or(false) && !w.is_minimized().unwrap_or(false))
+}
+
+/// Draws attention to the Pet Post window if it isn't the one in front.
+pub fn post_attention<R: Runtime>(app: &AppHandle<R>) {
+    if let Some(w) = app.get_webview_window(POST) {
+        if !w.is_focused().unwrap_or(true) {
+            let _ = w.request_user_attention(Some(tauri::UserAttentionType::Informational));
+        }
+    }
+}
+
 /// Opens a mini-game as a transparent overlay over the work area the pet is on.
 pub fn open_game<R: Runtime>(app: &AppHandle<R>, game: &str) -> tauri::Result<()> {
     if let Some(w) = app.get_webview_window(GAME) {

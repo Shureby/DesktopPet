@@ -51,8 +51,8 @@ export interface CourierHost {
   quiet(): boolean;
   /** The hidden pet comes out for a delivery. */
   comeOut(): Promise<void>;
-  /** A short sound for a delivery (unless the mode is silent). */
-  chime(): void;
+  /** A short sound (unless the mode is silent): someone sends something, or (`received`) a delivery is in. */
+  chime(received?: boolean): void;
   /** Into "While I was hidden you missed:". */
   recordMissed(title: string): Promise<void>;
   /** The badges changed. */
@@ -187,6 +187,14 @@ export class Courier {
   // --- Receiving ----------------------------------------------------------------------
 
   private async onOffer(o: PostOffer): Promise<void> {
+    // The Pet Post window is open: it asks too; the hidden pet stays hidden (it would only
+    // ask the same), and the window's taskbar button flashes if it's behind others.
+    const window = await this.host.backend.postWindowShown().catch(() => false);
+    if (window) void this.host.backend.postAttention();
+    if (window && this.host.hidden() && !this.host.away()) {
+      this.host.chime();
+      return;
+    }
     // Not now (a presentation, a call; or hidden in Quiet mode): declined, and you're told later.
     if (this.host.away() || (this.host.hidden() && this.host.quiet())) {
       void this.host.backend.postAnswer(o.id, false);
@@ -239,7 +247,7 @@ export class Courier {
     this.host.chime();
   }
 
-  private onClosed(id: string, reason: "cancelled" | "timeout"): void {
+  private onClosed(id: string, reason: "cancelled" | "timeout" | "answered"): void {
     const waiting = this.waiting.find((o) => o.id === id);
     this.waiting = this.waiting.filter((o) => o.id !== id);
     const offer = this.asking?.offer.id === id ? this.asking.offer : waiting;
@@ -270,6 +278,7 @@ export class Courier {
     this.host.redraw();
     const b = this.host.backend;
     if (tr.direction === "in") {
+      if (tr.state === "done") this.host.chime(true);
       if (tr.state === "receiving" && !before) this.host.say(transferLine(tr), 4000);
       else if (tr.state === "done")
         this.host.say(transferLine(tr), 20_000, [

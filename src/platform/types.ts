@@ -18,6 +18,7 @@ import {
   type PostText,
   type PostTransfer,
   type PostTailnet,
+  type PostReceived,
   type PostVerify,
 } from "../features/post/post";
 
@@ -453,7 +454,9 @@ export interface BackendEvents {
   "post-status": PostStatus;
   "post-offer": PostOffer;
   /** The offer is gone unanswered: the sender cancelled, or nobody answered in time. */
-  "post-offer-closed": { id: string; reason: "cancelled" | "timeout" };
+  "post-offer-closed": { id: string; reason: "cancelled" | "timeout" | "answered"; accept?: boolean };
+  /** What was received changed (the latest first). */
+  "post-history": PostReceived[];
   "post-text": PostText;
   "post-transfer": PostTransfer;
   /** What Tailscale says, each time it's asked (Look again). */
@@ -639,6 +642,19 @@ export interface Backend {
   postCancelSend(): Promise<void>;
   /** Accepts or declines a "post-offer". */
   postAnswer(id: string, accept: boolean): Promise<void>;
+  /** The delivery being asked about now, if any (for a window opened meanwhile). */
+  postPendingOffer(): Promise<PostOffer | null>;
+  /** Stops receiving (what's in so far stays). */
+  postStopReceiving(): Promise<void>;
+  /** What was received, the latest first. */
+  postHistory(): Promise<PostReceived[]>;
+  postClearHistory(): Promise<void>;
+  /** Opens something received: the file, or (`reveal`, or several files) the first in its folder. Rejects "gone". */
+  postOpenReceived(id: string, reveal: boolean): Promise<void>;
+  /** Whether the Pet Post window is open (and not minimized). */
+  postWindowShown(): Promise<boolean>;
+  /** The Pet Post window behind others: its taskbar button flashes. */
+  postAttention(): Promise<void>;
   /** Asks for files (or folders) to send; null if cancelled. */
   postPick(folder: boolean): Promise<string[] | null>;
   /** Asks for the folder received files go to; null if cancelled. */

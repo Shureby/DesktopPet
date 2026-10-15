@@ -247,6 +247,77 @@ check("post.own-address", "the Pet Post window shows this computer's addresses a
   assert.equal(await app.b.execute(() => !!document.querySelector(".post-port-moved")), false);
 });
 
+check("post.window-receive", "with the Pet Post window open, it asks too: answered there, the pet's question goes; then a sound, and it's in Received", async () => {
+  const app = ctx.app;
+  await app.toPet();
+  const since = await app.b.execute(() => Date.now());
+  const reply = peer.prepare({ "from-window.txt": "w" });
+  await app.waitBubble("Mock Phone wants to send you 1 file");
+  await app.toWindow("post.html");
+  await app.waitText(".post-offer", "Mock Phone wants to send you 1 file");
+  await app.waitText(".post-offer-countdown", "if you don't answer");
+  await app.click(".post-accept");
+  const r = await reply;
+  assert.equal(r.status, 200);
+  // The pet doesn't ask any more.
+  await app.toPet();
+  await app.b.waitUntil(async () => !/wants to send you/.test((await app.bubble()) ?? ""), { timeout: 5000 });
+  assert.deepEqual(await peer.upload(r.body), [200]);
+  await app.toWindow("post.html");
+  await app.waitText(".post-incoming", "Got 1 file from Mock Phone!");
+  await app.waitText(".post-received-item", "1 file from Mock Phone");
+  await app.toPet();
+  const played = await app.sounds(since);
+  assert.ok(played.some((p) => p.kind === "received"), JSON.stringify(played));
+  const history = await app.invoke("post_history");
+  assert.equal(history[0].from, "Mock Phone");
+  assert.match(history[0].paths[0], /from-window\.txt$/);
+});
+
+check("post.window-hidden", "the hidden pet stays hidden while the Pet Post window is open: the window asks", async () => {
+  const app = ctx.app;
+  await app.run("tray", "Hide pet");
+  await app.b.waitUntil(async () => !(await app.visible("pet")), { timeout: 5000 });
+  await app.invoke("open_post_window");
+  const reply = peer.prepare({ "while-hidden-2.txt": "h" });
+  await app.toWindow("post.html");
+  await app.waitText(".post-offer", "Mock Phone wants to send you 1 file");
+  await new Promise((res) => setTimeout(res, 1500));
+  assert.equal(await app.visible("pet"), false);
+  await app.click(".post-decline");
+  assert.equal((await reply).status, 403);
+  await app.until(() => !document.querySelector(".post-offer"));
+  await app.invoke("e2e_tray", { id: "show" });
+  await app.b.waitUntil(async () => app.visible("pet"), { timeout: 10_000 });
+  await app.answer("Done").catch(() => {});
+});
+
+check("post.stop-receiving", "Stop receiving: what's coming stops, and the sender is told no", async () => {
+  const app = ctx.app;
+  await app.toWindow("post.html");
+  const reply = peer.prepare({ "stopped.bin": Buffer.alloc(1000, 1) });
+  await app.waitText(".post-offer", "Mock Phone wants to send you 1 file");
+  await app.click(".post-accept");
+  const r = await reply;
+  assert.equal(r.status, 200);
+  await app.click(".post-stop-receiving");
+  await app.waitText(".post-incoming", "Stopped receiving from Mock Phone.");
+  assert.deepEqual(await peer.upload(r.body), [403]);
+  assert.equal(existsSync(join(inbox, "stopped.bin")), false);
+});
+
+check("post.history", "Received keeps what came (files and texts) across restarts of the window; Clear empties it", async () => {
+  const app = ctx.app;
+  await app.closeWindow("post");
+  await app.invoke("open_post_window");
+  await app.toWindow("post.html");
+  await app.waitText(".post-received-item", "1 file from Mock Phone");
+  await app.waitText(".post-received-item", "Dinner at 7?");
+  await app.click(".post-clear-history");
+  await app.until(() => !document.querySelector(".post-received-item"));
+  assert.deepEqual(await app.invoke("post_history"), []);
+});
+
 /** The pretend device as the app lists it now. */
 const listed = async (fp = peer.fingerprint) => (await ctx.app.invoke("post_devices")).find((d) => d.fingerprint === fp);
 

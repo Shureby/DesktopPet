@@ -1640,6 +1640,38 @@
           "expect": "互相能找到并收发；信任一次后 Always accept 生效"
         },
         {
+          "id": "post.window-receive",
+          "rev": "0.45.0",
+          "ci": "partial",
+          "mac": true,
+          "human": "真手机发文件时，窗口在后台：任务栏按钮闪（Mac：Dock 图标跳一下）；收完的提示音",
+          "do": "打开 Pet Post 窗口，用手机 LocalSend 发文件给 ePet",
+          "expect": "窗口顶部出现来件卡片：📦 <手机> wants to send you N files (… MB)、文件名、Declined in N s if you don't answer. 倒计时，按钮 Accept / Decline / Always accept / 🛡 Verify；宠物气泡也同时问。在窗口点 Accept 后宠物的气泡消失（反过来在宠物那里答，窗口的卡片也消失）；窗口显示接收进度，收完说 Got N files from <手机>!，并轻响一声（比提问时的 Chime 短；静音类模式不响）"
+        },
+        {
+          "id": "post.window-hidden",
+          "rev": "0.45.0",
+          "ci": "auto",
+          "do": "藏起宠物，打开 Pet Post 窗口，让手机发文件",
+          "expect": "宠物不跳出来（仍是藏着），由窗口问；关掉窗口再发一次，宠物照旧跳出来问"
+        },
+        {
+          "id": "post.stop-receiving",
+          "rev": "0.45.0",
+          "ci": "partial",
+          "mac": true,
+          "human": "手机发一个大文件（几百 MB），接收中途点 Stop receiving",
+          "do": "接收大文件时，在窗口的进度卡片里点 Stop receiving",
+          "expect": "窗口说 Stopped receiving from <手机>.；手机那边显示发送失败；已收完的文件留着，没收完的不留半截"
+        },
+        {
+          "id": "post.history",
+          "rev": "0.45.0",
+          "ci": "auto",
+          "do": "收几次文件和文字后，关掉 Pet Post 窗口和 ePet，再打开",
+          "expect": "Received 下仍列着最近收到的（最多 50 条）：文件写 N files from <谁> · 大小、时间、文件名，一个文件有 Open 和 Show in folder，多个只有 Show in folder；文字有 Copy；文件被删了点 Open 时说 Not there any more (moved or deleted).；点 Clear 清空"
+        },
+        {
           "id": "post.own-address",
           "rev": "0.45.0",
           "ci": "partial",

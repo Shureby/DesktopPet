@@ -1751,9 +1751,12 @@ export class PetHost {
         const out = await this.backend.postPeek();
         if (out || this.hidden) this.enterPeek();
       },
-      chime: () => {
+      chime: (received) => {
         const mode = this.preset();
-        if (mode.sounds) playRingtone("chime", this.settings.alerts.todo.volume * mode.volume);
+        if (!mode.sounds) return;
+        const volume = this.settings.alerts.todo.volume * mode.volume;
+        if (received) sounds.received(volume);
+        else playRingtone("chime", volume);
       },
       recordMissed: (title) => this.backend.recordUnseen({ kind: "post", refId: 0, title, at: Date.now(), snoozes: 0 }),
       redraw: () => delete this.badges.dataset.text,

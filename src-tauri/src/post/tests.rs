@@ -116,9 +116,22 @@ fn two_pets_find_each_other_and_deliver_a_file() {
     assert_eq!(offer["names"][0], "photo.jpg");
     assert_eq!(offer["fingerprint"], Value::String(a.fingerprint()));
     answer(&b.inner, offer["id"].as_str().unwrap(), true);
+    let closed = b.wait("post-offer-closed", |_| true);
+    assert_eq!(
+        (closed["id"].clone(), closed["reason"].as_str(), closed["accept"].as_bool()),
+        (offer["id"].clone(), Some("answered"), Some(true))
+    );
     let done = b.transfer("done");
     assert_eq!(done["files"], 1);
     assert_eq!(std::fs::read(b.saved("photo.jpg")).unwrap(), data);
+    // Kept in what was received (and in its file, for next time).
+    let history = b.inner.history();
+    assert_eq!(history.len(), 1);
+    assert_eq!((history[0].from.as_str(), history[0].files, history[0].bytes), ("Alice", 1, 300_000));
+    assert_eq!(history[0].paths, vec![b.saved("photo.jpg").to_string_lossy().into_owned()]);
+    let kept: Vec<super::Received> =
+        serde_json::from_slice(&std::fs::read(b.dir.join("data").join("post-history.json")).unwrap()).unwrap();
+    assert_eq!(kept[0].id, history[0].id);
     assert_eq!(done["first"], Value::String(b.saved("photo.jpg").to_string_lossy().into_owned()));
     a.transfer("done");
 
@@ -156,6 +169,9 @@ fn folders_keep_their_shape_and_text_is_a_message() {
     assert_eq!(text["alias"], "A");
     assert_eq!(text["text"], "Dinner at 7? 🍜");
     a.transfer("done");
+    let history = b.inner.history();
+    assert_eq!(history[0].text.as_deref(), Some("Dinner at 7? 🍜"));
+    assert_eq!(history[1].files, 3);
 }
 
 #[test]
@@ -180,6 +196,19 @@ fn declined_cancelled_and_busy() {
     a.transfer("cancelled");
     let closed = b.wait("post-offer-closed", |_| true);
     assert_eq!(closed["id"], offer["id"]);
+
+    // Stopped by the receiver while it comes: the sender is told.
+    let big = a.dir.join("big.bin");
+    // (Big enough that it's still coming when stopped.)
+    write(&big, &vec![1u8; 100 * 1024 * 1024]);
+    client::send(a.inner.clone(), to_b.clone(), vec![big], None, None).unwrap();
+    let offer = b.wait("post-offer", |_| true);
+    answer(&b.inner, offer["id"].as_str().unwrap(), true);
+    b.wait("post-transfer", |v| v["state"] == "receiving" && v["done"].as_u64().unwrap_or(0) > 0);
+    super::stop_receiving(&b.inner);
+    b.transfer("stopped");
+    a.transfer("failed");
+    assert!(b.inner.history().is_empty());
 
     // A third device finds the receiver busy.
     let c = peer("C", |_| {});

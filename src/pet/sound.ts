@@ -256,6 +256,17 @@ export const sounds = {
     logSound({ kind: "pop" });
     play([{ f: 660, at: 0, dur: 0.08 }], 0.4);
   },
+  /** Pet Post: a delivery is in (shorter and softer than the chime that asks). */
+  received: (volume: number) => {
+    logSound({ kind: "received", volume });
+    play(
+      [
+        { f: 784, at: 0, dur: 0.09 },
+        { f: 1175, at: 0.09, dur: 0.16 },
+      ],
+      volume * 0.6,
+    );
+  },
 };
 
 /** An anniversary's music for `seconds` (fading out at the end). Returns a function that stops it early. */

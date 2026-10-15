@@ -1559,3 +1559,37 @@ button,
   font-family: ui-monospace, Menlo, Consolas, monospace;
   user-select: text;
 }
+.post-offer {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.post-offer-title {
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+.post-offer .row {
+  gap: 6px;
+}
+.post-incoming progress {
+  width: 100%;
+}
+.post-received-item {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.post-received-item .row {
+  gap: 8px;
+}
+.post-received-names {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.post-received-item .hint {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.post-received-item .post-received-names {
+  white-space: nowrap;
+  flex-shrink: 1;
+}

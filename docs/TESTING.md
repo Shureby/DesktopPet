@@ -268,19 +268,23 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 - [ ] 20.12 🍎 🤖+👀 Pet Post 窗口：选手机，点 📄 Send files… 选几个文件；再点 📁 Send a folder…；再在文本框里写一句话点 Send text → **手机上先问是否接收，接收后窗口显示进度条和 Delivering to <手机>… %，完成显示 Delivered to <手机>!；文字在手机上显示为消息；发送中点 Cancel 能取消** 👀 文件选择对话框；手机上收到的文件和文件夹
 - [ ] 20.13 用 iPhone 上的 LocalSend 收发一次文件和文字 → **和安卓一样能互传**
 - [ ] 20.14 🍎 两台电脑都装 ePet，都开 Pet Post，互相发文件 → **互相能找到并收发；信任一次后 Always accept 生效**
-- [ ] 20.15 🍎 🤖+👀 **【新】** 打开 Pet Post 窗口，看 To add this computer by address on another device: 下面 → **列出这台电脑的地址和端口（如 192.168.31.5:53317；有 Tailscale 时另有一行 100.x…:53317，标 Tailscale），每行有 Copy；在手机 LocalSend 里按这个地址手动添加能连上** 👀 在手机 LocalSend 里照着窗口显示的地址手动添加这台电脑
-- [ ] 20.16 🍎 🤖+👀 **【新】** Pet Post 窗口里在手机那行点 🛡 Verify；手机 LocalSend 里点这台电脑（或它发来的消息），再点 Verify → **两边都是 16 个图标（4×4），一样、顺序一样；切到 Text 是同一串字符；点 Done 回到列表** 👀 和真手机 LocalSend 的 Verify 对照：图标、顺序和文字完全一样
-- [ ] 20.17 🤖 **【新】** 手机发文件，宠物问你时点 Verify… → **Pet Post 窗口打开并显示对这台手机的 Verify；宠物的问题还在（Accept / Decline 仍可点）**
-- [ ] 20.18 🍎 🤖+👀 **【新】** Pet Post 窗口点 ＋ Add by address…，填对方的 IP（或名字）和端口（默认 53317），点 Add → **显示 Connecting… 然后 Added <名字>.；设备出现在列表里，标 added by address；重启 ePet 后还在；能向它发文件和文字；设置 → Pet Post → Beyond this network 里列出它，可 Remove** 👀 二级路由下的设备（如 192.168.8.x）或 Tailscale 地址（100.x 或 MagicDNS 名）
-- [ ] 20.19 🤖 **【新】** 填一个没开 LocalSend 的地址，或一个不存在的名字，点 Add → **地址：Couldn't reach it…，并有防火墙提示（Windows 安全中心 → 允许应用通过防火墙）；名字：No device by that name. Check the address.**
-- [ ] 20.20 🤖+👀 **【新】** 按地址添加二级路由下的手机后，让手机给电脑发一次文件，再从电脑发回给它 → **电脑能收；之后电脑往手机发也能发（列表里它的地址仍是 192.168.8.x，不会变成二级路由的 WAN 地址）** 👀 二级路由下的手机：先按地址添加，再让它主动给电脑发文件
-- [ ] 20.21 🤖 **【新】** 把按地址添加的设备上的 LocalSend 关掉，点 ↻ Look again → **它仍在列表里，写 Not answering.，不能选来发送；对方再打开后 Look again 恢复**
-- [ ] 20.22 🤖 **【新】** 按地址添加的设备换了（例如手机重装 LocalSend，证书变了），点 ↻ Look again → **那行写 ⚠ Another device answers there now.，不能发送；点 It's mine: use the new one 后恢复正常（旧的信任记录被移除）**
-- [ ] 20.23 🍎 🤖+👀 **【新】** 设置 → Pet Post → Also look in these networks 填 192.168.8.0/24（你二级路由的网段），回到 Pet Post 点 ↻ Look again → **二级路由下开着 LocalSend 的设备被找到，标 on another network；写错（如 192.168.8 或 /16）时红字提示 Not a network…，那一行不保存** 👀 真的二级路由网段
-- [ ] 20.24 🍎 🤖+👀 **【新】** 两边都登录同一个 Tailscale；设置 → Pet Post 勾着 List the devices of my Tailscale network；Pet Post 点 ↻ Look again → **设置里写 Tailscale: N devices online, M with LocalSend or ePet.；对方出现在列表里，标 via Tailscale，能互传；没装 / 没登录 / 没连接时分别写 Tailscale isn't installed… / not signed in. / not connected.；取消勾选后这些设备从列表消失** 👀 真装了 Tailscale 的两台设备（电脑和手机，或两台电脑），对方开着 LocalSend 或 ePet
-- [ ] 20.25 **【新】** Windows：在 Windows 安全中心 → 防火墙 → 允许应用通过防火墙 里，只给 ePet 勾“专用”不勾“公用”，然后从 Tailscale 上的另一台设备向这台电脑发文件 → **发不过来（Tailscale 的网络常被当作公用）；勾上“公用”后能发。Pet Post 添加失败时的防火墙提示说的就是这个**
-- [ ] 20.26 🤖 取消勾选 Send and receive files on this network → **状态变回 Off；手机的 LocalSend 列表里 ePet 不再出现（刷新后），也发不过来**
-- [ ] 20.27 🍎 🤖+👀 **【新】** 先在这台电脑上打开 LocalSend，再在 ePet 里勾上 Send and receive files on this network；打开 Pet Post 窗口 → **设置里写 On: … (port 53318: 53317 is taken by another app).；窗口的地址都是 …:53318，下面红字说明 53317 被占用、别的设备按地址添加时要填 53318；关掉重开 ePet 端口不变（还是 53318）；手机照这个地址手动添加能连上** 👀 同一台电脑先开 LocalSend 再开 ePet 的宠物驿站
+- [ ] 20.15 🍎 🤖+👀 **【新】** 打开 Pet Post 窗口，用手机 LocalSend 发文件给 ePet → **窗口顶部出现来件卡片：📦 <手机> wants to send you N files (… MB)、文件名、Declined in N s if you don't answer. 倒计时，按钮 Accept / Decline / Always accept / 🛡 Verify；宠物气泡也同时问。在窗口点 Accept 后宠物的气泡消失（反过来在宠物那里答，窗口的卡片也消失）；窗口显示接收进度，收完说 Got N files from <手机>!，并轻响一声（比提问时的 Chime 短；静音类模式不响）** 👀 真手机发文件时，窗口在后台：任务栏按钮闪（Mac：Dock 图标跳一下）；收完的提示音
+- [ ] 20.16 🤖 **【新】** 藏起宠物，打开 Pet Post 窗口，让手机发文件 → **宠物不跳出来（仍是藏着），由窗口问；关掉窗口再发一次，宠物照旧跳出来问**
+- [ ] 20.17 🍎 🤖+👀 **【新】** 接收大文件时，在窗口的进度卡片里点 Stop receiving → **窗口说 Stopped receiving from <手机>.；手机那边显示发送失败；已收完的文件留着，没收完的不留半截** 👀 手机发一个大文件（几百 MB），接收中途点 Stop receiving
+- [ ] 20.18 🤖 **【新】** 收几次文件和文字后，关掉 Pet Post 窗口和 ePet，再打开 → **Received 下仍列着最近收到的（最多 50 条）：文件写 N files from <谁> · 大小、时间、文件名，一个文件有 Open 和 Show in folder，多个只有 Show in folder；文字有 Copy；文件被删了点 Open 时说 Not there any more (moved or deleted).；点 Clear 清空**
+- [ ] 20.19 🍎 🤖+👀 **【新】** 打开 Pet Post 窗口，看 To add this computer by address on another device: 下面 → **列出这台电脑的地址和端口（如 192.168.31.5:53317；有 Tailscale 时另有一行 100.x…:53317，标 Tailscale），每行有 Copy；在手机 LocalSend 里按这个地址手动添加能连上** 👀 在手机 LocalSend 里照着窗口显示的地址手动添加这台电脑
+- [ ] 20.20 🍎 🤖+👀 **【新】** Pet Post 窗口里在手机那行点 🛡 Verify；手机 LocalSend 里点这台电脑（或它发来的消息），再点 Verify → **两边都是 16 个图标（4×4），一样、顺序一样；切到 Text 是同一串字符；点 Done 回到列表** 👀 和真手机 LocalSend 的 Verify 对照：图标、顺序和文字完全一样
+- [ ] 20.21 🤖 **【新】** 手机发文件，宠物问你时点 Verify… → **Pet Post 窗口打开并显示对这台手机的 Verify；宠物的问题还在（Accept / Decline 仍可点）**
+- [ ] 20.22 🍎 🤖+👀 **【新】** Pet Post 窗口点 ＋ Add by address…，填对方的 IP（或名字）和端口（默认 53317），点 Add → **显示 Connecting… 然后 Added <名字>.；设备出现在列表里，标 added by address；重启 ePet 后还在；能向它发文件和文字；设置 → Pet Post → Beyond this network 里列出它，可 Remove** 👀 二级路由下的设备（如 192.168.8.x）或 Tailscale 地址（100.x 或 MagicDNS 名）
+- [ ] 20.23 🤖 **【新】** 填一个没开 LocalSend 的地址，或一个不存在的名字，点 Add → **地址：Couldn't reach it…，并有防火墙提示（Windows 安全中心 → 允许应用通过防火墙）；名字：No device by that name. Check the address.**
+- [ ] 20.24 🤖+👀 **【新】** 按地址添加二级路由下的手机后，让手机给电脑发一次文件，再从电脑发回给它 → **电脑能收；之后电脑往手机发也能发（列表里它的地址仍是 192.168.8.x，不会变成二级路由的 WAN 地址）** 👀 二级路由下的手机：先按地址添加，再让它主动给电脑发文件
+- [ ] 20.25 🤖 **【新】** 把按地址添加的设备上的 LocalSend 关掉，点 ↻ Look again → **它仍在列表里，写 Not answering.，不能选来发送；对方再打开后 Look again 恢复**
+- [ ] 20.26 🤖 **【新】** 按地址添加的设备换了（例如手机重装 LocalSend，证书变了），点 ↻ Look again → **那行写 ⚠ Another device answers there now.，不能发送；点 It's mine: use the new one 后恢复正常（旧的信任记录被移除）**
+- [ ] 20.27 🍎 🤖+👀 **【新】** 设置 → Pet Post → Also look in these networks 填 192.168.8.0/24（你二级路由的网段），回到 Pet Post 点 ↻ Look again → **二级路由下开着 LocalSend 的设备被找到，标 on another network；写错（如 192.168.8 或 /16）时红字提示 Not a network…，那一行不保存** 👀 真的二级路由网段
+- [ ] 20.28 🍎 🤖+👀 **【新】** 两边都登录同一个 Tailscale；设置 → Pet Post 勾着 List the devices of my Tailscale network；Pet Post 点 ↻ Look again → **设置里写 Tailscale: N devices online, M with LocalSend or ePet.；对方出现在列表里，标 via Tailscale，能互传；没装 / 没登录 / 没连接时分别写 Tailscale isn't installed… / not signed in. / not connected.；取消勾选后这些设备从列表消失** 👀 真装了 Tailscale 的两台设备（电脑和手机，或两台电脑），对方开着 LocalSend 或 ePet
+- [ ] 20.29 **【新】** Windows：在 Windows 安全中心 → 防火墙 → 允许应用通过防火墙 里，只给 ePet 勾“专用”不勾“公用”，然后从 Tailscale 上的另一台设备向这台电脑发文件 → **发不过来（Tailscale 的网络常被当作公用）；勾上“公用”后能发。Pet Post 添加失败时的防火墙提示说的就是这个**
+- [ ] 20.30 🤖 取消勾选 Send and receive files on this network → **状态变回 Off；手机的 LocalSend 列表里 ePet 不再出现（刷新后），也发不过来**
+- [ ] 20.31 🍎 🤖+👀 **【新】** 先在这台电脑上打开 LocalSend，再在 ePet 里勾上 Send and receive files on this network；打开 Pet Post 窗口 → **设置里写 On: … (port 53318: 53317 is taken by another app).；窗口的地址都是 …:53318，下面红字说明 53317 被占用、别的设备按地址添加时要填 53318；关掉重开 ePet 端口不变（还是 53318）；手机照这个地址手动添加能连上** 👀 同一台电脑先开 LocalSend 再开 ePet 的宠物驿站
 
 ## 21. 语言和地区
 

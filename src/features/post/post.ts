@@ -193,7 +193,7 @@ export interface PostStatus {
   addresses: { ip: string; tailnet: boolean }[];
 }
 
-export type TransferState = "waiting" | "receiving" | "sending" | "done" | "declined" | "busy" | "pin" | "tooMany" | "failed" | "cancelled";
+export type TransferState = "waiting" | "receiving" | "sending" | "done" | "declined" | "busy" | "pin" | "tooMany" | "failed" | "cancelled" | "stopped";
 
 export interface PostTransfer {
   direction: "in" | "out";
@@ -217,6 +217,22 @@ export interface PostOffer {
   files: number;
   bytes: number;
   names: string[];
+  /** Declined then if nobody answers (ms). */
+  until: number;
+}
+
+/** Something received (the Pet Post window's "Received"; kept by the app, the latest first). */
+export interface PostReceived {
+  id: string;
+  at: number;
+  from: string;
+  /** A text message (else files). */
+  text: string | null;
+  files: number;
+  bytes: number;
+  /** Where they were saved (the first 20). */
+  paths: string[];
+  folder: string | null;
 }
 
 export interface PostText {
@@ -279,6 +295,8 @@ export function transferLine(tr: PostTransfer): string {
         return t("Got {files} from {who}!", { files: fileCount(tr.files), who });
       case "cancelled":
         return t("{who} stopped sending.", { who });
+      case "stopped":
+        return t("Stopped receiving from {who}.", { who });
       default:
         return t("Receiving from {who} didn't work.", { who });
     }

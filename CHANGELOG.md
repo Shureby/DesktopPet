@@ -28,6 +28,14 @@ affected items' `rev` to the new version so the online checklist asks for a rete
   text) LocalSend shows, to check on both screens that it's the right device.
 - The Pet Post window shows this computer's addresses and port (with Copy), for adding it
   by address on another device.
+- **Receiving in the Pet Post window:** it says it's ready to receive; a delivery is asked
+  about there too (Accept / Decline / Always accept / Verify, with the time left), and
+  answered in either place it's gone from both. While the window is open the hidden pet
+  stays hidden, and the window's taskbar button flashes if it's behind others. A delivery
+  coming in shows its progress with **Stop receiving**.
+- **Received** keeps the last 50 deliveries and messages (also after a restart): files
+  with Open and Show in folder, texts with Copy, and Clear.
+- A short sound when a delivery is in (none in silent modes).
 
 ### Changed
 - Pet Post: when LocalSend's port (53317) is taken by another app (LocalSend on this
@@ -37,6 +45,8 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 ### Fixed
 - Pet Post: a device that reaches this computer from behind a router (NAT) no longer has
   its working address replaced by the router's.
+- Pet Post turned off and straight on again no longer moves off its port (the last
+  listener is given a moment to let it go).
 
 ### Changed (development)
 - Verify's icons: LocalSend's icon alphabet drawn from the Material Icons font (both
