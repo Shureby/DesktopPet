@@ -1504,3 +1504,46 @@ button,
 .grow {
   flex: 1 1 auto;
 }
+.post-device.unavailable {
+  cursor: default;
+  opacity: 0.75;
+}
+.post-device-state {
+  font-size: 12px;
+  color: var(--muted);
+}
+.post-device .post-trust-new {
+  margin-top: 4px;
+}
+.post-add .row input[type="number"] {
+  width: 84px;
+}
+.post-verify-modes {
+  justify-content: center;
+  gap: 6px;
+}
+.post-verify-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 40px);
+  gap: 14px;
+  justify-content: center;
+  margin: 18px 0;
+}
+.post-verify-grid svg {
+  width: 40px;
+  height: 40px;
+  fill: currentColor;
+}
+.post-verify-code {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 13px;
+  word-break: break-all;
+  user-select: text;
+  margin: 18px 0;
+}
+.post-verify-view {
+  text-align: center;
+}
+.post-verify-view .row {
+  justify-content: center;
+}

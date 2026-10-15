@@ -829,8 +829,38 @@ src-tauri/src/post/, crates/desktoppet-core/src/post.rs).
   devices without asking" is ticked; each can be removed.
 - **PIN** (optional): senders must give it; five wrong PINs from one address lock it out
   for a minute.
+- **Verify** (since 0.45.0): each device in the Pet Post window has 🛡 **Verify**, and the
+  pet's question about a delivery has **Verify…** (the question stays up meanwhile). It
+  shows the same 16 icons (or, under **Text**, the same characters) as LocalSend's Verify
+  for these two devices: both fingerprints sorted and joined, the first 128 bits of its
+  SHA-256 as icons of LocalSend's 260 (src/features/post/verifyIcons.ts, made by
+  scripts/verify-icons.py). The same on both screens: it's the device it says it is.
+- **Beyond this network** (since 0.45.0). Discovery stops at a router: a device behind a
+  second router (192.168.8.x behind 192.168.31.234, say) or on Tailscale isn't found by
+  itself.
+  - **Add by address…** (Pet Post window): an IP address or a name (a Tailscale MagicDNS
+    name too) and a port (53317). ePet introduces itself there at once; "Added X." or why
+    not: no such name, "Couldn't reach it" (with a word on the firewall: on Windows, ePet
+    must be allowed on that network's type, and Tailscale's is often Public), or something
+    that isn't LocalSend or ePet. Kept in the settings; asked again each time Pet Post
+    looks; listed as "Not answering." when it doesn't (not sendable, still listed), with ✕
+    to remove it (also in Settings → Pet Post → Beyond this network).
+  - **Its identity is kept:** if what answers at that address has another certificate,
+    the row says "⚠ Another device answers there now." and nothing is sent to it; "It's
+    mine: use the new one" takes the new one (and the old one is no longer trusted).
+  - **Behind a router (NAT):** a device we reached at its own address keeps it when it then
+    reaches us from the router's address (where it can't be reached).
+  - **Also look in these networks** (Settings → Pet Post): one per line, such as
+    192.168.8.0/24 (from /22 to one address); all their addresses are asked each time Pet
+    Post looks. A line that isn't a network is shown in red and not kept.
+  - **Tailscale:** "List the devices of my Tailscale network" (on by default): if Tailscale
+    is installed and connected, ePet asks it (`tailscale status --json`, nothing else: it
+    never changes Tailscale or signs in) for the devices online and asks each whether it
+    runs LocalSend or ePet; those are listed "via Tailscale". Settings says what Tailscale
+    said: not installed, not signed in, not connected, or "N devices online, M with
+    LocalSend or ePet".
 - **Not in this version:** LocalSend's "share via link" (browsers download over plain
-  HTTP), sending to devices on other networks (Tailscale: 0.45).
+  HTTP).
 
 ## Language and region (since 0.43.0)
 

@@ -115,6 +115,8 @@ function saveList(key: string, list: Postponed[]): void {
 interface BubbleAction {
   label: string;
   run: () => void;
+  /** Leaves the bubble (and its question) up. */
+  keep?: boolean;
 }
 
 /**
@@ -1806,6 +1808,7 @@ export class PetHost {
 
   /** A bubble's button pressed (or the tray's Done / Snooze while ringing). */
   private answer(a: BubbleAction): void {
+    if (a.keep) return a.run();
     this.activeRing = null;
     clearTimeout(this.bubbleTimer);
     // Answered: nothing left to protect from being talked over.

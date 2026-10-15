@@ -7,7 +7,7 @@
 //! the app (src-tauri/src/post/).
 
 use std::collections::{BTreeMap, HashMap};
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr};
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -375,6 +375,112 @@ pub fn checksum_matches(expected: Option<&str>, actual: &[u8]) -> bool {
     }
 }
 
+/// The most addresses one extra network may have (a /22): more is a mistake, not a home.
+pub const MAX_NETWORK_HOSTS: usize = 1024;
+
+/// An extra network to look for devices in (Settings → Pet Post), such as
+/// `192.168.8.0/24` (behind a second router), or one address. Its addresses to ask (not
+/// the network's own address and broadcast), or nothing if it isn't one or is too big.
+pub fn network_hosts(text: &str) -> Option<Vec<Ipv4Addr>> {
+    let text = text.trim();
+    let (ip, prefix) = match text.split_once('/') {
+        Some((ip, p)) => (ip.trim(), p.trim().parse::<u32>().ok()?),
+        None => (text, 32),
+    };
+    let ip: Ipv4Addr = ip.parse().ok()?;
+    if !(22..=32).contains(&prefix) {
+        return None;
+    }
+    let mask = u32::MAX << (32 - prefix);
+    let base = u32::from(ip) & mask;
+    let size = 1u64 << (32 - prefix);
+    let hosts: Vec<Ipv4Addr> = if size <= 2 {
+        (0..size).map(|i| Ipv4Addr::from(base + i as u32)).collect()
+    } else {
+        (1..size - 1).map(|i| Ipv4Addr::from(base + i as u32)).collect()
+    };
+    (hosts.len() <= MAX_NETWORK_HOSTS).then_some(hosts)
+}
+
+/// What the local Tailscale client says (`tailscale status --json`).
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Tailnet {
+    /// "missing" (not installed) | "stopped" | "needsLogin" | "running" | "error"
+    pub state: String,
+    /// Devices of the tailnet online now (not this one).
+    pub online: usize,
+    /// Their IPv4 addresses and names, to ask whether they run LocalSend or ePet.
+    #[serde(skip)]
+    pub peers: Vec<(Ipv4Addr, String)>,
+}
+
+/// Reads `tailscale status --json`.
+pub fn parse_tailnet(json: &str) -> Tailnet {
+    let Ok(v) = serde_json::from_str::<serde_json::Value>(json) else {
+        return Tailnet { state: "error".into(), ..Default::default() };
+    };
+    let state = match v["BackendState"].as_str().unwrap_or("") {
+        "Running" => "running",
+        "NeedsLogin" | "NeedsMachineAuth" => "needsLogin",
+        _ => "stopped",
+    };
+    let mut peers = Vec::new();
+    if state == "running" {
+        if let Some(map) = v["Peer"].as_object() {
+            for p in map.values() {
+                if p["Online"].as_bool() != Some(true) {
+                    continue;
+                }
+                let ip = p["TailscaleIPs"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|a| a.as_str()?.parse::<Ipv4Addr>().ok())
+                    .next();
+                if let Some(ip) = ip {
+                    peers.push((ip, p["HostName"].as_str().unwrap_or("").to_string()));
+                }
+            }
+        }
+    }
+    peers.sort();
+    Tailnet { state: state.into(), online: peers.len(), peers }
+}
+
+/// How many icons Verify chooses from (LocalSend's icon alphabet, src/features/post/verifyIcons.ts).
+pub const VERIFY_ICONS: usize = 260;
+
+/// What both devices show to check they talk to each other (LocalSend's Verify, its
+/// app/lib/pages/verify_page.dart): the two fingerprints, sorted and joined (the "text"),
+/// and the first 128 bits of its SHA-256 as 16 icons of the alphabet (their numbers).
+pub fn verify_code(mine: &str, theirs: &str) -> (String, Vec<usize>) {
+    let mut both = [mine, theirs];
+    both.sort();
+    let combined = both.concat();
+    let digest = Sha256::digest(combined.as_bytes());
+    (combined, to_alphabet(&digest[..16], VERIFY_ICONS))
+}
+
+/// A big-endian number as digits of base `size`, as many as `bytes` always needs
+/// (leading zeros kept), as LocalSend's convertFingerprintToAlphabet does.
+pub fn to_alphabet(bytes: &[u8], size: usize) -> Vec<usize> {
+    let length = (bytes.len() as f64 * 8.0 * 2f64.ln() / (size as f64).ln()).ceil() as usize;
+    let mut value = bytes.to_vec();
+    let mut digits = vec![0; length];
+    for d in digits.iter_mut().rev() {
+        // value /= size; *d = value % size
+        let mut rest = 0usize;
+        for byte in value.iter_mut() {
+            let cur = (rest << 8) | *byte as usize;
+            *byte = (cur / size) as u8;
+            rest = cur % size;
+        }
+        *d = rest;
+    }
+    digits
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -546,5 +652,64 @@ mod tests {
         assert_ne!(random_id(), random_id());
         assert_eq!(mime_type("A.JPG"), "image/jpeg");
         assert_eq!(mime_type("noext"), "application/octet-stream");
+    }
+
+    #[test]
+    fn extra_networks() {
+        let h = network_hosts("192.168.8.0/24").unwrap();
+        assert_eq!(h.len(), 254);
+        assert_eq!(h[0], Ipv4Addr::new(192, 168, 8, 1));
+        assert_eq!(h[253], Ipv4Addr::new(192, 168, 8, 254));
+        // Any address of the network will do; spaces are fine.
+        assert_eq!(network_hosts(" 192.168.8.77 / 24 ").unwrap(), h);
+        assert_eq!(network_hosts("10.0.0.5").unwrap(), vec![Ipv4Addr::new(10, 0, 0, 5)]);
+        assert_eq!(network_hosts("10.0.0.4/31").unwrap().len(), 2);
+        assert_eq!(network_hosts("10.0.0.0/22").unwrap().len(), 1022);
+        assert_eq!(network_hosts("10.0.0.0/21"), None);
+        assert_eq!(network_hosts("10.0.0.0/33"), None);
+        assert_eq!(network_hosts("192.168.8"), None);
+        assert_eq!(network_hosts("phone.local"), None);
+        assert_eq!(network_hosts(""), None);
+    }
+
+    #[test]
+    fn tailscale_status() {
+        let json = r#"{
+            "BackendState": "Running",
+            "Self": { "HostName": "desk", "TailscaleIPs": ["100.64.0.1"], "Online": true },
+            "Peer": {
+                "nodekey:a": { "HostName": "phone", "TailscaleIPs": ["100.101.2.3", "fd7a:115c:a1e0::1"], "Online": true },
+                "nodekey:b": { "HostName": "laptop", "TailscaleIPs": ["100.64.0.9"], "Online": false },
+                "nodekey:c": { "HostName": "v6only", "TailscaleIPs": ["fd7a:115c:a1e0::2"], "Online": true }
+            }
+        }"#;
+        let t = parse_tailnet(json);
+        assert_eq!(t.state, "running");
+        assert_eq!(t.peers, vec![(Ipv4Addr::new(100, 101, 2, 3), "phone".to_string())]);
+        assert_eq!(t.online, 1);
+        assert_eq!(parse_tailnet(r#"{"BackendState":"NeedsLogin","Peer":{}}"#).state, "needsLogin");
+        let stopped =
+            parse_tailnet(r#"{"BackendState":"Stopped","Peer":{"k":{"Online":true,"TailscaleIPs":["100.1.1.1"]}}}"#);
+        assert_eq!((stopped.state.as_str(), stopped.online), ("stopped", 0));
+        assert_eq!(parse_tailnet("failed to connect to local tailscaled").state, "error");
+    }
+
+    #[test]
+    fn verify_like_localsend() {
+        // LocalSend's own tests (app/test/unit/util/fingerprint_alphabet_test.dart), with
+        // the hex as bytes.
+        assert_eq!(to_alphabet(&[0xA1, 0xB2, 0xC3], 16), vec![0xA, 1, 0xB, 2, 0xC, 3]);
+        assert_eq!(to_alphabet(&[0x00, 0xFF], 16), vec![0, 0, 0xF, 0xF]);
+        assert_eq!(to_alphabet(&[0xFF; 32], 10).len(), 78);
+        assert_eq!(to_alphabet(&[0xFF; 16], VERIFY_ICONS).len(), 16);
+        // Worked out apart (Python: sha256 → int → base 260).
+        let a = "BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD";
+        let b = "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855";
+        let (text, icons) = verify_code(b, a);
+        assert_eq!(text, format!("{a}{b}"));
+        assert_eq!(icons, vec![163, 169, 91, 133, 186, 93, 151, 160, 11, 109, 119, 199, 13, 255, 231, 21]);
+        // The same on both sides.
+        assert_eq!(verify_code(a, b), verify_code(b, a));
+        assert_eq!(verify_code(a, a).1, vec![150, 30, 54, 158, 201, 3, 182, 66, 95, 132, 141, 211, 98, 34, 33, 2]);
     }
 }

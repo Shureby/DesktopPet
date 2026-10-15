@@ -17,6 +17,8 @@ import {
   type PostStatus,
   type PostText,
   type PostTransfer,
+  type PostTailnet,
+  type PostVerify,
 } from "../features/post/post";
 
 export interface PomodoroConfig {
@@ -454,6 +456,10 @@ export interface BackendEvents {
   "post-offer-closed": { id: string; reason: "cancelled" | "timeout" };
   "post-text": PostText;
   "post-transfer": PostTransfer;
+  /** What Tailscale says, each time it's asked (Look again). */
+  "post-tailnet": PostTailnet;
+  /** The Pet Post window, already open, is to show Verify for this device (fingerprint). */
+  "post-verify": string;
 }
 
 /** Stepping aside, as the app sees it now. */
@@ -619,6 +625,15 @@ export interface Backend {
   postDevices(): Promise<PostDevice[]>;
   /** Looks for devices again. */
   postRefresh(): Promise<void>;
+  /**
+   * Adds a device by address (an IP address or a host name; LocalSend's port if none). The
+   * pet window keeps it in the settings. Rejects with "off" | "address" | "unreachable" | "notPet".
+   */
+  postAddDevice(address: string, port?: number | null): Promise<PostDevice>;
+  /** What Tailscale said last. */
+  postTailnet(): Promise<PostTailnet>;
+  /** What this computer and a device (by fingerprint) both show, to compare. */
+  postVerify(fingerprint: string): Promise<PostVerify>;
   /** Sends files and folders, or a text, to a device (by fingerprint). */
   postSend(to: string, paths: string[], text?: string | null, pin?: string | null): Promise<void>;
   postCancelSend(): Promise<void>;
@@ -630,7 +645,8 @@ export interface Backend {
   postPickSaveDir(): Promise<string | null>;
   /** Shows a received file in its folder, or opens the save folder. */
   postOpen(path?: string | null): Promise<void>;
-  openPostWindow(): Promise<void>;
+  /** With `verify` (a device's fingerprint): showing Verify for it. */
+  openPostWindow(verify?: string | null): Promise<void>;
   /** The hidden pet comes out for a delivery; whether it was out of sight. */
   postPeek(): Promise<boolean>;
   /** The user saw a missed alarm (clicked its badge): the badge goes, the history keeps it. */

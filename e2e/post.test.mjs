@@ -2,15 +2,25 @@
  * Pet Post (src-tauri/src/post/, src/pet/courier.ts): off until turned on; a LocalSend
  * device (e2e/localsend-peer.mjs) found by multicast; files it sends asked about by the pet
  * and saved; declined, with a PIN, from a trusted device; a text message; sending to it.
+ * Then beyond this network: Verify, extra networks, Tailscale (pretended), a device added
+ * by address, one that calls from behind a router, stops answering, or is someone else.
  */
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import net from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before } from "node:test";
 import { check, useApp } from "./harness.mjs";
 import { LOCALSEND_PORT, Peer } from "./localsend-peer.mjs";
+
+// The extra networks and the tailnet are asked on the pretend device's port; Tailscale's
+// answer is this file (none: not installed).
+const tailnetFile = join(mkdtempSync(join(tmpdir(), "epet-tailnet-")), "status.json");
+writeFileSync(tailnetFile, JSON.stringify({ BackendState: "NeedsLogin", Peer: {} }));
+process.env.EPET_TAILSCALE_STATUS = tailnetFile;
+process.env.EPET_POST_PEER_PORT = "53318";
 
 const ctx = useApp(import.meta.filename);
 const peer = new Peer();
@@ -28,6 +38,28 @@ const listening = (port) =>
     s.on("error", () => resolve(false));
     s.on("timeout", () => (s.destroy(), resolve(false)));
   });
+
+/** A port nothing listens on. */
+const freePort = () =>
+  new Promise((resolve) => {
+    const srv = net.createServer().listen(0, "127.0.0.1", () => {
+      const { port } = srv.address();
+      srv.close(() => resolve(port));
+    });
+  });
+
+/** Verify as LocalSend works it out (app/lib/pages/verify_page.dart): its icons' names and text. */
+const ICON_NAMES = [...readFileSync(new URL("../src/features/post/verifyIcons.ts", import.meta.url), "utf8").matchAll(/^\s*\["(\w+)",/gm)].map((m) => m[1]);
+function verifyCode(a, b) {
+  const text = [a, b].sort().join("");
+  let v = BigInt(`0x${createHash("sha256").update(text).digest("hex").slice(0, 32)}`);
+  const icons = [];
+  for (let i = 0; i < 16; i++) {
+    icons.unshift(ICON_NAMES[Number(v % 260n)]);
+    v /= 260n;
+  }
+  return { text, icons };
+}
 
 const until = async (what, fn, timeout = 15_000) => {
   const end = Date.now() + timeout;
@@ -200,6 +232,184 @@ check("post.send", "the Pet Post window lists the device; a file and a text reac
   await app.click(".post-send-text");
   await until("text arrived", () => peer.texts?.includes("sent from ePet"));
   await app.waitText(".post-progress", "Delivered to Mock Phone!");
+});
+
+/** The pretend device as the app lists it now. */
+const listed = async (fp = peer.fingerprint) => (await ctx.app.invoke("post_devices")).find((d) => d.fingerprint === fp);
+
+/** Looks again (now and then) until `fn` is satisfied. */
+async function lookUntil(what, fn, timeout = 30_000) {
+  let last = 0;
+  return until(
+    what,
+    async () => {
+      if (Date.now() - last > 5000) {
+        last = Date.now();
+        await ctx.app.invoke("post_refresh");
+      }
+      return fn();
+    },
+    timeout,
+  );
+}
+
+check("post.verify", "Verify in Pet Post shows the same icons (and text) LocalSend shows for these two devices", async () => {
+  const app = ctx.app;
+  assert.equal(ICON_NAMES.length, 260);
+  const want = verifyCode(fingerprint, peer.fingerprint);
+  await app.toWindow("post.html");
+  await app.b.execute((name) => {
+    const row = [...document.querySelectorAll(".post-device")].find((e) => e.textContent.includes(name));
+    row.querySelector(".post-verify").click();
+  }, "Mock Phone");
+  const shown = await app.until(() => {
+    const icons = [...document.querySelectorAll(".post-verify-grid svg")].map((e) => e.dataset.icon);
+    return icons.length === 16 && icons;
+  });
+  assert.deepEqual(shown, want.icons);
+  await app.waitText(".post-verify-view", "With Mock Phone");
+  await app.click(".post-verify-text");
+  await app.waitText(".post-verify-code", want.text);
+  await app.click(".post-verify-done");
+  await app.waitText(".post-device", "Mock Phone");
+});
+
+check("post.verify-offer", "Verify… in the pet's question opens it in Pet Post, and the question stays", async () => {
+  const app = ctx.app;
+  const reply = peer.prepare({ "v.txt": "v" });
+  await app.waitBubble("Mock Phone wants to send you 1 file");
+  await app.answer("Verify…");
+  await app.toWindow("post.html");
+  const shown = await app.until(() => {
+    const icons = [...document.querySelectorAll(".post-verify-grid svg")].map((e) => e.dataset.icon);
+    return icons.length === 16 && icons;
+  });
+  assert.deepEqual(shown, verifyCode(fingerprint, peer.fingerprint).icons);
+  await app.click(".post-verify-done");
+  assert.match(await app.bubble(), /Mock Phone wants to send you 1 file/);
+  await app.answer("Decline");
+  assert.equal((await reply).status, 403);
+});
+
+check("post.networks", "an extra network in Settings → Pet Post is looked in too", async () => {
+  const app = ctx.app;
+  await app.setSettings((s) => ({ ...s, post: { ...s.post, networks: ["127.0.0.1/32"] } }));
+  const d = await lookUntil("found in the extra network", async () => {
+    const x = await listed();
+    return x?.source === "network" && x;
+  });
+  assert.equal(d.ip, "127.0.0.1");
+  assert.equal(d.port, 53318);
+  await app.toWindow("post.html");
+  await app.waitText(".post-device", "on another network");
+  await app.setSettings((s) => ({ ...s, post: { ...s.post, networks: [] } }));
+});
+
+check("post.tailscale", "the devices of the Tailscale network are asked (Tailscale pretended); what Tailscale says is shown", async () => {
+  const app = ctx.app;
+  await app.panel("settings");
+  await app.invoke("post_refresh");
+  await app.waitText(".post-settings .post-tailnet", "Tailscale is installed but not signed in.", 15_000);
+  writeFileSync(
+    tailnetFile,
+    JSON.stringify({
+      BackendState: "Running",
+      Self: { HostName: "this", TailscaleIPs: ["100.64.0.1"], Online: true },
+      Peer: {
+        "nodekey:phone": { HostName: "mock-phone", TailscaleIPs: ["127.0.0.1"], Online: true },
+        "nodekey:off": { HostName: "laptop", TailscaleIPs: ["127.0.0.9"], Online: false },
+      },
+    }),
+  );
+  await lookUntil("listed via Tailscale", async () => (await listed())?.source === "tailnet");
+  assert.deepEqual(await app.invoke("post_tailnet"), { state: "running", online: 1 });
+  await app.panel("settings");
+  await app.waitText(".post-settings .post-tailnet", "Tailscale: 1 device online, 1 with LocalSend or ePet.", 15_000);
+  await app.toWindow("post.html");
+  await app.waitText(".post-device", "via Tailscale");
+  rmSync(tailnetFile);
+  await app.invoke("post_refresh");
+  await app.panel("settings");
+  await app.waitText(".post-settings .post-tailnet", "Tailscale isn't installed on this computer.", 15_000);
+});
+
+check("post.add", "a device added by address (in Pet Post) is listed and kept in the settings", async () => {
+  const app = ctx.app;
+  await app.toWindow("post.html");
+  await app.click(".post-add-open");
+  await app.type(".post-add-address", "127.0.0.1");
+  await app.type(".post-add-port", "53318");
+  await app.click(".post-add-go");
+  await app.waitText(".post-add-state", "Added Mock Phone.", 20_000);
+  await app.waitText(".post-device", "added by address");
+  const s = await app.fullSettings();
+  assert.deepEqual(s.post.devices, [{ address: "127.0.0.1", port: 53318, fingerprint: peer.fingerprint, alias: "Mock Phone", deviceType: "mobile" }]);
+  const d = await listed();
+  assert.equal(d.source, "address");
+  assert.equal(d.reached, true);
+});
+
+check("post.add-fail", "an address where nothing answers: said so, with a word about the firewall", async () => {
+  const app = ctx.app;
+  await app.toWindow("post.html");
+  await app.type(".post-add-address", "127.0.0.1");
+  await app.type(".post-add-port", String(await freePort()));
+  await app.click(".post-add-go");
+  await app.waitText(".post-add-state", "Couldn't reach it.", 20_000);
+  await app.waitText(".post-firewall", "Allow an app");
+  await app.type(".post-add-address", "no-such-device.invalid");
+  await app.type(".post-add-port", "53318");
+  await app.click(".post-add-go");
+  await app.waitText(".post-add-state", "No device by that name.", 20_000);
+  assert.equal((await app.fullSettings()).post.devices.length, 1);
+});
+
+check("post.nat", "a device reached at an address keeps it when it calls from another (a router it's behind)", async () => {
+  const r = await peer.register(LOCALSEND_PORT, "127.0.0.2");
+  assert.equal(r.status, 200);
+  await new Promise((res) => setTimeout(res, 500));
+  const d = await listed();
+  assert.equal(d.ip, "127.0.0.1");
+  assert.equal(d.port, 53318);
+});
+
+check("post.offline", "a device added by address that stops answering stays listed, as not answering", async () => {
+  const app = ctx.app;
+  await peer.stop();
+  await lookUntil("not answering", async () => (await listed())?.online === false);
+  await app.toWindow("post.html");
+  await app.waitText(".post-device-state", "Not answering.");
+});
+
+check("post.identity", "another device answering at that address: nothing is sent to it until you say it's yours", async () => {
+  const app = ctx.app;
+  const other = new Peer("Mock Phone", 53318);
+  await other.start();
+  try {
+    await lookUntil("seen as another device", async () => (await listed())?.changedTo === other.fingerprint);
+    await app.toWindow("post.html");
+    await app.waitText(".post-device-state", "Another device answers there now.");
+    const sent = await app.b.execute(
+      (fp) =>
+        window.__TAURI_INTERNALS__.invoke("post_send", { to: fp, paths: [], text: "x", pin: null }).then(
+          () => "sent",
+          (e) => String(e),
+        ),
+      peer.fingerprint,
+    );
+    assert.equal(sent, "identity");
+    await app.click(".post-trust-new");
+    const s = await until("kept the new one", async () => {
+      const st = await app.fullSettings();
+      return st.post.devices[0]?.fingerprint === other.fingerprint && st;
+    });
+    assert.equal(s.post.devices.length, 1);
+    await app.toWindow("post.html");
+    await app.until(() => !document.querySelector(".post-trust-new"));
+  } finally {
+    await other.stop();
+    await peer.start();
+  }
 });
 
 check("post.off-again", "turned off: it stops listening", async () => {

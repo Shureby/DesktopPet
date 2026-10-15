@@ -35,7 +35,7 @@ base64 = "0.22"
 log = "0.4"
 steamworks = { version = "0.12", optional = true }
 # Pet Post (LocalSend protocol): HTTPS server and client, multicast discovery.
-tokio = { version = "1", features = ["net", "io-util", "fs", "time", "sync", "macros", "rt"] }
+tokio = { version = "1", features = ["net", "io-util", "fs", "time", "sync", "macros", "rt", "process"] }
 hyper = { version = "1", features = ["server", "client", "http1"] }
 hyper-util = { version = "0.1", features = ["tokio"] }
 http-body-util = "0.1"

@@ -1,20 +1,31 @@
 /**
  * Settings → Pet Post (docs/INTERACTIONS.md, "Pet Post"): on or off, the name others see,
- * where received files go, trusted devices and an optional PIN. Sending is in the Pet
- * Post window (and by dropping files on the pet).
+ * where received files go, trusted devices, an optional PIN, and beyond this network:
+ * devices added by address, extra networks to look in, and Tailscale. Sending is in the
+ * Pet Post window (and by dropping files on the pet).
  */
 import { t } from "../i18n";
 import type { Backend, Settings } from "../platform/types";
-import { postAlias, type PostSettings, type PostStatus } from "../features/post/post";
+import { parseNetwork, postAlias, tailnetLine, type PostDevice, type PostSettings, type PostStatus, type PostTailnet } from "../features/post/post";
 import { h } from "./dom";
+
+/** Lines of "Also look in these networks" that aren't one (shown until fixed; the page is redrawn on saving). */
+let badNetworks: string[] = [];
 
 export function postSection(backend: Backend, get: () => Settings, save: (patch: Partial<Settings>) => Promise<void>, petName: () => string): Node {
   const root = h("div", { class: "box post-settings" });
   let status: PostStatus | null = null;
+  let tailnet: PostTailnet = { state: "", online: 0 };
+  let devices: PostDevice[] = [];
+  const tailnetText = h("p", { class: "hint post-tailnet" });
+  const showTailnet = () => {
+    tailnetText.textContent = get().post.tailscale ? tailnetLine(tailnet, devices.filter((d) => d.source === "tailnet").length) : "";
+  };
   const update = (patch: Partial<PostSettings>) => save({ post: { ...get().post, ...patch } }).then(() => poll());
 
   const draw = () => {
     const s = get().post;
+    showTailnet();
     const state = h("p", { class: "hint post-state" });
     if (s.enabled && status?.running)
       state.textContent = t("On: others see this computer as “{name}”.", {
@@ -141,6 +152,55 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
               }),
             ),
             h("p", { class: "hint" }, t("With a PIN, senders must type it before they can send you anything.")),
+            h("hr"),
+            h("div", { class: "subhead" }, t("Beyond this network")),
+            h("p", { class: "hint" }, t("Devices are found on this network by themselves. Others (behind another router, on Tailscale) can be added by address in Pet Post.")),
+            ...(s.devices.length
+              ? [
+                  h(
+                    "ul",
+                    { class: "trusted post-saved" },
+                    ...s.devices.map((d) =>
+                      h(
+                        "li",
+                        { class: "row" },
+                        h("span", { class: "grow", title: d.fingerprint }, `${d.alias && d.alias !== d.address ? `${d.alias} (${d.address})` : d.address}${d.port === 53317 ? "" : `:${d.port}`}`),
+                        h("button", { class: "small", onclick: () => void update({ devices: get().post.devices.filter((x) => x.fingerprint !== d.fingerprint) }) }, t("Remove")),
+                      ),
+                    ),
+                  ),
+                ]
+              : []),
+            h("label", { class: "label", for: "post-networks" }, t("Also look in these networks")),
+            h("textarea", {
+              id: "post-networks",
+              class: "post-networks",
+              rows: 2,
+              spellcheck: false,
+              placeholder: "192.168.8.0/24",
+              value: [...s.networks, ...badNetworks].join("\n"),
+              onchange: (e: Event) => {
+                const lines = (e.target as HTMLTextAreaElement).value.split(/[\n,;]+/).map((l) => l.trim()).filter(Boolean);
+                const good = lines.map(parseNetwork).filter((n): n is string => !!n);
+                badNetworks = lines.filter((l) => !parseNetwork(l));
+                void update({ networks: [...new Set(good)] });
+              },
+            }),
+            badNetworks.length
+              ? h("p", { class: "warning post-networks-bad" }, t("Not a network: {list}. Write it like 192.168.8.0/24 (up to /22).", { list: badNetworks.join(", ") }))
+              : h("p", { class: "hint" }, t("One per line, such as 192.168.8.0/24 (behind another router). Asked each time Pet Post looks.")),
+            h(
+              "label",
+              { class: "check" },
+              h("input", {
+                type: "checkbox",
+                class: "post-tailscale",
+                checked: s.tailscale,
+                onchange: () => void update({ tailscale: !s.tailscale }),
+              }),
+              t("List the devices of my Tailscale network"),
+            ),
+            tailnetText,
           ]
         : []),
       h("button", { onclick: () => void backend.openPostWindow() }, t("Open Pet Post…")),
@@ -166,6 +226,16 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
     status = st;
     draw();
   });
+  void backend.on("post-tailnet", (tn) => {
+    tailnet = tn;
+    showTailnet();
+  });
+  void backend.on("post-devices", (d) => {
+    devices = d;
+    showTailnet();
+  });
+  void backend.postTailnet().then((tn) => ((tailnet = tn), showTailnet())).catch(() => {});
+  void backend.postDevices().then((d) => ((devices = d), showTailnet())).catch(() => {});
   draw();
   return root;
 }

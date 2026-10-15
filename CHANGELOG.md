@@ -16,6 +16,25 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.45.0] - 2026-10-15
+
+### Added
+- **Pet Post beyond this network:** add a device by address (an IP address or a name, such
+  as one behind a second router or on Tailscale); it's remembered and asked again each
+  time, shown as "Not answering." when it doesn't, and refused if another device answers
+  at its address. Extra networks to look in (Settings → Pet Post, e.g. 192.168.8.0/24).
+  The devices of your Tailscale network are listed if Tailscale is installed.
+- **Verify** in Pet Post and in the pet's question about a delivery: the same icons (or
+  text) LocalSend shows, to check on both screens that it's the right device.
+
+### Fixed
+- Pet Post: a device that reaches this computer from behind a router (NAT) no longer has
+  its working address replaced by the router's.
+
+### Changed (development)
+- Verify's icons: LocalSend's icon alphabet drawn from the Material Icons font (both
+  Apache-2.0, docs/THIRD_PARTY.md), made by scripts/verify-icons.py.
+
 ## [0.44.0] - 2026-10-15
 
 ### Added

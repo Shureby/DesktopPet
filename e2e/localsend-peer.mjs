@@ -61,7 +61,10 @@ export class Peer {
 
   async stop() {
     this.server?.close();
+    this.server?.closeAllConnections?.();
+    this.server = null;
     this.udp?.close();
+    this.udp = null;
   }
 
   async handle(req, res) {
@@ -106,12 +109,26 @@ export class Peer {
     }
   }
 
-  /** A request to the app (HTTPS, showing its certificate); checks the app's certificate is `expect` (if given). */
-  request(port, path, body, expect) {
+  /**
+   * A request to the app (HTTPS, showing its certificate); checks the app's certificate is
+   * `expect` (if given). `from`: the local address it comes from (127.0.0.2: as if from
+   * behind a router).
+   */
+  request(port, path, body, expect, from) {
     return new Promise((resolve, reject) => {
       const data = typeof body === "string" || Buffer.isBuffer(body) ? body : JSON.stringify(body ?? {});
       const req = https.request(
-        { host: "127.0.0.1", port, path, method: "POST", key: this.tls.key, cert: this.tls.cert, rejectUnauthorized: false, agent: false },
+        {
+          host: "127.0.0.1",
+          port,
+          path,
+          method: "POST",
+          key: this.tls.key,
+          cert: this.tls.cert,
+          rejectUnauthorized: false,
+          agent: false,
+          ...(from ? { localAddress: from } : {}),
+        },
         (res) => {
           // (Read now: the socket is let go once the response is over.)
           const cert = res.socket?.getPeerCertificate?.();
@@ -130,8 +147,8 @@ export class Peer {
     });
   }
 
-  register(port = LOCALSEND_PORT) {
-    return this.request(port, `${API}/register`, this.info());
+  register(port = LOCALSEND_PORT, from = undefined) {
+    return this.request(port, `${API}/register`, this.info(), undefined, from);
   }
 
   /** Offers files ({ name: Buffer|string }); resolves when the app answers. */

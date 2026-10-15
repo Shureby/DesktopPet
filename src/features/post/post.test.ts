@@ -3,8 +3,14 @@ import { mergeSettings } from "../../platform/types";
 import {
   fileCount,
   formatSize,
+  addError,
   missedOfferTitle,
   namesLine,
+  parseNetwork,
+  sendable,
+  sourceLabel,
+  tailnetLine,
+  type PostDevice,
   offerLines,
   percent,
   postAlias,
@@ -31,7 +37,17 @@ const tr = (p: Partial<PostTransfer>): PostTransfer => ({
 describe("Pet Post settings", () => {
   it("are off by default, and older settings get the defaults", () => {
     const s = mergeSettings({});
-    expect(s.post).toEqual({ enabled: false, alias: "", pin: "", autoAcceptTrusted: true, trusted: [], saveDir: "" });
+    expect(s.post).toEqual({
+      enabled: false,
+      alias: "",
+      pin: "",
+      autoAcceptTrusted: true,
+      trusted: [],
+      saveDir: "",
+      devices: [],
+      networks: [],
+      tailscale: true,
+    });
     expect(mergeSettings(null).post.enabled).toBe(false);
   });
 
@@ -62,7 +78,82 @@ describe("Pet Post settings", () => {
       trusted: ["AA"],
       saveDir: "",
       port: 0,
+      devices: [],
+      networks: [],
+      tailscale: true,
     });
+  });
+
+  it("devices added by address and extra networks: kept when they're right", () => {
+    const s = postSettings({
+      devices: [
+        { address: " 192.168.8.20 ", port: 53317, fingerprint: "ab", alias: "Phone", deviceType: "mobile" },
+        { address: "laptop.tail1234.ts.net", port: 0, fingerprint: "CD", alias: "", deviceType: "desktop" },
+        { address: "", port: 1, fingerprint: "EF", alias: "", deviceType: "desktop" },
+        { address: "x", port: 1, fingerprint: "", alias: "", deviceType: "desktop" },
+      ],
+      networks: ["192.168.8.77/24", "10.0.0.0/8", "nonsense", 5 as never],
+      tailscale: false,
+    });
+    expect(s.devices).toEqual([
+      { address: "192.168.8.20", port: 53317, fingerprint: "AB", alias: "Phone", deviceType: "mobile" },
+      { address: "laptop.tail1234.ts.net", port: 53317, fingerprint: "CD", alias: "", deviceType: "desktop" },
+    ]);
+    expect(s.networks).toEqual(["192.168.8.0/24"]);
+    expect(s.tailscale).toBe(false);
+  });
+
+  it("extra networks as the app reads them (desktoppet-core post::network_hosts)", () => {
+    expect(parseNetwork("192.168.8.0/24")).toBe("192.168.8.0/24");
+    expect(parseNetwork(" 192.168.8.77 / 24 ")).toBe("192.168.8.0/24");
+    expect(parseNetwork("10.0.0.5")).toBe("10.0.0.5");
+    expect(parseNetwork("10.0.3.9/22")).toBe("10.0.0.0/22");
+    expect(parseNetwork("10.0.0.0/21")).toBeNull();
+    expect(parseNetwork("10.0.0.0/33")).toBeNull();
+    expect(parseNetwork("192.168.8")).toBeNull();
+    expect(parseNetwork("256.1.1.1")).toBeNull();
+    expect(parseNetwork("phone.local")).toBeNull();
+  });
+});
+
+const dev = (p: Partial<PostDevice>): PostDevice => ({
+  fingerprint: "AA",
+  alias: "Pixel",
+  deviceModel: null,
+  deviceType: "mobile",
+  ip: "192.168.8.20",
+  port: 53317,
+  https: true,
+  lastSeen: 0,
+  source: "lan",
+  reached: true,
+  address: null,
+  online: true,
+  changedTo: null,
+  ...p,
+});
+
+describe("Pet Post beyond this network", () => {
+  it("only devices that answer, as themselves, can be sent to", () => {
+    expect(sendable(dev({}))).toBe(true);
+    expect(sendable(dev({ online: false }))).toBe(false);
+    expect(sendable(dev({ changedTo: "BB" }))).toBe(false);
+  });
+
+  it("says where a device was found, and why adding one didn't work", () => {
+    expect(sourceLabel(dev({}))).toBe("");
+    expect(sourceLabel(dev({ source: "tailnet" }))).toBe("via Tailscale");
+    expect(sourceLabel(dev({ source: "address" }))).toBe("added by address");
+    expect(sourceLabel(dev({ source: "network" }))).toBe("on another network");
+    expect(addError("address")).toMatch(/No device by that name/);
+    expect(addError("unreachable")).toMatch(/Couldn't reach it/);
+    expect(addError("notPet")).toMatch(/not LocalSend or ePet/);
+  });
+
+  it("says what Tailscale says", () => {
+    expect(tailnetLine({ state: "missing", online: 0 }, 0)).toBe("Tailscale isn't installed on this computer.");
+    expect(tailnetLine({ state: "needsLogin", online: 0 }, 0)).toBe("Tailscale is installed but not signed in.");
+    expect(tailnetLine({ state: "running", online: 3 }, 1)).toBe("Tailscale: 3 devices online, 1 with LocalSend or ePet.");
   });
 });
 

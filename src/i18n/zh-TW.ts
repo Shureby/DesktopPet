@@ -207,6 +207,34 @@ const zhTW: Dictionary = {
       "PIN 碼錯誤次數太多，請一分鐘後再試。",
     "Delivery cancelled.": "已取消傳送。",
     "Couldn't deliver to {who}.": "沒能送到 {who}。",
+    "added by address": "依位址加入",
+    "on another network": "在其他網段",
+    "via Tailscale": "經 Tailscale",
+    "Another device answers at that address now. Check it in Pet Post.":
+      "這個位址上現在是另一台裝置了。請在寵物驛站裡查看。",
+    "That device isn't answering.": "那台裝置沒有回應。",
+    "I'm still delivering something else.": "我還在送別的東西呢。",
+    "That device is gone.": "那台裝置不見了。",
+    "Pet Post is off.": "寵物驛站已關閉。",
+    "No device by that name. Check the address.":
+      "找不到這個名稱的裝置，請檢查位址。",
+    "Something answers there, but not LocalSend or ePet.":
+      "那裡有回應，但不是 LocalSend 或 ePet。",
+    "Couldn't reach it. Is LocalSend (or ePet with Pet Post on) open there, on that port?":
+      "連不上。那台裝置上開著 LocalSend（或開了寵物驛站的 ePet）嗎？連接埠對嗎？",
+    "Tailscale isn't installed on this computer.":
+      "這台電腦沒有安裝 Tailscale。",
+    "Tailscale is installed but not connected.":
+      "Tailscale 已安裝，但沒有連線。",
+    "Tailscale is installed but not signed in.":
+      "Tailscale 已安裝，但沒有登入。",
+    "Couldn't ask Tailscale.": "無法讀取 Tailscale 的狀態。",
+    "Tailscale: 1 device online, {found} with LocalSend or ePet.":
+      "Tailscale：1 台裝置在線，其中 {found} 台有 LocalSend 或 ePet。",
+    "Tailscale: {online} devices online, {found} with LocalSend or ePet.":
+      "Tailscale：{online} 台裝置在線，其中 {found} 台有 LocalSend 或 ePet。",
+    "Looks when you press Look again in Pet Post.":
+      "在寵物驛站裡按「再找找」時查找。",
     "No repeat": "不重複",
     Daily: "每天",
     Weekly: "每週",
@@ -645,6 +673,16 @@ const zhTW: Dictionary = {
     None: "無",
     "With a PIN, senders must type it before they can send you anything.":
       "設了 PIN 碼後，對方必須先輸入它，才能傳東西給你。",
+    "Beyond this network": "本網路以外",
+    "Devices are found on this network by themselves. Others (behind another router, on Tailscale) can be added by address in Pet Post.":
+      "本網路裡的裝置會被自動找到。其他裝置（在另一台路由器後面、在 Tailscale 上）可以在寵物驛站裡依位址加入。",
+    "Also look in these networks": "也在這些網段裡找",
+    "Not a network: {list}. Write it like 192.168.8.0/24 (up to /22).":
+      "不是網段：{list}。請寫成 192.168.8.0/24 這樣（最大 /22）。",
+    "One per line, such as 192.168.8.0/24 (behind another router). Asked each time Pet Post looks.":
+      "每行一個，例如 192.168.8.0/24（另一台路由器後面的網段）。寵物驛站每次查找時都會問一遍。",
+    "List the devices of my Tailscale network":
+      "列出我的 Tailscale 網路裡的裝置",
     "Open Pet Post…": "打開寵物驛站…",
     PM: "下午",
     AM: "上午",
@@ -730,7 +768,6 @@ const zhTW: Dictionary = {
       "你不在的時候，{name}計時器在{time}結束了。",
     "While you were away, {n} timers finished (last at {time}).":
       "你不在的時候，有 {n} 個計時器結束了（最後一個在{time}）。",
-    "Pet Post is off.": "寵物驛站已關閉。",
     "Turn it on to send files to phones and computers nearby (works with LocalSend).":
       "開啟後就能把檔案傳給附近的手機和電腦（可與 LocalSend 互傳）。",
     "Not now": "暫時不用",
@@ -743,9 +780,9 @@ const zhTW: Dictionary = {
     "{n} items": "{n} 項",
     "Deliver {what} to…": "把 {what} 送給…",
     "More…": "更多…",
-    "I'm still delivering something else.": "我還在送別的東西呢。",
     Accept: "接收",
     Decline: "拒絕",
+    "Verify…": "核對…",
     "Always accept": "總是接收",
     "{who}: “{text}”": "{who}：「{text}」",
     "💬 {who} says:": "💬 {who} 說：",
@@ -787,10 +824,34 @@ const zhTW: Dictionary = {
     "Rooster crow": "公雞啼叫",
     "Office trill": "辦公室鈴聲",
     "Field phone": "野戰電話",
+    "Added {name}.": "已加入 {name}。",
+    "⚠ Another device answers there now.": "⚠ 這個位址上現在是另一台裝置。",
+    "Not answering.": "沒有回應。",
+    "It's mine: use the new one": "是我的裝置，用新的",
+    "Verify: compare with what the other device shows":
+      "核對：和另一台裝置上顯示的對照",
+    Verify: "核對",
     "Looking for devices…": "正在尋找裝置…",
     "No one found yet.": "還沒找到裝置。",
     "The other device needs LocalSend or ePet open, on the same network (Wi-Fi).":
       "對方需要在同一網路（Wi-Fi）中打開 LocalSend 或 ePet。",
+    "Add by address…": "依位址加入…",
+    "192.168.8.20 or a name": "192.168.8.20 或名稱",
+    Port: "連接埠",
+    "A device on another network (behind another router, or on Tailscale): its IP address or name, and port.":
+      "其他網路上的裝置（在另一台路由器後面，或在 Tailscale 上）：填它的 IP 位址或名稱，以及連接埠。",
+    "Connecting…": "連線中…",
+    "Also check the firewall: on Windows, ePet must be allowed on that network's type (Tailscale's is often Public). Windows Security → Firewall & network protection → Allow an app.":
+      "也請檢查防火牆：在 Windows 上，ePet 需要在該網路類型上被允許（Tailscale 的網路常被當作「公用」）。Windows 安全性 → 防火牆與網路保護 → 允許應用程式通過防火牆。",
+    Close: "關閉",
+    "Working it out…": "計算中…",
+    "With {name}": "與 {name}",
+    Icons: "圖示",
+    Text: "文字",
+    "Does it look the same on the other device?":
+      "和另一台裝置上顯示的一樣嗎？",
+    "In LocalSend: the device (or the delivery from this computer), then Verify. In ePet: Pet Post → Verify.":
+      "在 LocalSend 裡：點這台裝置（或這台電腦傳來的內容），再點 Verify。在 ePet 裡：寵物驛站 → 核對。",
     Send: "傳送",
     "This computer is “{name}”.": "這台電腦叫「{name}」。",
     "Settings…": "設定…",

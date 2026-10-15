@@ -10,6 +10,19 @@ export interface TrustedDevice {
   alias: string;
 }
 
+/** A device added by address (behind another router, on Tailscale…), remembered. */
+export interface SavedDevice {
+  /** An IP address or a host name, as typed. */
+  address: string;
+  port: number;
+  /** Its certificate's when added: another one there is another device. */
+  fingerprint: string;
+  alias: string;
+  deviceType: string;
+}
+
+export const LOCALSEND_PORT = 53317;
+
 /** Settings → Pet Post. */
 export interface PostSettings {
   /** Off until turned on: only then does ePet listen on the network. */
@@ -23,9 +36,47 @@ export interface PostSettings {
   trusted: TrustedDevice[];
   /** Where received files go ("": Downloads/ePet). */
   saveDir: string;
+  /** Devices added by address. */
+  devices: SavedDevice[];
+  /** Extra networks to look in ("192.168.8.0/24"). */
+  networks: string[];
+  /** Lists the devices of the Tailscale network, if Tailscale is installed. */
+  tailscale: boolean;
 }
 
-export const DEFAULT_POST: PostSettings = { enabled: false, alias: "", pin: "", autoAcceptTrusted: true, trusted: [], saveDir: "" };
+export const DEFAULT_POST: PostSettings = {
+  enabled: false,
+  alias: "",
+  pin: "",
+  autoAcceptTrusted: true,
+  trusted: [],
+  saveDir: "",
+  devices: [],
+  networks: [],
+  tailscale: true,
+};
+
+/** At most this many addresses in an extra network (a /22). */
+export const MAX_NETWORK_HOSTS = 1024;
+
+/**
+ * An extra network as typed ("192.168.8.0/24", or one address): written the usual way
+ * ("192.168.8.0/24"), or null if it isn't one or is too big (as the app reads it:
+ * desktoppet-core post::network_hosts).
+ */
+export function parseNetwork(text: string): string | null {
+  const m = /^\s*(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\s*(?:\/\s*(\d{1,2})\s*)?$/.exec(text);
+  if (!m) return null;
+  const parts = m.slice(1, 5).map(Number);
+  if (parts.some((p) => p > 255)) return null;
+  const prefix = m[5] === undefined ? 32 : Number(m[5]);
+  if (prefix < 22 || prefix > 32) return null;
+  const ip = parts.reduce((a, p) => a * 256 + p, 0);
+  const size = 2 ** (32 - prefix);
+  const base = ip - (ip % size);
+  const dotted = [24, 16, 8, 0].map((sh) => Math.floor(base / 2 ** sh) % 256).join(".");
+  return prefix === 32 ? dotted : `${dotted}/${prefix}`;
+}
 
 export function postSettings(s: Partial<PostSettings> | undefined): PostSettings {
   const d = DEFAULT_POST;
@@ -39,6 +90,19 @@ export function postSettings(s: Partial<PostSettings> | undefined): PostSettings
       ? s.trusted.filter((x) => x && typeof x.fingerprint === "string" && x.fingerprint).map((x) => ({ fingerprint: x.fingerprint.toUpperCase(), alias: str(x.alias, "") }))
       : [],
     saveDir: str(s?.saveDir, d.saveDir),
+    devices: Array.isArray(s?.devices)
+      ? s.devices
+          .filter((x) => x && typeof x.address === "string" && x.address.trim() && typeof x.fingerprint === "string" && x.fingerprint)
+          .map((x) => ({
+            address: x.address.trim().slice(0, 253),
+            port: Number.isInteger(x.port) && x.port > 0 && x.port < 65536 ? x.port : LOCALSEND_PORT,
+            fingerprint: x.fingerprint.toUpperCase(),
+            alias: str(x.alias, "").slice(0, 64),
+            deviceType: str(x.deviceType, "desktop"),
+          }))
+      : [],
+    networks: Array.isArray(s?.networks) ? s.networks.map((n) => (typeof n === "string" ? parseNetwork(n) : null)).filter((n): n is string => !!n) : [],
+    tailscale: s?.tailscale !== false,
   };
 }
 
@@ -51,6 +115,9 @@ export interface PostConfig {
   trusted: string[];
   saveDir: string;
   port: number;
+  devices: SavedDevice[];
+  networks: string[];
+  tailscale: boolean;
 }
 
 export function postConfig(s: PostSettings, alias: string, port = 0): PostConfig {
@@ -62,6 +129,9 @@ export function postConfig(s: PostSettings, alias: string, port = 0): PostConfig
     trusted: s.trusted.map((d) => d.fingerprint),
     saveDir: s.saveDir,
     port,
+    devices: s.devices,
+    networks: s.networks,
+    tailscale: s.tailscale,
   };
 }
 
@@ -81,6 +151,32 @@ export interface PostDevice {
   port: number;
   https: boolean;
   lastSeen: number;
+  /** How it was found. */
+  source: "lan" | "address" | "network" | "tailnet";
+  /** We reached it at `ip` (else it only reached us: maybe from behind a router). */
+  reached: boolean;
+  /** Added by address: that address. */
+  address: string | null;
+  /** Added by address and not answering now. */
+  online: boolean;
+  /** Added by address, and another device (this fingerprint) answers there now. */
+  changedTo: string | null;
+}
+
+/** What Tailscale says ("post-tailnet"). */
+export interface PostTailnet {
+  /** "" before it was asked (or Tailscale is off in the settings). */
+  state: "" | "missing" | "stopped" | "needsLogin" | "running" | "error";
+  /** Its devices online now. */
+  online: number;
+}
+
+/** What both devices show to check they talk to each other (LocalSend's Verify). */
+export interface PostVerify {
+  /** Both fingerprints, sorted and joined. */
+  text: string;
+  /** 16 numbers into VERIFY_ICONS. */
+  icons: number[];
 }
 
 export interface PostStatus {
@@ -210,4 +306,71 @@ export function transferLine(tr: PostTransfer): string {
 /** Over (nothing more will come for it). */
 export function transferOver(tr: PostTransfer): boolean {
   return !["waiting", "receiving", "sending"].includes(tr.state);
+}
+
+/** Where a device was found, for its line in the list ("" for this network). */
+export function sourceLabel(d: PostDevice): string {
+  switch (d.source) {
+    case "address":
+      return t("added by address");
+    case "network":
+      return t("on another network");
+    case "tailnet":
+      return t("via Tailscale");
+    default:
+      return "";
+  }
+}
+
+/** Can be sent to now (one added by address may not answer, or be another device now). */
+export function sendable(d: PostDevice): boolean {
+  return d.online && !d.changedTo;
+}
+
+/** Why sending didn't start (post_send's error). */
+export function sendError(code: string): string {
+  switch (code) {
+    case "identity":
+      return t("Another device answers at that address now. Check it in Pet Post.");
+    case "offline":
+      return t("That device isn't answering.");
+    case "busy":
+      return t("I'm still delivering something else.");
+    default:
+      return t("That device is gone.");
+  }
+}
+
+/** Why a device couldn't be added by address (post_add_device's error). */
+export function addError(code: string): string {
+  switch (code) {
+    case "off":
+      return t("Pet Post is off.");
+    case "address":
+      return t("No device by that name. Check the address.");
+    case "notPet":
+      return t("Something answers there, but not LocalSend or ePet.");
+    default:
+      return t("Couldn't reach it. Is LocalSend (or ePet with Pet Post on) open there, on that port?");
+  }
+}
+
+/** What Settings → Pet Post says about Tailscale. */
+export function tailnetLine(tn: PostTailnet, found: number): string {
+  switch (tn.state) {
+    case "missing":
+      return t("Tailscale isn't installed on this computer.");
+    case "stopped":
+      return t("Tailscale is installed but not connected.");
+    case "needsLogin":
+      return t("Tailscale is installed but not signed in.");
+    case "error":
+      return t("Couldn't ask Tailscale.");
+    case "running":
+      return tn.online === 1
+        ? t("Tailscale: 1 device online, {found} with LocalSend or ePet.", { found })
+        : t("Tailscale: {online} devices online, {found} with LocalSend or ePet.", { online: tn.online, found });
+    default:
+      return t("Looks when you press Look again in Pet Post.");
+  }
 }

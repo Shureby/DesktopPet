@@ -86,15 +86,23 @@ pub fn open_panel<R: Runtime>(app: &AppHandle<R>, tab: Option<&str>) -> tauri::R
     Ok(())
 }
 
-/// Opens the Pet Post window (devices, sending files and text).
-pub fn open_post<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
+/// Opens the Pet Post window (devices, sending files and text); with `verify`, showing
+/// Verify for that device (by fingerprint).
+pub fn open_post<R: Runtime>(app: &AppHandle<R>, verify: Option<&str>) -> tauri::Result<()> {
     if let Some(w) = app.get_webview_window(POST) {
         w.show()?;
         w.unminimize()?;
         w.set_focus()?;
+        if let Some(fp) = verify {
+            app.emit_to(POST, "post-verify", fp)?;
+        }
         return Ok(());
     }
-    window(app, POST, "post.html".into())
+    let url = match verify {
+        Some(fp) => format!("post.html#verify={}", fp.chars().filter(char::is_ascii_alphanumeric).collect::<String>()),
+        None => "post.html".into(),
+    };
+    window(app, POST, url)
         .title(product_name(app))
         .inner_size(420.0, 560.0)
         .min_inner_size(360.0, 420.0)

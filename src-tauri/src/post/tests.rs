@@ -10,7 +10,7 @@ use std::time::{Duration, Instant};
 
 use serde_json::Value;
 
-use super::{answer, client, configure, Config, Device, Inner, Post};
+use super::{add_device, answer, client, configure, discovery, Config, Device, Inner, Post, Saved};
 
 const LOCALHOST: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
 
@@ -229,6 +229,77 @@ fn off_means_not_listening() {
         std::thread::sleep(Duration::from_millis(50));
     }
     assert!(!b.inner.status().running);
+}
+
+#[test]
+fn a_device_added_by_address_is_remembered_and_checked() {
+    let a = peer("A", |_| {});
+    let b = peer("B", |_| {});
+    let (b_port, b_fp) = (b.port, b.fingerprint());
+    let added = tauri::async_runtime::block_on(add_device(&a.inner, " 127.0.0.1 ", b_port)).unwrap();
+    assert_eq!((added.alias.as_str(), added.fingerprint.as_str()), ("B", b_fp.as_str()));
+    assert_eq!((added.source, added.reached, added.address.as_deref()), ("address", true, Some("127.0.0.1")));
+    // Nothing there, no such host.
+    let nobody = tauri::async_runtime::block_on(add_device(&a.inner, "127.0.0.1", free_port()));
+    assert_eq!(nobody.unwrap_err(), "unreachable");
+    let unknown = tauri::async_runtime::block_on(add_device(&a.inner, "no-such-host.invalid", b_port));
+    assert_eq!(unknown.unwrap_err(), "address");
+
+    // Kept in the settings: listed (not answering yet) when Pet Post starts again.
+    let saved = Saved {
+        address: "127.0.0.1".into(),
+        port: b_port,
+        fingerprint: b_fp.clone(),
+        alias: "B".into(),
+        ..Default::default()
+    };
+    let config = Config { devices: vec![saved], ..a.inner.config() };
+    tauri::async_runtime::block_on(configure(&a.inner, Config { enabled: false, ..config.clone() }));
+    tauri::async_runtime::block_on(configure(&a.inner, config.clone()));
+    let listed = |fp: &str| a.inner.devices().into_iter().find(|d| d.fingerprint == fp).expect("listed");
+    assert_eq!(listed(&b_fp).address.as_deref(), Some("127.0.0.1"));
+    tauri::async_runtime::block_on(discovery::ask_saved(&a.inner));
+    let d = listed(&b_fp);
+    assert!(d.online && d.reached && d.changed_to.is_none(), "{d:?}");
+
+    // Gone: still listed, offline.
+    drop(b);
+    tauri::async_runtime::block_on(discovery::ask_saved(&a.inner));
+    assert!(!listed(&b_fp).online);
+
+    // Another device answers there now: not B (another certificate), so nothing goes to it.
+    let c = peer("C", |c| c.port = b_port);
+    tauri::async_runtime::block_on(discovery::ask_saved(&a.inner));
+    assert_eq!(listed(&b_fp).changed_to, Some(c.fingerprint()));
+
+    // Removed from the settings: no longer listed.
+    tauri::async_runtime::block_on(configure(&a.inner, Config { devices: vec![], ..config }));
+    assert!(a.inner.devices().iter().all(|d| d.fingerprint != b_fp));
+}
+
+#[test]
+fn an_address_that_works_is_kept_when_the_device_calls_from_a_router() {
+    let (a, b) = (peer("A", |_| {}), peer("B", |_| {}));
+    let to_b = a.find(&b);
+    assert!(to_b.reached);
+    // B is behind a second router (NAT): its own requests come from the router's address.
+    let mut heard = to_b.clone();
+    heard.ip = "192.168.31.234".parse().unwrap();
+    heard.reached = false;
+    heard.alias = "B renamed".into();
+    a.inner.add_device(heard);
+    let d = a.inner.devices().into_iter().find(|d| d.fingerprint == to_b.fingerprint).unwrap();
+    assert_eq!((d.ip, d.alias.as_str()), (LOCALHOST, "B renamed"));
+    // Not reached before: the address it comes from is all there is.
+    let c = peer("C", |_| {});
+    let mut d = Device { reached: false, ..c.find(&a) };
+    d.fingerprint = "C0FFEE".into();
+    d.ip = "192.168.31.235".parse().unwrap();
+    a.inner.add_device(d);
+    assert_eq!(
+        a.inner.devices().into_iter().find(|d| d.fingerprint == "C0FFEE").unwrap().ip.to_string(),
+        "192.168.31.235"
+    );
 }
 
 /// Interoperability with the LocalSend app: run with `LOCALSEND_CLI=<path to localsend-cli>`

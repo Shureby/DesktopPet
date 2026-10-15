@@ -2,7 +2,7 @@
 
 <!-- Generated from test-checklist.json by `npm run test-checklist`. Edit the JSON, not this file. -->
 
-当前版本 `0.44.0`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
+当前版本 `0.45.0`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
 标 🤖 的项目由 CI 自动测（Windows），不用手动测；标 🤖+👀 的项目逻辑由 CI 测，你只看 👀 后面写的部分；标 🌙 的每晚测一次（太久，不在每次推送时测）。
 macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码，在 Windows 上测过就行。
 在线勾选页面（保存结果，自动标出需要重测的项目）：https://claude.ai/artifact/XQVzPKq4w2MThVnTLYCGy1
@@ -11,7 +11,7 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 
 - [ ] 1.1 🍎 安装包安装 → **开始菜单/启动台里有应用，图标和名字正常**
 - [ ] 1.2 🍎 🤖+👀 首次启动 → **宠物从屏幕上方掉下来，落在任务栏/Dock 上方** 👀 你只看掉落的样子（窗口出现、宠物落在任务栏上方由 CI 测）
-- [ ] 1.3 🤖 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.44.0 · …`，与安装包版本一致**
+- [ ] 1.3 🤖 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.45.0 · …`，与安装包版本一致**
 - [ ] 1.4 🍎 🤖 已经运行时再启动一次 → **不会出现第二只宠物（只打开面板）**
 - [ ] 1.5 🤖 装着旧版本、ePet 正在运行时，双击新版本的安装包，一路点 Next / Install / Finish → **不再出现“已安装（Already Installed）/ 是否先卸载”那一页，也不提示 ePet 正在运行（会自动关掉它）；旧版被安静地卸载后装上新版；之前的待办、闹钟、纪念日、设置、心情值都还在。重装同一版本或装更旧的版本时仍会询问**
 - [ ] 1.6 正式版 ePet 开着时安装 ePet Test；装好后两个都开着，再重装一次 ePet Test；最后在 ePet 开着时重装正式版 → **装 ePet Test 时不弹 “is running”、不关正式版，装完两个可以同时运行（任务管理器里是 desktoppet.exe 和 epet-test.exe）；重装哪一个都不弹框，正在运行的那一个被悄悄关掉、装完重新打开即可，另一个不受影响**
@@ -42,7 +42,7 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 
 ## 3. 右键菜单
 
-- [ ] 3.1 🍎 🤖+👀 **【新】** 右键宠物 → **菜单各项以动词开头：Set timer / 照顾动作 / Add to-do… / Set alarm… / Start focus session / Play Safe Landing / Switch character / Open panel… / Open Pet Post… / Hide pet** 👀 你只看右键菜单显示正常（每项的写法和顺序由 CI 测）
+- [ ] 3.1 🍎 🤖+👀 右键宠物 → **菜单各项以动词开头：Set timer / 照顾动作 / Add to-do… / Set alarm… / Start focus session / Play Safe Landing / Switch character / Open panel… / Open Pet Post… / Hide pet** 👀 你只看右键菜单显示正常（每项的写法和顺序由 CI 测）
 - [ ] 3.2 🤖 多次打开菜单；等宠物饿了再打开 → **照顾动作文字随机变化（Cat：Scratch the Cat's chin 等；Rooster：Scatter some corn 等）；饿时喂食排第一**
 - [ ] 3.3 🍎 🤖+👀 宠物右键 → Hide pet，再点托盘图标 → Show pet → **宠物消失后重新出现；托盘第一项随状态在 Show pet / Hide pet 之间切换** 👀 你只看真的点托盘图标能打开菜单（隐藏/显示和托盘第一项的文字由 CI 测）
 - [ ] 3.4 🤖 Add to-do… → **面板打开到 To-dos；宠物继续正常动，不卡死**
@@ -254,21 +254,31 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 
 ## 20. 宠物驿站（Pet Post）
 
-- [ ] 20.1 🤖 **【新】** 新装或升级后打开 设置 → Pet Post → **默认没勾 Send and receive files on this network，下面写 Off: ePet doesn't listen on the network.；没开时 ePet 不在网络上监听**
-- [ ] 20.2 🍎 🤖+👀 **【新】** 勾上 Send and receive files on this network → **显示 On: others see this computer as “<宠物名> on <电脑名>”（中文：<电脑名>的<宠物名>）；出现 Name、Save to（默认 下载/ePet）、信任设备、PIN 等设置；Windows 可能弹出防火墙询问，选允许** 👀 系统第一次问是否允许 ePet 使用网络（Windows 防火墙 / macOS 本地网络）时的样子；点允许后别的设备能找到它
-- [ ] 20.3 🍎 🤖+👀 **【新】** 手机装 LocalSend，和电脑连同一个 Wi-Fi，打开 LocalSend 的“发送”页；电脑上右键宠物 → Open Pet Post… → **双方互相看到对方：LocalSend 里有 ePet 的名字，Pet Post 窗口 Send to 下面列出手机（📱 图标、型号和 IP）；点 ↻ Look again 能重新找** 👀 手机上的 LocalSend 列表里出现 ePet（名字对）；ePet 的 Pet Post 窗口里列出手机
-- [ ] 20.4 🍎 🤖+👀 **【新】** 手机 LocalSend 选几张照片发给 ePet → **宠物跳出来（藏着的也会出来），气泡写 📦 <手机名> wants to send you 3 files (… MB) 和文件名，有 Accept / Decline / Always accept；点 Accept 后宠物旁有 📦 进度徽章，收完说 Got 3 files from <手机名>!，点 Show 打开文件所在文件夹；文件在 下载/ePet，同名的变成 name (2).jpg** 👀 用真手机的 LocalSend 发几张照片和一个文件夹
-- [ ] 20.5 🤖 **【新】** 手机再发一次，点 Decline → **手机上显示被拒绝；电脑上没有新文件**
-- [ ] 20.6 **【新】** 手机发文件后不理它，等 1 分钟以上（宠物藏着时也试一次） → **约 60 秒后气泡消失，手机显示被拒绝；Show pet 时 “While I was hidden you missed:” 里有 📦 <手机名>: 1 file**
-- [ ] 20.7 🤖+👀 **【新】** 手机 LocalSend 选 文字，发一句话给 ePet → **宠物气泡显示 💬 <手机名> says: 和那句话，点 Copy 后能粘贴出来；Pet Post 窗口开着时 Received 下也有这条，带 Copy** 👀 用真手机发一段文字（LocalSend 的“文字”）
-- [ ] 20.8 🤖+👀 **【新】** 设置 → Pet Post 的 PIN 填 2468，再用手机发 → **手机先要求输入 PIN；输错不能发送；输对后宠物照常问你** 👀 手机端输入 PIN 的提示
-- [ ] 20.9 🤖+👀 **【新】** 手机发文件时点 Always accept；再发一次；然后在 设置 → Pet Post → Trusted devices 里 Remove 它 → **第一次收下并把手机加入信任列表；第二次不再问，直接收下；Remove 后又会问；取消勾选 Accept from trusted devices without asking 时信任设备也要问** 👀 设置里的 Trusted devices 列表和 Remove
-- [ ] 20.10 🤖 **【新】** 藏起宠物，手机发文件；再切到 Quiet 模式（藏着）让手机发一次 → **藏着时宠物出来问你，答完回去；Quiet 模式下藏着时不出来，手机显示被拒绝，Show pet 时在 you missed 里看到这次**
-- [ ] 20.11 🍎 **【新】** 把一个文件、再把一个文件夹拖到宠物身上（Pet Post 关着时也试一次） → **关着时宠物说 Pet Post is off. 并给 Turn on；开着时问 Deliver “文件名” to… 并列出附近设备（最多 4 个，多了有 More…）；点一个就发送：Waiting for <设备> to accept…（有 Cancel），对方接收后 📦 进度徽章，完成说 Delivered to <设备>!；对方拒绝说 <设备> didn't accept it.；对方要 PIN 时在气泡里输入 PIN**
-- [ ] 20.12 🍎 🤖+👀 **【新】** Pet Post 窗口：选手机，点 📄 Send files… 选几个文件；再点 📁 Send a folder…；再在文本框里写一句话点 Send text → **手机上先问是否接收，接收后窗口显示进度条和 Delivering to <手机>… %，完成显示 Delivered to <手机>!；文字在手机上显示为消息；发送中点 Cancel 能取消** 👀 文件选择对话框；手机上收到的文件和文件夹
-- [ ] 20.13 **【新】** 用 iPhone 上的 LocalSend 收发一次文件和文字 → **和安卓一样能互传**
-- [ ] 20.14 🍎 **【新】** 两台电脑都装 ePet，都开 Pet Post，互相发文件 → **互相能找到并收发；信任一次后 Always accept 生效**
-- [ ] 20.15 🤖 **【新】** 取消勾选 Send and receive files on this network → **状态变回 Off；手机的 LocalSend 列表里 ePet 不再出现（刷新后），也发不过来**
+- [ ] 20.1 🤖 新装或升级后打开 设置 → Pet Post → **默认没勾 Send and receive files on this network，下面写 Off: ePet doesn't listen on the network.；没开时 ePet 不在网络上监听**
+- [ ] 20.2 🍎 🤖+👀 勾上 Send and receive files on this network → **显示 On: others see this computer as “<宠物名> on <电脑名>”（中文：<电脑名>的<宠物名>）；出现 Name、Save to（默认 下载/ePet）、信任设备、PIN 等设置；Windows 可能弹出防火墙询问，选允许** 👀 系统第一次问是否允许 ePet 使用网络（Windows 防火墙 / macOS 本地网络）时的样子；点允许后别的设备能找到它
+- [ ] 20.3 🍎 🤖+👀 手机装 LocalSend，和电脑连同一个 Wi-Fi，打开 LocalSend 的“发送”页；电脑上右键宠物 → Open Pet Post… → **双方互相看到对方：LocalSend 里有 ePet 的名字，Pet Post 窗口 Send to 下面列出手机（📱 图标、型号和 IP）；点 ↻ Look again 能重新找** 👀 手机上的 LocalSend 列表里出现 ePet（名字对）；ePet 的 Pet Post 窗口里列出手机
+- [ ] 20.4 🍎 🤖+👀 手机 LocalSend 选几张照片发给 ePet → **宠物跳出来（藏着的也会出来），气泡写 📦 <手机名> wants to send you 3 files (… MB) 和文件名，有 Accept / Decline / Always accept；点 Accept 后宠物旁有 📦 进度徽章，收完说 Got 3 files from <手机名>!，点 Show 打开文件所在文件夹；文件在 下载/ePet，同名的变成 name (2).jpg** 👀 用真手机的 LocalSend 发几张照片和一个文件夹
+- [ ] 20.5 🤖 手机再发一次，点 Decline → **手机上显示被拒绝；电脑上没有新文件**
+- [ ] 20.6 手机发文件后不理它，等 1 分钟以上（宠物藏着时也试一次） → **约 60 秒后气泡消失，手机显示被拒绝；Show pet 时 “While I was hidden you missed:” 里有 📦 <手机名>: 1 file**
+- [ ] 20.7 🤖+👀 手机 LocalSend 选 文字，发一句话给 ePet → **宠物气泡显示 💬 <手机名> says: 和那句话，点 Copy 后能粘贴出来；Pet Post 窗口开着时 Received 下也有这条，带 Copy** 👀 用真手机发一段文字（LocalSend 的“文字”）
+- [ ] 20.8 🤖+👀 设置 → Pet Post 的 PIN 填 2468，再用手机发 → **手机先要求输入 PIN；输错不能发送；输对后宠物照常问你** 👀 手机端输入 PIN 的提示
+- [ ] 20.9 🤖+👀 手机发文件时点 Always accept；再发一次；然后在 设置 → Pet Post → Trusted devices 里 Remove 它 → **第一次收下并把手机加入信任列表；第二次不再问，直接收下；Remove 后又会问；取消勾选 Accept from trusted devices without asking 时信任设备也要问** 👀 设置里的 Trusted devices 列表和 Remove
+- [ ] 20.10 🤖 藏起宠物，手机发文件；再切到 Quiet 模式（藏着）让手机发一次 → **藏着时宠物出来问你，答完回去；Quiet 模式下藏着时不出来，手机显示被拒绝，Show pet 时在 you missed 里看到这次**
+- [ ] 20.11 🍎 把一个文件、再把一个文件夹拖到宠物身上（Pet Post 关着时也试一次） → **关着时宠物说 Pet Post is off. 并给 Turn on；开着时问 Deliver “文件名” to… 并列出附近设备（最多 4 个，多了有 More…）；点一个就发送：Waiting for <设备> to accept…（有 Cancel），对方接收后 📦 进度徽章，完成说 Delivered to <设备>!；对方拒绝说 <设备> didn't accept it.；对方要 PIN 时在气泡里输入 PIN**
+- [ ] 20.12 🍎 🤖+👀 Pet Post 窗口：选手机，点 📄 Send files… 选几个文件；再点 📁 Send a folder…；再在文本框里写一句话点 Send text → **手机上先问是否接收，接收后窗口显示进度条和 Delivering to <手机>… %，完成显示 Delivered to <手机>!；文字在手机上显示为消息；发送中点 Cancel 能取消** 👀 文件选择对话框；手机上收到的文件和文件夹
+- [ ] 20.13 用 iPhone 上的 LocalSend 收发一次文件和文字 → **和安卓一样能互传**
+- [ ] 20.14 🍎 两台电脑都装 ePet，都开 Pet Post，互相发文件 → **互相能找到并收发；信任一次后 Always accept 生效**
+- [ ] 20.15 🍎 🤖+👀 **【新】** Pet Post 窗口里在手机那行点 🛡 Verify；手机 LocalSend 里点这台电脑（或它发来的消息），再点 Verify → **两边都是 16 个图标（4×4），一样、顺序一样；切到 Text 是同一串字符；点 Done 回到列表** 👀 和真手机 LocalSend 的 Verify 对照：图标、顺序和文字完全一样
+- [ ] 20.16 🤖 **【新】** 手机发文件，宠物问你时点 Verify… → **Pet Post 窗口打开并显示对这台手机的 Verify；宠物的问题还在（Accept / Decline 仍可点）**
+- [ ] 20.17 🍎 🤖+👀 **【新】** Pet Post 窗口点 ＋ Add by address…，填对方的 IP（或名字）和端口（默认 53317），点 Add → **显示 Connecting… 然后 Added <名字>.；设备出现在列表里，标 added by address；重启 ePet 后还在；能向它发文件和文字；设置 → Pet Post → Beyond this network 里列出它，可 Remove** 👀 二级路由下的设备（如 192.168.8.x）或 Tailscale 地址（100.x 或 MagicDNS 名）
+- [ ] 20.18 🤖 **【新】** 填一个没开 LocalSend 的地址，或一个不存在的名字，点 Add → **地址：Couldn't reach it…，并有防火墙提示（Windows 安全中心 → 允许应用通过防火墙）；名字：No device by that name. Check the address.**
+- [ ] 20.19 🤖+👀 **【新】** 按地址添加二级路由下的手机后，让手机给电脑发一次文件，再从电脑发回给它 → **电脑能收；之后电脑往手机发也能发（列表里它的地址仍是 192.168.8.x，不会变成二级路由的 WAN 地址）** 👀 二级路由下的手机：先按地址添加，再让它主动给电脑发文件
+- [ ] 20.20 🤖 **【新】** 把按地址添加的设备上的 LocalSend 关掉，点 ↻ Look again → **它仍在列表里，写 Not answering.，不能选来发送；对方再打开后 Look again 恢复**
+- [ ] 20.21 🤖 **【新】** 按地址添加的设备换了（例如手机重装 LocalSend，证书变了），点 ↻ Look again → **那行写 ⚠ Another device answers there now.，不能发送；点 It's mine: use the new one 后恢复正常（旧的信任记录被移除）**
+- [ ] 20.22 🍎 🤖+👀 **【新】** 设置 → Pet Post → Also look in these networks 填 192.168.8.0/24（你二级路由的网段），回到 Pet Post 点 ↻ Look again → **二级路由下开着 LocalSend 的设备被找到，标 on another network；写错（如 192.168.8 或 /16）时红字提示 Not a network…，那一行不保存** 👀 真的二级路由网段
+- [ ] 20.23 🍎 🤖+👀 **【新】** 两边都登录同一个 Tailscale；设置 → Pet Post 勾着 List the devices of my Tailscale network；Pet Post 点 ↻ Look again → **设置里写 Tailscale: N devices online, M with LocalSend or ePet.；对方出现在列表里，标 via Tailscale，能互传；没装 / 没登录 / 没连接时分别写 Tailscale isn't installed… / not signed in. / not connected.；取消勾选后这些设备从列表消失** 👀 真装了 Tailscale 的两台设备（电脑和手机，或两台电脑），对方开着 LocalSend 或 ePet
+- [ ] 20.24 **【新】** Windows：在 Windows 安全中心 → 防火墙 → 允许应用通过防火墙 里，只给 ePet 勾“专用”不勾“公用”，然后从 Tailscale 上的另一台设备向这台电脑发文件 → **发不过来（Tailscale 的网络常被当作公用）；勾上“公用”后能发。Pet Post 添加失败时的防火墙提示说的就是这个**
+- [ ] 20.25 🤖 取消勾选 Send and receive files on this network → **状态变回 Off；手机的 LocalSend 列表里 ePet 不再出现（刷新后），也发不过来**
 
 ## 21. 语言和地区
 

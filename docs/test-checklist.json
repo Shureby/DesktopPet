@@ -1640,6 +1640,84 @@
           "expect": "互相能找到并收发；信任一次后 Always accept 生效"
         },
         {
+          "id": "post.verify",
+          "rev": "0.45.0",
+          "ci": "partial",
+          "mac": true,
+          "human": "和真手机 LocalSend 的 Verify 对照：图标、顺序和文字完全一样",
+          "do": "Pet Post 窗口里在手机那行点 🛡 Verify；手机 LocalSend 里点这台电脑（或它发来的消息），再点 Verify",
+          "expect": "两边都是 16 个图标（4×4），一样、顺序一样；切到 Text 是同一串字符；点 Done 回到列表"
+        },
+        {
+          "id": "post.verify-offer",
+          "rev": "0.45.0",
+          "ci": "auto",
+          "do": "手机发文件，宠物问你时点 Verify…",
+          "expect": "Pet Post 窗口打开并显示对这台手机的 Verify；宠物的问题还在（Accept / Decline 仍可点）"
+        },
+        {
+          "id": "post.add",
+          "rev": "0.45.0",
+          "ci": "partial",
+          "mac": true,
+          "human": "二级路由下的设备（如 192.168.8.x）或 Tailscale 地址（100.x 或 MagicDNS 名）",
+          "do": "Pet Post 窗口点 ＋ Add by address…，填对方的 IP（或名字）和端口（默认 53317），点 Add",
+          "expect": "显示 Connecting… 然后 Added <名字>.；设备出现在列表里，标 added by address；重启 ePet 后还在；能向它发文件和文字；设置 → Pet Post → Beyond this network 里列出它，可 Remove"
+        },
+        {
+          "id": "post.add-fail",
+          "rev": "0.45.0",
+          "ci": "auto",
+          "do": "填一个没开 LocalSend 的地址，或一个不存在的名字，点 Add",
+          "expect": "地址：Couldn't reach it…，并有防火墙提示（Windows 安全中心 → 允许应用通过防火墙）；名字：No device by that name. Check the address."
+        },
+        {
+          "id": "post.nat",
+          "rev": "0.45.0",
+          "ci": "partial",
+          "human": "二级路由下的手机：先按地址添加，再让它主动给电脑发文件",
+          "do": "按地址添加二级路由下的手机后，让手机给电脑发一次文件，再从电脑发回给它",
+          "expect": "电脑能收；之后电脑往手机发也能发（列表里它的地址仍是 192.168.8.x，不会变成二级路由的 WAN 地址）"
+        },
+        {
+          "id": "post.offline",
+          "rev": "0.45.0",
+          "ci": "auto",
+          "do": "把按地址添加的设备上的 LocalSend 关掉，点 ↻ Look again",
+          "expect": "它仍在列表里，写 Not answering.，不能选来发送；对方再打开后 Look again 恢复"
+        },
+        {
+          "id": "post.identity",
+          "rev": "0.45.0",
+          "ci": "auto",
+          "do": "按地址添加的设备换了（例如手机重装 LocalSend，证书变了），点 ↻ Look again",
+          "expect": "那行写 ⚠ Another device answers there now.，不能发送；点 It's mine: use the new one 后恢复正常（旧的信任记录被移除）"
+        },
+        {
+          "id": "post.networks",
+          "rev": "0.45.0",
+          "ci": "partial",
+          "mac": true,
+          "human": "真的二级路由网段",
+          "do": "设置 → Pet Post → Also look in these networks 填 192.168.8.0/24（你二级路由的网段），回到 Pet Post 点 ↻ Look again",
+          "expect": "二级路由下开着 LocalSend 的设备被找到，标 on another network；写错（如 192.168.8 或 /16）时红字提示 Not a network…，那一行不保存"
+        },
+        {
+          "id": "post.tailscale",
+          "rev": "0.45.0",
+          "ci": "partial",
+          "mac": true,
+          "human": "真装了 Tailscale 的两台设备（电脑和手机，或两台电脑），对方开着 LocalSend 或 ePet",
+          "do": "两边都登录同一个 Tailscale；设置 → Pet Post 勾着 List the devices of my Tailscale network；Pet Post 点 ↻ Look again",
+          "expect": "设置里写 Tailscale: N devices online, M with LocalSend or ePet.；对方出现在列表里，标 via Tailscale，能互传；没装 / 没登录 / 没连接时分别写 Tailscale isn't installed… / not signed in. / not connected.；取消勾选后这些设备从列表消失"
+        },
+        {
+          "id": "post.firewall-public",
+          "rev": "0.45.0",
+          "do": "Windows：在 Windows 安全中心 → 防火墙 → 允许应用通过防火墙 里，只给 ePet 勾“专用”不勾“公用”，然后从 Tailscale 上的另一台设备向这台电脑发文件",
+          "expect": "发不过来（Tailscale 的网络常被当作公用）；勾上“公用”后能发。Pet Post 添加失败时的防火墙提示说的就是这个"
+        },
+        {
           "id": "post.off-again",
           "rev": "0.44.0",
           "ci": "auto",

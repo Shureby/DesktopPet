@@ -134,10 +134,35 @@ function mutate<T>(fn: (s: MockState) => T): T {
 
 let postEnabled = false;
 let mockSending: ReturnType<typeof setInterval> | undefined;
+const found = { source: "lan" as const, reached: true, address: null, online: true, changedTo: null, lastSeen: 0, https: true, port: 53317 };
 const MOCK_DEVICES: PostDevice[] = [
-  { fingerprint: "A1", alias: "Pixel 8", deviceModel: "Google", deviceType: "mobile", ip: "192.168.1.20", port: 53317, https: true, lastSeen: 0 },
-  { fingerprint: "B2", alias: "Mum's MacBook", deviceModel: "macOS", deviceType: "desktop", ip: "192.168.1.31", port: 53317, https: true, lastSeen: 0 },
+  { ...found, fingerprint: "A1", alias: "Pixel 8", deviceModel: "Google", deviceType: "mobile", ip: "192.168.1.20" },
+  { ...found, fingerprint: "B2", alias: "Mum's MacBook", deviceModel: "macOS", deviceType: "desktop", ip: "192.168.1.31" },
+  { ...found, fingerprint: "C3", alias: "Work laptop", deviceModel: "Windows", deviceType: "desktop", ip: "100.101.2.3", source: "tailnet" },
 ];
+
+/** The pretend devices, and the ones added by address (in the settings). */
+function mockDevices(): PostDevice[] {
+  if (!mockPostOn()) return [];
+  const saved = load().settings.post?.devices ?? [];
+  const added = saved
+    .filter((s) => !MOCK_DEVICES.some((d) => d.fingerprint === s.fingerprint))
+    .map((s, i) => ({
+      ...found,
+      fingerprint: s.fingerprint,
+      alias: s.alias || s.address,
+      deviceModel: null,
+      deviceType: "desktop" as const,
+      ip: s.address,
+      port: s.port,
+      source: "address" as const,
+      address: s.address,
+      // The second one added pretends another device answers there now.
+      online: i !== 2,
+      changedTo: i === 1 ? "D4" : null,
+    }));
+  return [...MOCK_DEVICES, ...added];
+}
 
 /** On (the pet page tells it; a Pet Post page alone reads the settings). */
 function mockPostOn(): boolean {
@@ -696,21 +721,39 @@ export const mockBackend: Backend = {
     postEnabled = config.enabled;
     const status = mockPostStatus(config.alias);
     fire("post-status", status);
-    fire("post-devices", postEnabled ? MOCK_DEVICES : []);
+    fire("post-devices", mockDevices());
     return status;
   },
   async postStatus() {
     return mockPostStatus("");
   },
   async postDevices() {
-    return mockPostOn() ? MOCK_DEVICES : [];
+    return mockDevices();
   },
   async postRefresh() {
-    fire("post-devices", mockPostOn() ? MOCK_DEVICES : []);
+    fire("post-devices", mockDevices());
+    fire("post-tailnet", { state: "running", online: 3 });
+  },
+  async postAddDevice(address, port) {
+    await new Promise((r) => setTimeout(r, 600));
+    if (/fail|^10\./.test(address)) throw "unreachable";
+    const fingerprint = Array.from(address, (c) => c.charCodeAt(0).toString(16)).join("").toUpperCase().slice(0, 64);
+    // Listed once the window has kept it in the settings (the app lists it at once).
+    setTimeout(() => fire("post-devices", mockDevices()), 300);
+    return { ...found, fingerprint, alias: `Device at ${address}`, deviceModel: null, deviceType: "desktop", ip: address, port: port ?? 53317, source: "address", address };
+  },
+  async postTailnet() {
+    return { state: "running", online: 3 };
+  },
+  async postVerify(fingerprint) {
+    // Pretend: icons from the fingerprint's letters.
+    const text = ["MOCK", fingerprint].sort().join("");
+    const icons = Array.from({ length: 16 }, (_, i) => (text.charCodeAt(i % text.length) * (i + 7)) % 260);
+    return { text, icons };
   },
   async postSend(to, paths, text) {
     // A pretend delivery: asked, then a few seconds of progress.
-    const peer = MOCK_DEVICES.find((d) => d.fingerprint === to)?.alias ?? "?";
+    const peer = mockDevices().find((d) => d.fingerprint === to)?.alias ?? "?";
     const files = text ? 1 : Math.max(1, paths.length);
     const total = text ? text.length : 3_400_000 * files;
     const base = { direction: "out" as const, peer, files, total, folder: null, first: null, error: null };
@@ -737,8 +780,8 @@ export const mockBackend: Backend = {
   async postPeek() {
     return false;
   },
-  async openPostWindow() {
-    window.open("post.html", "_blank");
+  async openPostWindow(verify) {
+    window.open(verify ? `post.html#verify=${verify}` : "post.html", "_blank");
   },
   async markAlarmMissed(id) {
     mutate((s) => {

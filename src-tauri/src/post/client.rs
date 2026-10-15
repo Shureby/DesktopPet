@@ -82,8 +82,8 @@ pub(crate) async fn request(
     let (ip, port) = (peer.ip, peer.port);
     let stream = tokio::time::timeout(connect, TcpStream::connect((ip, port)))
         .await
-        .map_err(|_| "timeout".to_string())?
-        .map_err(|e| e.to_string())?;
+        .map_err(|_| format!("{UNREACHABLE}: timeout"))?
+        .map_err(|e| format!("{UNREACHABLE}: {e}"))?;
     if !peer.https {
         return exchange(TokioIo::new(stream), ip, port, path, body, length, None).await;
     }
@@ -133,8 +133,12 @@ where
     Ok(Reply { status, body, cert })
 }
 
+/// How a request's error starts when nothing answered at that address and port.
+const UNREACHABLE: &str = "unreachable";
+
 /// Introduces this device to the one at `ip:port` and learns who it is. Over HTTPS its
 /// fingerprint is its certificate's (and must be the one it announced, if `expected`).
+/// Quick: for scanning a network.
 pub(crate) async fn register(
     inner: &Inner,
     ip: IpAddr,
@@ -142,23 +146,65 @@ pub(crate) async fn register(
     https: bool,
     expected: Option<String>,
 ) -> Option<Device> {
-    let path = format!("{API}/register");
     let peer = Peer { ip, port, https, expected };
-    let call = request(inner, &peer, &path, json_body(&inner.info(true)), None, Duration::from_millis(800));
-    let reply = tokio::time::timeout(Duration::from_secs(3), call).await.ok()?.ok()?;
-    if reply.status != 200 {
-        return None;
+    introduce(inner, &peer, Duration::from_millis(800), Duration::from_secs(3)).await.ok()
+}
+
+/// Why a device added by address didn't answer as one.
+#[derive(Debug, PartialEq)]
+pub(crate) enum Probe {
+    /// Nothing listens there (or a firewall drops it).
+    Unreachable,
+    /// Something answers, but not LocalSend or ePet.
+    NotPet,
+}
+
+impl std::fmt::Display for Probe {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Probe::Unreachable => "unreachable",
+            Probe::NotPet => "notPet",
+        })
     }
-    let mut info: DeviceInfo = serde_json::from_slice(&reply.body).ok()?;
+}
+
+/// Introduces this device to one added by address (more patient than a scan: it may be
+/// far, over Tailscale); over HTTPS, or plain HTTP (LocalSend with encryption off).
+pub(crate) async fn probe(inner: &Inner, ip: IpAddr, port: u16, expected: Option<String>) -> Result<Device, Probe> {
+    let (connect, total) = (Duration::from_secs(4), Duration::from_secs(8));
+    let https = Peer { ip, port, https: true, expected };
+    match introduce(inner, &https, connect, total).await {
+        Ok(d) => Ok(d),
+        Err(e) if e.starts_with(UNREACHABLE) => Err(Probe::Unreachable),
+        Err(_) => {
+            let http = Peer { https: false, expected: None, ..https };
+            introduce(inner, &http, connect, total).await.map_err(|_| Probe::NotPet)
+        }
+    }
+}
+
+async fn introduce(inner: &Inner, peer: &Peer, connect: Duration, total: Duration) -> Result<Device, String> {
+    let path = format!("{API}/register");
+    let call = request(inner, peer, &path, json_body(&inner.info(true)), None, connect);
+    let reply = tokio::time::timeout(total, call).await.map_err(|_| "timeout".to_string())??;
+    if reply.status != 200 {
+        return Err(format!("HTTP {}", reply.status));
+    }
+    let mut info: DeviceInfo = serde_json::from_slice(&reply.body).map_err(|e| e.to_string())?;
     if let Some(cert) = reply.cert {
         if !info.fingerprint.is_empty() && !info.fingerprint.eq_ignore_ascii_case(&cert) {
-            return None;
+            return Err("fingerprint".into());
         }
         info.fingerprint = cert;
     }
-    info.port = Some(port);
-    info.protocol = Some(if https { "https" } else { "http" }.into());
-    Some(Device::from_info(&info, ip))
+    if info.fingerprint.is_empty() {
+        return Err("no fingerprint".into());
+    }
+    info.port = Some(peer.port);
+    info.protocol = Some(if peer.https { "https" } else { "http" }.into());
+    let mut d = Device::from_info(&info, peer.ip);
+    d.reached = true;
+    Ok(d)
 }
 
 /// The files to send: each path a file, or a folder sent with what's in it.

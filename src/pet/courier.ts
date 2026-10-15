@@ -7,6 +7,8 @@ import { t } from "../i18n";
 import type { Backend, Settings } from "../platform";
 import {
   DEVICE_ICONS,
+  sendable,
+  sendError,
   missedOfferTitle,
   offerLines,
   percent,
@@ -24,6 +26,8 @@ import {
 export interface CourierAction {
   label: string;
   run: () => void;
+  /** Leaves the bubble (and its question) up. */
+  keep?: boolean;
 }
 
 /** What the courier needs from the pet (PetHost). */
@@ -148,7 +152,7 @@ export class Courier {
     const b = this.host.backend;
     // Turned on just now: the settings reach the app first.
     await this.configure();
-    this.devices = await b.postDevices().catch(() => []);
+    this.devices = (await b.postDevices().catch(() => [])).filter(sendable);
     if (!this.devices.length) {
       if (!looked) {
         void b.postRefresh();
@@ -174,9 +178,9 @@ export class Courier {
 
   private send(to: string, paths: string[], text: string | null, pin: string | null = null): void {
     this.mine = { to, paths, text };
-    this.host.backend.postSend(to, paths, text, pin).catch(() => {
+    this.host.backend.postSend(to, paths, text, pin).catch((e) => {
       this.mine = null;
-      this.host.say(t("I'm still delivering something else."), 5000);
+      this.host.say(sendError(String(e)), 8000);
     });
   }
 
@@ -212,6 +216,10 @@ export class Courier {
       { label: t("Accept"), run: () => answer(true) },
       { label: t("Decline"), run: () => answer(false) },
     ];
+    // Compared on both screens (LocalSend's Verify), meanwhile the question stays.
+    if (o.fingerprint) {
+      actions.push({ label: t("Verify…"), keep: true, run: () => void this.host.backend.openPostWindow(o.fingerprint) });
+    }
     // Only a device that proved who it is can be trusted (its certificate).
     if (o.fingerprint && !trusted) {
       actions.push({

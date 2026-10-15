@@ -29,7 +29,7 @@ Chinese name 宠物驿站 / 寵物驛站. Store and in-app line: "Works with Loc
 - Shipped as planned; see docs/INTERACTIONS.md, "Pet Post". Tested against the official
   LocalSend command-line app in both directions (files, folders, text, discovery).
 
-## Pet Post beyond one network: by address, other subnets, Tailscale (0.45)
+## Pet Post beyond one network: by address, other subnets, Tailscale (shipped in 0.45.0)
 
 "Send across networks via Tailscale" / “支持经 Tailscale 跨网传送”. Discovery (multicast
 and the scan of this computer's /24) stops at a router: a device behind a second router

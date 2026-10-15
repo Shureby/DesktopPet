@@ -10,16 +10,17 @@
 mod client;
 mod discovery;
 mod server;
+mod tailscale;
 #[cfg(test)]
 mod tests;
 mod tls;
 
 use std::collections::{HashMap, HashSet};
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use desktoppet_core::post::{DeviceInfo, PinGuard, ReceiveSession, PROTOCOL_VERSION};
+use desktoppet_core::post::{DeviceInfo, PinGuard, ReceiveSession, Tailnet, DEFAULT_PORT, PROTOCOL_VERSION};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_dialog::DialogExt;
@@ -51,6 +52,25 @@ pub struct Config {
     pub save_dir: String,
     /// The port to listen on (0: LocalSend's, 53317). Tests use another.
     pub port: u16,
+    /// Devices added by address (beyond this network: behind another router, Tailscale).
+    pub devices: Vec<Saved>,
+    /// Extra networks to look in, such as "192.168.8.0/24".
+    pub networks: Vec<String>,
+    /// Lists the devices of the Tailscale network (if Tailscale is installed).
+    pub tailscale: bool,
+}
+
+/// A device added by address, as remembered in the settings.
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Saved {
+    /// An IP address or a host name (a Tailscale MagicDNS name, say).
+    pub address: String,
+    pub port: u16,
+    /// Its certificate's, when it was added: another one there is another device.
+    pub fingerprint: String,
+    pub alias: String,
+    pub device_type: String,
 }
 
 /// A device found on the network.
@@ -65,6 +85,18 @@ pub struct Device {
     pub port: u16,
     pub https: bool,
     pub last_seen: i64,
+    /// How it was found: "lan" | "address" | "network" | "tailnet".
+    pub source: &'static str,
+    /// We reached it at `ip` ourselves. Otherwise it only reached us, and `ip` may be a
+    /// router's (one it's behind, NAT), where it can't be reached.
+    pub reached: bool,
+    /// Added by address: that address (as typed).
+    pub address: Option<String>,
+    /// Added by address and not answering now.
+    pub online: bool,
+    /// Added by address, and what answers there now has another certificate: that one's
+    /// fingerprint. Nothing is sent to it until the user trusts the new one.
+    pub changed_to: Option<String>,
 }
 
 impl Device {
@@ -82,7 +114,40 @@ impl Device {
             port: info.port.unwrap_or(desktoppet_core::post::DEFAULT_PORT),
             https: info.protocol.as_deref() != Some("http"),
             last_seen: now_ms(),
+            source: "lan",
+            reached: false,
+            address: None,
+            online: true,
+            changed_to: None,
         }
+    }
+
+    /// A device added by address, before (or without) an answer from it.
+    fn saved(s: &Saved) -> Self {
+        Device {
+            fingerprint: s.fingerprint.to_ascii_uppercase(),
+            alias: if s.alias.is_empty() { s.address.clone() } else { s.alias.clone() },
+            device_model: None,
+            device_type: if s.device_type.is_empty() { "desktop".into() } else { s.device_type.clone() },
+            ip: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
+            port: if s.port == 0 { DEFAULT_PORT } else { s.port },
+            https: true,
+            last_seen: 0,
+            source: "address",
+            reached: false,
+            address: Some(s.address.clone()),
+            online: false,
+            changed_to: None,
+        }
+    }
+}
+
+/// Which way of finding a device says more about it (kept when another one finds it too).
+fn rank(source: &str) -> u8 {
+    match source {
+        "address" => 3,
+        "tailnet" | "network" => 2,
+        _ => 1,
     }
 }
 
@@ -192,6 +257,8 @@ pub struct Inner {
     pub(crate) receive: Mutex<Receive>,
     /// The delivery being sent: its task, and where to say it's cancelled.
     pub(crate) sending: Mutex<Option<client::Sending>>,
+    /// What Tailscale said last.
+    pub(crate) tailnet: Mutex<Tailnet>,
 }
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -248,14 +315,68 @@ impl Inner {
         self.downloads.join("ePet")
     }
 
-    pub(crate) fn add_device(&self, device: Device) {
+    /// Lists a device found (or updates it). An address we reached it at is kept when it
+    /// then reaches us from another one: that's a router it's behind (NAT).
+    pub(crate) fn add_device(&self, mut device: Device) {
         let own = self.identity().map(|i| i.fingerprint).unwrap_or_default();
         if device.fingerprint.is_empty() || device.fingerprint == own {
             return;
         }
         let list = {
             let mut devices = lock(&self.devices);
+            if let Some(old) = devices.get(&device.fingerprint) {
+                if old.reached && !device.reached && old.online {
+                    device.ip = old.ip;
+                    device.port = old.port;
+                    device.https = old.https;
+                    device.reached = true;
+                }
+                if rank(old.source) > rank(device.source) {
+                    device.source = old.source;
+                }
+                if device.address.is_none() {
+                    device.address = old.address.clone();
+                }
+            }
             devices.insert(device.fingerprint.clone(), device);
+            sorted(&devices)
+        };
+        self.emit("post-devices", list);
+    }
+
+    /// Changes a listed device (and says so).
+    pub(crate) fn update_device(&self, fingerprint: &str, change: impl FnOnce(&mut Device)) {
+        let list = {
+            let mut devices = lock(&self.devices);
+            let Some(d) = devices.get_mut(fingerprint) else { return };
+            change(d);
+            sorted(&devices)
+        };
+        self.emit("post-devices", list);
+    }
+
+    /// Lists the devices added by address (not answering until they do), and drops the
+    /// ones removed from the settings.
+    fn sync_saved(&self) {
+        let saved = self.config().devices;
+        let list = {
+            let mut devices = lock(&self.devices);
+            devices.retain(|fp, d| d.address.is_none() || saved.iter().any(|s| s.fingerprint.eq_ignore_ascii_case(fp)));
+            for s in &saved {
+                let fp = s.fingerprint.to_ascii_uppercase();
+                if fp.is_empty() {
+                    continue;
+                }
+                match devices.get_mut(&fp) {
+                    Some(d) => {
+                        d.address = Some(s.address.clone());
+                        d.source = "address";
+                    }
+                    None => {
+                        devices.insert(fp, Device::saved(s));
+                    }
+                }
+            }
             sorted(&devices)
         };
         self.emit("post-devices", list);
@@ -321,6 +442,7 @@ impl Post {
             pins: Mutex::new(PinGuard::default()),
             receive: Mutex::new(Receive::Idle),
             sending: Mutex::new(None),
+            tailnet: Mutex::new(Tailnet::default()),
         }))
     }
 }
@@ -385,11 +507,23 @@ pub(crate) async fn configure(inner: &Arc<Inner>, config: Config) -> Status {
         if let Err(e) = &result {
             log::error!("Pet Post could not start: {e}");
         } else {
+            inner.sync_saved();
             discovery::refresh(inner.clone());
         }
-    } else if before.alias != config.alias {
-        // Tell the others the new name.
-        discovery::refresh(inner.clone());
+    } else {
+        if before.devices != config.devices {
+            inner.sync_saved();
+        }
+        if before.tailscale && !config.tailscale {
+            lock(&inner.devices).retain(|_, d| d.source != "tailnet" || d.address.is_some());
+            *lock(&inner.tailnet) = Tailnet::default();
+            inner.emit("post-devices", inner.devices());
+        }
+        // Tell the others the new name; look where it's now told to.
+        let look = (!before.tailscale && config.tailscale) || before.networks != config.networks;
+        if before.alias != config.alias || look {
+            discovery::refresh(inner.clone());
+        }
     }
     inner.emit_status();
     inner.status()
@@ -411,9 +545,52 @@ pub fn post_refresh(post: State<'_, Post>) {
     let inner = post.0.clone();
     if lock(&inner.running).is_some() {
         lock(&inner.devices).retain(|_, d| now_ms() - d.last_seen < 10_000);
-        inner.emit("post-devices", inner.devices());
+        inner.sync_saved();
         discovery::refresh(inner);
     }
+}
+
+/// Adds a device by address (an IP address or a host name, and a port: LocalSend's if
+/// none): introduces this one there and learns who it is. The pet window then keeps it in
+/// the settings. Errors: "off", "address" (no such host), "unreachable", "notPet".
+#[tauri::command]
+pub async fn post_add_device(post: State<'_, Post>, address: String, port: Option<u16>) -> CmdResult<Device> {
+    add_device(&post.0, &address, port.unwrap_or(DEFAULT_PORT)).await
+}
+
+pub(crate) async fn add_device(inner: &Arc<Inner>, address: &str, port: u16) -> CmdResult<Device> {
+    if lock(&inner.running).is_none() {
+        return Err("off".into());
+    }
+    let address = address.trim();
+    let ip = discovery::resolve(address, port).await.ok_or("address")?;
+    let mut d = client::probe(inner, ip, port, None).await.map_err(|e| e.to_string())?;
+    d.source = "address";
+    d.address = Some(address.to_string());
+    inner.add_device(d.clone());
+    Ok(d)
+}
+
+/// What both sides show to check they talk to each other (LocalSend's Verify).
+#[derive(Debug, Clone, Serialize)]
+pub struct Verify {
+    pub text: String,
+    /// Numbers of the icons (src/features/post/verifyIcons.ts).
+    pub icons: Vec<usize>,
+}
+
+/// Verify for a device (by its fingerprint): what it should show too.
+#[tauri::command]
+pub fn post_verify(post: State<'_, Post>, fingerprint: String) -> CmdResult<Verify> {
+    let mine = post.0.identity().ok_or("off")?.fingerprint;
+    let (text, icons) = desktoppet_core::post::verify_code(&mine, &fingerprint.to_ascii_uppercase());
+    Ok(Verify { text, icons })
+}
+
+/// What Tailscale said last (Settings → Pet Post shows it).
+#[tauri::command]
+pub fn post_tailnet(post: State<'_, Post>) -> Tailnet {
+    lock(&post.0.tailnet).clone()
 }
 
 /// Sends files and folders (`paths`), or a text, to a device found (by fingerprint).
@@ -427,6 +604,12 @@ pub fn post_send(
 ) -> CmdResult<()> {
     let inner = post.0.clone();
     let device = lock(&inner.devices).get(&to.to_ascii_uppercase()).cloned().ok_or("That device is gone.")?;
+    if device.changed_to.is_some() {
+        return Err("identity".into());
+    }
+    if !device.online || device.ip.is_unspecified() {
+        return Err("offline".into());
+    }
     client::send(inner, device, paths.into_iter().map(PathBuf::from).collect(), text, pin)
 }
 
@@ -504,6 +687,6 @@ pub fn post_peek(app: AppHandle) -> bool {
 
 /// Async: a WebView2 window made from a sync command (the main thread) deadlocks on Windows.
 #[tauri::command]
-pub async fn open_post_window(app: AppHandle) -> CmdResult<()> {
-    crate::app_windows::open_post(&app).map_err(err)
+pub async fn open_post_window(app: AppHandle, verify: Option<String>) -> CmdResult<()> {
+    crate::app_windows::open_post(&app, verify.as_deref()).map_err(err)
 }
