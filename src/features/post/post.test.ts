@@ -28,7 +28,7 @@ const tr = (p: Partial<PostTransfer>): PostTransfer => ({
   ...p,
 });
 
-describe("[post.settings] Pet Post settings", () => {
+describe("Pet Post settings", () => {
   it("are off by default, and older settings get the defaults", () => {
     const s = mergeSettings({});
     expect(s.post).toEqual({ enabled: false, alias: "", pin: "", autoAcceptTrusted: true, trusted: [], saveDir: "" });
@@ -66,7 +66,7 @@ describe("[post.settings] Pet Post settings", () => {
   });
 });
 
-describe("[post.words] what the pet and the window say", () => {
+describe("Pet Post: what the pet and the window say", () => {
   it("sizes, counts and names", () => {
     expect(formatSize(3)).toBe("3 bytes");
     expect(formatSize(2048)).toBe("2 KB");
