@@ -26,8 +26,14 @@ affected items' `rev` to the new version so the online checklist asks for a rete
   The devices of your Tailscale network are listed if Tailscale is installed.
 - **Verify** in Pet Post and in the pet's question about a delivery: the same icons (or
   text) LocalSend shows, to check on both screens that it's the right device.
-- The Pet Post window shows this computer's addresses and port (with Copy), for adding it
-  by address on another device.
+- **The Pet Post window has three tabs**, like LocalSend: 📥 Receive (ready to receive,
+  what's coming, this computer's address, where files go, the latest received), 📤 Send
+  (devices, add by address, files, a folder or a text) and 🕘 History. A delivery being
+  offered switches to Receive; opened from the pet to send, it's on Send.
+- This computer's address and port, to add it by address on another device: the likeliest
+  one shown (wired, then Wi-Fi, then Tailscale, virtual adapters last), the others in a
+  list grouped by kind, with Copy.
+- Where received files go is shown on the Receive tab, with Change… right there.
 - **Receiving in the Pet Post window:** it says it's ready to receive; a delivery is asked
   about there too (Accept / Decline / Always accept / Verify, with the time left), and
   answered in either place it's gone from both. While the window is open the hidden pet

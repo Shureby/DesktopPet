@@ -805,7 +805,16 @@ src-tauri/src/post/, crates/desktoppet-core/src/post.rs).
   the next free one of 53318–53327, the same each time (since 0.45.0); then Settings says
   "(port 53318: 53317 is taken by another app)" and the Pet Post window says a device
   adding it by address needs that port. The window lists this computer's addresses with
-  the port ("192.168.31.5:53317", and its Tailscale one), each with Copy.
+  the port: the likeliest one shown ("192.168.31.66:53317", its adapter's name beside it),
+  the others in a list (click it) grouped by kind: the local network (wired before Wi-Fi),
+  Tailscale, then virtual adapters (virtual machines, WSL, Docker, VPNs: "rarely needed").
+  Copy copies the one shown; the one picked is remembered.
+- **The Pet Post window** (since 0.45.0) has three tabs: **📥 Receive** (ready to receive,
+  a delivery being offered, how one comes in, this computer's address, "Saved to:" with
+  Change…, the latest received), **📤 Send** (devices, Add by address…, files, a folder or
+  a text, how it goes) and **🕘 History** (everything received). It opens on the tab
+  left last; on Send when opened from the pet to send (More…, Pet Post…, the 📦 badge
+  while sending); a delivery offered switches it to Receive (Verify opens over the tab).
 - **Finding devices:** announces itself on LocalSend's multicast group when it starts (and
   answers others' announcements); "Look again" also asks every address of the network
   (a /24), for networks that block multicast. Devices are known by the fingerprint of

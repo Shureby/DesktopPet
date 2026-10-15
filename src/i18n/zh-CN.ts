@@ -838,11 +838,26 @@ const zhCN: Dictionary = {
     "No one found yet.": "还没找到设备。",
     "The other device needs LocalSend or ePet open, on the same network (Wi-Fi).":
       "对方需要在同一网络（Wi-Fi）中打开 LocalSend 或 ePet。",
+    Receive: "接收",
+    Send: "发送",
+    History: "记录",
+    "Local network (wired / wireless)": "局域网（有线 / 无线）",
+    "Other virtual adapters (rarely needed)": "其他虚拟网卡（一般用不到）",
     "To add this computer by address on another device:":
       "在其他设备上按地址添加这台电脑时，填：",
-    Tailscale: "Tailscale",
+    "{n} more": "其他 {n} 个",
+    "Pick the one on the network the other device is on: the same Wi-Fi, or Tailscale when you're apart.":
+      "选对方所在网络的那个：在同一个 Wi-Fi 就用局域网的；不在一起时用 Tailscale 的。",
     "Port {usual} is taken by another app (LocalSend?), so this computer uses {port}: a device adding it by address needs this port.":
       "端口 {usual} 被别的程序占用了（可能是 LocalSend），这台电脑改用 {port}。其他设备按地址添加它时，要填这个端口。",
+    "Saved to:": "保存到：",
+    "Ready to receive: nearby devices can see this computer.":
+      "正在等待接收：附近的设备能看到这台电脑。",
+    Latest: "最近收到",
+    "Nothing received yet.": "还没有收到过东西。",
+    "All of it: 🕘 History": "查看全部（🕘 记录）",
+    "Received files and messages": "收到的文件和消息",
+    "Open the received files folder": "打开收件文件夹",
     "Add by address…": "按地址添加…",
     "192.168.8.20 or a name": "192.168.8.20 或名称",
     Port: "端口",
@@ -868,9 +883,6 @@ const zhCN: Dictionary = {
     "Not there any more (moved or deleted).":
       "文件已不在原处（被移动或删除了）。",
     "Show in folder": "在文件夹中显示",
-    Send: "发送",
-    "📥 Ready to receive: nearby devices see this computer as “{name}”.":
-      "📥 正在等待接收：附近的设备看到这台电脑叫“{name}”。",
     "Settings…": "设置…",
     "Send files and text to phones and computers nearby, and get theirs.":
       "给附近的手机和电脑发文件和文字，也能收下它们发来的。",
@@ -883,8 +895,6 @@ const zhCN: Dictionary = {
     "Or drop files on the pet.": "也可以把文件拖到宠物身上。",
     Paste: "粘贴",
     "Send text": "发送文字",
-    Received: "已收到",
-    "Open the received files folder": "打开收件文件夹",
   },
   lines: {
     "avoid.leaving.fullscreen": [

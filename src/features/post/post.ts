@@ -190,7 +190,7 @@ export interface PostStatus {
   /** This computer's name. */
   computer: string;
   /** Where others can reach it (with `port`), to add it by address. */
-  addresses: { ip: string; tailnet: boolean }[];
+  addresses: { ip: string; name: string; kind: "ethernet" | "wifi" | "lan" | "tailscale" | "virtual" }[];
 }
 
 export type TransferState = "waiting" | "receiving" | "sending" | "done" | "declined" | "busy" | "pin" | "tooMany" | "failed" | "cancelled" | "stopped";

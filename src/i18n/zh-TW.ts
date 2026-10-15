@@ -838,11 +838,26 @@ const zhTW: Dictionary = {
     "No one found yet.": "還沒找到裝置。",
     "The other device needs LocalSend or ePet open, on the same network (Wi-Fi).":
       "對方需要在同一網路（Wi-Fi）中打開 LocalSend 或 ePet。",
+    Receive: "接收",
+    Send: "傳送",
+    History: "記錄",
+    "Local network (wired / wireless)": "區域網路（有線 / 無線）",
+    "Other virtual adapters (rarely needed)": "其他虛擬網卡（一般用不到）",
     "To add this computer by address on another device:":
       "在其他裝置上依位址加入這台電腦時，填：",
-    Tailscale: "Tailscale",
+    "{n} more": "其他 {n} 個",
+    "Pick the one on the network the other device is on: the same Wi-Fi, or Tailscale when you're apart.":
+      "選對方所在網路的那個：在同一個 Wi-Fi 就用區域網路的；不在一起時用 Tailscale 的。",
     "Port {usual} is taken by another app (LocalSend?), so this computer uses {port}: a device adding it by address needs this port.":
       "連接埠 {usual} 被別的程式佔用了（可能是 LocalSend），這台電腦改用 {port}。其他裝置依位址加入它時，要填這個連接埠。",
+    "Saved to:": "儲存到：",
+    "Ready to receive: nearby devices can see this computer.":
+      "正在等待接收：附近的裝置能看到這台電腦。",
+    Latest: "最近收到",
+    "Nothing received yet.": "還沒有收到過東西。",
+    "All of it: 🕘 History": "查看全部（🕘 記錄）",
+    "Received files and messages": "收到的檔案和訊息",
+    "Open the received files folder": "打開收件資料夾",
     "Add by address…": "依位址加入…",
     "192.168.8.20 or a name": "192.168.8.20 或名稱",
     Port: "連接埠",
@@ -868,9 +883,6 @@ const zhTW: Dictionary = {
     "Not there any more (moved or deleted).":
       "檔案已不在原處（被移動或刪除了）。",
     "Show in folder": "在資料夾中顯示",
-    Send: "傳送",
-    "📥 Ready to receive: nearby devices see this computer as “{name}”.":
-      "📥 正在等待接收：附近的裝置看到這台電腦叫「{name}」。",
     "Settings…": "設定…",
     "Send files and text to phones and computers nearby, and get theirs.":
       "傳檔案和文字給附近的手機和電腦，也能收下它們傳來的。",
@@ -883,8 +895,6 @@ const zhTW: Dictionary = {
     "Or drop files on the pet.": "也可以把檔案拖到寵物身上。",
     Paste: "貼上",
     "Send text": "傳送文字",
-    Received: "已收到",
-    "Open the received files folder": "打開收件資料夾",
   },
   lines: {
     "avoid.leaving.fullscreen": [

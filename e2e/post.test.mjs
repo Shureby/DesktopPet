@@ -39,6 +39,15 @@ const listening = (port) =>
     s.on("timeout", () => (s.destroy(), resolve(false)));
   });
 
+/** The Pet Post window, on one of its tabs ("receive" | "send" | "history"). */
+async function postTab(name) {
+  const app = ctx.app;
+  await app.toWindow("post.html");
+  await app.until(() => document.querySelector(".post-tab"));
+  await app.click(`.post-tab[data-tab="${name}"]`);
+  await app.until((n) => document.querySelector(`.post-tab[data-tab="${n}"]`)?.classList.contains("active"), [name]);
+}
+
 /** A port nothing listens on. */
 const freePort = () =>
   new Promise((resolve) => {
@@ -221,7 +230,7 @@ check("post.send", "the Pet Post window lists the device; a file and a text reac
   writeFileSync(file, "PDF?");
   await app.toPet();
   await app.invoke("open_post_window");
-  await app.toWindow("post.html");
+  await postTab("send");
   await app.waitText(".post-device", "Mock Phone");
   // (The file dialog can't be driven: the command it leads to.)
   await app.invoke("post_send", { to: peer.fingerprint, paths: [file], text: null, pin: null });
@@ -238,13 +247,25 @@ check("post.own-address", "the Pet Post window shows this computer's addresses a
   const app = ctx.app;
   const status = await app.invoke("post_status");
   assert.ok(status.addresses.length > 0, "no address");
-  await app.toWindow("post.html");
-  const shown = await app.until(() => {
-    const list = [...document.querySelectorAll(".post-address")].map((e) => e.textContent);
-    return list.length && list;
-  });
-  assert.deepEqual(shown, status.addresses.map((a) => `${a.ip}:53317`));
+  for (const a of status.addresses) assert.match(a.kind, /^(ethernet|wifi|lan|tailscale|virtual)$/);
+  await postTab("receive");
+  // The likeliest one shown; the others in the list, by kind (local network, Tailscale, virtual).
+  await app.waitText(".post-address", `${status.addresses[0].ip}:53317`);
+  if (status.addresses.length > 1) {
+    await app.click(".post-address-pick");
+    const listed = await app.until(() => {
+      const l = [...document.querySelectorAll(".post-address-option code")].map((e) => e.textContent);
+      return l.length && l;
+    });
+    assert.deepEqual([...listed].sort(), status.addresses.map((a) => `${a.ip}:53317`).sort());
+    await app.click(".post-address-option:last-child");
+    const last = await app.text(".post-address");
+    assert.ok(listed.includes(last), last);
+  }
   assert.equal(await app.b.execute(() => !!document.querySelector(".post-port-moved")), false);
+  // Where received files go, with Change… right there.
+  await app.waitText(".post-save-dir", inbox);
+  await app.until(() => !!document.querySelector(".post-change-dir"));
 });
 
 check("post.window-receive", "with the Pet Post window open, it asks too: answered there, the pet's question goes; then a sound, and it's in Received", async () => {
@@ -310,7 +331,7 @@ check("post.history", "Received keeps what came (files and texts) across restart
   const app = ctx.app;
   await app.closeWindow("post");
   await app.invoke("open_post_window");
-  await app.toWindow("post.html");
+  await postTab("history");
   await app.waitText(".post-received-item", "1 file from Mock Phone");
   await app.waitText(".post-received-item", "Dinner at 7?");
   await app.click(".post-clear-history");
@@ -341,7 +362,7 @@ check("post.verify", "Verify in Pet Post shows the same icons (and text) LocalSe
   const app = ctx.app;
   assert.equal(ICON_NAMES.length, 260);
   const want = verifyCode(fingerprint, peer.fingerprint);
-  await app.toWindow("post.html");
+  await postTab("send");
   await app.b.execute((name) => {
     const row = [...document.querySelectorAll(".post-device")].find((e) => e.textContent.includes(name));
     row.querySelector(".post-verify").click();
@@ -384,7 +405,7 @@ check("post.networks", "an extra network in Settings → Pet Post is looked in t
   });
   assert.equal(d.ip, "127.0.0.1");
   assert.equal(d.port, 53318);
-  await app.toWindow("post.html");
+  await postTab("send");
   await app.waitText(".post-device", "on another network");
   await app.setSettings((s) => ({ ...s, post: { ...s.post, networks: [] } }));
 });
@@ -409,7 +430,7 @@ check("post.tailscale", "the devices of the Tailscale network are asked (Tailsca
   assert.deepEqual(await app.invoke("post_tailnet"), { state: "running", online: 1 });
   await app.panel("settings");
   await app.waitText(".post-settings .post-tailnet", "Tailscale: 1 device online, 1 with LocalSend or ePet.", 15_000);
-  await app.toWindow("post.html");
+  await postTab("send");
   await app.waitText(".post-device", "via Tailscale");
   rmSync(tailnetFile);
   await app.invoke("post_refresh");
@@ -419,7 +440,7 @@ check("post.tailscale", "the devices of the Tailscale network are asked (Tailsca
 
 check("post.add", "a device added by address (in Pet Post) is listed and kept in the settings", async () => {
   const app = ctx.app;
-  await app.toWindow("post.html");
+  await postTab("send");
   await app.click(".post-add-open");
   await app.type(".post-add-address", "127.0.0.1");
   await app.type(".post-add-port", "53318");
@@ -461,7 +482,7 @@ check("post.offline", "a device added by address that stops answering stays list
   const app = ctx.app;
   await peer.stop();
   await lookUntil("not answering", async () => (await listed())?.online === false);
-  await app.toWindow("post.html");
+  await postTab("send");
   await app.waitText(".post-device-state", "Not answering.");
 });
 
@@ -471,7 +492,7 @@ check("post.identity", "another device answering at that address: nothing is sen
   await other.start();
   try {
     await lookUntil("seen as another device", async () => (await listed())?.changedTo === other.fingerprint);
-    await app.toWindow("post.html");
+    await postTab("send");
     await app.waitText(".post-device-state", "Another device answers there now.");
     const sent = await app.b.execute(
       (fp) =>
@@ -521,7 +542,7 @@ check("post.port-taken", "LocalSend's port taken by another app: the next free o
     assert.equal(await listening(status.port), true);
     await app.waitText(".post-settings .post-state", `(port ${status.port}: 53317 is taken by another app)`);
     await app.invoke("open_post_window");
-    await app.toWindow("post.html");
+    await postTab("receive");
     await app.waitText(".post-port-moved", `so this computer uses ${status.port}`);
     await app.until((p) => [...document.querySelectorAll(".post-address")].every((e) => e.textContent.endsWith(`:${p}`)), [status.port]);
     await app.closeWindow("post");

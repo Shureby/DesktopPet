@@ -173,8 +173,10 @@ pub struct Status {
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct Address {
     pub ip: String,
-    /// On the Tailscale network.
-    pub tailnet: bool,
+    /// Its adapter, as the system names it.
+    pub name: String,
+    /// "ethernet" | "wifi" | "lan" | "tailscale" | "virtual" (desktoppet_core::post::network_kind).
+    pub kind: &'static str,
 }
 
 /// A delivery or transfer's progress ("post-transfer").
@@ -441,7 +443,7 @@ impl Inner {
             addresses: if running {
                 discovery::own_addresses()
                     .into_iter()
-                    .map(|(ip, tailnet)| Address { ip: ip.to_string(), tailnet })
+                    .map(|(ip, name, kind)| Address { ip: ip.to_string(), name, kind })
                     .collect()
             } else {
                 Vec::new()
@@ -832,6 +834,6 @@ pub fn post_peek(app: AppHandle) -> bool {
 
 /// Async: a WebView2 window made from a sync command (the main thread) deadlocks on Windows.
 #[tauri::command]
-pub async fn open_post_window(app: AppHandle, verify: Option<String>) -> CmdResult<()> {
-    crate::app_windows::open_post(&app, verify.as_deref()).map_err(err)
+pub async fn open_post_window(app: AppHandle, verify: Option<String>, tab: Option<String>) -> CmdResult<()> {
+    crate::app_windows::open_post(&app, verify.as_deref(), tab.as_deref()).map_err(err)
 }

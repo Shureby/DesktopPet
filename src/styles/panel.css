@@ -1593,3 +1593,141 @@ button,
   white-space: nowrap;
   flex-shrink: 1;
 }
+/* Pet Post's tabs (as the panel's) and the Receive tab. */
+.post-head {
+  align-items: center;
+}
+.post-settings-link {
+  font-size: 12px;
+  white-space: nowrap;
+}
+nav.post-tabs {
+  margin: 0 -14px 10px;
+  padding: 4px 8px 0;
+}
+nav.post-tabs button {
+  font-size: 14px;
+  padding: 8px 12px;
+}
+.post-tab-badge {
+  display: inline-block;
+  min-width: 16px;
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+}
+.post-ready {
+  text-align: center;
+  padding: 14px 0 4px;
+}
+.post-ready-icon {
+  font-size: 44px;
+}
+.post-ready-name {
+  font-size: 19px;
+  font-weight: 700;
+  margin: 4px 0 2px;
+  overflow-wrap: anywhere;
+}
+.post-ready .hint {
+  margin: 0;
+}
+.post-own {
+  margin-top: 12px;
+}
+.post-address-row {
+  gap: 8px;
+}
+.post-address-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+.post-address-pick:disabled {
+  cursor: default;
+  opacity: 1;
+}
+.post-address-pick .chev {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.post-tag {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+.post-tag.ethernet,
+.post-tag.wifi,
+.post-tag.lan {
+  background: #e3f3e7;
+  color: #2a6b3a;
+}
+.post-tag.tailscale {
+  background: #eceafd;
+  color: #4b3fa8;
+}
+.post-address-menu {
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 12%);
+  padding: 4px 0;
+}
+.post-address-group {
+  font-size: 11px;
+  color: var(--muted);
+  padding: 6px 10px 2px;
+  letter-spacing: 0.04em;
+}
+.post-address-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.post-address-option:hover,
+.post-address-option.on {
+  background: var(--accent-soft);
+}
+.post-address-option.dim code {
+  color: var(--muted);
+}
+.post-address-option .check {
+  margin-left: auto;
+  color: var(--muted);
+}
+.post-save-dir {
+  gap: 8px;
+  margin-top: 10px;
+}
+.post-save-dir .path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  color: var(--muted);
+}

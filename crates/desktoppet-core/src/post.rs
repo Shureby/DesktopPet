@@ -448,6 +448,64 @@ pub fn parse_tailnet(json: &str) -> Tailnet {
     Tailnet { state: state.into(), online: peers.len(), peers }
 }
 
+/// What kind of network an address of this computer is on, by its adapter's name (as the
+/// system calls it: "Ethernet", "WLAN", "vEthernet (WSL)", "en0"…): "ethernet", "wifi",
+/// "lan" (can't tell which), "tailscale" or "virtual" (virtual machines, containers, VPNs).
+/// In this order, the one to give others first (the Pet Post window lists them so).
+pub fn network_kind(name: &str, ip: Ipv4Addr) -> &'static str {
+    let n = name.to_lowercase();
+    let [a, b, ..] = ip.octets();
+    if (a == 100 && (b & 0xC0) == 64) || n.contains("tailscale") {
+        return "tailscale";
+    }
+    const VIRTUAL: [&str; 17] = [
+        "vethernet",
+        "vmware",
+        "virtualbox",
+        "hyper-v",
+        "wsl",
+        "docker",
+        "zerotier",
+        "wireguard",
+        "vpn",
+        "hamachi",
+        "radmin",
+        "parallels",
+        "npcap",
+        "loopback",
+        "tap-",
+        "virtual",
+        "openvpn",
+    ];
+    const VIRTUAL_PREFIX: [&str; 15] = [
+        "vmnet", "vboxnet", "veth", "br-", "bridge", "docker", "tun", "tap", "utun", "wg", "zt", "vnic", "llw", "awdl",
+        "anpi",
+    ];
+    if VIRTUAL.iter().any(|v| n.contains(v)) || VIRTUAL_PREFIX.iter().any(|v| n.starts_with(v)) {
+        return "virtual";
+    }
+    const WIFI: [&str; 6] = ["wi-fi", "wifi", "wlan", "wireless", "无线", "無線"];
+    if WIFI.iter().any(|w| n.contains(w)) || n.starts_with("wl") {
+        return "wifi";
+    }
+    const ETHERNET: [&str; 4] = ["ethernet", "以太网", "乙太網路", "本地连接"];
+    if ETHERNET.iter().any(|e| n.contains(e)) || ["eth", "enp", "eno", "ens"].iter().any(|e| n.starts_with(e)) {
+        return "ethernet";
+    }
+    "lan"
+}
+
+/// The order `network_kind`s are offered in.
+pub fn network_rank(kind: &str) -> u8 {
+    match kind {
+        "ethernet" => 0,
+        "wifi" => 1,
+        "lan" => 2,
+        "tailscale" => 3,
+        _ => 4,
+    }
+}
+
 /// How many icons Verify chooses from (LocalSend's icon alphabet, src/features/post/verifyIcons.ts).
 pub const VERIFY_ICONS: usize = 260;
 
@@ -692,6 +750,36 @@ mod tests {
             parse_tailnet(r#"{"BackendState":"Stopped","Peer":{"k":{"Online":true,"TailscaleIPs":["100.1.1.1"]}}}"#);
         assert_eq!((stopped.state.as_str(), stopped.online), ("stopped", 0));
         assert_eq!(parse_tailnet("failed to connect to local tailscaled").state, "error");
+    }
+
+    #[test]
+    fn network_kinds() {
+        let ip = Ipv4Addr::new(192, 168, 31, 66);
+        assert_eq!(network_kind("Ethernet", ip), "ethernet");
+        assert_eq!(network_kind("以太网 2", ip), "ethernet");
+        assert_eq!(network_kind("enp3s0", ip), "ethernet");
+        assert_eq!(network_kind("Wi-Fi", ip), "wifi");
+        assert_eq!(network_kind("WLAN", ip), "wifi");
+        assert_eq!(network_kind("wlp2s0", ip), "wifi");
+        assert_eq!(network_kind("en0", ip), "lan");
+        assert_eq!(network_kind("Tailscale", ip), "tailscale");
+        assert_eq!(network_kind("utun4", Ipv4Addr::new(100, 90, 156, 124)), "tailscale");
+        for v in [
+            "vEthernet (WSL)",
+            "vEthernet (Default Switch)",
+            "VMware Network Adapter VMnet8",
+            "VirtualBox Host-Only Network",
+            "docker0",
+            "br-1a2b",
+            "ZeroTier One",
+            "utun3",
+            "bridge100",
+        ] {
+            assert_eq!(network_kind(v, Ipv4Addr::new(172, 30, 160, 1)), "virtual", "{v}");
+        }
+        let mut kinds = vec!["virtual", "tailscale", "wifi", "lan", "ethernet"];
+        kinds.sort_by_key(|k| network_rank(k));
+        assert_eq!(kinds, vec!["ethernet", "wifi", "lan", "tailscale", "virtual"]);
     }
 
     #[test]

@@ -214,27 +214,111 @@ function deviceList(): Node {
   return h("ul", { class: "post-devices" }, ...devices.map(deviceRow));
 }
 
-/** This computer's addresses and port: what others type to add it by address. */
-function ownAddresses(): Node | null {
+type Tab = "receive" | "send" | "history";
+const TABS: { id: Tab; icon: string; label: () => string }[] = [
+  { id: "receive", icon: "📥", label: () => t("Receive") },
+  { id: "send", icon: "📤", label: () => t("Send") },
+  { id: "history", icon: "🕘", label: () => t("History") },
+];
+
+/** A per-window choice kept in this browser's storage (it may be unavailable: then not kept). */
+function stored(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+function store(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // (Not kept.)
+  }
+}
+
+/** The tab shown: as left last time, unless the window was opened for another. */
+let tab: Tab = (["receive", "send", "history"] as const).find((x) => x === stored("post.tab")) ?? "receive";
+function show(next: Tab): void {
+  tab = next;
+  store("post.tab", next);
+  render();
+}
+
+/** This computer's address picked to show (by its IP), and whether the list is open. */
+let addressChoice = stored("post.address");
+let addressesOpen = false;
+
+const KIND_GROUPS: { kinds: string[]; label: () => string }[] = [
+  { kinds: ["ethernet", "wifi", "lan"], label: () => t("Local network (wired / wireless)") },
+  { kinds: ["tailscale"], label: () => "Tailscale" },
+  { kinds: ["virtual"], label: () => t("Other virtual adapters (rarely needed)") },
+];
+
+/** This computer's addresses and port, one shown (the likeliest, or the one picked) and the rest in a list: what others type to add it by address. */
+function addressPicker(): Node | null {
   if (!status?.running || !status.addresses.length) return null;
   const port = status.port;
+  const list = status.addresses;
+  const current = list.find((a) => a.ip === addressChoice) ?? list[0];
+  const text = (a: { ip: string }) => `${a.ip}:${port}`;
+  const tag = (a: { name: string; kind: string }) => h("span", { class: `post-tag ${a.kind}` }, a.kind === "tailscale" ? "Tailscale" : a.name || a.kind);
+  const menu = addressesOpen
+    ? h(
+        "div",
+        { class: "post-address-menu", role: "listbox" },
+        ...KIND_GROUPS.flatMap((g) => {
+          const items = list.filter((a) => g.kinds.includes(a.kind));
+          if (!items.length) return [];
+          return [
+            h("div", { class: "post-address-group" }, g.label()),
+            ...items.map((a) =>
+              h(
+                "div",
+                {
+                  class: `post-address-option${a === current ? " on" : ""}${a.kind === "virtual" ? " dim" : ""}`,
+                  role: "option",
+                  "aria-selected": String(a === current),
+                  tabIndex: 0,
+                  onclick: () => {
+                    addressChoice = a.ip;
+                    store("post.address", a.ip);
+                    addressesOpen = false;
+                    render();
+                  },
+                },
+                h("code", {}, text(a)),
+                tag(a),
+                a === current ? h("span", { class: "check" }, "✓") : null,
+              ),
+            ),
+          ];
+        }),
+      )
+    : null;
   return h(
     "div",
     { class: "post-own" },
     h("p", { class: "hint" }, t("To add this computer by address on another device:")),
     h(
-      "ul",
-      { class: "post-addresses" },
-      ...status.addresses.map((a) =>
-        h(
-          "li",
-          { class: "row" },
-          h("code", { class: "post-address" }, `${a.ip}:${port}`),
-          a.tailnet ? h("span", { class: "hint" }, t("Tailscale")) : null,
-          h("button", { class: "small", onclick: () => copyText(`${a.ip}:${port}`) }, t("Copy")),
-        ),
+      "div",
+      { class: "row post-address-row" },
+      h(
+        "button",
+        {
+          class: "post-address-pick grow",
+          "aria-expanded": String(addressesOpen),
+          disabled: list.length < 2,
+          onclick: () => ((addressesOpen = !addressesOpen), render()),
+        },
+        h("code", { class: "post-address" }, text(current)),
+        tag(current),
+        list.length > 1 ? h("span", { class: "chev" }, addressesOpen ? "▴" : `▾ ${t("{n} more", { n: list.length - 1 })}`) : null,
       ),
+      h("button", { class: "small post-address-copy", onclick: () => copyText(text(current)) }, t("Copy")),
     ),
+    menu,
+    addressesOpen ? h("p", { class: "hint" }, t("Pick the one on the network the other device is on: the same Wi-Fi, or Tailscale when you're apart.")) : null,
     port !== LOCALSEND_PORT
       ? h(
           "p",
@@ -243,6 +327,66 @@ function ownAddresses(): Node | null {
         )
       : null,
   );
+}
+
+/** Where received files go, with Change… right here. */
+function saveDirLine(): Node {
+  return h(
+    "div",
+    { class: "row post-save-dir" },
+    h("span", { class: "hint" }, t("Saved to:")),
+    h("span", { class: "grow path", title: status?.saveDir ?? "" }, status?.saveDir ?? ""),
+    h(
+      "button",
+      {
+        class: "small post-change-dir",
+        onclick: async () => {
+          const dir = await backend.postPickSaveDir();
+          if (!dir) return;
+          const cur = await backend.getSettings();
+          settings = await backend.setSettings({ post: { ...cur.post, saveDir: dir } });
+          status = await backend.postStatus().catch(() => status);
+          render();
+        },
+      },
+      t("Change…"),
+    ),
+  );
+}
+
+/** The Receive tab: what's coming, or ready to receive; this computer's address, where files go, the latest received. */
+function receiveTab(): Node[] {
+  const cards = [offerCard(), incomingCard()].filter((n): n is Node => n !== null);
+  const ready = h(
+    "div",
+    { class: "post-ready" },
+    h("div", { class: "post-ready-icon" }, "📥"),
+    h("div", { class: "post-ready-name" }, status?.alias ?? ""),
+    h("p", { class: "hint" }, t("Ready to receive: nearby devices can see this computer.")),
+  );
+  const latest = history[0];
+  return ([
+    ...(cards.length ? cards : [ready]),
+    ...[addressPicker()].filter((n): n is Node => n !== null),
+    saveDirLine(),
+    h("h3", {}, t("Latest")),
+    latest ? h("ul", { class: "post-received" }, receivedRow(latest)) : h("p", { class: "hint" }, t("Nothing received yet.")),
+    history.length > 1 ? h("p", { class: "hint" }, h("a", { href: "#", class: "post-to-history", onclick: (e: Event) => (e.preventDefault(), show("history")) }, t("All of it: 🕘 History"))) : null,
+  ] as (Node | null)[]).filter((n): n is Node => n !== null);
+}
+
+/** The History tab: everything received (the last 50). */
+function historyTab(): Node[] {
+  return [
+    h(
+      "div",
+      { class: "row spread" },
+      h("h3", {}, t("Received files and messages")),
+      history.length ? h("button", { class: "small post-clear-history", onclick: () => void backend.postClearHistory() }, t("Clear")) : null,
+    ),
+    history.length ? h("ul", { class: "post-received" }, ...history.map(receivedRow)) : h("p", { class: "hint" }, t("Nothing received yet.")),
+    h("p", { class: "row" }, h("button", { class: "small", onclick: () => void backend.postOpen(null) }, t("Open the received files folder"))),
+  ];
 }
 
 /** "+ Add by address": behind another router, on Tailscale, or where multicast doesn't get through. */
@@ -433,22 +577,11 @@ function render(): void {
     return;
   }
   const on = settings.post.enabled;
-  const busy = !!transfer && !transferOver(transfer);
   const head = h(
     "header",
-    { class: "post-head" },
-    h("h2", {}, `📦 ${t("Pet Post")}`),
-    h(
-      "p",
-      { class: "hint" },
-      on && status?.running
-        ? t("📥 Ready to receive: nearby devices see this computer as “{name}”.", { name: status.alias })
-        : on
-          ? t("Starting…")
-          : t("Pet Post is off."),
-      " ",
-      h("a", { href: "#", onclick: (e: Event) => (e.preventDefault(), void backend.openPanel("settings")) }, t("Settings…")),
-    ),
+    { class: "post-head row" },
+    h("h2", { class: "grow" }, `📦 ${t("Pet Post")}`),
+    h("a", { href: "#", class: "post-settings-link", onclick: (e: Event) => (e.preventDefault(), void backend.openPanel("settings")) }, `⚙ ${t("Settings…")}`),
   );
   if (!on) {
     root.replaceChildren(
@@ -456,6 +589,7 @@ function render(): void {
       h(
         "div",
         { class: "box" },
+        h("p", {}, t("Pet Post is off.")),
         h("p", {}, t("Send files and text to phones and computers nearby, and get theirs.")),
         h("p", { class: "hint" }, t("Works with LocalSend on phones and computers, and with ePet on other computers.")),
         h("button", { class: "primary post-turn-on", onclick: () => void turnOn() }, t("Turn on")),
@@ -463,13 +597,33 @@ function render(): void {
     );
     return;
   }
+  const tabs = h(
+    "nav",
+    { class: "post-tabs", role: "tablist" },
+    ...TABS.map((x) =>
+      h(
+        "button",
+        { class: `post-tab${tab === x.id ? " active" : ""}`, "data-tab": x.id, role: "tab", "aria-selected": String(tab === x.id), onclick: () => show(x.id) },
+        `${x.icon} ${x.label()}`,
+        x.id === "receive" && offer && tab !== "receive" ? h("span", { class: "post-tab-badge" }, "1") : null,
+      ),
+    ),
+  );
+  const state =
+    status?.running || !status?.error ? null : h("p", { class: "warning" }, t("Couldn't start: {error}", { error: status.error }));
+  const body = tab === "receive" ? receiveTab() : tab === "send" ? sendTab() : historyTab();
+  const focus = remember();
+  root.replaceChildren(head, tabs, ...(state ? [state] : []), h("div", { class: "post-tab-body" }, ...body));
+  focus();
+}
+
+/** The Send tab: devices (found, added by address), files, a folder or a text, and how it goes. */
+function sendTab(): Node[] {
+  const busy = !!transfer && !transferOver(transfer);
   const text = h("textarea", { class: "post-text", rows: 3, placeholder: t("A message, a link…") }) as HTMLTextAreaElement;
   text.value = draft;
   text.addEventListener("input", () => (draft = text.value));
-  const focus = remember();
-  root.replaceChildren(
-    head,
-    ...[offerCard(), incomingCard()].filter((n): n is Node => n !== null),
+  return [
     h(
       "div",
       { class: "row spread" },
@@ -478,7 +632,6 @@ function render(): void {
     ),
     deviceList(),
     addForm(),
-    ...[ownAddresses()].filter((n): n is Node => n !== null),
     h(
       "div",
       { class: "row wrap post-send" },
@@ -515,20 +668,7 @@ function render(): void {
       ),
     ),
     ...[sendFailed ? h("p", { class: "warning post-send-failed" }, sendFailed) : null, progress()].filter((n): n is Node => n !== null),
-    ...(history.length
-      ? [
-          h(
-            "div",
-            { class: "row spread" },
-            h("h3", {}, t("Received")),
-            h("button", { class: "small post-clear-history", onclick: () => void backend.postClearHistory() }, t("Clear")),
-          ),
-          h("ul", { class: "post-received" }, ...history.map(receivedRow)),
-        ]
-      : []),
-    h("p", { class: "row" }, h("button", { class: "small", onclick: () => void backend.postOpen(null) }, t("Open the received files folder"))),
-  );
-  focus();
+  ];
 }
 
 /** Where the cursor is (an input, by its class), to put it back after redrawing. */
@@ -577,8 +717,11 @@ async function main(): Promise<void> {
   });
   await backend.on("post-offer", (o) => {
     offer = o;
+    // Wherever it was, the question is on Receive.
+    tab = "receive";
     render();
   });
+  await backend.on("post-tab", (x) => show(x));
   await backend.on("post-offer-closed", (c) => {
     if (offer?.id !== c.id) return;
     offer = null;
@@ -599,6 +742,7 @@ async function main(): Promise<void> {
     render();
   });
   offer = await backend.postPendingOffer().catch(() => null);
+  if (offer) tab = "receive";
   history = await backend.postHistory().catch(() => []);
   // The offer's countdown (only its line).
   setInterval(() => {
@@ -607,9 +751,11 @@ async function main(): Promise<void> {
   }, 1000);
   render();
   if (settings.post.enabled && !devices.length) lookAgain();
-  // Opened for Verify (the pet's "Verify…" on a delivery).
+  // Opened for Verify (the pet's "Verify…" on a delivery), or on a tab ("#send").
   const asked = /^#verify=([0-9A-Fa-f]+)$/.exec(location.hash)?.[1];
   if (asked) verify(asked);
+  const opened = /^#(receive|send|history)$/.exec(location.hash)?.[1] as Tab | undefined;
+  if (opened) show(opened);
 }
 
 void main();

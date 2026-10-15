@@ -118,7 +118,7 @@ export class Courier {
     return {
       text: tr.state === "waiting" ? "📦 …" : `📦 ${percent(tr)}%`,
       title: transferLine(tr),
-      onClick: () => void this.host.backend.openPostWindow(),
+      onClick: () => void this.host.backend.openPostWindow(null, tr.direction === "in" ? "receive" : "send"),
     };
   }
 
@@ -162,7 +162,7 @@ export class Courier {
       }
       this.host.say([t("I can't find anyone nearby."), t("The other device needs LocalSend or ePet open, on the same network.")], 15_000, [
         { label: t("Look again"), run: () => void this.deliver(paths) },
-        { label: t("Pet Post…"), run: () => void b.openPostWindow() },
+        { label: t("Pet Post…"), run: () => void b.openPostWindow(null, "send") },
       ]);
       return;
     }
@@ -171,7 +171,7 @@ export class Courier {
     const shown = this.devices.slice(0, 4);
     this.host.say(t("Deliver {what} to…", { what }), 30_000, [
       ...shown.map((d) => ({ label: `${DEVICE_ICONS[d.deviceType] ?? "💻"} ${d.alias}`, run: () => this.send(d.fingerprint, paths, null) })),
-      ...(this.devices.length > shown.length ? [{ label: t("More…"), run: () => void b.openPostWindow() }] : []),
+      ...(this.devices.length > shown.length ? [{ label: t("More…"), run: () => void b.openPostWindow(null, "send") }] : []),
       { label: t("Cancel"), run: () => {} },
     ]);
   }

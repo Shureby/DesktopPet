@@ -463,6 +463,8 @@ export interface BackendEvents {
   "post-tailnet": PostTailnet;
   /** The Pet Post window, already open, is to show Verify for this device (fingerprint). */
   "post-verify": string;
+  /** The Pet Post window, already open, is to show this tab. */
+  "post-tab": "receive" | "send" | "history";
 }
 
 /** Stepping aside, as the app sees it now. */
@@ -661,8 +663,8 @@ export interface Backend {
   postPickSaveDir(): Promise<string | null>;
   /** Shows a received file in its folder, or opens the save folder. */
   postOpen(path?: string | null): Promise<void>;
-  /** With `verify` (a device's fingerprint): showing Verify for it. */
-  openPostWindow(verify?: string | null): Promise<void>;
+  /** With `verify` (a device's fingerprint): showing Verify for it; with `tab`, on that tab. */
+  openPostWindow(verify?: string | null, tab?: "receive" | "send" | "history" | null): Promise<void>;
   /** The hidden pet comes out for a delivery; whether it was out of sight. */
   postPeek(): Promise<boolean>;
   /** The user saw a missed alarm (clicked its badge): the badge goes, the history keeps it. */

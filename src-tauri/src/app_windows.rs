@@ -86,21 +86,27 @@ pub fn open_panel<R: Runtime>(app: &AppHandle<R>, tab: Option<&str>) -> tauri::R
     Ok(())
 }
 
-/// Opens the Pet Post window (devices, sending files and text); with `verify`, showing
-/// Verify for that device (by fingerprint).
-pub fn open_post<R: Runtime>(app: &AppHandle<R>, verify: Option<&str>) -> tauri::Result<()> {
+/// Opens the Pet Post window (receiving, sending, what was received); with `verify`,
+/// showing Verify for that device (by fingerprint); with `tab`, on that tab.
+pub fn open_post<R: Runtime>(app: &AppHandle<R>, verify: Option<&str>, tab: Option<&str>) -> tauri::Result<()> {
+    let tab = tab.filter(|t| matches!(*t, "receive" | "send" | "history"));
     if let Some(w) = app.get_webview_window(POST) {
         w.show()?;
         w.unminimize()?;
         w.set_focus()?;
         if let Some(fp) = verify {
             app.emit_to(POST, "post-verify", fp)?;
+        } else if let Some(t) = tab {
+            app.emit_to(POST, "post-tab", t)?;
         }
         return Ok(());
     }
-    let url = match verify {
-        Some(fp) => format!("post.html#verify={}", fp.chars().filter(char::is_ascii_alphanumeric).collect::<String>()),
-        None => "post.html".into(),
+    let url = match (verify, tab) {
+        (Some(fp), _) => {
+            format!("post.html#verify={}", fp.chars().filter(char::is_ascii_alphanumeric).collect::<String>())
+        }
+        (None, Some(t)) => format!("post.html#{t}"),
+        (None, None) => "post.html".into(),
     };
     window(app, POST, url)
         .title(product_name(app))

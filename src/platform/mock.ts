@@ -176,7 +176,14 @@ function mockPostOn(): boolean {
 
 function mockPostStatus(alias: string): PostStatus {
   const on = mockPostOn();
-  const addresses = on ? [{ ip: "192.168.31.5", tailnet: false }, { ip: "100.101.2.9", tailnet: true }] : [];
+  const addresses = on
+    ? [
+        { ip: "192.168.31.66", name: "Wi-Fi", kind: "wifi" as const },
+        { ip: "100.90.156.124", name: "Tailscale", kind: "tailscale" as const },
+        { ip: "192.168.20.1", name: "VMware Network Adapter VMnet1", kind: "virtual" as const },
+        { ip: "172.30.160.1", name: "vEthernet (WSL)", kind: "virtual" as const },
+      ]
+    : [];
   // ?port=53318 pretends LocalSend holds 53317 on this computer.
   const port = Number(new URLSearchParams(location.search).get("port")) || 53317;
   return { running: on, port, alias, fingerprint: "MOCK", error: null, saveDir: "Downloads/ePet", computer: "This browser", addresses };
@@ -822,8 +829,8 @@ export const mockBackend: Backend = {
   async postPeek() {
     return false;
   },
-  async openPostWindow(verify) {
-    window.open(verify ? `post.html#verify=${verify}` : "post.html", "_blank");
+  async openPostWindow(verify, tab) {
+    window.open(verify ? `post.html#verify=${verify}` : tab ? `post.html#${tab}` : "post.html", "_blank");
   },
   async markAlarmMissed(id) {
     mutate((s) => {

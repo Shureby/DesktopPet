@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
-use desktoppet_core::post::{network_hosts, Announcement, DEFAULT_PORT, MULTICAST_GROUP};
+use desktoppet_core::post::{network_hosts, network_kind, network_rank, Announcement, DEFAULT_PORT, MULTICAST_GROUP};
 use socket2::{Domain, Protocol, SockRef, Socket, Type};
 use tokio::net::UdpSocket;
 use tokio::sync::{watch, Semaphore};
@@ -32,18 +32,26 @@ fn interfaces() -> Vec<(Ipv4Addr, Ipv4Addr)> {
         .collect()
 }
 
-/// This computer's addresses others can reach it at (IPv4, not loopback or link-local),
-/// and whether each is on the Tailscale network (100.64.0.0/10).
-pub fn own_addresses() -> Vec<(Ipv4Addr, bool)> {
-    let mut list: Vec<(Ipv4Addr, bool)> = interfaces()
+/// This computer's addresses others can reach it at (IPv4, not loopback or link-local):
+/// each with its adapter's name and what kind of network it is (`network_kind`), the one
+/// to give others first first.
+pub fn own_addresses() -> Vec<(Ipv4Addr, String, &'static str)> {
+    let Ok(list) = if_addrs::get_if_addrs() else { return Vec::new() };
+    let mut out: Vec<(Ipv4Addr, String, &'static str)> = list
         .into_iter()
-        .map(|(ip, _)| ip)
-        .filter(|ip| !ip.is_link_local())
-        .map(|ip| (ip, ip.octets()[0] == 100 && (ip.octets()[1] & 0xC0) == 64))
+        .filter(|i| !i.is_loopback())
+        .filter_map(|i| match i.addr {
+            if_addrs::IfAddr::V4(v4) if !v4.ip.is_link_local() => Some((v4.ip, i.name)),
+            _ => None,
+        })
+        .map(|(ip, name)| {
+            let kind = network_kind(&name, ip);
+            (ip, name, kind)
+        })
         .collect();
-    list.sort_by_key(|(ip, tailnet)| (*tailnet, *ip));
-    list.dedup();
-    list
+    out.sort_by_key(|(ip, _, kind)| (network_rank(kind), *ip));
+    out.dedup_by_key(|(ip, _, _)| *ip);
+    out
 }
 
 /// Joins the multicast group on every network and listens for announcements.
