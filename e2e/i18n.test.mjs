@@ -26,7 +26,15 @@ check("i18n.switch", "Settings → Language: the tray, the pet's menu and the pa
       s.value = "zh-TW";
       s.dispatchEvent(new Event("change", { bubbles: true }));
     });
-    await app.b.waitUntil(async () => (await tabs())[1] === "鬧鐘", { timeout: 5000 });
+    await app.b.waitUntil(async () => (await tabs())[1] === "鬧鐘", { timeout: 5000 }).catch(async (e) => {
+      // What each side has, to tell a lost save from a late event.
+      const panelLang = await app.b.execute(() => document.documentElement.lang);
+      const stored = (await app.invoke("get_settings")).locale;
+      const pet = (await app.fullSettings()).locale;
+      const petLang = await app.b.execute(() => document.documentElement.lang);
+      await app.toWindow("panel.html");
+      throw new Error(`${e.message}: tabs ${JSON.stringify(await tabs())}, panel lang ${panelLang}, stored ${JSON.stringify(stored)}, pet ${JSON.stringify(pet)} / ${petLang}`);
+    });
     assert.equal((await app.fullSettings()).locale.language, "zh-TW");
     await app.b.waitUntil(async () => (await trayTexts()).includes("開啟面板…"), { timeout: 5000 });
   } finally {
