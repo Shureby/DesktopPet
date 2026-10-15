@@ -29,24 +29,51 @@ Chinese name 宠物驿站 / 寵物驛站. Store and in-app line: "Works with Loc
 - Shipped as planned; see docs/INTERACTIONS.md, "Pet Post". Tested against the official
   LocalSend command-line app in both directions (files, folders, text, discovery).
 
-## Pet Post over Tailscale (0.45)
+## Pet Post beyond one network: by address, other subnets, Tailscale (0.45)
 
-"Send across networks via Tailscale" / “支持经 Tailscale 跨网传送”.
+"Send across networks via Tailscale" / “支持经 Tailscale 跨网传送”. Discovery (multicast
+and the scan of this computer's /24) stops at a router: a device behind a second router
+(say 192.168.8.0/24 behind 192.168.31.234 on the main network) or on a tailnet is never
+found. LocalSend's answer is typing the address; ePet does that, and more.
 
-- If Tailscale is installed and signed in, ePet lists the devices in the same tailnet
-  (and nodes shared with it) by asking the local Tailscale client, and sends to their
-  100.x addresses with the same protocol. Tailscale doesn't carry multicast, so this
-  replaces discovery.
-- Add a device by hand: a Tailscale MagicDNS name or any IP address and port. This also
-  helps on networks that block multicast.
-- Tailscale is not built in: ePet only talks to an installed client. Reaches only
-  devices the user's tailnet already reaches; the other side needs LocalSend or ePet.
+- **Add a device by address**: in the Pet Post window, an IP address or a host name
+  (a Tailscale MagicDNS name included) and a port (53317 by default). ePet introduces
+  itself there at once (HTTPS `/register`); if it answers, it's listed and its
+  certificate's fingerprint is kept.
+- **Remembered**: devices added by address are saved in the settings and asked again
+  on each "Look again"; when they don't answer they stay listed as offline, with
+  Remove.
+- **Identity pinned**: a remembered device whose certificate changes is shown as
+  "This device's identity changed" and nothing is sent to it automatically (trusted
+  auto-accept doesn't apply either) until the user confirms it.
+- **Verify, as LocalSend does**: each device has a Verify button showing the same icons
+  (or words) LocalSend shows for that connection, so the two screens can be compared.
+  Built only if ours can be made to match LocalSend's exactly (read from its source
+  first); icons that don't match would mislead.
+- **Addresses behind NAT kept right**: a device behind a second router reaches this
+  computer from the router's address (192.168.31.234), not its own. A device's known,
+  reachable address is no longer replaced by the address its request came from.
+- **More networks to scan**: in Settings → Pet Post, extra networks (such as
+  `192.168.8.0/24`) scanned with each "Look again", like this computer's own. For a
+  network whose devices change address (DHCP). Reaching it needs a route to it (a
+  static route on the main router, or the second router not doing NAT), as for adding
+  by address.
+- **Tailscale**: if Tailscale is installed and signed in, ePet lists the devices in the
+  same tailnet (and nodes shared with it) by asking the local Tailscale client, and
+  sends to their 100.x addresses with the same protocol. Tailscale doesn't carry
+  multicast, so this replaces discovery there. Tailscale is not built in: ePet only
+  talks to an installed client and reaches only what the tailnet already reaches; the
+  other side needs LocalSend or ePet.
+- **Windows firewall**: Windows may count the Tailscale adapter (or another network) as
+  Public; if ePet was allowed only on private networks, connections over it are
+  blocked. The Pet Post window says so when a device can't be reached, and the
+  checklist gets an item for it.
 - "Tailscale" is a trademark: no logo, wording as above.
 
 ## Networking route
 
 1. **Local, no account (0.35–0.45):** backup and moving to a new computer (0.35),
-   Pet Post on the LAN (0.44), Pet Post over Tailscale (0.45), plus features that work
+   Pet Post on the LAN (0.44), Pet Post by address, across subnets and over Tailscale (0.45), plus features that work
    alone.
 2. **Peer to peer with identity (later):** a device identity and pairing (QR code or
    short code), hole punching with a relay fallback (iroh, or Steam friends and Steam's
@@ -99,6 +126,7 @@ Comes after 0.24.0 (repeating to-dos and editing to-dos) and 0.25.0 (Today / Upc
 The app is English only. Translate everything at once rather than piecemeal: panel,
 pet lines and menus, tray, celebration words, the characters README, the installer and
 store pages. Simplified Chinese first (with 铃宠, see the rename), then others.
+
 - Strings move into per-language files; the language follows the system, with a choice
   in Settings.
 - Characters can carry lines per language (falling back to English).
@@ -132,6 +160,7 @@ bank Chime exist. Before launch, check trademarks (IP Australia, USPTO, EUIPO, C
 social handles.
 
 **What changes (users see these):**
+
 - `product.config.json` → `productName: "ChimePet"`, `website: https://ezyappco.com/ChimePet`.
   The installer, Start menu, tray tooltip, window and panel titles, the version line in
   Settings and the Steam exe (`ChimePet.exe`) all read it.
@@ -242,20 +271,23 @@ store listings under the new name.
 **Why not a full board now:** ePet's to-dos are quick one-liners with reminders. A
 multi-column board with custom statuses and drag-and-drop competes with Trello and Notion,
 looks empty with the handful of tasks a desktop-pet user keeps, and would cost about as
-much as the whole to-do module. What's worth taking from it is *progress*: to do → doing
+much as the whole to-do module. What's worth taking from it is _progress_: to do → doing
 → done.
 
 **Step 1: a "doing" state for to-dos.**
+
 - A ▶ on a to-do marks it as what you're working on now (one at a time).
 - The pet shows it: in a badge or its info box ("Doing: write the weekly report").
 
 **Step 2: focus on a to-do.**
+
 - Start a tomato-clock session from a to-do; the session belongs to it.
-- When the focus ends, the pet asks "Done with *write the weekly report*?" [✓ Done]
+- When the focus ends, the pet asks "Done with _write the weekly report_?" [✓ Done]
   [Not yet].
 - Each to-do counts its sessions ("🍅×3"). The Focus stats can also show time per task.
 
 **Later: a board view built on the same data.**
+
 - Columns such as To do / Doing / Waiting / Done, and user-defined statuses.
 - Moving a card into **Doing** starts a focus session on it, and moving it out (or
   finishing) stops it. A card moved to Done gets the pet's congratulations and its 🍅
