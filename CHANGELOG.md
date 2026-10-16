@@ -34,6 +34,10 @@ affected items' `rev` to the new version so the online checklist asks for a rete
   one shown (wired, then Wi-Fi, then Tailscale, virtual adapters last), the others in a
   list grouped by kind, with Copy.
 - Where received files go is shown on the Receive tab, with Change… right there.
+- **Favorites (♡ / ♥)**, as in LocalSend: a favorite is remembered (looked for at its
+  address even off this network) and what it sends is accepted without asking; the first
+  ♡ says so before it's done. "Always accept" makes a favorite too; Settings → Pet Post
+  lists them under Favorites (was "Trusted devices").
 - **Receiving in the Pet Post window:** it says it's ready to receive; a delivery is asked
   about there too (Accept / Decline / Always accept / Verify, with the time left), and
   answered in either place it's gone from both. While the window is open the hidden pet

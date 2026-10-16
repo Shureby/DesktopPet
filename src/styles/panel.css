@@ -1752,3 +1752,20 @@ nav.post-tabs button {
   width: 1.3em;
   height: 1.3em;
 }
+.post-favorite .ui-icon {
+  fill: var(--muted);
+  margin-right: 0;
+}
+.post-favorite.on .ui-icon {
+  fill: #d94a5b;
+}
+.post-favorite-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  font-size: 12px;
+}

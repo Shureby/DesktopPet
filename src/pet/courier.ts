@@ -9,6 +9,7 @@ import {
   DEVICE_ICONS,
   sendable,
   sendError,
+  withFavorite,
   missedOfferTitle,
   offerLines,
   percent,
@@ -234,10 +235,10 @@ export class Courier {
         label: t("Always accept"),
         run: () => {
           answer(true);
+          // A favorite (kept at the address it's at now, if it's listed).
+          const d = this.devices.find((x) => x.fingerprint === o.fingerprint);
           void this.host.backend.getSettings().then((cur) =>
-            this.host.backend.setSettings({
-              post: { ...cur.post, trusted: [...cur.post.trusted, { fingerprint: o.fingerprint, alias: o.alias }] },
-            }),
+            this.host.backend.setSettings({ post: withFavorite(cur.post, d ?? { fingerprint: o.fingerprint, alias: o.alias }) }),
           );
         },
       });

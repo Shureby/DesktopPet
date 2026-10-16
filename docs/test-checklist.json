@@ -1597,11 +1597,11 @@
         },
         {
           "id": "post.trust",
-          "rev": "0.44.0",
+          "rev": "0.45.0",
           "ci": "partial",
-          "human": "设置里的 Trusted devices 列表和 Remove",
-          "do": "手机发文件时点 Always accept；再发一次；然后在 设置 → Pet Post → Trusted devices 里 Remove 它",
-          "expect": "第一次收下并把手机加入信任列表；第二次不再问，直接收下；Remove 后又会问；取消勾选 Accept from trusted devices without asking 时信任设备也要问"
+          "human": "设置里的 收藏的设备（Favorites）列表和 Remove",
+          "do": "手机发文件时点 Always accept；再发一次；然后在 设置 → Pet Post → 收藏的设备（Favorites） 里 Remove 它",
+          "expect": "第一次收下并把手机加入收藏（Pet Post 里它那行变成 ♥）；第二次不再问，直接收下；Remove 后又会问；取消勾选 Accept from favorites without asking 时收藏的设备也要问"
         },
         {
           "id": "post.hidden",
@@ -1704,6 +1704,15 @@
           "ci": "auto",
           "do": "手机发文件，宠物问你时点 Verify…",
           "expect": "Pet Post 窗口打开并显示对这台手机的 Verify；宠物的问题还在（Accept / Decline 仍可点）"
+        },
+        {
+          "id": "post.favorite",
+          "rev": "0.45.0",
+          "ci": "partial",
+          "mac": true,
+          "human": "真手机：收藏后它发来的直接收；DHCP 换了 IP（或重连 Wi-Fi）后还认得它",
+          "do": "Pet Post 窗口 发送 页，点手机那行的 ♡；以后再点一次 ♥",
+          "expect": "第一次点 ♡ 先在那一行下面说明“收藏的设备会被记住……直接接收”，点 收藏 才生效（以后再收藏不再提示）；♡ 变成红色 ♥；手机再发文件不问直接收下；设置 → 宠物驿站 → 收藏的设备 里列出它；离开本网络（如切到 Tailscale）也会按地址去找它；再点 ♥ 取消，之后发来又会问。收到文件时点 总是接收 也会变成收藏"
         },
         {
           "id": "post.add",

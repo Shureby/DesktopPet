@@ -852,8 +852,15 @@ src-tauri/src/post/, crates/desktoppet-core/src/post.rs).
     empties it.
   - A text message shows in the bubble ("💬 X says: …") with **Copy**; the Pet Post window
     lists it too while it's open.
-- **Trusted devices** (Settings → Pet Post): taken without asking while "Accept from trusted
-  devices without asking" is ticked; each can be removed.
+- **Favorites** (♡ / ♥ by a device in the Pet Post window, since 0.45.0; "Trusted devices"
+  before): what a favorite sends is taken without asking while "Accept from favorites
+  without asking" is ticked (Settings → Pet Post, where each can be removed). A favorite is
+  also kept, at the address it was at, and looked for there each time (even off this
+  network); found meanwhile at another address on this network (its address changed),
+  that one stands. The first ♡ ever says what it means ("…accepted without asking") with
+  "Add to favorites" / "Cancel"; after that ♡ just does it. "Always accept" on a delivery
+  makes the sender a favorite. ♥ again: no longer one (and no longer kept, unless it was
+  added by address).
 - **PIN** (optional): senders must give it; five wrong PINs from one address lock it out
   for a minute.
 - **Verify** (since 0.45.0): each device in the Pet Post window has **Verify** (a shield with a check, LocalSend's icon), and the

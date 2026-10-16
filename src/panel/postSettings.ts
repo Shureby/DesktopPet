@@ -6,7 +6,7 @@
  */
 import { t } from "../i18n";
 import type { Backend, Settings } from "../platform/types";
-import { parseNetwork, postAlias, tailnetLine, type PostDevice, type PostSettings, type PostStatus, type PostTailnet } from "../features/post/post";
+import { parseNetwork, withoutFavorite, postAlias, tailnetLine, type PostDevice, type PostSettings, type PostStatus, type PostTailnet } from "../features/post/post";
 import { h } from "./dom";
 
 /** Lines of "Also look in these networks" that aren't one (shown until fixed; the page is redrawn on saving). */
@@ -52,17 +52,14 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
                 "button",
                 {
                   class: "small",
-                  onclick: () =>
-                    void update({
-                      trusted: get().post.trusted.filter((x) => x.fingerprint !== d.fingerprint),
-                    }),
+                  onclick: () => void save({ post: withoutFavorite(get().post, d.fingerprint) }).then(() => poll()),
                 },
                 t("Remove"),
               ),
             ),
           ),
         )
-      : h("p", { class: "hint" }, t("None yet. Choose “Always accept” when a device sends you something."));
+      : h("p", { class: "hint" }, t("None yet. Click ♡ by a device in Pet Post, or choose “Always accept” when it sends you something."));
 
     root.replaceChildren(
       h(
@@ -130,10 +127,10 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
                 checked: s.autoAcceptTrusted,
                 onchange: () => void update({ autoAcceptTrusted: !s.autoAcceptTrusted }),
               }),
-              t("Accept from trusted devices without asking"),
+              t("Accept from favorites without asking"),
             ),
             h("p", { class: "hint" }, t("Everyone else: the pet asks you each time.")),
-            h("div", { class: "subhead" }, t("Trusted devices")),
+            h("div", { class: "subhead" }, `♥ ${t("Favorites")}`),
             trusted,
             h(
               "label",

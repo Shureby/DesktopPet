@@ -19,6 +19,8 @@ export interface SavedDevice {
   fingerprint: string;
   alias: string;
   deviceType: string;
+  /** How it came to be kept: added by address, or made a favorite (♥) when found. */
+  via: "address" | "favorite";
 }
 
 export const LOCALSEND_PORT = 53317;
@@ -42,6 +44,8 @@ export interface PostSettings {
   networks: string[];
   /** Lists the devices of the Tailscale network, if Tailscale is installed. */
   tailscale: boolean;
+  /** Was told once that a favorite's files are accepted without asking. */
+  favoriteNoticeSeen: boolean;
 }
 
 export const DEFAULT_POST: PostSettings = {
@@ -54,6 +58,7 @@ export const DEFAULT_POST: PostSettings = {
   devices: [],
   networks: [],
   tailscale: true,
+  favoriteNoticeSeen: false,
 };
 
 /** At most this many addresses in an extra network (a /22). */
@@ -99,10 +104,45 @@ export function postSettings(s: Partial<PostSettings> | undefined): PostSettings
             fingerprint: x.fingerprint.toUpperCase(),
             alias: str(x.alias, "").slice(0, 64),
             deviceType: str(x.deviceType, "desktop"),
+            via: x.via === "favorite" ? ("favorite" as const) : ("address" as const),
           }))
       : [],
     networks: Array.isArray(s?.networks) ? s.networks.map((n) => (typeof n === "string" ? parseNetwork(n) : null)).filter((n): n is string => !!n) : [],
     tailscale: s?.tailscale !== false,
+    favoriteNoticeSeen: s?.favoriteNoticeSeen === true,
+  };
+}
+
+/** A favorite (♥): what's sent from it is accepted without asking (the app's "trusted"). */
+export function isFavorite(s: PostSettings, fingerprint: string): boolean {
+  return !!fingerprint && s.trusted.some((d) => d.fingerprint === fingerprint.toUpperCase());
+}
+
+/**
+ * Makes a device a favorite: trusted (its deliveries accepted without asking) and kept, so
+ * it's listed and asked at its address even when it isn't found on this network.
+ */
+export function withFavorite(
+  s: PostSettings,
+  d: { fingerprint: string; alias: string; deviceType?: string; address?: string | null; ip?: string; port?: number },
+): PostSettings {
+  const fingerprint = d.fingerprint.toUpperCase();
+  const trusted = isFavorite(s, fingerprint) ? s.trusted : [...s.trusted, { fingerprint, alias: d.alias }];
+  const address = d.address ?? d.ip;
+  const kept = s.devices.some((x) => x.fingerprint === fingerprint) || !address || address === "0.0.0.0";
+  const devices = kept
+    ? s.devices
+    : [...s.devices, { address, port: d.port || LOCALSEND_PORT, fingerprint, alias: d.alias, deviceType: d.deviceType ?? "desktop", via: "favorite" as const }];
+  return { ...s, trusted, devices, favoriteNoticeSeen: true };
+}
+
+/** No longer a favorite: asked again, and no longer kept unless it was added by address. */
+export function withoutFavorite(s: PostSettings, fingerprint: string): PostSettings {
+  const fp = fingerprint.toUpperCase();
+  return {
+    ...s,
+    trusted: s.trusted.filter((d) => d.fingerprint !== fp),
+    devices: s.devices.filter((d) => !(d.fingerprint === fp && d.via === "favorite")),
   };
 }
 

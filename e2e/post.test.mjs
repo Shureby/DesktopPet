@@ -438,6 +438,50 @@ check("post.tailscale", "the devices of the Tailscale network are asked (Tailsca
   await app.waitText(".post-settings .post-tailnet", "Tailscale isn't installed on this computer.", 15_000);
 });
 
+check("post.favorite", "♡ makes a device a favorite (said once, the first time): kept, and what it sends is accepted without asking; ♥ again undoes it", async () => {
+  const app = ctx.app;
+  await postTab("send");
+  const row = (inner) => app.b.execute((sel) => {
+    const r = [...document.querySelectorAll(".post-device")].find((e) => e.textContent.includes("Mock Phone"));
+    r?.querySelector(sel)?.click();
+    return !!r?.querySelector(sel);
+  }, inner);
+  assert.equal(await row(".post-favorite"), true);
+  // The first time: what it means, before it's done.
+  await app.waitText(".post-favorite-notice", "accepted without asking");
+  assert.equal((await app.fullSettings()).post.trusted.length, 0);
+  await app.toWindow("post.html");
+  await row(".post-favorite-yes");
+  const s = await until("a favorite", async () => {
+    const st = await app.fullSettings();
+    return st.post.trusted.length === 1 && st;
+  });
+  assert.equal(s.post.trusted[0].fingerprint, peer.fingerprint);
+  assert.equal(s.post.favoriteNoticeSeen, true);
+  assert.deepEqual(
+    s.post.devices.map((d) => [d.fingerprint, d.via]),
+    [[peer.fingerprint, "favorite"]],
+  );
+  await app.toWindow("post.html");
+  await app.until(() => !!document.querySelector(".post-favorite.on"));
+  // Accepted without asking.
+  const r = await peer.prepare({ "from-favorite.txt": "♥" });
+  assert.equal(r.status, 200);
+  assert.deepEqual(await peer.upload(r.body), [200]);
+  await until("saved", () => existsSync(join(inbox, "from-favorite.txt")));
+  // ♥ again: no longer a favorite, nor kept; and no notice this time.
+  await postTab("send");
+  await row(".post-favorite.on");
+  await until("not a favorite", async () => {
+    const st = await app.fullSettings();
+    return st.post.trusted.length === 0 && st.post.devices.length === 0;
+  });
+  await postTab("send");
+  await row(".post-favorite");
+  await until("a favorite at once", async () => (await app.fullSettings()).post.trusted.length === 1);
+  await app.setSettings((x) => ({ ...x, post: { ...x.post, trusted: [], devices: [] } }));
+});
+
 check("post.add", "a device added by address (in Pet Post) is listed and kept in the settings", async () => {
   const app = ctx.app;
   await postTab("send");
@@ -448,7 +492,7 @@ check("post.add", "a device added by address (in Pet Post) is listed and kept in
   await app.waitText(".post-add-state", "Added Mock Phone.", 20_000);
   await app.waitText(".post-device", "added by address");
   const s = await app.fullSettings();
-  assert.deepEqual(s.post.devices, [{ address: "127.0.0.1", port: 53318, fingerprint: peer.fingerprint, alias: "Mock Phone", deviceType: "mobile" }]);
+  assert.deepEqual(s.post.devices, [{ address: "127.0.0.1", port: 53318, fingerprint: peer.fingerprint, alias: "Mock Phone", deviceType: "mobile", via: "address" }]);
   const d = await listed();
   assert.equal(d.source, "address");
   assert.equal(d.reached, true);

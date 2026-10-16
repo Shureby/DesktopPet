@@ -301,6 +301,18 @@ fn a_device_added_by_address_is_remembered_and_checked() {
     tauri::async_runtime::block_on(discovery::ask_saved(&a.inner));
     assert_eq!(listed(&b_fp).changed_to, Some(c.fingerprint()));
 
+    // Found just now at another address (its own address changed, DHCP): that one stands.
+    let mut moved = listed(&b_fp);
+    moved.changed_to = None;
+    moved.online = true;
+    moved.reached = true;
+    moved.ip = "127.0.0.9".parse().unwrap();
+    moved.last_seen = crate::state::now_ms();
+    a.inner.devices.lock().unwrap().insert(b_fp.clone(), moved);
+    tauri::async_runtime::block_on(discovery::ask_saved(&a.inner));
+    let d = listed(&b_fp);
+    assert!(d.online && d.changed_to.is_none() && d.ip.to_string() == "127.0.0.9", "{d:?}");
+
     // Removed from the settings: no longer listed.
     tauri::async_runtime::block_on(configure(&a.inner, Config { devices: vec![], ..config }));
     assert!(a.inner.devices().iter().all(|d| d.fingerprint != b_fp));

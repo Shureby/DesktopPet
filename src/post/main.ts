@@ -14,6 +14,9 @@ import { copyText } from "../pet/courier";
 import { VERIFY_ICONS } from "../features/post/verifyIcons";
 import {
   addError,
+  isFavorite,
+  withFavorite,
+  withoutFavorite,
   DEVICE_ICONS,
   LOCALSEND_PORT,
   sendable,
@@ -39,6 +42,29 @@ const root = document.getElementById("post")!;
 
 /** Material Icons' "verified_user" (a shield with a check), as LocalSend's Verify shows it. */
 const VERIFIED_USER = "M10 17 18 9 16.6 7.6 10 14.2 7.4 11.6 6 13ZM12 1 21 5V11Q21 15.2 18.4 18.6Q15.8 22.1 12 23Q8.2 22.1 5.6 18.6Q3 15.2 3 11V5Z";
+
+/** Material Icons' "favorite" and "favorite_border" (♥ / ♡), as LocalSend's Favorite. */
+const FAVORITE =
+  "M12 21.3 10.5 20Q8.1 17.8 6.9 16.7Q5.8 15.6 4.4 14Q3 12.4 2.5 11.1Q2 9.8 2 8.5Q2 6.2 3.6 4.6Q5.2 3 7.5 3Q10.2 3 12 5.1Q13.8 3 16.5 3Q18.8 3 20.4 4.6Q22 6.2 22 8.5Q22 10.3 20.8 12.3Q19.5 14.2 18.1 15.7Q16.7 17.2 13.5 20.1Z";
+const FAVORITE_BORDER =
+  "M12.1 18.6Q14.3 16.5 15.4 15.5Q16.5 14.5 17.8 13.1Q19 11.7 19.5 10.6Q20 9.5 20 8.5Q20 7 19 6Q18 5 16.5 5Q15.3 5 14.3 5.7Q13.3 6.3 12.9 7.4H11.1Q10.7 6.3 9.7 5.7Q8.7 5 7.5 5Q6 5 5 6Q4 7 4 8.5Q4 9.5 4.5 10.6Q5 11.7 6.2 13.1Q7.5 14.5 8.6 15.5Q9.7 16.5 11.9 18.6L12 18.7ZM16.5 3Q18.8 3 20.4 4.6Q22 6.2 22 8.5Q22 9.8 21.5 11.1Q21 12.4 19.6 14Q18.2 15.6 17.1 16.7Q15.9 17.8 13.5 20L12 21.3L10.5 20.1Q7.3 17.2 5.9 15.7Q4.5 14.2 3.2 12.3Q2 10.3 2 8.5Q2 6.2 3.6 4.6Q5.2 3 7.5 3Q10.2 3 12 5.1Q13.8 3 16.5 3Z";
+
+/** A device whose ♡ was clicked for the first time ever: told first what a favorite means. */
+let favoriteAsk: string | null = null;
+
+/** ♡ / ♥: a favorite's deliveries are accepted without asking (said once, the first time). */
+async function favorite(d: PostDevice, on: boolean): Promise<void> {
+  const cur = await backend.getSettings();
+  if (on && !cur.post.favoriteNoticeSeen && favoriteAsk !== d.fingerprint) {
+    favoriteAsk = d.fingerprint;
+    render();
+    return;
+  }
+  favoriteAsk = null;
+  const post = on ? withFavorite(cur.post, d) : withoutFavorite(cur.post, d.fingerprint);
+  settings = await backend.setSettings({ post });
+  render();
+}
 
 /** A small icon (an SVG path in a 24×24 box), in the text's colour. */
 function icon(path: string, css = "ui-icon"): SVGSVGElement {
@@ -90,7 +116,7 @@ function send(paths: string[], text: string | null, pin: string | null = null): 
 /** Keeps a device added by address in the settings (replacing one at that address, or with that fingerprint). */
 async function keep(d: PostDevice, replace?: string): Promise<void> {
   const cur = await backend.getSettings();
-  const saved: SavedDevice = { address: d.address ?? d.ip, port: d.port, fingerprint: d.fingerprint, alias: d.alias, deviceType: d.deviceType };
+  const saved: SavedDevice = { address: d.address ?? d.ip, port: d.port, fingerprint: d.fingerprint, alias: d.alias, deviceType: d.deviceType, via: "address" };
   const others = cur.post.devices.filter((x) => x.fingerprint !== d.fingerprint && x.fingerprint !== replace && x.address !== saved.address);
   // The device that answered there before isn't trusted any more.
   const trusted = replace ? cur.post.trusted.filter((x) => x.fingerprint !== replace) : cur.post.trusted;
@@ -197,6 +223,19 @@ function deviceRow(d: PostDevice): Node {
       h("strong", {}, d.alias),
       h("span", { class: "hint" }, where),
       state ? h("span", { class: `post-device-state${d.changedTo ? " warning" : ""}` }, state) : null,
+      favoriteAsk === d.fingerprint
+        ? h(
+            "span",
+            { class: "post-favorite-notice" },
+            h("span", {}, t("A favorite is remembered (looked for even off this network), and what it sends you is accepted without asking.")),
+            h(
+              "span",
+              { class: "row" },
+              h("button", { class: "small primary post-favorite-yes", onclick: (e: Event) => (e.stopPropagation(), void favorite(d, true)) }, t("Add to favorites")),
+              h("button", { class: "small", onclick: (e: Event) => (e.stopPropagation(), (favoriteAsk = null), render()) }, t("Cancel")),
+            ),
+          )
+        : null,
       d.changedTo
         ? h(
             "span",
@@ -205,6 +244,19 @@ function deviceRow(d: PostDevice): Node {
           )
         : null,
     ),
+    d.https && (can || isFavorite(settings.post, d.fingerprint))
+      ? h(
+          "button",
+          {
+            class: `small post-favorite${isFavorite(settings.post, d.fingerprint) ? " on" : ""}`,
+            title: isFavorite(settings.post, d.fingerprint) ? t("Favorite: what it sends is accepted without asking. Click to remove.") : t("Favorite"),
+            "aria-label": t("Favorite"),
+            "aria-pressed": String(isFavorite(settings.post, d.fingerprint)),
+            onclick: (e: Event) => (e.stopPropagation(), void favorite(d, !isFavorite(settings.post, d.fingerprint))),
+          },
+          icon(isFavorite(settings.post, d.fingerprint) ? FAVORITE : FAVORITE_BORDER),
+        )
+      : null,
     d.https && can
       ? h("button", { class: "small post-verify", title: t("Verify: compare with what the other device shows"), onclick: (e: Event) => (e.stopPropagation(), verify(d.fingerprint)) }, icon(VERIFIED_USER), t("Verify"))
       : null,
@@ -480,11 +532,9 @@ function answer(accept: boolean, always = false): void {
   render();
   void backend.postAnswer(o.id, accept);
   if (always) {
-    void backend.getSettings().then((cur) =>
-      cur.post.trusted.some((d) => d.fingerprint === o.fingerprint)
-        ? undefined
-        : backend.setSettings({ post: { ...cur.post, trusted: [...cur.post.trusted, { fingerprint: o.fingerprint, alias: o.alias }] } }),
-    );
+    // "Always accept": a favorite (kept at the address it's at now, if it's listed).
+    const d = devices.find((x) => x.fingerprint === o.fingerprint);
+    void backend.getSettings().then((cur) => backend.setSettings({ post: withFavorite(cur.post, d ?? { fingerprint: o.fingerprint, alias: o.alias }) }));
   }
 }
 

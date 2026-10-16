@@ -657,8 +657,8 @@ const zhTW: Dictionary = {
     "Starting…": "正在啟動…",
     "Off: ePet doesn't listen on the network.":
       "已關閉：ePet 不在網路上接收任何連線。",
-    "None yet. Choose “Always accept” when a device sends you something.":
-      "還沒有。有裝置傳東西給你時，選「總是接收」即可加入。",
+    "None yet. Click ♡ by a device in Pet Post, or choose “Always accept” when it sends you something.":
+      "還沒有。在寵物驛站裡點裝置旁的 ♡，或在它傳東西來時選「總是接收」。",
     "Send and receive files on this network": "在此網路中收發檔案",
     "Works with LocalSend on phones and computers, and with ePet on other computers. Drop files on the pet to send them.":
       "可與手機和電腦上的 LocalSend 互傳，也可與其他電腦上的 ePet 互傳。把檔案拖到寵物身上就能傳送。",
@@ -667,11 +667,11 @@ const zhTW: Dictionary = {
     "Save to": "儲存到",
     "Change…": "變更…",
     "Open folder": "打開資料夾",
-    "Accept from trusted devices without asking":
-      "信任的裝置傳來時直接接收，不再詢問",
+    "Accept from favorites without asking":
+      "收藏的裝置傳來時直接接收，不再詢問",
     "Everyone else: the pet asks you each time.":
       "其他裝置：寵物每次都會問你。",
-    "Trusted devices": "信任的裝置",
+    Favorites: "收藏的裝置",
     PIN: "PIN 碼",
     None: "無",
     "With a PIN, senders must type it before they can send you anything.":
@@ -830,7 +830,13 @@ const zhTW: Dictionary = {
     "Added {name}.": "已加入 {name}。",
     "⚠ Another device answers there now.": "⚠ 這個位址上現在是另一台裝置。",
     "Not answering.": "沒有回應。",
+    "A favorite is remembered (looked for even off this network), and what it sends you is accepted without asking.":
+      "收藏的裝置會被記住（不在本網路也會去找它），它傳給你的檔案和訊息不再詢問，直接接收。",
+    "Add to favorites": "收藏",
     "It's mine: use the new one": "是我的裝置，用新的",
+    "Favorite: what it sends is accepted without asking. Click to remove.":
+      "已收藏：它傳來的東西不用問直接接收。點一下取消收藏。",
+    Favorite: "收藏",
     "Verify: compare with what the other device shows":
       "核對：和另一台裝置上顯示的對照",
     Verify: "核對",

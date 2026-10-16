@@ -4,6 +4,9 @@ import {
   fileCount,
   formatSize,
   addError,
+  isFavorite,
+  withFavorite,
+  withoutFavorite,
   missedOfferTitle,
   namesLine,
   parseNetwork,
@@ -47,6 +50,7 @@ describe("Pet Post settings", () => {
       devices: [],
       networks: [],
       tailscale: true,
+      favoriteNoticeSeen: false,
     });
     expect(mergeSettings(null).post.enabled).toBe(false);
   });
@@ -87,17 +91,17 @@ describe("Pet Post settings", () => {
   it("devices added by address and extra networks: kept when they're right", () => {
     const s = postSettings({
       devices: [
-        { address: " 192.168.8.20 ", port: 53317, fingerprint: "ab", alias: "Phone", deviceType: "mobile" },
-        { address: "laptop.tail1234.ts.net", port: 0, fingerprint: "CD", alias: "", deviceType: "desktop" },
-        { address: "", port: 1, fingerprint: "EF", alias: "", deviceType: "desktop" },
-        { address: "x", port: 1, fingerprint: "", alias: "", deviceType: "desktop" },
+        { address: " 192.168.8.20 ", port: 53317, fingerprint: "ab", alias: "Phone", deviceType: "mobile", via: "favorite" },
+        { address: "laptop.tail1234.ts.net", port: 0, fingerprint: "CD", alias: "", deviceType: "desktop" } as never,
+        { address: "", port: 1, fingerprint: "EF", alias: "", deviceType: "desktop", via: "address" },
+        { address: "x", port: 1, fingerprint: "", alias: "", deviceType: "desktop", via: "address" },
       ],
       networks: ["192.168.8.77/24", "10.0.0.0/8", "nonsense", 5 as never],
       tailscale: false,
     });
     expect(s.devices).toEqual([
-      { address: "192.168.8.20", port: 53317, fingerprint: "AB", alias: "Phone", deviceType: "mobile" },
-      { address: "laptop.tail1234.ts.net", port: 53317, fingerprint: "CD", alias: "", deviceType: "desktop" },
+      { address: "192.168.8.20", port: 53317, fingerprint: "AB", alias: "Phone", deviceType: "mobile", via: "favorite" },
+      { address: "laptop.tail1234.ts.net", port: 53317, fingerprint: "CD", alias: "", deviceType: "desktop", via: "address" },
     ]);
     expect(s.networks).toEqual(["192.168.8.0/24"]);
     expect(s.tailscale).toBe(false);
@@ -131,6 +135,27 @@ const dev = (p: Partial<PostDevice>): PostDevice => ({
   online: true,
   changedTo: null,
   ...p,
+});
+
+describe("Pet Post favorites", () => {
+  it("a favorite is trusted and kept; no longer one, it's asked again and forgotten (unless added by address)", () => {
+    const s = postSettings({});
+    const fav = withFavorite(s, { fingerprint: "ab", alias: "Phone", deviceType: "mobile", ip: "192.168.31.237", port: 53317 });
+    expect(isFavorite(fav, "AB")).toBe(true);
+    expect(fav.trusted).toEqual([{ fingerprint: "AB", alias: "Phone" }]);
+    expect(fav.devices).toEqual([{ address: "192.168.31.237", port: 53317, fingerprint: "AB", alias: "Phone", deviceType: "mobile", via: "favorite" }]);
+    expect(fav.favoriteNoticeSeen).toBe(true);
+    // Twice: no doubles.
+    expect(withFavorite(fav, { fingerprint: "AB", alias: "Phone", ip: "192.168.31.237" })).toEqual(fav);
+    const off = withoutFavorite(fav, "ab");
+    expect(isFavorite(off, "AB")).toBe(false);
+    expect(off.devices).toEqual([]);
+    // Added by address first: it stays (only its ♥ goes).
+    const byAddress = postSettings({ devices: [{ address: "nas.local", port: 53317, fingerprint: "CD", alias: "NAS", deviceType: "desktop", via: "address" }] });
+    const both = withFavorite(byAddress, { fingerprint: "CD", alias: "NAS", address: "nas.local" });
+    expect(both.devices.length).toBe(1);
+    expect(withoutFavorite(both, "CD").devices.length).toBe(1);
+  });
 });
 
 describe("Pet Post beyond this network", () => {

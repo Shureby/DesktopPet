@@ -197,10 +197,19 @@ pub(crate) async fn ask_saved(inner: &Arc<Inner>) {
         async move {
             let fp = s.fingerprint.to_ascii_uppercase();
             let port = if s.port == 0 { DEFAULT_PORT } else { s.port };
-            let found = match resolve(&s.address, port).await {
+            let ip = resolve(&s.address, port).await;
+            let found = match ip {
                 Some(ip) => client::probe(&inner, ip, port, None).await.ok(),
                 None => None,
             };
+            // Found just now elsewhere (a favorite whose address on this network changed,
+            // DHCP): that's where it is; what's at its old address doesn't matter.
+            let elsewhere = lock(&inner.devices).get(&fp).is_some_and(|d| {
+                d.online && d.reached && crate::state::now_ms() - d.last_seen < 60_000 && Some(d.ip) != ip
+            });
+            if elsewhere && found.as_ref().is_none_or(|d| d.fingerprint != fp) {
+                return;
+            }
             match found {
                 Some(mut d) if d.fingerprint == fp => {
                     d.source = "address";
