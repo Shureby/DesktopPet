@@ -12,6 +12,15 @@
   SteamOS unticked.
 - **Direct build**: auto-updater feed, code signing, license keys.
 
+## Queued for 0.46
+
+- **Windows installer: reinstalling the same version asks nothing either.** Today an upgrade
+  is silent but the same version (test builds share one) shows "Already installed: Add /
+  Reinstall or Uninstall". From 0.46: the same version is installed over without asking (a
+  running ePet closed quietly, as for an upgrade); only going back to an older version
+  asks. Uninstalling stays in Windows Settings → Apps. (src-tauri/windows/installer.nsi,
+  PageReinstall; e2e beside install.upgrade.)
+
 ## Pet Post: send files on the local network (shipped in 0.44.0)
 
 Chinese name 宠物驿站 / 寵物驛站. Store and in-app line: "Works with LocalSend" /
