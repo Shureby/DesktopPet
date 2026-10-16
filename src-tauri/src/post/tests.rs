@@ -313,7 +313,8 @@ fn a_device_added_by_address_is_remembered_and_checked() {
     let d = listed(&b_fp);
     assert!(d.online && d.changed_to.is_none() && d.ip.to_string() == "127.0.0.9", "{d:?}");
 
-    // Removed from the settings: no longer listed.
+    // Removed from the settings: no longer listed (not found otherwise lately).
+    a.inner.devices.lock().unwrap().get_mut(&b_fp).unwrap().last_seen = 0;
     tauri::async_runtime::block_on(configure(&a.inner, Config { devices: vec![], ..config }));
     assert!(a.inner.devices().iter().all(|d| d.fingerprint != b_fp));
 }

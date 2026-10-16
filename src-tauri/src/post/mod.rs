@@ -409,7 +409,21 @@ impl Inner {
         let saved = self.config().devices;
         let list = {
             let mut devices = lock(&self.devices);
-            devices.retain(|fp, d| d.address.is_none() || saved.iter().any(|s| s.fingerprint.eq_ignore_ascii_case(fp)));
+            // No longer kept: gone, unless found just now (then listed as found, until it isn't).
+            let now = now_ms();
+            devices.retain(|fp, d| {
+                if d.address.is_none() || saved.iter().any(|s| s.fingerprint.eq_ignore_ascii_case(fp)) {
+                    return true;
+                }
+                let found = d.reached && d.online && d.changed_to.is_none() && now - d.last_seen < 60_000;
+                if found {
+                    d.address = None;
+                    if d.source == "address" {
+                        d.source = "lan";
+                    }
+                }
+                found
+            });
             for s in &saved {
                 let fp = s.fingerprint.to_ascii_uppercase();
                 if fp.is_empty() {
