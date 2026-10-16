@@ -71,6 +71,15 @@ pub struct Saved {
     pub fingerprint: String,
     pub alias: String,
     pub device_type: String,
+    /// "address" (added by address) or "favorite" (♥ on a device found): a favorite keeps
+    /// the way it was found ("lan", "tailnet"…) as its source.
+    pub via: String,
+}
+
+impl Saved {
+    fn favorite(&self) -> bool {
+        self.via == "favorite"
+    }
 }
 
 /// A device found on the network.
@@ -133,7 +142,7 @@ impl Device {
             port: if s.port == 0 { DEFAULT_PORT } else { s.port },
             https: true,
             last_seen: 0,
-            source: "address",
+            source: if s.favorite() { "lan" } else { "address" },
             reached: false,
             address: Some(s.address.clone()),
             online: false,
@@ -409,7 +418,9 @@ impl Inner {
                 match devices.get_mut(&fp) {
                     Some(d) => {
                         d.address = Some(s.address.clone());
-                        d.source = "address";
+                        if !s.favorite() {
+                            d.source = "address";
+                        }
                     }
                     None => {
                         devices.insert(fp, Device::saved(s));

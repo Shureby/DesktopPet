@@ -200,7 +200,7 @@ function lookAgain(): void {
 
 function deviceRow(d: PostDevice): Node {
   const can = sendable(d);
-  const where = [sourceLabel(d), d.deviceModel, d.address ?? d.ip].filter(Boolean).join(" · ");
+  const where = [sourceLabel(d, settings.post), d.deviceModel, d.address ?? d.ip].filter(Boolean).join(" · ");
   const state = d.changedTo ? t("⚠ Another device answers there now.") : !d.online ? t("Not answering.") : "";
   const row = h(
     "li",
@@ -260,7 +260,7 @@ function deviceRow(d: PostDevice): Node {
     d.https && can
       ? h("button", { class: "small post-verify", title: t("Verify: compare with what the other device shows"), onclick: (e: Event) => (e.stopPropagation(), verify(d.fingerprint)) }, icon(VERIFIED_USER), t("Verify"))
       : null,
-    d.address
+    settings.post.devices.some((x) => x.fingerprint === d.fingerprint && x.via === "address")
       ? h("button", { class: "small post-forget", title: t("Remove"), "aria-label": t("Remove"), onclick: (e: Event) => (e.stopPropagation(), void forget(d)) }, "✕")
       : null,
   );

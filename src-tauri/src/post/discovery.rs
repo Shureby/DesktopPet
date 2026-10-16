@@ -212,7 +212,8 @@ pub(crate) async fn ask_saved(inner: &Arc<Inner>) {
             }
             match found {
                 Some(mut d) if d.fingerprint == fp => {
-                    d.source = "address";
+                    // (A favorite keeps how it was found: "lan" yields to that.)
+                    d.source = if s.favorite() { "lan" } else { "address" };
                     d.address = Some(s.address.clone());
                     inner.add_device(d);
                 }

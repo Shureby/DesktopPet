@@ -189,6 +189,8 @@ check("post.trust", "Always accept: the device is trusted, and its next delivery
     return st.post.trusted.length > 0 && st;
   });
   assert.deepEqual(s.post.trusted, [{ fingerprint: peer.fingerprint, alias: "Mock Phone" }]);
+  // A favorite now: kept too.
+  assert.deepEqual(s.post.devices.map((d) => [d.fingerprint, d.via]), [[peer.fingerprint, "favorite"]]);
   // Next time: no question.
   const again = await peer.prepare({ "second.txt": "2" });
   assert.equal(again.status, 200);
@@ -199,7 +201,8 @@ check("post.trust", "Always accept: the device is trusted, and its next delivery
 
 check("post.hidden", "the hidden pet comes out to ask; hidden in Quiet mode, it declines and tells you later", async () => {
   const app = ctx.app;
-  await app.setSettings((s) => ({ ...s, post: { ...s.post, trusted: [] } }));
+  // ("Always accept" made it a favorite: no longer, nor kept; and as if never told.)
+  await app.setSettings((s) => ({ ...s, post: { ...s.post, trusted: [], devices: [], favoriteNoticeSeen: false } }));
   await app.run("tray", "Hide pet");
   await app.b.waitUntil(async () => !(await app.visible("pet")), { timeout: 5000 });
   const reply = peer.prepare({ "while-hidden.txt": "h" });

@@ -369,7 +369,9 @@ export function transferOver(tr: PostTransfer): boolean {
 }
 
 /** Where a device was found, for its line in the list ("" for this network). */
-export function sourceLabel(d: PostDevice): string {
+export function sourceLabel(d: PostDevice, s?: PostSettings): string {
+  // A favorite was found some other way: it's said how.
+  if (d.source === "address" && s?.devices.some((x) => x.fingerprint === d.fingerprint && x.via === "favorite")) return "";
   switch (d.source) {
     case "address":
       return t("added by address");
