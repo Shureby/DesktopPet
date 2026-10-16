@@ -192,6 +192,10 @@ const zhCN: Dictionary = {
     "📦 {who} wants to send you {files} ({size})":
       "📦 {who} 想给你发 {files}（{size}）",
     "{who}: {files}": "{who}：{files}",
+    "{size}/s": "{size}/秒",
+    "less than a minute left": "不到 1 分钟",
+    "about {n} min left": "还要约 {n} 分钟",
+    "about {h} h {m} min left": "还要约 {h} 小时 {m} 分钟",
     "Receiving from {who}… {pct}%": "正在接收 {who} 发来的… {pct}%",
     "Got {files} from {who}!": "收到 {who} 发来的 {files}！",
     "{who} stopped sending.": "{who} 停止了发送。",

@@ -88,4 +88,36 @@ if (process.platform === "win32" && OLD && NEW) {
     },
     { timeout: 600_000 },
   );
+
+  check(
+    "install.same-version",
+    "the same version again (as a test build is): the installer asks nothing either, closes the running ePet, and everything is still there",
+    async () => {
+      const exe = join(installed("InstallLocation"), installed("MainBinaryName") ?? "desktoppet.exe");
+      spawn(exe, [], { detached: true, stdio: "ignore" }).unref();
+      await sleep(5000);
+      assert.equal(appProcesses(), 1);
+      const out = join(process.env.E2E_RESULTS ?? "e2e-results", "install-pages-same.json");
+      const ps = spawnSync("pwsh", ["-NoProfile", "-File", fileURLToPath(new URL("./install-gui.ps1", import.meta.url)), "-Setup", NEW, "-Out", out], {
+        timeout: 360_000,
+        encoding: "utf8",
+      });
+      assert.equal(ps.status, 0, ps.stderr);
+      const run = JSON.parse(readFileSync(out, "utf8").replace(/^\uFEFF/, ""));
+      assert.equal(run.timedOut, false, `installer stuck on: ${run.pages.at(-1)} (clicked: ${run.clicks?.join(" / ")})`);
+      assert.equal(run.exitCode, 0);
+      const asked = run.pages.filter((p) => /Already Installed|Add\/Reinstall|Uninstall before installing|is running|Installer Language/i.test(p));
+      assert.deepEqual(asked, [], "no question about the installed version or the running ePet");
+      assert.equal(installed("DisplayVersion"), versionOf(NEW));
+      spawnSync("taskkill", ["/F", "/IM", "desktoppet.exe"], { stdio: "ignore" });
+      await sleep(1500);
+      const app = await App.launch({ keepData: true, exe, hooks: false });
+      try {
+        assert.ok((await app.invoke("list_todos")).some((t) => t.title === "Kept to-do"));
+      } finally {
+        await app.quit();
+      }
+    },
+    { timeout: 600_000 },
+  );
 }

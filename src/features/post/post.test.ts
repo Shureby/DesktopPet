@@ -4,6 +4,9 @@ import {
   fileCount,
   formatSize,
   addError,
+  percentText,
+  Rate,
+  timeLeft,
   isFavorite,
   withFavorite,
   withoutFavorite,
@@ -135,6 +138,35 @@ const dev = (p: Partial<PostDevice>): PostDevice => ({
   online: true,
   changedTo: null,
   ...p,
+});
+
+describe("Pet Post progress: decimals for big deliveries, speed and time left", () => {
+  const MB = 1024 * 1024;
+  it("the percentage has as many decimals as a big delivery needs, and never says 100 too soon", () => {
+    expect(percentText(tr({ done: 37 * MB, total: 99 * MB }))).toBe("37");
+    expect(percentText(tr({ done: 374 * MB, total: 1000 * MB }))).toBe("37.4");
+    expect(percentText(tr({ done: 3742 * MB, total: 10_000 * MB }))).toBe("37.42");
+    expect(percentText(tr({ done: 10_000 * MB - 1, total: 10_000 * MB }))).toBe("99.99");
+    expect(percentText(tr({ done: 10_000 * MB, total: 10_000 * MB }))).toBe("100.00");
+    expect(percentText(tr({ done: 0, total: 0 }))).toBe("0");
+  });
+
+  it("speed over the last seconds, and the time left", () => {
+    const r = new Rate();
+    const big = tr({ total: 12_000 * MB });
+    r.push(0, 0);
+    expect(r.speed()).toBeNull();
+    r.push(100 * MB, 1000);
+    r.push(200 * MB, 2000);
+    expect(r.speed()).toBe(100 * MB);
+    expect(r.line({ ...big, done: 200 * MB })).toBe("100 MB/s · about 2 min left");
+    expect(timeLeft(20)).toBe("less than a minute left");
+    expect(timeLeft(150)).toBe("about 3 min left");
+    expect(timeLeft(4800)).toBe("about 1 h 20 min left");
+    // Another delivery starts: from scratch.
+    r.push(0, 3000);
+    expect(r.speed()).toBeNull();
+  });
 });
 
 describe("Pet Post favorites", () => {

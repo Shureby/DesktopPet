@@ -44,6 +44,13 @@
           "expect": "不再出现“已安装（Already Installed）/ 是否先卸载”那一页，也不提示 ePet 正在运行（会自动关掉它）；旧版被安静地卸载后装上新版；之前的待办、闹钟、纪念日、设置、心情值都还在。重装同一版本或装更旧的版本时仍会询问"
         },
         {
+          "id": "install.same-version",
+          "rev": "0.46.0",
+          "ci": "auto",
+          "do": "ePet 开着时，再运行一次同一个版本的安装包（例如同一个测试包装两次）",
+          "expect": "不出现“Already Installed / Add/Reinstall / Uninstall”页，也不问 ePet 正在运行；装完 ePet 正常，数据都在。只有用旧版本盖新版本时才会问"
+        },
+        {
           "id": "install.running",
           "rev": "0.36.0",
           "do": "正式版 ePet 开着时安装 ePet Test；装好后两个都开着，再重装一次 ePet Test；最后在 ePet 开着时重装正式版",
@@ -1625,6 +1632,13 @@
           "human": "文件选择对话框；手机上收到的文件和文件夹",
           "do": "Pet Post 窗口：选手机，点 📄 Send files… 选几个文件；再点 📁 Send a folder…；再在文本框里写一句话点 Send text",
           "expect": "手机上先问是否接收，接收后窗口显示进度条和 Delivering to <手机>… %，完成显示 Delivered to <手机>!；文字在手机上显示为消息；发送中点 Cancel 能取消"
+        },
+        {
+          "id": "post.progress",
+          "rev": "0.46.0",
+          "mac": true,
+          "do": "用 Pet Post 窗口给手机（或另一台电脑）发一个 1 GB 以上的文件，再让对方发一个大文件过来",
+          "expect": "进度写成 37.42%（100 MB–1 GB 是一位小数，更小是整数），下面一行有已传 / 总大小、文件数、速度（如 85 MB/s）和剩余时间（还要约 2 分钟），数字随传输在动；多个文件时两个文件同时传。顺便记一下速度：和 LocalSend 互传同一个文件的速度差不多"
         },
         {
           "id": "post.ios",

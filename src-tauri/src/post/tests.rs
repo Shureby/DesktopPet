@@ -68,6 +68,19 @@ impl Peer {
         panic!("no {name} event");
     }
 
+    /// As `wait`, for as long as a big file takes.
+    fn wait_long(&self, name: &str, pred: impl Fn(&Value) -> bool) -> Value {
+        let end = Instant::now() + Duration::from_secs(600);
+        while let Some(left) = end.checked_duration_since(Instant::now()) {
+            match self.events.recv_timeout(left) {
+                Ok((e, v)) if e == name && pred(&v) => return v,
+                Ok(_) => {}
+                Err(_) => break,
+            }
+        }
+        panic!("no {name} event");
+    }
+
     fn transfer(&self, state: &str) -> Value {
         self.wait("post-transfer", |v| v["state"] == state)
     }
@@ -359,6 +372,38 @@ fn a_taken_port_moves_to_the_next_free_one() {
         assert_eq!(l.local_addr().unwrap().port(), base + 1);
         drop(taken);
     });
+}
+
+/// How fast a big file goes between two pets on this computer (run by hand, release:
+/// `EPET_POST_BENCH_MB=1024 cargo test --release -p desktoppet post_speed -- --ignored --nocapture`).
+#[test]
+#[ignore]
+fn post_speed() {
+    let mb: u64 = std::env::var("EPET_POST_BENCH_MB").ok().and_then(|v| v.parse().ok()).unwrap_or(512);
+    let (a, b) = (peer("A", |_| {}), peer("B", |c| c.trusted = vec![]));
+    let to_b = a.find(&b);
+    let file = a.dir.join("big.bin");
+    {
+        use std::io::Write;
+        let mut f = std::io::BufWriter::new(std::fs::File::create(&file).unwrap());
+        let block: Vec<u8> = (0..1024 * 1024u32).map(|i| (i % 251) as u8).collect();
+        for _ in 0..mb {
+            f.write_all(&block).unwrap();
+        }
+    }
+    let start = Instant::now();
+    client::send(a.inner.clone(), to_b, vec![file], None, None).unwrap();
+    let offer = b.wait("post-offer", |_| true);
+    answer(&b.inner, offer["id"].as_str().unwrap(), true);
+    let t0 = Instant::now();
+    b.wait_long("post-transfer", |v| v["state"] == "done");
+    let secs = t0.elapsed().as_secs_f64();
+    eprintln!(
+        "POST SPEED: {mb} MB in {secs:.2} s = {:.0} MB/s (with the question: {:.2} s)",
+        mb as f64 / secs,
+        start.elapsed().as_secs_f64()
+    );
+    assert_eq!(std::fs::metadata(b.saved("big.bin")).unwrap().len(), mb * 1024 * 1024);
 }
 
 /// Interoperability with the LocalSend app: run with `LOCALSEND_CLI=<path to localsend-cli>`

@@ -12,7 +12,7 @@
   SteamOS unticked.
 - **Direct build**: auto-updater feed, code signing, license keys.
 
-## Queued for 0.46
+## Shipped in 0.46.0
 
 - **Windows installer: reinstalling the same version asks nothing either.** Today an upgrade
   is silent but the same version (test builds share one) shows "Already installed: Add /

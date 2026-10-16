@@ -823,7 +823,9 @@ src-tauri/src/post/, crates/desktoppet-core/src/post.rs).
   found (up to four, then "More…"). Or the Pet Post window (right-click the pet, or the
   tray → "Open Pet Post…"): pick a device, then "Send files…", "Send a folder…" or a text.
   - "Waiting for X to accept…" (with Cancel), a 📦 badge with the percentage while
-    sending, then "Delivered to X!" — or "X didn't accept it.", "X is busy receiving
+    sending (in the window: with one decimal from 100 MB, two from 1 GB, and the speed and
+    time left, "85 MB/s · about 2 min left"; the same for receiving, since 0.46.0; two
+    files go at once, as in LocalSend), then "Delivered to X!" — or "X didn't accept it.", "X is busy receiving
     something else", "Couldn't deliver to X".
   - The other side asks for a PIN: the pet (or the window) asks you for it.
 - **Receiving:** the pet comes out (also when hidden, like an alarm) and asks "📦 X wants to

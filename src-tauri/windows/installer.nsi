@@ -260,12 +260,12 @@ Function PageReinstall
     Abort
   ${EndIf}
 
-  ; ePet: an upgrade asks nothing. The older version is uninstalled quietly (its uninstaller,
-  ; passive, closes a running ePet and keeps the user's data, as any uninstall does unless
-  ; "Delete app data" is ticked) and this one is installed. Reinstalling the same version or
-  ; going back to an older one still asks. (Tauri's own template otherwise; see README.md,
-  ; "Windows installer".)
-  ${If} $R0 = 1
+  ; ePet: an upgrade, or the same version again (test builds share one), asks nothing. The
+  ; installed one is uninstalled quietly (its uninstaller, passive, closes a running ePet and
+  ; keeps the user's data, as any uninstall does unless "Delete app data" is ticked) and this
+  ; one is installed. Only going back to an older version still asks. (Tauri's own template
+  ; otherwise; see README.md, "Windows installer".)
+  ${If} $R0 <> -1
   ${AndIf} $WixMode <> 1
   ${AndIf} $UpdateMode <> 1
     StrCpy $AutoUpgrade 1

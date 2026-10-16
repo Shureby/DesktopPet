@@ -324,13 +324,69 @@ export function percent(tr: PostTransfer): number {
   return tr.total > 0 ? Math.min(100, Math.floor((tr.done / tr.total) * 100)) : 0;
 }
 
+const MB = 1024 * 1024;
+
+/**
+ * How far, said with as many decimals as a big delivery needs to be seen moving: none
+ * under 100 MB, one up to 1 GB, two above ("37.42"). Never 100 before it's all there.
+ */
+export function percentText(tr: PostTransfer): string {
+  if (tr.total <= 0) return "0";
+  const digits = tr.total < 100 * MB ? 0 : tr.total < 1024 * MB ? 1 : 2;
+  const scale = 10 ** digits;
+  const value = Math.min(100 * scale - (tr.done < tr.total ? 1 : 0), Math.floor((tr.done * 100 * scale) / tr.total));
+  return (Math.max(0, value) / scale).toFixed(digits);
+}
+
+/** How fast a delivery goes (bytes a second, over the last few seconds) and how long it has left. */
+export class Rate {
+  private samples: { at: number; done: number }[] = [];
+
+  constructor(private readonly windowMs = 4000) {}
+
+  /** A new progress report (its bytes so far), at `at` (ms). */
+  push(done: number, at = Date.now()): void {
+    const last = this.samples[this.samples.length - 1];
+    // Started again (another delivery): from scratch.
+    if (last && done < last.done) this.samples = [];
+    this.samples.push({ at, done });
+    while (this.samples.length > 2 && at - this.samples[0].at > this.windowMs) this.samples.shift();
+  }
+
+  /** Bytes a second, or null before there's enough to tell. */
+  speed(): number | null {
+    const first = this.samples[0];
+    const last = this.samples[this.samples.length - 1];
+    if (!first || !last || last.at - first.at < 500) return null;
+    return ((last.done - first.done) * 1000) / (last.at - first.at);
+  }
+
+  /** "85 MB/s · about 2 min left" (just the speed until the time left is clear). */
+  line(tr: PostTransfer): string {
+    const v = this.speed();
+    if (v === null || v <= 0) return "";
+    const speed = t("{size}/s", { size: formatSize(v) });
+    const left = (tr.total - tr.done) / v;
+    if (!Number.isFinite(left) || left <= 0) return speed;
+    return `${speed} · ${timeLeft(left)}`;
+  }
+}
+
+/** "about 2 min left", "less than a minute left", "about 1 h 20 min left". */
+export function timeLeft(seconds: number): string {
+  if (seconds < 60) return t("less than a minute left");
+  const min = Math.round(seconds / 60);
+  if (min < 60) return t("about {n} min left", { n: min });
+  return t("about {h} h {m} min left", { h: Math.floor(min / 60), m: min % 60 });
+}
+
 /** One line on how a transfer goes (the pet's bubble and the Pet Post window). */
 export function transferLine(tr: PostTransfer): string {
   const who = tr.peer;
   if (tr.direction === "in") {
     switch (tr.state) {
       case "receiving":
-        return t("Receiving from {who}… {pct}%", { who, pct: percent(tr) });
+        return t("Receiving from {who}… {pct}%", { who, pct: percentText(tr) });
       case "done":
         return t("Got {files} from {who}!", { files: fileCount(tr.files), who });
       case "cancelled":
@@ -345,7 +401,7 @@ export function transferLine(tr: PostTransfer): string {
     case "waiting":
       return t("Waiting for {who} to accept…", { who });
     case "sending":
-      return t("Delivering to {who}… {pct}%", { who, pct: percent(tr) });
+      return t("Delivering to {who}… {pct}%", { who, pct: percentText(tr) });
     case "done":
       return t("Delivered to {who}!", { who });
     case "declined":

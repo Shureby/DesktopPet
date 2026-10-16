@@ -192,6 +192,10 @@ const zhTW: Dictionary = {
     "📦 {who} wants to send you {files} ({size})":
       "📦 {who} 想傳給你 {files}（{size}）",
     "{who}: {files}": "{who}：{files}",
+    "{size}/s": "{size}/秒",
+    "less than a minute left": "不到 1 分鐘",
+    "about {n} min left": "還要約 {n} 分鐘",
+    "about {h} h {m} min left": "還要約 {h} 小時 {m} 分鐘",
     "Receiving from {who}… {pct}%": "正在接收 {who} 傳來的… {pct}%",
     "Got {files} from {who}!": "收到 {who} 傳來的 {files}！",
     "{who} stopped sending.": "{who} 停止了傳送。",

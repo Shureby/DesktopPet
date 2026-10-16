@@ -24,7 +24,7 @@ import {
   sourceLabel,
   fileCount,
   formatSize,
-  percent,
+  Rate,
   transferLine,
   transferOver,
   type PostDevice,
@@ -88,6 +88,9 @@ let transfer: PostTransfer | null = null;
 let offer: PostOffer | null = null;
 /** A delivery coming in. */
 let incoming: PostTransfer | null = null;
+/** How fast what's coming in, and what this window sends, goes. */
+const inRate = new Rate();
+const outRate = new Rate();
 /** What was received (kept by the app), the latest first. */
 let history: PostReceived[] = [];
 /** Received entries whose files aren't there any more. */
@@ -573,8 +576,8 @@ function incomingCard(): Node | null {
   const rows: Node[] = [h("p", { class: over && tr.state !== "done" ? "warning" : "" }, transferLine(tr))];
   if (!over) {
     rows.push(
-      h("progress", { max: 100, value: percent(tr) }),
-      h("p", { class: "hint" }, `${formatSize(tr.done)} / ${formatSize(tr.total)} · ${fileCount(tr.files)}`),
+      h("progress", { max: 1000, value: Math.floor((tr.done / Math.max(1, tr.total)) * 1000) }),
+      h("p", { class: "hint post-rate" }, [`${formatSize(tr.done)} / ${formatSize(tr.total)} · ${fileCount(tr.files)}`, inRate.line(tr)].filter(Boolean).join(" · ")),
       h("button", { class: "post-stop-receiving", onclick: () => void backend.postStopReceiving() }, t("Stop receiving")),
     );
   }
@@ -618,9 +621,10 @@ function progress(): Node | null {
   const tr = transfer;
   if (!tr) return null;
   const over = transferOver(tr);
-  const bar = h("progress", { max: 100, value: percent(tr) });
+  const bar = h("progress", { max: 1000, value: Math.floor((tr.done / Math.max(1, tr.total)) * 1000) });
   const rows: Node[] = [h("p", { class: over && tr.state !== "done" ? "warning" : "" }, transferLine(tr))];
-  if (!over && tr.state !== "waiting") rows.push(bar, h("p", { class: "hint" }, `${formatSize(tr.done)} / ${formatSize(tr.total)} · ${fileCount(tr.files)}`));
+  if (!over && tr.state !== "waiting")
+    rows.push(bar, h("p", { class: "hint post-rate" }, [`${formatSize(tr.done)} / ${formatSize(tr.total)} · ${fileCount(tr.files)}`, outRate.line(tr)].filter(Boolean).join(" · ")));
   if (tr.direction === "out" && !over && mine) rows.push(h("button", { onclick: () => void backend.postCancelSend() }, t("Cancel")));
   if (tr.direction === "out" && tr.state === "pin" && mine) {
     const input = h("input", { type: "text", class: "post-pin-input", placeholder: t("PIN"), autocomplete: "off" });
@@ -794,6 +798,8 @@ async function main(): Promise<void> {
   });
   await backend.on("post-transfer", (tr) => {
     if (tr.direction === "in") {
+      if (!incoming || transferOver(incoming)) inRate.push(0);
+      inRate.push(tr.done);
       incoming = tr;
       render();
       // Done or stopped: said for a moment, then the card goes.
@@ -802,6 +808,8 @@ async function main(): Promise<void> {
     }
     // How a delivery from the pet goes is the pet's to say; this window shows its own.
     if (!mine) return;
+    if (tr.state === "waiting") outRate.push(0);
+    outRate.push(tr.done);
     transfer = tr;
     if (tr.direction === "out" && transferOver(tr) && tr.state !== "pin") mine = null;
     render();

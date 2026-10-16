@@ -32,6 +32,9 @@ type Body = Full<Bytes>;
 
 /// How long the pet waits for an answer to a delivery before declining it.
 pub const ANSWER_SECONDS: u64 = 60;
+/// How much of a file being received is gathered before it's written.
+const WRITE_BUFFER: usize = 512 * 1024;
+
 /// A delivery with no data for this long is given up.
 const IDLE_MS: i64 = 120_000;
 
@@ -449,9 +452,11 @@ async fn upload(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr) -> Respon
         }
     }
     let part = part_path(&path);
-    let Ok(mut file) = tokio::fs::File::create(&part).await else {
+    let Ok(file) = tokio::fs::File::create(&part).await else {
         return status(500);
     };
+    // Written half a megabyte at a time, not one network chunk (~16 KB) at a time.
+    let mut file = tokio::io::BufWriter::with_capacity(WRITE_BUFFER, file);
     let mut body = req.into_body();
     let mut got = 0u64;
     let mut hasher = info.sha256.as_ref().map(|_| Sha256::new());

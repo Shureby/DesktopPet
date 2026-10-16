@@ -10,6 +10,7 @@ use std::time::Duration;
 
 use bytes::Bytes;
 use desktoppet_core::post::{mime_type, random_id, DeviceInfo, FileInfo, PrepareUpload, PrepareUploadResponse, API};
+use futures_util::StreamExt as _;
 use http_body_util::combinators::BoxBody;
 use http_body_util::{BodyExt, Full, Limited, StreamBody};
 use hyper::body::Frame;
@@ -26,6 +27,12 @@ type ReqBody = BoxBody<Bytes, std::io::Error>;
 
 /// At most this many files in one delivery (a folder of a whole drive is a mistake).
 const MAX_FILES: usize = 10_000;
+
+/// Files uploaded at the same time (as LocalSend does).
+const UPLOADS_AT_ONCE: usize = 2;
+
+/// How much of a file is read at a time.
+const READ_SIZE: usize = 1024 * 1024;
 
 /// The delivery being sent.
 pub(crate) struct Sending {
@@ -392,32 +399,47 @@ async fn run(inner: Arc<Inner>, job: Job, paths: Vec<PathBuf>, text: Option<Stri
     let sent = Arc::new(AtomicU64::new(0));
     let last_emit = Arc::new(AtomicI64::new(0));
     report("sending", 0, total, count, None);
+    // Two files at a time, as LocalSend does (a small file needn't wait behind a big one).
+    let mut jobs: Vec<(String, u64, Source)> = Vec::new();
     for (file_id, token) in &accepted.files {
-        let Some((size, source)) = sources.remove(file_id) else { continue };
-        let is_text = matches!(source, Source::Text(_));
-        let body: ReqBody = match source {
-            Source::Text(b) => Full::new(b).map_err(|never| match never {}).boxed(),
-            Source::File(p) => match tokio::fs::File::open(&p).await {
-                Ok(f) => file_body(f, inner.clone(), d.alias.clone(), sent.clone(), last_emit.clone(), total, count),
-                Err(e) => return report("failed", sent.load(Ordering::Relaxed), total, count, Some(e.to_string())),
-            },
-        };
-        let path = format!("{API}/upload?sessionId={}&fileId={}&token={}", accepted.session_id, file_id, token);
-        let reply = request(&inner, &peer, &path, body, Some(size), Duration::from_secs(5)).await;
-        match reply {
-            Ok(r) if r.status == 200 || r.status == 204 => {}
-            other => {
-                let error = match other {
-                    Ok(r) => format!("HTTP {}", r.status),
-                    Err(e) => e,
-                };
-                let cancel = format!("{API}/cancel?sessionId={}", accepted.session_id);
-                let _ = request(&inner, &peer, &cancel, json_body(&()), Some(0), Duration::from_secs(3)).await;
-                return report("failed", sent.load(Ordering::Relaxed), total, count, Some(error));
-            }
+        if let Some((size, source)) = sources.remove(file_id) {
+            jobs.push((
+                format!("{API}/upload?sessionId={}&fileId={}&token={}", accepted.session_id, file_id, token),
+                size,
+                source,
+            ));
         }
-        if is_text {
-            sent.fetch_add(size, Ordering::Relaxed);
+    }
+    let uploads = jobs.into_iter().map(|(path, size, source)| {
+        let (inner, peer, alias, sent, last_emit) =
+            (inner.clone(), peer.clone(), d.alias.clone(), sent.clone(), last_emit.clone());
+        async move {
+            let is_text = matches!(source, Source::Text(_));
+            let body: ReqBody = match source {
+                Source::Text(b) => Full::new(b).map_err(|never| match never {}).boxed(),
+                Source::File(p) => {
+                    let f = tokio::fs::File::open(&p).await.map_err(|e| e.to_string())?;
+                    file_body(f, inner.clone(), alias, sent.clone(), last_emit, total, count)
+                }
+            };
+            match request(&inner, &peer, &path, body, Some(size), Duration::from_secs(5)).await {
+                Ok(r) if r.status == 200 || r.status == 204 => {}
+                Ok(r) => return Err(format!("HTTP {}", r.status)),
+                Err(e) => return Err(e),
+            }
+            if is_text {
+                sent.fetch_add(size, Ordering::Relaxed);
+            }
+            Ok::<(), String>(())
+        }
+    });
+    let mut uploads = futures_util::stream::iter(uploads).buffer_unordered(UPLOADS_AT_ONCE);
+    while let Some(result) = uploads.next().await {
+        if let Err(error) = result {
+            drop(uploads);
+            let cancel = format!("{API}/cancel?sessionId={}", accepted.session_id);
+            let _ = request(&inner, &peer, &cancel, json_body(&()), Some(0), Duration::from_secs(3)).await;
+            return report("failed", sent.load(Ordering::Relaxed), total, count, Some(error));
         }
     }
     report("done", total, total, count, None);
@@ -437,7 +459,7 @@ fn file_body(
         let (inner, peer, sent, last_emit) = (inner.clone(), peer.clone(), sent.clone(), last_emit.clone());
         async move {
             let mut f = file?;
-            let mut buf = vec![0u8; 64 * 1024];
+            let mut buf = vec![0u8; READ_SIZE];
             match f.read(&mut buf).await {
                 Ok(0) => None,
                 Ok(n) => {
@@ -462,5 +484,5 @@ fn file_body(
             }
         }
     });
-    StreamBody::new(stream).boxed()
+    BodyExt::boxed(StreamBody::new(stream))
 }

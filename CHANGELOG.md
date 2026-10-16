@@ -16,6 +16,22 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.46.0] - 2026-10-16
+
+### Changed
+- **Pet Post is quicker with big deliveries:** what's received is written to disk half a
+  megabyte at a time (it was one network chunk, ~16 KB, at a time), what's sent is read a
+  megabyte at a time, and two files go at once, as LocalSend does.
+- **Pet Post's progress** says more for big deliveries: the percentage with one decimal
+  from 100 MB and two from 1 GB ("37.42%"), the speed and the time left ("85 MB/s · about
+  2 min left"), sending and receiving.
+- **Windows installer:** installing the same version again (a test build over itself)
+  asks nothing either, as an upgrade doesn't; only going back to an older version asks.
+
+### Changed (development)
+- A speed test of Pet Post (two pets on one computer; `post_speed`, run by hand) and an
+  end-to-end check of reinstalling the same version (install.same-version).
+
 ## [0.45.0] - 2026-10-15
 
 ### Added
