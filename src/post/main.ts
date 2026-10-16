@@ -36,6 +36,21 @@ import {
 import "../styles/panel.css";
 
 const root = document.getElementById("post")!;
+
+/** Material Icons' "verified_user" (a shield with a check), as LocalSend's Verify shows it. */
+const VERIFIED_USER = "M10 17 18 9 16.6 7.6 10 14.2 7.4 11.6 6 13ZM12 1 21 5V11Q21 15.2 18.4 18.6Q15.8 22.1 12 23Q8.2 22.1 5.6 18.6Q3 15.2 3 11V5Z";
+
+/** A small icon (an SVG path in a 24×24 box), in the text's colour. */
+function icon(path: string, css = "ui-icon"): SVGSVGElement {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("class", css);
+  svg.setAttribute("aria-hidden", "true");
+  const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  p.setAttribute("d", path);
+  svg.append(p);
+  return svg;
+}
 let settings: Settings;
 let status: PostStatus | null = null;
 let devices: PostDevice[] = [];
@@ -191,7 +206,7 @@ function deviceRow(d: PostDevice): Node {
         : null,
     ),
     d.https && can
-      ? h("button", { class: "small post-verify", title: t("Verify: compare with what the other device shows"), onclick: (e: Event) => (e.stopPropagation(), verify(d.fingerprint)) }, `🛡 ${t("Verify")}`)
+      ? h("button", { class: "small post-verify", title: t("Verify: compare with what the other device shows"), onclick: (e: Event) => (e.stopPropagation(), verify(d.fingerprint)) }, icon(VERIFIED_USER), t("Verify"))
       : null,
     d.address
       ? h("button", { class: "small post-forget", title: t("Remove"), "aria-label": t("Remove"), onclick: (e: Event) => (e.stopPropagation(), void forget(d)) }, "✕")
@@ -449,7 +464,7 @@ function verifyView(): Node {
   return h(
     "div",
     { class: "post-verify-view" },
-    h("header", { class: "post-head" }, h("h2", {}, `🛡 ${t("Verify")}`), h("p", { class: "hint" }, t("With {name}", { name: d?.alias ?? v.fingerprint.slice(0, 12) }))),
+    h("header", { class: "post-head" }, h("h2", {}, icon(VERIFIED_USER, "ui-icon big"), t("Verify")), h("p", { class: "hint" }, t("With {name}", { name: d?.alias ?? v.fingerprint.slice(0, 12) }))),
     h("div", { class: "row post-verify-modes" }, mode("icons", t("Icons")), mode("text", t("Text"))),
     body,
     h("p", {}, t("Does it look the same on the other device?")),
@@ -495,7 +510,7 @@ function offerCard(): Node | null {
       h("button", { class: "primary post-accept", onclick: () => answer(true) }, t("Accept")),
       h("button", { class: "post-decline", onclick: () => answer(false) }, t("Decline")),
       o.fingerprint && !trusted ? h("button", { class: "post-always", onclick: () => answer(true, true) }, t("Always accept")) : null,
-      o.fingerprint ? h("button", { class: "small post-offer-verify", onclick: () => verify(o.fingerprint) }, `🛡 ${t("Verify")}`) : null,
+      o.fingerprint ? h("button", { class: "small post-offer-verify", onclick: () => verify(o.fingerprint) }, icon(VERIFIED_USER), t("Verify")) : null,
     ),
   );
 }

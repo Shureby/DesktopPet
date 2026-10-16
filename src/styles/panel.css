@@ -1731,3 +1731,24 @@ nav.post-tabs button {
   min-width: 0;
   color: var(--muted);
 }
+.ui-icon {
+  width: 1.15em;
+  height: 1.15em;
+  fill: currentColor;
+  vertical-align: -0.2em;
+  margin-right: 4px;
+}
+.post-verify .ui-icon,
+.post-offer-verify .ui-icon {
+  fill: #3d6293;
+}
+@media (prefers-color-scheme: dark) {
+  .post-verify .ui-icon,
+  .post-offer-verify .ui-icon {
+    fill: #9db8e3;
+  }
+}
+.ui-icon.big {
+  width: 1.3em;
+  height: 1.3em;
+}

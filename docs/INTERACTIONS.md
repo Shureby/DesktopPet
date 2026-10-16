@@ -841,7 +841,7 @@ src-tauri/src/post/, crates/desktoppet-core/src/post.rs).
     neither in silent modes).
   - **In the Pet Post window** (since 0.45.0): it says "📥 Ready to receive: nearby devices
     see this computer as “X”." A delivery is asked about there too, at the top (the same
-    question, the time left, Accept / Decline / Always accept / 🛡 Verify); answered in
+    question, the time left, Accept / Decline / Always accept / Verify); answered in
     either place, it's gone from both. While the window is open (and not minimized) the
     hidden pet doesn't come out for it, and the window's taskbar button flashes (the Dock
     icon bounces) if it's behind others. A delivery coming in shows its progress there
@@ -856,7 +856,7 @@ src-tauri/src/post/, crates/desktoppet-core/src/post.rs).
   devices without asking" is ticked; each can be removed.
 - **PIN** (optional): senders must give it; five wrong PINs from one address lock it out
   for a minute.
-- **Verify** (since 0.45.0): each device in the Pet Post window has 🛡 **Verify**, and the
+- **Verify** (since 0.45.0): each device in the Pet Post window has **Verify** (a shield with a check, LocalSend's icon), and the
   pet's question about a delivery has **Verify…** (the question stays up meanwhile). It
   shows the same 16 icons (or, under **Text**, the same characters) as LocalSend's Verify
   for these two devices: both fingerprints sorted and joined, the first 128 bits of its
