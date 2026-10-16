@@ -246,6 +246,26 @@ check("post.send", "the Pet Post window lists the device; a file and a text reac
   await app.waitText(".post-progress", "Delivered to Mock Phone!");
 });
 
+check("post.tabs", "the Pet Post window's tabs: opened on the one asked for (Send from the pet), else the one left last", async () => {
+  const app = ctx.app;
+  const active = () => app.until(() => document.querySelector(".post-tab.active")?.dataset.tab);
+  await app.toPet();
+  await app.invoke("open_post_window", { verify: null, tab: "history" });
+  await app.toWindow("post.html");
+  assert.equal(await active(), "history");
+  await app.toPet();
+  await app.invoke("open_post_window", { verify: null, tab: "send" });
+  await app.toWindow("post.html");
+  await app.until(() => document.querySelector(".post-tab.active")?.dataset.tab === "send");
+  // Closed and opened again: where it was left.
+  await app.closeWindow("post");
+  await app.invoke("open_post_window", { verify: null, tab: null });
+  await app.toWindow("post.html");
+  assert.equal(await active(), "send");
+  await app.click('.post-tab[data-tab="receive"]');
+  assert.equal(await active(), "receive");
+});
+
 check("post.own-address", "the Pet Post window shows this computer's addresses and port, to add it by address elsewhere", async () => {
   const app = ctx.app;
   const status = await app.invoke("post_status");
