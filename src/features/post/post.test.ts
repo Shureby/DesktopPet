@@ -152,6 +152,7 @@ const dev = (p: Partial<PostDevice>): PostDevice => ({
   online: true,
   changedTo: null,
   cameIn: true,
+  sharing: false,
   ...p,
 });
 

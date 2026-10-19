@@ -185,6 +185,18 @@ const zhTW: Dictionary = {
     Work: "工作",
     Quiet: "安靜",
     "{pet} on {computer}": "{computer}的{pet}",
+    "Wrong PIN.": "PIN 不對。",
+    "{who} didn't allow it (or didn't answer in time).":
+      "{who} 沒有允許（或者沒及時回應）。",
+    "{who} isn't sharing anything now.": "{who} 現在沒有在分享。",
+    "Too many tries: wait a minute.": "試了太多次：等一分鐘再試。",
+    "{who} is blocked (Settings → Pet Post).":
+      "{who} 已被封鎖（設定 → 寵物驛站）。",
+    "That isn't a link LocalSend shows (like http://192.168.1.20:53317).":
+      "這不是 LocalSend 顯示的那種位址（類似 http://192.168.1.20:53317）。",
+    "Couldn't reach {who}.": "連不上 {who}。",
+    "Pet Post is off.": "寵物驛站已關閉。",
+    "Getting what {who} shares didn't work.": "沒能取到 {who} 分享的檔案。",
     "{n} bytes": "{n} 位元組",
     "1 file": "1 個檔案",
     "{n} files": "{n} 個檔案",
@@ -220,7 +232,6 @@ const zhTW: Dictionary = {
     "That device isn't answering.": "那台裝置沒有回應。",
     "I'm still delivering something else.": "我還在送別的東西呢。",
     "That device is gone.": "那台裝置不見了。",
-    "Pet Post is off.": "寵物驛站已關閉。",
     "No device by that name. Check the address.":
       "找不到這個名稱的裝置，請檢查位址。",
     "Something answers there, but not LocalSend or ePet.":
@@ -802,6 +813,8 @@ const zhTW: Dictionary = {
     "{who}: “{text}”": "{who}：「{text}」",
     "💬 {who} says:": "💬 {who} 說：",
     Copy: "複製",
+    "📤 {who} is sharing files with you.": "📤 {who} 正在分享檔案。",
+    "See them": "去看看",
     "{who} wants to verify with you.": "{who} 想和你核對。",
     Show: "查看",
     "Add to-do…": "新增待辦…",
@@ -878,6 +891,23 @@ const zhTW: Dictionary = {
     Latest: "最近收到",
     "Nothing received yet.": "還沒有收到過東西。",
     "All of it: 🕘 History": "查看全部（🕘 記錄）",
+    "Something is being received now: try again when it's in.":
+      "現在正在接收別的東西：收完再試。",
+    "{who} is sharing files with you": "{who} 正在分享檔案",
+    "See what's shared": "看看分享了什麼",
+    "Get files from a link": "從連結取檔案",
+    "In LocalSend on the other device: choose the files, then ⚙ by Nearby devices → Share via link, and type the address it shows here:":
+      "在另一台裝置的 LocalSend 裡：選好檔案，按 Nearby devices 旁的 ⚙ → Share via link，把它顯示的位址填在這裡：",
+    "Get files": "取檔案",
+    "Get files from a link…": "從連結取檔案…",
+    "Asking {who}… If it asks, allow it there.":
+      "正在問 {who}…如果它那邊跳出請求，請在它上面按允許。",
+    "{who} wants a PIN.": "{who} 要求輸入 PIN。",
+    "Try again": "再試一次",
+    Close: "關閉",
+    "Not encrypted (plain HTTP): fine at home, not on a public network.":
+      "未加密（一般 HTTP）：在家裡沒問題，公共網路上別用。",
+    "Get {files}": "取 {files}",
     "Some devices may not get through": "有些裝置可能傳不進來",
     "This computer is behind another router ({net}.x). {names} can see it, but what they send may be stopped by that router.":
       "這台電腦在另一個路由器後面（{net}.x）。{names} 看得到它，但傳來的東西可能會被那個路由器擋住。",
@@ -899,7 +929,6 @@ const zhTW: Dictionary = {
     "Connecting…": "連線中…",
     "Also check the firewall: on Windows, ePet must be allowed on that network's type (Tailscale's is often Public). Windows Security → Firewall & network protection → Allow an app.":
       "也請檢查防火牆：在 Windows 上，ePet 需要在該網路類型上被允許（Tailscale 的網路常被當作「公用」）。Windows 安全性 → 防火牆與網路保護 → 允許應用程式通過防火牆。",
-    Close: "關閉",
     "Working it out…": "計算中…",
     "With {name}": "與 {name}",
     Icons: "圖示",

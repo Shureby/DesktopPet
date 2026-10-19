@@ -1635,6 +1635,30 @@ button.danger {
   width: 15px;
   height: 15px;
 }
+.post-share {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.post-share-title {
+  margin: 0 0 6px;
+  font-weight: 700;
+}
+.post-share-files {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 8px;
+  max-height: 180px;
+  overflow: auto;
+}
+.post-share-files label {
+  gap: 8px;
+  padding: 2px 0;
+  font-size: 13px;
+}
+.post-share-link .row input[type="text"] {
+  flex: 1;
+  min-width: 0;
+}
 .post-one-way {
   border-color: #e2b04a;
   background: #fff6e5;

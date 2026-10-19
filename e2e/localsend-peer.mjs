@@ -48,6 +48,13 @@ export class Peer {
   verifyAnswer = "shown";
   /** As an ePet, what its user decides after comparing ("match" | "mismatch"; null: nothing yet). */
   verifyResult = null;
+  /**
+   * Files it shares by link (LocalSend's Share via link: { name: Buffer|string }), with
+   * `pin` (asked) and `answer` ("accept" | "decline": its user's answer); null: not sharing.
+   */
+  share = null;
+  /** prepare-download requests that came (its "Requests" list). */
+  shareAsks = 0;
   /** How it answers prepare-upload: "accept" | "decline". */
   answer = "accept";
 
@@ -59,7 +66,7 @@ export class Peer {
   }
 
   info(withAddress = true) {
-    const base = { alias: this.alias, version: "2.1", deviceModel: "Mock", deviceType: "mobile", fingerprint: this.fingerprint, download: false };
+    const base = { alias: this.alias, version: "2.1", deviceModel: "Mock", deviceType: "mobile", fingerprint: this.fingerprint, download: !!this.share };
     return withAddress ? { ...base, port: this.port, protocol: "https" } : base;
   }
 
@@ -115,6 +122,27 @@ export class Peer {
       }
       case `${API}/cancel`:
         return json(200);
+      case `${API}/prepare-download`: {
+        if (!this.share) return json(403);
+        this.shareAsks++;
+        if (this.share.pin && url.searchParams.get("pin") !== this.share.pin) return json(401);
+        if (this.share.answer === "decline") return json(403);
+        const files = Object.fromEntries(
+          Object.entries(this.share.files).map(([name, data], i) => {
+            const buf = Buffer.from(data);
+            const sha256 = createHash("sha256").update(buf).digest("hex");
+            return [`s${i}`, { id: `s${i}`, fileName: name, size: buf.length, fileType: "application/octet-stream", sha256 }];
+          }),
+        );
+        return json(200, { info: this.info(false), sessionId: "share1", files });
+      }
+      case `${API}/download`: {
+        const i = Number(String(url.searchParams.get("fileId")).slice(1));
+        const entry = this.share && url.searchParams.get("sessionId") === "share1" ? Object.values(this.share.files)[i] : undefined;
+        if (entry === undefined) return json(403);
+        res.writeHead(200, { "content-type": "application/octet-stream" });
+        return res.end(Buffer.from(entry));
+      }
       case VERIFY_ASK:
         if (!this.epet) return json(404);
         this.verifyAsks.push(JSON.parse(body.toString()));

@@ -37,6 +37,9 @@ import {
   namesLine,
   recentSenders,
   oneWay,
+  shareError,
+  isBlocked,
+  type PostShareList,
   verifiedMark,
   withBlocked,
   withVerified,
@@ -95,6 +98,24 @@ let transfer: PostTransfer | null = null;
 let offer: PostOffer | null = null;
 /** A delivery coming in. */
 let incoming: PostTransfer | null = null;
+/** What a device shares by link, being looked at (by fingerprint, or "link"). */
+let share: {
+  key: string;
+  alias: string;
+  target: { fingerprint?: string; link?: string };
+  state: "asking" | "pin" | "list" | "error";
+  list: PostShareList | null;
+  chosen: Set<string>;
+  error: string;
+  pin: string;
+} | null = null;
+/** Sharing devices told "Not now" (until they stop sharing). */
+const shareDismissed = new Set<string>();
+/** The delivery coming in is fetched from a share (Stop fetching, not Stop receiving). */
+let fetchingShare = false;
+/** "Get files from a link…" open, and what's typed. */
+let linkOpen = false;
+let linkText = "";
 /** How fast what's coming in, and what this window sends, goes. */
 const inRate = new Rate();
 const outRate = new Rate();
@@ -522,6 +543,7 @@ function receiveTab(): Node[] {
   const latest = history[0];
   return ([
     ...(cards.length ? cards : [ready]),
+    ...shareCards(),
     oneWayCard(),
     ...[addressPicker()].filter((n): n is Node => n !== null),
     saveDirLine(),
@@ -530,6 +552,156 @@ function receiveTab(): Node[] {
     history.length > 1 ? h("p", { class: "hint" }, h("a", { href: "#", class: "post-to-history", onclick: (e: Event) => (e.preventDefault(), show("history")) }, t("All of it: 🕘 History"))) : null,
     recentList(),
   ] as (Node | null)[]).filter((n): n is Node => n !== null);
+}
+
+/** Asks what a device shares (its user may be asked first, or a PIN). */
+async function openShare(key: string, alias: string, target: { fingerprint?: string; link?: string }, pin: string | null = null): Promise<void> {
+  const s: NonNullable<typeof share> = { key, alias, target, state: "asking", list: null, chosen: new Set(), error: "", pin: "" };
+  share = s;
+  render();
+  try {
+    const list = await backend.postShareOpen(target, pin);
+    if (share !== s) return;
+    s.list = list;
+    s.alias = list.alias || alias;
+    s.chosen = new Set(list.files.map((f) => f.id));
+    s.state = "list";
+  } catch (e) {
+    if (share !== s) return;
+    const code = String(e);
+    if (code === "pin") {
+      s.state = "pin";
+      s.error = pin ? shareError("pin", alias) : "";
+    } else {
+      s.state = "error";
+      s.error = shareError(code, alias);
+    }
+  }
+  render();
+}
+
+async function getShared(s: NonNullable<typeof share>): Promise<void> {
+  try {
+    fetchingShare = true;
+    await backend.postShareGet([...s.chosen]);
+    share = null;
+    linkOpen = false;
+    linkText = "";
+  } catch (e) {
+    fetchingShare = false;
+    s.state = "error";
+    s.error = String(e) === "busy" ? t("Something is being received now: try again when it's in.") : shareError(String(e), s.alias);
+  }
+  render();
+}
+
+/** Receive: devices sharing files by link (LocalSend's Share via link), and what one shares. */
+function shareCards(): Node[] {
+  const out: Node[] = [];
+  const sharing = devices.filter((d) => d.sharing && !isBlocked(settings.post, d.fingerprint) && !shareDismissed.has(d.fingerprint) && share?.key !== d.fingerprint);
+  for (const d of sharing) {
+    out.push(
+      h(
+        "div",
+        { class: "box post-share" },
+        h("p", { class: "post-share-title" }, "📤 ", ...named(t("{who} is sharing files with you", { who: NAME }), d.alias, d.fingerprint)),
+        h(
+          "div",
+          { class: "row" },
+          h("button", { class: "primary post-share-open", onclick: () => void openShare(d.fingerprint, d.alias, { fingerprint: d.fingerprint }) }, t("See what's shared")),
+          h("button", { class: "post-share-not-now", onclick: () => (shareDismissed.add(d.fingerprint), render()) }, t("Not now")),
+        ),
+      ),
+    );
+  }
+  const s = share;
+  if (s) out.push(shareCard(s));
+  if (!s) {
+    out.push(
+      linkOpen
+        ? h(
+            "div",
+            { class: "box post-share-link" },
+            h("p", { class: "post-share-title" }, `🔗 ${t("Get files from a link")}`),
+            h("p", { class: "hint" }, t("In LocalSend on the other device: choose the files, then ⚙ by Nearby devices → Share via link, and type the address it shows here:")),
+            h(
+              "div",
+              { class: "row" },
+              (() => {
+                const input = h("input", { type: "text", class: "post-share-link-input", placeholder: "http://192.168.1.20:53317", value: linkText }) as HTMLInputElement;
+                input.addEventListener("input", () => (linkText = input.value));
+                input.addEventListener("keydown", (e) => e.key === "Enter" && linkText.trim() && void openShare("link", linkText.trim(), { link: linkText.trim() }));
+                return input;
+              })(),
+              h("button", { class: "primary post-share-link-go", onclick: () => linkText.trim() && void openShare("link", linkText.trim(), { link: linkText.trim() }) }, t("Get files")),
+              h("button", { class: "small", onclick: () => ((linkOpen = false), render()) }, "✕"),
+            ),
+          )
+        : h("p", { class: "row" }, h("button", { class: "small post-share-link-open", onclick: () => ((linkOpen = true), render()) }, `🔗 ${t("Get files from a link…")}`)),
+    );
+  }
+  return out;
+}
+
+function shareCard(s: NonNullable<typeof share>): Node {
+  const close = () => ((share = null), render());
+  const fp = s.list?.fingerprint ?? s.target.fingerprint ?? "";
+  const title = h("p", { class: "post-share-title" }, "📤 ", ...named(t("{who} is sharing files with you", { who: NAME }), s.alias, fp));
+  if (s.state === "asking") {
+    return h(
+      "div",
+      { class: "box post-share" },
+      title,
+      h("p", { class: "hint post-share-asking" }, t("Asking {who}… If it asks, allow it there.", { who: s.alias })),
+      h("button", { class: "small", onclick: close }, t("Cancel")),
+    );
+  }
+  if (s.state === "pin") {
+    const input = h("input", { type: "text", class: "post-share-pin", placeholder: t("PIN"), autocomplete: "off", value: s.pin }) as HTMLInputElement;
+    input.addEventListener("input", () => (s.pin = input.value));
+    const go = () => input.value.trim() && void openShare(s.key, s.alias, s.target, input.value.trim());
+    input.addEventListener("keydown", (e) => e.key === "Enter" && go());
+    return h(
+      "div",
+      { class: "box post-share" },
+      title,
+      h("p", {}, t("{who} wants a PIN.", { who: s.alias })),
+      s.error ? h("p", { class: "warning" }, s.error) : null,
+      h("div", { class: "row" }, input, h("button", { class: "primary post-share-pin-go", onclick: go }, t("OK")), h("button", { onclick: close }, t("Cancel"))),
+    );
+  }
+  if (s.state === "error" || !s.list) {
+    return h(
+      "div",
+      { class: "box post-share" },
+      title,
+      h("p", { class: "warning post-share-error" }, s.error),
+      h("div", { class: "row" }, h("button", { class: "post-share-retry", onclick: () => void openShare(s.key, s.alias, s.target) }, t("Try again")), h("button", { onclick: close }, t("Close"))),
+    );
+  }
+  const list = s.list;
+  const n = s.chosen.size;
+  return h(
+    "div",
+    { class: "box post-share" },
+    title,
+    list.https ? null : h("p", { class: "hint post-share-plain" }, t("Not encrypted (plain HTTP): fine at home, not on a public network.")),
+    h(
+      "ul",
+      { class: "post-share-files" },
+      ...list.files.map((f) => {
+        const box = h("input", { type: "checkbox", checked: s.chosen.has(f.id) }) as HTMLInputElement;
+        box.addEventListener("change", () => (box.checked ? s.chosen.add(f.id) : s.chosen.delete(f.id), render()));
+        return h("li", {}, h("label", { class: "row" }, box, h("span", { class: "grow" }, f.fileName), h("span", { class: "hint" }, formatSize(f.size))));
+      }),
+    ),
+    h(
+      "div",
+      { class: "row" },
+      h("button", { class: "primary post-share-get", disabled: !n, onclick: () => void getShared(s) }, t("Get {files}", { files: fileCount(n) })),
+      h("button", { class: "post-share-close", onclick: close }, t("Not now")),
+    ),
+  );
 }
 
 /** Devices told about "may not get through" ("Got it"): not told again (this window's storage). */
@@ -826,7 +998,7 @@ function incomingCard(): Node | null {
     rows.push(
       h("progress", { max: 1000, value: Math.floor((tr.done / Math.max(1, tr.total)) * 1000) }),
       h("p", { class: "hint post-rate" }, [`${formatSize(tr.done)} / ${formatSize(tr.total)} · ${fileCount(tr.files)}`, inRate.line(tr)].filter(Boolean).join(" · ")),
-      h("button", { class: "post-stop-receiving", onclick: () => void backend.postStopReceiving() }, t("Stop receiving")),
+      h("button", { class: "post-stop-receiving", onclick: () => void (fetchingShare ? backend.postShareCancel() : backend.postStopReceiving()) }, t("Stop receiving")),
     );
   }
   return h("div", { class: "box post-incoming" }, ...rows);
@@ -1027,6 +1199,7 @@ async function main(): Promise<void> {
   });
   await backend.on("post-devices", (d) => {
     devices = d;
+    for (const fp of [...shareDismissed]) if (!d.some((x) => x.fingerprint === fp && x.sharing)) shareDismissed.delete(fp);
     // (Typing meanwhile: the cursor is put back, see remember().)
     render();
   });
@@ -1053,6 +1226,7 @@ async function main(): Promise<void> {
       inRate.push(tr.done);
       incoming = tr;
       render();
+      if (transferOver(tr)) fetchingShare = false;
       // Done or stopped: said for a moment, then the card goes.
       if (transferOver(tr)) setTimeout(() => incoming === tr && ((incoming = null), render()), 6000);
       return;

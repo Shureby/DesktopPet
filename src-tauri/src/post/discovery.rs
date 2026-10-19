@@ -168,6 +168,11 @@ pub async fn resolve(address: &str, port: u16) -> Option<IpAddr> {
 /// address of this network (a /24 at most) in case multicast doesn't get through.
 /// Meanwhile, asks the devices added by address, the extra networks and the tailnet.
 pub fn refresh(inner: Arc<Inner>) {
+    refresh_with(inner, Vec::new());
+}
+
+/// As `refresh`, also asking these devices (dropped from the list as not heard from lately).
+pub fn refresh_with(inner: Arc<Inner>, stale: Vec<Device>) {
     tauri::async_runtime::spawn(async move {
         let announce_then_scan = async {
             for wait in [100, 400, 1500] {
@@ -185,8 +190,79 @@ pub fn refresh(inner: Arc<Inner>) {
                 SCANNING_NETWORKS.store(false, Ordering::SeqCst);
             }
         };
-        tokio::join!(announce_then_scan, ask_saved(&inner), networks, ask_tailnet(&inner));
+        tokio::join!(announce_then_scan, ask_saved(&inner), networks, ask_tailnet(&inner), ask_listed(&inner, stale));
     });
+}
+
+/// How often the devices listed are asked again (whether they share files by link now).
+const WATCH_MS: u64 = 20_000;
+
+/// Asks the devices listed again every little while: LocalSend's Share via link shows in
+/// its answer (`download`), and a device behind another router can't tell us by multicast.
+pub fn watch(inner: Arc<Inner>, mut stop: watch::Receiver<bool>) {
+    let every = std::env::var("EPET_POST_WATCH_MS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .filter(|_| crate::commands::e2e_enabled())
+        .unwrap_or(WATCH_MS);
+    tauri::async_runtime::spawn(async move {
+        loop {
+            tokio::select! {
+                _ = tokio::time::sleep(Duration::from_millis(every)) => {}
+                _ = stop.changed() => return,
+            }
+            if *stop.borrow() {
+                return;
+            }
+            ask_listed(&inner, Vec::new()).await;
+        }
+    });
+}
+
+/// Asks each device listed who it is now: whether it shares files by
+/// link, and, when its server came back as plain HTTP for that (LocalSend's Share via link
+/// without encryption), lists it so.
+pub(crate) async fn ask_listed(inner: &Arc<Inner>, stale: Vec<Device>) {
+    let mut listed: Vec<Device> =
+        lock(&inner.devices).values().filter(|d| d.online && !d.ip.is_unspecified()).cloned().collect();
+    listed.extend(stale.into_iter().filter(|d| d.online && !d.ip.is_unspecified() && d.address.is_none()));
+    let asks = listed.into_iter().map(|d| {
+        let inner = inner.clone();
+        async move {
+            let expected = d.https.then(|| d.fingerprint.clone());
+            let mut found = client::register(&inner, d.ip, d.port, d.https, expected).await;
+            if found.is_none() && d.https {
+                found = client::register(&inner, d.ip, d.port, false, None).await;
+            }
+            match found {
+                Some(mut f) if f.fingerprint == d.fingerprint => {
+                    if lock(&inner.devices).contains_key(&d.fingerprint) {
+                        let sharing = f.sharing;
+                        inner.update_device(&d.fingerprint, |x| {
+                            x.sharing = sharing;
+                            x.last_seen = crate::state::now_ms();
+                        });
+                    } else {
+                        // Dropped as not heard from lately, but still there.
+                        f.source = d.source;
+                        f.came_in = d.came_in;
+                        inner.add_device(f);
+                    }
+                }
+                Some(mut other) => {
+                    other.source = d.source;
+                    other.address = d.address.clone();
+                    if d.sharing {
+                        inner.update_device(&d.fingerprint, |x| x.sharing = false);
+                    }
+                    inner.add_device(other);
+                }
+                None if d.sharing => inner.update_device(&d.fingerprint, |x| x.sharing = false),
+                None => {}
+            }
+        }
+    });
+    futures_util::future::join_all(asks).await;
 }
 
 /// Asks each device added by address whether it's there, and still itself.

@@ -584,6 +584,95 @@ check("post.recent-senders", "Receive → Recent senders lists who sent somethin
   await app.click(".post-verify-done");
 });
 
+/** Waits until the app sees Mock Phone sharing (or not), asking again meanwhile. */
+const sharingSeen = (on) => lookUntil(on ? "seen sharing" : "seen not sharing", async () => (await listed())?.sharing === on);
+
+check("post.share", "a device sharing files by link (LocalSend's Share via link): the pet says so; Receive lists them; the ones chosen are fetched", async () => {
+  const app = ctx.app;
+  peer.share = { files: { "shared-photo.jpg": "JPEG!", "shared-notes.txt": "notes" }, answer: "accept" };
+  try {
+    await app.closeWindow("post");
+    await app.toPet();
+    await sharingSeen(true);
+    await app.waitBubble("📤 Mock Phone is sharing files with you.");
+    await app.answer("See them");
+    await app.toWindow("post.html");
+    await app.waitText(".post-share", "Mock Phone is sharing files with you");
+    // Nothing asked of the phone until "See what's shared".
+    assert.equal(peer.shareAsks, 0);
+    await app.click(".post-share-open");
+    await app.until(() => document.querySelectorAll(".post-share-files li").length === 2);
+    // Only the photo.
+    await app.b.execute(() => {
+      const li = [...document.querySelectorAll(".post-share-files li")].find((e) => e.textContent.includes("shared-notes.txt"));
+      li.querySelector("input").click();
+    });
+    await app.waitText(".post-share-get", "1 file");
+    await app.click(".post-share-get");
+    await until("fetched", () => existsSync(join(inbox, "shared-photo.jpg")));
+    assert.equal(readFileSync(join(inbox, "shared-photo.jpg"), "utf8"), "JPEG!");
+    assert.equal(existsSync(join(inbox, "shared-notes.txt")), false);
+    await until("kept in what was received", async () => (await app.invoke("post_history"))[0]?.paths?.some((p) => p.endsWith("shared-photo.jpg")));
+  } finally {
+    peer.share = null;
+  }
+  await sharingSeen(false);
+});
+
+check("post.share-pin", "a share with a PIN: asked for it; a wrong one is said so", async () => {
+  const app = ctx.app;
+  peer.share = { files: { "pin-file.txt": "pin" }, pin: "4321", answer: "accept" };
+  try {
+    await sharingSeen(true);
+    await postTab("receive");
+    await app.click(".post-share-open");
+    await app.until(() => document.querySelector(".post-share-pin"));
+    await app.type(".post-share-pin", "1111");
+    await app.click(".post-share-pin-go");
+    await app.waitText(".post-share", "Wrong PIN.");
+    await app.type(".post-share-pin", "4321");
+    await app.click(".post-share-pin-go");
+    await app.until(() => document.querySelectorAll(".post-share-files li").length === 1);
+    await app.click(".post-share-close");
+  } finally {
+    peer.share = null;
+  }
+  await sharingSeen(false);
+});
+
+check("post.share-declined", "a share whose user doesn't allow it: said so", async () => {
+  const app = ctx.app;
+  peer.share = { files: { "no.txt": "no" }, answer: "decline" };
+  try {
+    await sharingSeen(true);
+    await postTab("receive");
+    await app.click(".post-share-open");
+    await app.waitText(".post-share-error", "Mock Phone didn't allow it");
+    await app.b.execute(() => [...document.querySelectorAll(".post-share button")].find((b) => b.textContent === "Close").click());
+  } finally {
+    peer.share = null;
+  }
+  await sharingSeen(false);
+});
+
+check("post.share-link", "Get files from a link: the address LocalSend shows is typed, and its files fetched", async () => {
+  const app = ctx.app;
+  peer.share = { files: { "from-link.txt": "linked" }, answer: "accept" };
+  try {
+    await postTab("receive");
+    await app.click(".post-share-link-open");
+    await app.type(".post-share-link-input", "https://127.0.0.1:53318");
+    await app.click(".post-share-link-go");
+    await app.until(() => document.querySelectorAll(".post-share-files li").length === 1);
+    await app.click(".post-share-get");
+    await until("fetched from the link", () => existsSync(join(inbox, "from-link.txt")));
+    assert.equal(readFileSync(join(inbox, "from-link.txt"), "utf8"), "linked");
+  } finally {
+    peer.share = null;
+  }
+  await sharingSeen(false);
+});
+
 check("post.networks", "an extra network in Settings → Pet Post is looked in too", async () => {
   const app = ctx.app;
   await app.setSettings((s) => ({ ...s, post: { ...s.post, networks: ["127.0.0.1/32"] } }));

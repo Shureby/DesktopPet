@@ -21,6 +21,7 @@ import {
   type PostReceived,
   type PostVerify,
   type PostVerifyAnswer,
+  type PostShareList,
 } from "../features/post/post";
 
 export interface PomodoroConfig {
@@ -658,6 +659,15 @@ export interface Backend {
   postVerifyResult(fingerprint: string): Promise<string | null>;
   /** The clipboard's text (read by the app: the Mac asks "Paste" first when a page does). */
   postClipboardText(): Promise<string>;
+  /**
+   * What a device shares by link (listed: by fingerprint; or at a link): its user may be
+   * asked first. Errors: see shareError.
+   */
+  postShareOpen(target: { fingerprint?: string | null; link?: string | null }, pin?: string | null): Promise<PostShareList>;
+  /** Fetches the files chosen from what was asked for last ("post-transfer", direction in). */
+  postShareGet(ids: string[]): Promise<void>;
+  /** Stops fetching. */
+  postShareCancel(): Promise<void>;
   /** Sends files and folders, or a text, to a device (by fingerprint). */
   postSend(to: string, paths: string[], text?: string | null, pin?: string | null): Promise<void>;
   postCancelSend(): Promise<void>;

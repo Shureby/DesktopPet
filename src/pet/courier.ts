@@ -8,6 +8,7 @@ import type { Backend, Settings } from "../platform";
 import {
   DEVICE_ICONS,
   markedName,
+  isBlocked,
   sendable,
   sendError,
   withFavorite,
@@ -88,7 +89,10 @@ export class Courier {
   async start(): Promise<void> {
     const b = this.host.backend;
     await b.on("post-status", (s) => (this.status = s));
-    await b.on("post-devices", (d) => (this.devices = d));
+    await b.on("post-devices", (d) => {
+      this.devices = d;
+      void this.onSharing(d);
+    });
     await b.on("post-offer", (o) => void this.onOffer(o));
     await b.on("post-offer-closed", (c) => this.onClosed(c.id, c.reason));
     await b.on("post-text", (m) => void this.onText(m));
@@ -272,6 +276,34 @@ export class Courier {
     this.host.say([t("💬 {who} says:", { who: m.alias }), short], 60_000, [
       { label: t("Copy"), run: () => copyText(m.text) },
       { label: t("OK"), run: () => {} },
+    ], undefined, true);
+    this.host.chime();
+  }
+
+  /** Devices sharing files by link already told about (until they stop sharing). */
+  private sharingTold = new Set<string>();
+
+  /**
+   * A device started sharing files by link (LocalSend's Share via link): the pet says so,
+   * and See them opens Pet Post where they're listed. (The window open: it shows them.)
+   */
+  private async onSharing(list: PostDevice[]): Promise<void> {
+    for (const fp of [...this.sharingTold]) if (!list.some((d) => d.fingerprint === fp && d.sharing)) this.sharingTold.delete(fp);
+    const s = this.host.settings();
+    const fresh = list.filter((d) => d.sharing && !this.sharingTold.has(d.fingerprint) && !isBlocked(s.post, d.fingerprint));
+    if (!fresh.length) return;
+    for (const d of fresh) this.sharingTold.add(d.fingerprint);
+    const b = this.host.backend;
+    if (await b.postWindowShown().catch(() => false)) {
+      void b.postAttention();
+      return;
+    }
+    if (this.host.away() || (this.host.hidden() && this.host.quiet()) || !this.host.free()) return;
+    if (this.host.hidden()) await this.host.comeOut();
+    const d = fresh[0];
+    this.host.say(t("📤 {who} is sharing files with you.", { who: markedName(s.post, d.alias, d.fingerprint) }), 30_000, [
+      { label: t("See them"), run: () => void b.openPostWindow(null, "receive") },
+      { label: t("Not now"), run: () => {} },
     ], undefined, true);
     this.host.chime();
   }

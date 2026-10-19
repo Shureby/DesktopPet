@@ -72,7 +72,7 @@ pub(crate) struct Peer {
 }
 
 impl Peer {
-    fn of(d: &Device) -> Self {
+    pub(crate) fn of(d: &Device) -> Self {
         Peer { ip: d.ip, port: d.port, https: d.https, expected: d.https.then(|| d.fingerprint.clone()) }
     }
 }
@@ -136,8 +136,57 @@ where
     let req = req.body(body).map_err(|e| e.to_string())?;
     let res = sender.send_request(req).await.map_err(|e| e.to_string())?;
     let status = res.status().as_u16();
-    let body = Limited::new(res.into_body(), 1024 * 1024).collect().await.map(|b| b.to_bytes()).unwrap_or_default();
+    // (A list of shared files may carry small previews.)
+    let body =
+        Limited::new(res.into_body(), 16 * 1024 * 1024).collect().await.map(|b| b.to_bytes()).unwrap_or_default();
     Ok(Reply { status, body, cert })
+}
+
+/// A GET whose body is read as it comes (a shared file: `share.rs`). Also the server
+/// certificate's fingerprint (HTTPS).
+pub(crate) async fn get_stream(
+    inner: &Inner,
+    peer: &Peer,
+    path: &str,
+) -> Result<(hyper::Response<hyper::body::Incoming>, Option<String>), String> {
+    let (ip, port) = (peer.ip, peer.port);
+    let stream = tokio::time::timeout(Duration::from_secs(5), TcpStream::connect((ip, port)))
+        .await
+        .map_err(|_| format!("{UNREACHABLE}: timeout"))?
+        .map_err(|e| format!("{UNREACHABLE}: {e}"))?;
+    let host = match ip {
+        IpAddr::V6(v6) => format!("[{v6}]:{port}"),
+        v4 => format!("{v4}:{port}"),
+    };
+    let req = Request::builder()
+        .method(Method::GET)
+        .uri(path)
+        .header(hyper::header::HOST, host)
+        .body(Full::new(Bytes::new()).map_err(|never| match never {}).boxed())
+        .map_err(|e| e.to_string())?;
+    async fn send<S>(io: TokioIo<S>, req: Request<ReqBody>) -> Result<hyper::Response<hyper::body::Incoming>, String>
+    where
+        S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+    {
+        let (mut sender, conn) = hyper::client::conn::http1::handshake(io).await.map_err(|e| e.to_string())?;
+        tauri::async_runtime::spawn(async move {
+            let _ = conn.await;
+        });
+        sender.send_request(req).await.map_err(|e| e.to_string())
+    }
+    if !peer.https {
+        return Ok((send(TokioIo::new(stream), req).await?, None));
+    }
+    let id = inner.identity().ok_or("Pet Post is off")?;
+    let seen = tls::SeenCert::default();
+    let config = tls::client_config(&id, peer.expected.clone(), seen.clone())?;
+    let name = rustls::pki_types::ServerName::IpAddress(ip.into());
+    let tls = tokio::time::timeout(Duration::from_secs(10), TlsConnector::from(Arc::new(config)).connect(name, stream))
+        .await
+        .map_err(|_| "timeout".to_string())?
+        .map_err(|e| e.to_string())?;
+    let cert = lock(&seen).clone();
+    Ok((send(TokioIo::new(tls), req).await?, cert))
 }
 
 /// How a request's error starts when nothing answered at that address and port.
@@ -370,7 +419,7 @@ pub(crate) fn cancel(inner: Arc<Inner>) {
     });
 }
 
-fn pin_query(pin: &Option<String>) -> String {
+pub(crate) fn pin_query(pin: &Option<String>) -> String {
     match pin.as_deref().filter(|p| !p.is_empty()) {
         Some(p) => format!(
             "?pin={}",

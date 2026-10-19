@@ -134,9 +134,10 @@ function mutate<T>(fn: (s: MockState) => T): T {
 
 let postEnabled = false;
 let mockSending: ReturnType<typeof setInterval> | undefined;
-const found = { source: "lan" as const, reached: true, address: null, online: true, changedTo: null, lastSeen: 0, https: true, port: 53317, cameIn: true };
+const found = { source: "lan" as const, reached: true, address: null, online: true, changedTo: null, lastSeen: 0, https: true, port: 53317, cameIn: true, sharing: false };
 const MOCK_DEVICES: PostDevice[] = [
-  { ...found, fingerprint: "A1", alias: "Pixel 8", deviceModel: "Google", deviceType: "mobile", ip: "192.168.1.20" },
+  // ?sharing: the phone shares files by link.
+  { ...found, fingerprint: "A1", alias: "Pixel 8", deviceModel: "Google", deviceType: "mobile", ip: "192.168.1.20", sharing: new URLSearchParams(location.search).has("sharing") },
   { ...found, fingerprint: "B2", alias: "Mum's MacBook", deviceModel: "macOS", deviceType: "desktop", ip: "192.168.1.31", cameIn: false },
   { ...found, fingerprint: "C3", alias: "Work laptop", deviceModel: "Windows", deviceType: "desktop", ip: "100.101.2.3", source: "tailnet" },
 ];
@@ -778,6 +779,36 @@ export const mockBackend: Backend = {
     return q.has("verify-declined") ? "declined" : "shown";
   },
   async postVerifyAnswer() {},
+  async postShareOpen(target, pin) {
+    const q = new URLSearchParams(location.search);
+    await new Promise((r) => setTimeout(r, 1200));
+    // ?share-pin: it wants PIN 1234.
+    if (q.has("share-pin") && pin !== "1234") throw "pin";
+    const alias = target.link ? "Phone at the link" : (mockDevices().find((d) => d.fingerprint === target.fingerprint)?.alias ?? "?");
+    return {
+      alias,
+      fingerprint: target.link ? "" : (target.fingerprint ?? ""),
+      https: !target.link,
+      files: [
+        { id: "a", fileName: "IMG_2041.jpg", size: 1_900_000, fileType: "image/jpeg" },
+        { id: "b", fileName: "IMG_2042.jpg", size: 2_100_000, fileType: "image/jpeg" },
+        { id: "c", fileName: "notes.pdf", size: 200_000, fileType: "application/pdf" },
+      ],
+    };
+  },
+  async postShareGet(ids) {
+    const base = { direction: "in" as const, peer: "Pixel 8", fingerprint: "A1", files: ids.length, total: ids.length * 2_000_000, folder: "Downloads/ePet", first: null, error: null };
+    let done = 0;
+    clearInterval(mockSending);
+    mockSending = setInterval(() => {
+      done = Math.min(base.total, done + base.total / 6);
+      fire("post-transfer", { ...base, state: done < base.total ? "receiving" : "done", done });
+      if (done >= base.total) clearInterval(mockSending);
+    }, 400);
+  },
+  async postShareCancel() {
+    clearInterval(mockSending);
+  },
   async postClipboardText() {
     return navigator.clipboard.readText().catch(() => "");
   },

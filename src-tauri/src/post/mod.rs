@@ -10,6 +10,7 @@
 mod client;
 mod discovery;
 mod server;
+pub(crate) mod share;
 mod tailscale;
 #[cfg(test)]
 mod tests;
@@ -112,6 +113,8 @@ pub struct Device {
     /// It has reached this computer itself (introduced itself, sent something). Reached by
     /// us but never this: it may be unable to (another router, a firewall).
     pub came_in: bool,
+    /// It shares files by link (LocalSend's Share via link: its download API is on).
+    pub sharing: bool,
 }
 
 impl Device {
@@ -135,6 +138,7 @@ impl Device {
             online: true,
             changed_to: None,
             came_in: false,
+            sharing: info.download,
         }
     }
 
@@ -155,6 +159,7 @@ impl Device {
             online: false,
             changed_to: None,
             came_in: false,
+            sharing: false,
         }
     }
 }
@@ -332,6 +337,9 @@ pub struct Inner {
     pub(crate) verify_decided: Mutex<HashMap<String, watch::Sender<Option<bool>>>>,
     /// Devices (fingerprints) that reached this computer themselves.
     pub(crate) came_in: Mutex<HashSet<String>>,
+    /// Files shared by link that are being looked at or fetched (share.rs).
+    pub(crate) share: Mutex<Option<share::Session>>,
+    pub(crate) fetching: Mutex<Option<tauri::async_runtime::JoinHandle<()>>>,
 }
 
 /// A device asked to compare Verify.
@@ -612,6 +620,8 @@ impl Post {
             verify_asked: Mutex::new(HashMap::new()),
             verify_decided: Mutex::new(HashMap::new()),
             came_in: Mutex::new(HashSet::new()),
+            share: Mutex::new(None),
+            fetching: Mutex::new(None),
         }))
     }
 }
@@ -639,6 +649,7 @@ async fn start(inner: &Arc<Inner>, port: u16) -> Result<(), String> {
     let port = server::spawn(inner.clone(), port, tls, stop_rx.clone()).await?;
     // Discovery listens on LocalSend's port whatever port the server got (another app
     // may hold the TCP port; the UDP one is shared).
+    discovery::watch(inner.clone(), stop_rx.clone());
     let udp = match discovery::spawn(inner.clone(), stop_rx).await {
         Ok(udp) => Some(udp),
         Err(e) => {
@@ -713,9 +724,17 @@ pub fn post_devices(post: State<'_, Post>) -> Vec<Device> {
 pub fn post_refresh(post: State<'_, Post>) {
     let inner = post.0.clone();
     if lock(&inner.running).is_some() {
-        lock(&inner.devices).retain(|_, d| now_ms() - d.last_seen < 10_000);
+        // Not heard from lately: dropped, and asked again (back if still there).
+        let mut stale = Vec::new();
+        lock(&inner.devices).retain(|_, d| {
+            let keep = now_ms() - d.last_seen < 10_000;
+            if !keep {
+                stale.push(d.clone());
+            }
+            keep
+        });
         inner.sync_saved();
-        discovery::refresh(inner);
+        discovery::refresh_with(inner, stale);
     }
 }
 

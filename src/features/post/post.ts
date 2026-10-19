@@ -272,6 +272,42 @@ export interface PostDevice {
   changedTo: string | null;
   /** It has reached this computer itself (introduced itself, sent something). */
   cameIn: boolean;
+  /** It shares files by link (LocalSend's Share via link): this computer can fetch them. */
+  sharing: boolean;
+}
+
+/** What a device shares by link (`postShareOpen`). */
+export interface PostShareList {
+  alias: string;
+  /** Proven by its certificate ("" over plain HTTP). */
+  fingerprint: string;
+  /** Over HTTPS (else plain HTTP: not encrypted). */
+  https: boolean;
+  files: { id: string; fileName: string; size: number; fileType: string }[];
+}
+
+/** Why what a device shares couldn't be had (`postShareOpen`'s error). */
+export function shareError(code: string, who: string): string {
+  switch (code) {
+    case "pin":
+      return t("Wrong PIN.");
+    case "declined":
+      return t("{who} didn't allow it (or didn't answer in time).", { who });
+    case "notSharing":
+      return t("{who} isn't sharing anything now.", { who });
+    case "tooMany":
+      return t("Too many tries: wait a minute.");
+    case "blocked":
+      return t("{who} is blocked (Settings → Pet Post).", { who });
+    case "link":
+      return t("That isn't a link LocalSend shows (like http://192.168.1.20:53317).");
+    case "unreachable":
+      return t("Couldn't reach {who}.", { who });
+    case "off":
+      return t("Pet Post is off.");
+    default:
+      return t("Getting what {who} shares didn't work.", { who });
+  }
 }
 
 /**
