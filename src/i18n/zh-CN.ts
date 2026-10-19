@@ -197,6 +197,30 @@ const zhCN: Dictionary = {
     "Couldn't reach {who}.": "连不上 {who}。",
     "Pet Post is off.": "宠物驿站已关闭。",
     "Getting what {who} shares didn't work.": "没能取到 {who} 分享的文件。",
+    "This network ({net})": "这个网络（{net}）",
+    "Devices here can send to you directly.": "这里的设备可以直接发给你。",
+    "Devices there reach this computer (such as {name}).":
+      "那边的设备连得进来（例如 {name}）。",
+    "The router's door is open, so devices there should get in. None has yet (such as {name}).":
+      "路由器的门开着，那边的设备应该连得进来。还没有设备连进来过（例如 {name}）。",
+    "such as {name}": "例如 {name}",
+    "This computer is behind another router{router}: devices there can't reach it. This computer reaches them, so:":
+      "这台电脑在另一个路由器{router}后面：那边的设备连不进来。这台电脑连得过去，所以：",
+    "This computer fetches": "电脑去取",
+    "when they share by link (LocalSend's Share via link), or when they run ePet (they collect what you send).":
+      "对方用链接分享（LocalSend 的 Share via link）时，或者对方是 ePet 时（它会来取你发的东西）。",
+    "Router door": "路由器开门",
+    "Off.": "已关闭。",
+    "Asking the router…": "正在问路由器…",
+    "Open: {address} → this computer ({via} · renewed every 30 minutes · closed when Pet Post stops)":
+      "门开着：{address} → 这台电脑（{via} · 每 30 分钟续一次 · 宠物驿站停止时关门）",
+    "The router{router} doesn't answer UPnP, NAT-PMP or PCP (often switched off in it).":
+      "路由器{router}没有回应 UPnP、NAT-PMP 或 PCP（多半是路由器里关着）。",
+    "Not opened by itself: the router's outside is the internet ({ip}).":
+      "没有自动开门：路由器外面是互联网（{ip}）。",
+    "The router{router} said no: {error}": "路由器{router}拒绝了：{error}",
+    "Not installed. With it on both, your phone and this computer reach each other on any network.":
+      "没有安装。两边都装上后，手机和这台电脑在任何网络都能互相连到。",
     "{n} bytes": "{n} 字节",
     "1 file": "1 个文件",
     "{n} files": "{n} 个文件",
@@ -665,6 +689,19 @@ const zhCN: Dictionary = {
     "Times not in a slot are Normal. A slot that ends before it starts runs past midnight. Where slots overlap, the quieter wins.":
       "不在任何时段里的时间算“普通”。结束早于开始的时段会跨过午夜。时段重叠时，以更安静的为准。",
     "What each mode changes": "每个模式会改变什么",
+    "Try again": "再试一次",
+    "Close it now": "现在关门",
+    "Open it anyway…": "仍然打开…",
+    "This door opens to the internet": "这个门会开向互联网",
+    "The router's outside address is {ip}, a public one. Anyone on the internet could then reach Pet Post and ask to send you files.":
+      "路由器的外网地址是 {ip}（公网）。开门后，互联网上任何人都能连到宠物驿站，向你发送文件请求。",
+    "Better: set a PIN, and accept only from favorites. To let in another network of your home, this usually isn't needed.":
+      "建议：设一个 PIN，并只自动接受收藏的设备。只是想让家里另一个网段连进来时，通常不需要这一步。",
+    "Don't": "不开",
+    "Open it anyway": "仍然打开",
+    "Let the router open a door for Pet Post": "让路由器为宠物驿站开门",
+    "When this computer is behind a second router, devices on the network outside it can then get in. Opened by itself only when that's still a home network; when it's the internet, you're asked.":
+      "这台电脑在第二个路由器后面时，路由器外面那个网络的设备也能连进来。只在外面仍是家里的网络时自动开；外面是互联网时会先问你。",
     "On: others see this computer as “{name}”.":
       "已开启：其他设备看到这台电脑叫“{name}”。",
     "On: others see this computer as “{name}” (port {port}: {usual} is taken by another app).":
@@ -700,6 +737,7 @@ const zhCN: Dictionary = {
     "Blocked {when} · the icons didn't match": "{when} 拉黑 · 图标不一致",
     Unblock: "解除拉黑",
     "None.": "没有。",
+    "How others reach this computer": "别的设备怎么连到这台电脑",
     "Beyond this network": "本网络以外",
     "Devices are found on this network by themselves. Others (behind another router, on Tailscale) can be added by address in Pet Post.":
       "本网络里的设备会被自动找到。其他设备（在另一台路由器后面、在 Tailscale 上）可以在宠物驿站里按地址添加。",
@@ -907,7 +945,6 @@ const zhCN: Dictionary = {
     "Asking {who}… If it asks, allow it there.":
       "正在问 {who}…如果它那边弹出请求，请在它上面点允许。",
     "{who} wants a PIN.": "{who} 要求输入 PIN。",
-    "Try again": "再试一次",
     Close: "关闭",
     "Not encrypted (plain HTTP): fine at home, not on a public network.":
       "未加密（普通 HTTP）：在家里没问题，公共网络上别用。",

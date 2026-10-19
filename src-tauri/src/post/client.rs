@@ -241,7 +241,10 @@ pub(crate) async fn probe(inner: &Inner, ip: IpAddr, port: u16, expected: Option
 
 async fn introduce(inner: &Inner, peer: &Peer, connect: Duration, total: Duration) -> Result<Device, String> {
     let path = format!("{API}/register");
-    let call = request(inner, peer, &path, json_body(&inner.info(true)), None, connect);
+    // Behind a router from there: the port of its door (door.rs).
+    let mut info = inner.info(true);
+    info.port = Some(inner.port_for(peer.ip));
+    let call = request(inner, peer, &path, json_body(&info), None, connect);
     let reply = tokio::time::timeout(total, call).await.map_err(|_| "timeout".to_string())??;
     if reply.status != 200 {
         return Err(format!("HTTP {}", reply.status));

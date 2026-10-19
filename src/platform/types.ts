@@ -18,6 +18,7 @@ import {
   type PostText,
   type PostTransfer,
   type PostTailnet,
+  type PostDoor,
   type PostReceived,
   type PostVerify,
   type PostVerifyAnswer,
@@ -463,6 +464,7 @@ export interface BackendEvents {
   "post-transfer": PostTransfer;
   /** What Tailscale says, each time it's asked (Look again). */
   "post-tailnet": PostTailnet;
+  "post-door": PostDoor;
   /** The Pet Post window, already open, is to show Verify for this device (fingerprint). */
   "post-verify": string;
   /** Another ePet asks to compare Verify (its pet offers to show it). */
@@ -643,6 +645,10 @@ export interface Backend {
   postAddDevice(address: string, port?: number | null): Promise<PostDevice>;
   /** What Tailscale said last. */
   postTailnet(): Promise<PostTailnet>;
+  /** The router door (Settings → Pet Post). */
+  postDoor(): Promise<PostDoor>;
+  /** Asks the router again. */
+  postDoorRetry(): Promise<void>;
   /** What this computer and a device (by fingerprint) both show, to compare. */
   postVerify(fingerprint: string): Promise<PostVerify>;
   /**

@@ -1,7 +1,8 @@
 /**
  * Settings → Pet Post (docs/INTERACTIONS.md, "Pet Post"): on or off, the name others see,
  * where received files go, trusted devices, an optional PIN, and beyond this network:
- * devices added by address, extra networks to look in, and Tailscale. Sending is in the
+ * how others reach this computer (and the router door), devices added by address, extra
+ * networks to look in, and Tailscale. Sending is in the
  * Pet Post window (and by dropping files on the pet).
  */
 import { t } from "../i18n";
@@ -14,7 +15,10 @@ import {
   postAlias,
   shortFingerprint,
   tailnetLine,
+  reachLines,
+  DOOR_OFF,
   type MarkedDevice,
+  type PostDoor,
   type PostDevice,
   type PostSettings,
   type PostStatus,
@@ -36,9 +40,78 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
   };
   const update = (patch: Partial<PostSettings>) => save({ post: { ...get().post, ...patch } }).then(() => poll());
 
+  // How others reach this computer, and the router door: redrawn on its own (devices,
+  // the door and Tailscale change while the page is open).
+  let door: PostDoor = DOOR_OFF;
+  let askingPublic = false;
+  const reach = h("div", { class: "post-reach" });
+  const showReach = () => {
+    const s = get().post;
+    const mark = (ok: boolean | null) => (ok === true ? "✓" : ok === false ? "✗" : "·");
+    const lines = reachLines(status, devices, s.door ? door : DOOR_OFF, tailnet, s.tailscale);
+    const doorButtons: Node[] = [];
+    if (s.door && (door.state === "none" || door.state === "refused"))
+      doorButtons.push(h("button", { class: "small post-door-retry", onclick: () => void backend.postDoorRetry() }, t("Try again")));
+    if (s.door && door.state === "open") doorButtons.push(h("button", { class: "small post-door-close", onclick: () => void update({ door: false, doorPublic: false }) }, t("Close it now")));
+    if (s.door && door.state === "public" && !askingPublic)
+      doorButtons.push(h("button", { class: "small post-door-public", onclick: () => ((askingPublic = true), showReach()) }, t("Open it anyway…")));
+    const publicAsk =
+      s.door && door.state === "public" && askingPublic
+        ? [
+            h(
+              "div",
+              { class: "post-door-ask" },
+              h("p", { class: "post-door-ask-title" }, t("This door opens to the internet")),
+              h("p", {}, t("The router's outside address is {ip}, a public one. Anyone on the internet could then reach Pet Post and ask to send you files.", { ip: door.externalIp ?? "" })),
+              h("p", { class: "hint" }, t("Better: set a PIN, and accept only from favorites. To let in another network of your home, this usually isn't needed.")),
+              h(
+                "div",
+                { class: "row" },
+                h("button", { class: "small", onclick: () => ((askingPublic = false), showReach()) }, t("Don't")),
+                h("button", { class: "small primary post-door-public-yes", onclick: () => ((askingPublic = false), void update({ doorPublic: true })) }, t("Open it anyway")),
+              ),
+            ),
+          ]
+        : [];
+    reach.replaceChildren(
+      h(
+        "ul",
+        { class: "post-reach-lines" },
+        ...lines.map((l) =>
+          h(
+            "li",
+            { class: `post-reach-${l.kind} ${l.ok === true ? "ok" : l.ok === false ? "bad" : ""} ${l.sub ? "sub" : ""}` },
+            h("span", { class: "mark" }, mark(l.ok)),
+            h("b", {}, l.title),
+            h("span", { class: "hint" }, l.detail),
+            ...(l.kind === "door" ? doorButtons.map((b) => h("div", { class: "row" }, b)) : []),
+          ),
+        ),
+      ),
+      ...publicAsk,
+      h(
+        "label",
+        { class: "check" },
+        h("input", {
+          type: "checkbox",
+          class: "post-door",
+          checked: s.door,
+          onchange: () => void update({ door: !s.door, doorPublic: false }),
+        }),
+        t("Let the router open a door for Pet Post"),
+      ),
+      h(
+        "p",
+        { class: "hint" },
+        t("When this computer is behind a second router, devices on the network outside it can then get in. Opened by itself only when that's still a home network; when it's the internet, you're asked."),
+      ),
+    );
+  };
+
   const draw = () => {
     const s = get().post;
     showTailnet();
+    showReach();
     const state = h("p", { class: "hint post-state" });
     if (s.enabled && status?.running)
       state.textContent =
@@ -185,6 +258,8 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
             h("div", { class: "subhead" }, t("Blocked devices")),
             marks(s.blocked, "post-blocked-list", (d) => t("Blocked {when} · the icons didn't match", { when: formatWhen(d.at) }), t("Unblock"), (fp) => withoutBlocked(get().post, fp), t("None.")),
             h("hr"),
+            h("div", { class: "subhead" }, t("How others reach this computer")),
+            reach,
             h("div", { class: "subhead" }, t("Beyond this network")),
             h("p", { class: "hint" }, t("Devices are found on this network by themselves. Others (behind another router, on Tailscale) can be added by address in Pet Post.")),
             ...(s.devices.length
@@ -261,13 +336,21 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
   void backend.on("post-tailnet", (tn) => {
     tailnet = tn;
     showTailnet();
+    showReach();
   });
   void backend.on("post-devices", (d) => {
     devices = d;
     showTailnet();
+    showReach();
   });
-  void backend.postTailnet().then((tn) => ((tailnet = tn), showTailnet())).catch(() => {});
-  void backend.postDevices().then((d) => ((devices = d), showTailnet())).catch(() => {});
+  void backend.on("post-door", (d) => {
+    door = d;
+    if (d.state !== "public") askingPublic = false;
+    showReach();
+  });
+  void backend.postTailnet().then((tn) => ((tailnet = tn), showTailnet(), showReach())).catch(() => {});
+  void backend.postDevices().then((d) => ((devices = d), showTailnet(), showReach())).catch(() => {});
+  void backend.postDoor().then((d) => ((door = d), showReach())).catch(() => {});
   draw();
   return root;
 }

@@ -128,6 +128,8 @@ pub fn run() {
             backup::backup_list_auto,
             post::post_configure,
             post::post_status,
+            post::post_door,
+            post::post_door_retry,
             post::post_devices,
             post::post_refresh,
             post::post_add_device,

@@ -20,6 +20,7 @@ import { join } from "node:path";
 import { after, before } from "node:test";
 import { check, useApp } from "./harness.mjs";
 import { LOCALSEND_PORT, Peer } from "./localsend-peer.mjs";
+import { Router } from "./mock-router.mjs";
 
 // The extra networks and the tailnet are asked on the pretend device's port; Tailscale's
 // answer is this file (none: not installed).
@@ -33,6 +34,10 @@ writeFileSync(
 );
 process.env.EPET_TAILSCALE_STATUS = tailnetFile;
 process.env.EPET_POST_PEER_PORT = "53318";
+// The router door asks this pretend router (silent until a test has it answer).
+const ROUTER_PORT = 53999;
+process.env.EPET_POST_ROUTER = `127.0.0.1:${ROUTER_PORT}`;
+const router = new Router(ROUTER_PORT);
 
 const ctx = useApp(import.meta.filename);
 const peer = new Peer();
@@ -1367,6 +1372,61 @@ check(
       assert.equal(d.reached, true);
     } finally {
       await shy.stop();
+    }
+  },
+);
+
+check(
+  "post.door",
+  "the router door: no router answering is said so (Try again); one answering NAT-PMP opens it, Close it now closes it; one facing the internet isn't opened until the user says so",
+  async () => {
+    const app = ctx.app;
+    const door = ".post-settings .post-reach-door";
+    await router.start();
+    try {
+      await app.panel("settings");
+      await app.waitText(door, "doesn't answer UPnP, NAT-PMP or PCP", 30_000);
+      const port = (await app.invoke("post_status")).port;
+      router.mode = "natpmp";
+      await app.click(".post-settings .post-door-retry");
+      await app.waitText(
+        door,
+        "Open: 192.168.31.178:40000 → this computer (NAT-PMP",
+        30_000,
+      );
+      assert.deepEqual(router.asks, [{ internal: port, lifetime: 3600 }]);
+      assert.equal((await app.invoke("post_door")).state, "open");
+      await app.click(".post-settings .post-door-close");
+      await until("closed", () => router.asks.some((a) => a.lifetime === 0));
+      await app.waitText(door, "Off.");
+      // Its outside is the internet: not opened by itself.
+      router.outside = "203.0.113.7";
+      router.asks = [];
+      await app.click(".post-settings .post-door");
+      await app.waitText(
+        door,
+        "the router's outside is the internet (203.0.113.7)",
+        30_000,
+      );
+      assert.deepEqual(router.asks, []);
+      await app.click(".post-settings .post-door-public");
+      await app.waitText(
+        ".post-settings .post-door-ask",
+        "This door opens to the internet",
+      );
+      await app.click(".post-settings .post-door-public-yes");
+      await app.waitText(door, "Open: 203.0.113.7:40000", 30_000);
+      assert.equal((await app.fullSettings()).post.doorPublic, true);
+      // Back as it was: a door to the internet only when asked again.
+      await app.setSettings((s) => ({
+        ...s,
+        post: { ...s.post, door: true, doorPublic: false },
+      }));
+      await until("closed again", () =>
+        router.asks.some((a) => a.lifetime === 0),
+      );
+    } finally {
+      router.stop();
     }
   },
 );

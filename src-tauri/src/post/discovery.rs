@@ -21,7 +21,7 @@ fn group() -> Ipv4Addr {
 }
 
 /// This computer's IPv4 addresses (not loopback) and their netmasks.
-fn interfaces() -> Vec<(Ipv4Addr, Ipv4Addr)> {
+pub(crate) fn interfaces() -> Vec<(Ipv4Addr, Ipv4Addr)> {
     let Ok(list) = if_addrs::get_if_addrs() else { return Vec::new() };
     list.into_iter()
         .filter(|i| !i.is_loopback())
@@ -30,6 +30,21 @@ fn interfaces() -> Vec<(Ipv4Addr, Ipv4Addr)> {
             _ => None,
         })
         .collect()
+}
+
+/// On another network than this computer's own (behind a router from here, or this
+/// computer behind one from there): not this computer's networks (a /24 of its addresses),
+/// loopback, link-local or Tailscale's (reached directly).
+pub(crate) fn elsewhere(ip: IpAddr) -> bool {
+    let IpAddr::V4(v4) = ip else { return false };
+    if v4.is_loopback() || v4.is_unspecified() || v4.is_link_local() {
+        return false;
+    }
+    let [a, b, c, _] = v4.octets();
+    if a == 100 && (64..128).contains(&b) {
+        return false;
+    }
+    !own_addresses().iter().any(|(own, _, _)| own.octets()[..3] == [a, b, c])
 }
 
 /// This computer's addresses others can reach it at (IPv4, not loopback or link-local):

@@ -16,6 +16,18 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+### Added
+- **Pet Post: the router door.** When this computer is behind a second router, ePet asks
+  that router (UPnP, NAT-PMP or PCP) to let devices on the network outside it in, so a
+  phone there can send to this computer directly. On by default ("Let the router open a
+  door for Pet Post"), and opened on its own only when the router's outside is still a
+  home network; when it's the internet, ePet says so and opens it only if you say
+  "Open it anyway". Renewed while Pet Post runs, closed when it stops.
+- **Settings → Pet Post → How others reach this computer:** ✓ / ✗ for this network, the
+  networks of devices beyond it (and, when they can't get in, that this computer still
+  fetches what they share by link or what an ePet leaves), the router door (open where, or
+  why not, with Try again), and Tailscale.
+
 ## [0.49.1] - 2026-10-19
 
 ### Fixed

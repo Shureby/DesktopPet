@@ -762,6 +762,12 @@ export const mockBackend: Backend = {
   async postTailnet() {
     return { state: "running", online: 3 };
   },
+  async postDoor() {
+    return { state: "none", via: null, router: "192.168.8.1", externalIp: null, externalPort: 0, error: null };
+  },
+  async postDoorRetry() {
+    fire("post-door", { state: "open", via: "natpmp", router: "192.168.8.1", externalIp: "192.168.31.178", externalPort: 53317, error: null });
+  },
   async postVerify(fingerprint) {
     // Pretend: icons from the fingerprint's letters.
     const text = ["MOCK", fingerprint].sort().join("");

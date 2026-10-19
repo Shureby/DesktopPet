@@ -9,6 +9,7 @@
 
 mod client;
 mod discovery;
+mod door;
 mod pickup;
 mod server;
 pub(crate) mod share;
@@ -63,6 +64,10 @@ pub struct Config {
     /// Fingerprints of blocked devices (Verify: the icons didn't match): not listed, nothing
     /// sent to them, and whatever they ask is refused.
     pub blocked: Vec<String>,
+    /// Asks the router in front of this computer to pass Pet Post's port on to it (door.rs).
+    pub door: bool,
+    /// ...also when the router's outside is the internet (the user said so).
+    pub door_public: bool,
 }
 
 /// A device added by address, as remembered in the settings.
@@ -354,6 +359,9 @@ pub struct Inner {
     pub(crate) fetching: Mutex<Option<tauri::async_runtime::JoinHandle<()>>>,
     /// Collecting deliveries (pickup.rs).
     pub(crate) pickup: pickup::State,
+    /// The router door (door.rs), and a nudge to ask the router again.
+    pub(crate) door: Mutex<door::Door>,
+    pub(crate) door_wake: tokio::sync::Notify,
 }
 
 /// A device asked to compare Verify.
@@ -639,6 +647,8 @@ impl Post {
             share: Mutex::new(None),
             fetching: Mutex::new(None),
             pickup: pickup::State::default(),
+            door: Mutex::new(door::Door::default()),
+            door_wake: tokio::sync::Notify::new(),
         }))
     }
 }
@@ -668,6 +678,7 @@ async fn start(inner: &Arc<Inner>, port: u16) -> Result<(), String> {
     // may hold the TCP port; the UDP one is shared).
     discovery::watch(inner.clone(), stop_rx.clone());
     pickup::collect(inner.clone(), stop_rx.clone());
+    door::keep(inner.clone(), stop_rx.clone());
     let udp = match discovery::spawn(inner.clone(), stop_rx).await {
         Ok(udp) => Some(udp),
         Err(e) => {
@@ -712,6 +723,9 @@ pub(crate) async fn configure(inner: &Arc<Inner>, config: Config) -> Status {
         if before.devices != config.devices || before.blocked != config.blocked {
             inner.sync_saved();
         }
+        if before.door != config.door || before.door_public != config.door_public {
+            inner.door_wake.notify_one();
+        }
         if before.tailscale && !config.tailscale {
             lock(&inner.devices).retain(|_, d| d.source != "tailnet" || d.address.is_some());
             *lock(&inner.tailnet) = Tailnet::default();
@@ -725,6 +739,18 @@ pub(crate) async fn configure(inner: &Arc<Inner>, config: Config) -> Status {
     }
     inner.emit_status();
     inner.status()
+}
+
+/// The router door (door.rs).
+#[tauri::command]
+pub fn post_door(post: State<'_, Post>) -> door::Door {
+    post.0.door()
+}
+
+/// Asks the router again (Try again).
+#[tauri::command]
+pub fn post_door_retry(post: State<'_, Post>) {
+    post.0.door_wake.notify_one();
 }
 
 #[tauri::command]

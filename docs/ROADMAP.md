@@ -20,8 +20,10 @@ outside, but they can't reach it: they see it, and what they send times out.
 - 0.49: files shared by link (LocalSend's Share via link, its download API) are fetched by
   this computer; an ePet that can't be reached collects what's sent to it (it keeps asking
   the ePets it reaches; held requests, `/api/epet/v1/pickup`).
-- Later, maybe: asking the router to open the port (UPnP) — uncertain with routers that
-  route without translating addresses (the user's), so not done yet.
+- 0.50: the router door (UPnP, NAT-PMP, PCP on the router in front; on its own only when
+  its outside is private) and "How others reach this computer" in Settings.
+- Later, maybe: listening on IPv6 too (devices with global IPv6 addresses could then reach
+  this computer past a second router's address translation; the user's network has none).
 
 ## Shipped in 0.48.0: Pet Post Verify request, Verified and Blocked
 

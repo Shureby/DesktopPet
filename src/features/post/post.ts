@@ -50,6 +50,10 @@ export interface PostSettings {
   verified: MarkedDevice[];
   /** Verify: the icons didn't match. Not listed, nothing sent to it, all it asks refused. */
   blocked: MarkedDevice[];
+  /** Asks the router in front of this computer to let devices outside it in (UPnP, NAT-PMP, PCP). */
+  door: boolean;
+  /** ...also when the router's outside is the internet (only once the user said so). */
+  doorPublic: boolean;
 }
 
 /** A device verified or blocked, by its certificate's fingerprint. */
@@ -73,6 +77,8 @@ export const DEFAULT_POST: PostSettings = {
   favoriteNoticeSeen: false,
   verified: [],
   blocked: [],
+  door: true,
+  doorPublic: false,
 };
 
 /** At most this many addresses in an extra network (a /22). */
@@ -126,6 +132,8 @@ export function postSettings(s: Partial<PostSettings> | undefined): PostSettings
     favoriteNoticeSeen: s?.favoriteNoticeSeen === true,
     verified: marked(s?.verified),
     blocked: marked(s?.blocked),
+    door: s?.door !== false,
+    doorPublic: s?.doorPublic === true,
   };
 }
 
@@ -226,6 +234,8 @@ export interface PostConfig {
   networks: string[];
   tailscale: boolean;
   blocked: string[];
+  door: boolean;
+  doorPublic: boolean;
 }
 
 export function postConfig(s: PostSettings, alias: string, port = 0): PostConfig {
@@ -241,6 +251,8 @@ export function postConfig(s: PostSettings, alias: string, port = 0): PostConfig
     networks: s.networks,
     tailscale: s.tailscale,
     blocked: s.blocked.map((d) => d.fingerprint),
+    door: s.door,
+    doorPublic: s.doorPublic,
   };
 }
 
@@ -328,6 +340,101 @@ export function oneWay(devices: PostDevice[], own: string[]): PostDevice[] {
   const net = (ip: string) => (/^\d+\.\d+\.\d+\.\d+$/.test(ip) ? ip.split(".").slice(0, 3).join(".") : null);
   const mine = new Set(own.map(net).filter(Boolean));
   return devices.filter((d) => d.reached && d.online && !d.cameIn && d.source !== "tailnet" && !!net(d.ip) && !mine.has(net(d.ip)) && !d.ip.startsWith("100."));
+}
+
+/** The router door ("post-door"): the router in front of this computer letting devices outside it in. */
+export interface PostDoor {
+  /** "off": the setting (or Pet Post) is off; "none": no router answered; "public": its outside is the internet, not opened by itself; "refused": the router said no (`error`). */
+  state: "off" | "trying" | "open" | "none" | "public" | "refused";
+  via: "upnp" | "natpmp" | "pcp" | null;
+  /** The router asked (this computer's gateway). */
+  router: string | null;
+  /** Where devices outside reach this computer (with `externalPort`); "public": the router's outside address. */
+  externalIp: string | null;
+  externalPort: number;
+  error: string | null;
+}
+
+export const DOOR_OFF: PostDoor = { state: "off", via: null, router: null, externalIp: null, externalPort: 0, error: null };
+
+/** One line of "How others reach this computer": ✓ (true), ✗ (false) or neither (null). */
+export interface ReachLine {
+  kind: "here" | "other" | "fetch" | "door" | "tailscale";
+  ok: boolean | null;
+  title: string;
+  detail: string;
+  /** Lines under another (the ways that still work when it can't get in). */
+  sub?: boolean;
+}
+
+const VIA: Record<NonNullable<PostDoor["via"]>, string> = { upnp: "UPnP", natpmp: "NAT-PMP", pcp: "PCP" };
+
+/**
+ * How others reach this computer (Settings → Pet Post): this computer's networks; the
+ * networks of devices it reaches beyond them, and whether those got in (else what still
+ * works: this computer fetching); the router door; Tailscale.
+ */
+export function reachLines(status: PostStatus | null, devices: PostDevice[], door: PostDoor, tailnet: PostTailnet, tailscale: boolean): ReachLine[] {
+  const net = (ip: string) => (/^\d+\.\d+\.\d+\.\d+$/.test(ip) ? ip.split(".").slice(0, 3).join(".") : null);
+  const own = (status?.addresses ?? []).filter((a) => a.kind !== "tailscale" && a.kind !== "virtual");
+  const mine = new Set(own.map((a) => net(a.ip)).filter(Boolean));
+  const lines: ReachLine[] = [...mine].map((n) => ({ kind: "here", ok: true, title: t("This network ({net})", { net: `${n}.x` }), detail: t("Devices here can send to you directly.") }));
+  const router = door.router ? ` (${door.router})` : "";
+  // Beyond: devices this computer reached (or that came in) on other networks, by network.
+  const others = new Map<string, PostDevice[]>();
+  for (const d of devices) {
+    const n = net(d.ip);
+    if (!n || mine.has(n) || d.source === "tailnet" || d.ip.startsWith("100.") || !(d.reached || d.cameIn)) continue;
+    others.set(n, [...(others.get(n) ?? []), d]);
+  }
+  for (const [n, list] of [...others].sort(([a], [b]) => a.localeCompare(b))) {
+    const came = list.find((d) => d.cameIn);
+    const title = `${n}.x`;
+    if (came) lines.push({ kind: "other", ok: true, title, detail: t("Devices there reach this computer (such as {name}).", { name: came.alias }) });
+    else if (door.state === "open") lines.push({ kind: "other", ok: null, title, detail: t("The router's door is open, so devices there should get in. None has yet (such as {name}).", { name: list[0].alias }) });
+    else {
+      lines.push({
+        kind: "other",
+        ok: false,
+        title: `${title} (${t("such as {name}", { name: list[0].alias })})`,
+        detail: t("This computer is behind another router{router}: devices there can't reach it. This computer reaches them, so:", { router }),
+      });
+      lines.push({ kind: "fetch", ok: true, sub: true, title: t("This computer fetches"), detail: t("when they share by link (LocalSend's Share via link), or when they run ePet (they collect what you send).") });
+    }
+  }
+  const title = t("Router door");
+  switch (door.state) {
+    case "off":
+      lines.push({ kind: "door", ok: null, title, detail: t("Off.") });
+      break;
+    case "trying":
+      lines.push({ kind: "door", ok: null, title, detail: t("Asking the router…") });
+      break;
+    case "open":
+      lines.push({
+        kind: "door",
+        ok: true,
+        title,
+        detail: t("Open: {address} → this computer ({via} · renewed every 30 minutes · closed when Pet Post stops)", { address: `${door.externalIp}:${door.externalPort}`, via: door.via ? VIA[door.via] : "" }),
+      });
+      break;
+    case "none":
+      lines.push({ kind: "door", ok: false, title, detail: t("The router{router} doesn't answer UPnP, NAT-PMP or PCP (often switched off in it).", { router }) });
+      break;
+    case "public":
+      lines.push({ kind: "door", ok: false, title, detail: t("Not opened by itself: the router's outside is the internet ({ip}).", { ip: door.externalIp ?? "" }) });
+      break;
+    case "refused":
+      lines.push({ kind: "door", ok: false, title, detail: t("The router{router} said no: {error}", { router, error: door.error ?? "" }) });
+      break;
+  }
+  if (tailscale) {
+    const ts = "Tailscale";
+    if (tailnet.state === "running") lines.push({ kind: "tailscale", ok: true, title: ts, detail: tailnetLine(tailnet, devices.filter((d) => d.source === "tailnet").length) });
+    else if (tailnet.state === "missing") lines.push({ kind: "tailscale", ok: null, title: ts, detail: t("Not installed. With it on both, your phone and this computer reach each other on any network.") });
+    else if (tailnet.state) lines.push({ kind: "tailscale", ok: null, title: ts, detail: tailnetLine(tailnet, 0) });
+  }
+  return lines;
 }
 
 /** What Tailscale says ("post-tailnet"). */

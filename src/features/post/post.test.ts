@@ -35,6 +35,9 @@ import {
   withoutVerified,
   type PostReceived,
   type PostTransfer,
+  reachLines,
+  DOOR_OFF,
+  type PostStatus,
 } from "./post";
 
 const tr = (p: Partial<PostTransfer>): PostTransfer => ({
@@ -67,6 +70,8 @@ describe("Pet Post settings", () => {
       favoriteNoticeSeen: false,
       verified: [],
       blocked: [],
+      door: true,
+      doorPublic: false,
     });
     expect(mergeSettings(null).post.enabled).toBe(false);
   });
@@ -102,6 +107,8 @@ describe("Pet Post settings", () => {
       networks: [],
       tailscale: true,
       blocked: [],
+      door: true,
+      doorPublic: false,
     });
   });
 
@@ -312,5 +319,38 @@ describe("oneWay", () => {
       dev({ fingerprint: "U", ip: "192.168.31.41", online: false, cameIn: false }),
     ];
     expect(oneWay(list, own).map((d) => d.fingerprint)).toEqual(["P"]);
+  });
+});
+
+describe("how others reach this computer", () => {
+  const status = { addresses: [{ ip: "192.168.8.192", name: "Wi-Fi", kind: "wifi" }] } as PostStatus;
+  const phone = dev({ alias: "Blueberry", ip: "192.168.31.237", reached: true, cameIn: false, source: "lan" });
+  const marks = (lines: ReturnType<typeof reachLines>) => lines.map((l) => `${l.kind}:${l.ok}`);
+
+  it("behind a second router, with no door: what's outside can't get in, and this computer fetches", () => {
+    const lines = reachLines(status, [phone], { ...DOOR_OFF, state: "none", router: "192.168.8.1" }, { state: "missing", online: 0 }, true);
+    expect(marks(lines)).toEqual(["here:true", "other:false", "fetch:true", "door:false", "tailscale:null"]);
+    expect(lines[0].title).toBe("This network (192.168.8.x)");
+    expect(lines[1].title).toContain("192.168.31.x");
+    expect(lines[1].detail).toContain("(192.168.8.1)");
+    expect(lines[3].detail).toContain("UPnP, NAT-PMP or PCP");
+  });
+
+  it("the door open: what's outside should get in, and does once one has", () => {
+    const door = { ...DOOR_OFF, state: "open" as const, via: "natpmp" as const, router: "192.168.8.1", externalIp: "192.168.31.178", externalPort: 53317 };
+    let lines = reachLines(status, [phone], door, { state: "", online: 0 }, false);
+    expect(marks(lines)).toEqual(["here:true", "other:null", "door:true"]);
+    expect(lines[2].detail).toContain("192.168.31.178:53317");
+    expect(lines[2].detail).toContain("NAT-PMP");
+    lines = reachLines(status, [{ ...phone, cameIn: true }], door, { state: "", online: 0 }, false);
+    expect(marks(lines)).toEqual(["here:true", "other:true", "door:true"]);
+  });
+
+  it("on the same network, through Tailscale or not reached: nothing beyond", () => {
+    const here = dev({ ip: "192.168.8.20", reached: true });
+    const tailnet = dev({ ip: "100.71.3.12", source: "tailnet", reached: true });
+    const lines = reachLines(status, [here, tailnet], { ...DOOR_OFF, state: "public", externalIp: "203.0.113.7" }, { state: "running", online: 2 }, true);
+    expect(marks(lines)).toEqual(["here:true", "door:false", "tailscale:true"]);
+    expect(lines[1].detail).toContain("203.0.113.7");
   });
 });

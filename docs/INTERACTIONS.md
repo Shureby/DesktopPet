@@ -943,6 +943,19 @@ src-tauri/src/post/, crates/desktoppet-core/src/post.rs).
     runs LocalSend or ePet; those are listed "via Tailscale". Settings says what Tailscale
     said: not installed, not signed in, not connected, or "N devices online, M with
     LocalSend or ePet".
+  - **How others reach this computer** (since 0.50.0, Settings → Pet Post): ✓ / ✗ lines
+    for this computer's networks; the networks of devices it reaches beyond them (✓ once
+    one came in; ✗ when none did and there's no door, with "✓ This computer fetches":
+    their Share via link, or an ePet collecting); the router door; Tailscale.
+  - **The router door** (since 0.50.0, "Let the router open a door for Pet Post", on by
+    default): the router in front of this computer (its default gateway, nothing further)
+    is asked to pass Pet Post's port on (UPnP IGD, then NAT-PMP, then PCP; an hour's lease
+    renewed every 30 minutes, closed when Pet Post stops or the setting goes off). Only on
+    its own when the router's outside address is private (10/8, 172.16/12, 192.168/16:
+    still a home network); a public one (or carrier NAT) is said, with "Open it anyway…"
+    and a warning. If the outside port is taken, the next free one; devices on the other
+    network are told that port when ePet introduces itself. Shown: open (address, how),
+    no answer (Try again), refused (why). Every 10 minutes it asks again.
 - **Not in this version:** LocalSend's "share via link" (browsers download over plain
   HTTP).
 

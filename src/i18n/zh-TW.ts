@@ -197,6 +197,30 @@ const zhTW: Dictionary = {
     "Couldn't reach {who}.": "連不上 {who}。",
     "Pet Post is off.": "寵物驛站已關閉。",
     "Getting what {who} shares didn't work.": "沒能取到 {who} 分享的檔案。",
+    "This network ({net})": "這個網路（{net}）",
+    "Devices here can send to you directly.": "這裡的裝置可以直接傳給你。",
+    "Devices there reach this computer (such as {name}).":
+      "那邊的裝置連得進來（例如 {name}）。",
+    "The router's door is open, so devices there should get in. None has yet (such as {name}).":
+      "路由器的門開著，那邊的裝置應該連得進來。還沒有裝置連進來過（例如 {name}）。",
+    "such as {name}": "例如 {name}",
+    "This computer is behind another router{router}: devices there can't reach it. This computer reaches them, so:":
+      "這台電腦在另一台路由器{router}後面：那邊的裝置連不進來。這台電腦連得過去，所以：",
+    "This computer fetches": "電腦去取",
+    "when they share by link (LocalSend's Share via link), or when they run ePet (they collect what you send).":
+      "對方用連結分享（LocalSend 的 Share via link）時，或對方是 ePet 時（它會來取你傳的東西）。",
+    "Router door": "路由器開門",
+    "Off.": "已關閉。",
+    "Asking the router…": "正在詢問路由器…",
+    "Open: {address} → this computer ({via} · renewed every 30 minutes · closed when Pet Post stops)":
+      "門開著：{address} → 這台電腦（{via} · 每 30 分鐘續一次 · 寵物驛站停止時關門）",
+    "The router{router} doesn't answer UPnP, NAT-PMP or PCP (often switched off in it).":
+      "路由器{router}沒有回應 UPnP、NAT-PMP 或 PCP（多半是路由器裡關著）。",
+    "Not opened by itself: the router's outside is the internet ({ip}).":
+      "沒有自動開門：路由器外面是網際網路（{ip}）。",
+    "The router{router} said no: {error}": "路由器{router}拒絕了：{error}",
+    "Not installed. With it on both, your phone and this computer reach each other on any network.":
+      "沒有安裝。兩邊都裝上後，手機和這台電腦在任何網路都能互相連到。",
     "{n} bytes": "{n} 位元組",
     "1 file": "1 個檔案",
     "{n} files": "{n} 個檔案",
@@ -665,6 +689,19 @@ const zhTW: Dictionary = {
     "Times not in a slot are Normal. A slot that ends before it starts runs past midnight. Where slots overlap, the quieter wins.":
       "不在任何時段裡的時間算「普通」。結束早於開始的時段會跨過午夜。時段重疊時，以更安靜的為準。",
     "What each mode changes": "每個模式會改變什麼",
+    "Try again": "再試一次",
+    "Close it now": "現在關門",
+    "Open it anyway…": "仍然打開…",
+    "This door opens to the internet": "這扇門會開向網際網路",
+    "The router's outside address is {ip}, a public one. Anyone on the internet could then reach Pet Post and ask to send you files.":
+      "路由器的外部位址是 {ip}（公開位址）。開門後，網際網路上任何人都能連到寵物驛站，向你傳送檔案請求。",
+    "Better: set a PIN, and accept only from favorites. To let in another network of your home, this usually isn't needed.":
+      "建議：設定 PIN，並只自動接受收藏的裝置。只是想讓家裡另一個網段連進來時，通常不需要這一步。",
+    "Don't": "不開",
+    "Open it anyway": "仍然打開",
+    "Let the router open a door for Pet Post": "讓路由器為寵物驛站開門",
+    "When this computer is behind a second router, devices on the network outside it can then get in. Opened by itself only when that's still a home network; when it's the internet, you're asked.":
+      "這台電腦在第二台路由器後面時，路由器外面那個網路的裝置也能連進來。只在外面仍是家裡的網路時自動開；外面是網際網路時會先問你。",
     "On: others see this computer as “{name}”.":
       "已開啟：其他裝置看到這台電腦叫「{name}」。",
     "On: others see this computer as “{name}” (port {port}: {usual} is taken by another app).":
@@ -700,6 +737,7 @@ const zhTW: Dictionary = {
     "Blocked {when} · the icons didn't match": "{when} 封鎖 · 圖示不一致",
     Unblock: "解除封鎖",
     "None.": "沒有。",
+    "How others reach this computer": "別的裝置怎麼連到這台電腦",
     "Beyond this network": "本網路以外",
     "Devices are found on this network by themselves. Others (behind another router, on Tailscale) can be added by address in Pet Post.":
       "本網路裡的裝置會被自動找到。其他裝置（在另一台路由器後面、在 Tailscale 上）可以在寵物驛站裡依位址加入。",
@@ -907,7 +945,6 @@ const zhTW: Dictionary = {
     "Asking {who}… If it asks, allow it there.":
       "正在問 {who}…如果它那邊跳出請求，請在它上面按允許。",
     "{who} wants a PIN.": "{who} 要求輸入 PIN。",
-    "Try again": "再試一次",
     Close: "關閉",
     "Not encrypted (plain HTTP): fine at home, not on a public network.":
       "未加密（一般 HTTP）：在家裡沒問題，公共網路上別用。",
