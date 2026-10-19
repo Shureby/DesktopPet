@@ -10,7 +10,9 @@ use std::time::{Duration, Instant};
 
 use serde_json::Value;
 
-use super::{add_device, answer, client, configure, discovery, verify, Config, Device, Inner, Post, Saved};
+use super::{
+    add_device, answer, client, configure, discovery, verify, verify_answer, Config, Device, Inner, Post, Saved,
+};
 
 const LOCALHOST: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
 
@@ -164,24 +166,69 @@ fn two_pets_find_each_other_and_deliver_a_file() {
     assert_eq!(std::fs::read(b.saved("photo (2).jpg")).unwrap(), b"again");
 }
 
+/// `client::ask_verify` from `from` to `to`, on its own thread (it waits for the answer).
+fn ask(from: &Peer, to: &Peer) -> std::thread::JoinHandle<String> {
+    let (inner, fp) = (from.inner.clone(), to.fingerprint());
+    std::thread::spawn(move || tauri::async_runtime::block_on(client::ask_verify(&inner, &fp)))
+}
+
 #[test]
-fn a_pet_asks_another_to_show_verify_too() {
+fn verify_is_asked_answered_and_decided() {
     let (a, b) = (peer("Alice", |_| {}), peer("Bob", |_| {}));
     // Not found yet: nobody to ask.
-    assert!(!tauri::async_runtime::block_on(client::ask_verify(&a.inner, &b.fingerprint())));
+    assert_eq!(ask(&a, &b).join().unwrap(), "unreachable");
     a.find(&b);
-    assert!(tauri::async_runtime::block_on(client::ask_verify(&a.inner, &b.fingerprint())));
+    let asking = ask(&a, &b);
     let asked = b.wait("post-verify-asked", |_| true);
     assert_eq!(
         (asked["fingerprint"].as_str(), asked["alias"].as_str()),
         (Some(a.fingerprint().as_str()), Some("Alice"))
     );
+    verify_answer(&b.inner, &a.fingerprint(), true);
+    assert_eq!(asking.join().unwrap(), "shown");
     // Bob's Verify for Alice: the same icons, and asked by her (so not asked back).
     let (on_a, on_b) = (verify(&a.inner, &b.fingerprint()).unwrap(), verify(&b.inner, &a.fingerprint()).unwrap());
     assert_eq!((on_a.text, on_a.icons), (on_b.text, on_b.icons));
     assert_eq!((on_a.asked_by, on_b.asked_by.as_deref()), (None, Some("Alice")));
+    // Alice waits for what Bob decides: they don't match.
+    let (inner, fp) = (a.inner.clone(), b.fingerprint());
+    let result = std::thread::spawn(move || tauri::async_runtime::block_on(client::verify_result(&inner, &fp)));
+    std::thread::sleep(Duration::from_millis(300));
+    b.inner.decided(&a.fingerprint()).send_replace(Some(false));
+    assert_eq!(result.join().unwrap().as_deref(), Some("mismatch"));
     // Not again straight away.
-    assert!(!tauri::async_runtime::block_on(client::ask_verify(&a.inner, &b.fingerprint())));
+    assert_eq!(ask(&a, &b).join().unwrap(), "busy");
+
+    // Declined: said so.
+    let c = peer("Carol", |_| {});
+    c.find(&b);
+    let asking = ask(&c, &b);
+    b.wait("post-verify-asked", |v| v["alias"] == "Carol");
+    verify_answer(&b.inner, &c.fingerprint(), false);
+    assert_eq!(asking.join().unwrap(), "declined");
+}
+
+#[test]
+fn a_blocked_device_is_refused_everywhere() {
+    let (a, b) = (peer("Alice", |_| {}), peer("Mallory", |_| {}));
+    a.find(&b);
+    assert!(a.inner.devices().iter().any(|d| d.fingerprint == b.fingerprint()));
+    // Alice blocks Mallory: no longer listed, not found again, and refused.
+    let mut config = a.inner.config();
+    config.blocked = vec![b.fingerprint().to_ascii_lowercase()];
+    tauri::async_runtime::block_on(configure(&a.inner, config));
+    assert!(!a.inner.devices().iter().any(|d| d.fingerprint == b.fingerprint()));
+    let to_a = tauri::async_runtime::block_on(client::register(&b.inner, LOCALHOST, a.port, true, None));
+    assert!(to_a.is_none(), "a blocked device's register is refused");
+    assert!(!a.inner.devices().iter().any(|d| d.fingerprint == b.fingerprint()));
+    // Mallory still knows where Alice is (found before): what it sends is refused.
+    let to_a = b.inner.devices().into_iter().find(|d| d.fingerprint == a.fingerprint()).unwrap();
+    let file = b.dir.join("out").join("x.txt");
+    write(&file, b"x");
+    client::send(b.inner.clone(), to_a, vec![file], None, None).unwrap();
+    b.transfer("declined");
+    assert_eq!(ask(&b, &a).join().unwrap(), "refused");
+    assert!(a.inner.history().is_empty());
 }
 
 #[test]

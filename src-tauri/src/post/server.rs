@@ -25,7 +25,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{oneshot, watch};
 use tokio_rustls::TlsAcceptor;
 
-use super::{lock, Active, Device, Inner, Offer, Receive, Received, TextMessage, Transfer};
+use super::{lock, Active, Asked, Device, Inner, Offer, Receive, Received, TextMessage, Transfer};
 use crate::state::now_ms;
 
 type Body = Full<Bytes>;
@@ -190,8 +190,11 @@ async fn read_json<T: DeserializeOwned>(req: Request<Incoming>, max: usize) -> O
 
 async fn route(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, cert: Option<String>) -> Response<Body> {
     let path = req.uri().path().to_string();
-    if path == VERIFY_ASK && req.method() == Method::POST {
+    if req.method() == Method::POST && path == VERIFY_ASK {
         return verify_asked(inner, req, ip, cert).await;
+    }
+    if req.method() == Method::POST && path == VERIFY_RESULT {
+        return verify_result(inner, req, cert).await;
     }
     let Some(endpoint) = path.strip_prefix(API) else {
         return status(404);
@@ -212,6 +215,9 @@ async fn register(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, cert: O
     let Some(info) = read_json::<DeviceInfo>(req, 64 * 1024).await else {
         return status(400);
     };
+    if inner.blocked(&info.fingerprint) || cert.as_ref().is_some_and(|c| inner.blocked(c)) {
+        return status(403);
+    }
     // Over TLS with a certificate, the fingerprint it claims must be its certificate's.
     if cert.as_ref().is_none_or(|c| c.eq_ignore_ascii_case(&info.fingerprint)) {
         inner.add_device(Device::from_info(&info, ip));
@@ -219,8 +225,10 @@ async fn register(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, cert: O
     json(&inner.info(false))
 }
 
-/// Another ePet asks to compare Verify (`client::ask_verify`): the pet offers to show it.
-/// Only from a device its certificate proves; once in a while per device.
+/// Another ePet asks to compare Verify (`client::ask_verify`): the pet offers to show it,
+/// and the request waits for the answer (so this device never has to reach that one):
+/// 200 {"answer":"shown"}, 403 {"answer":"declined"}, 408 (no answer). Only from a
+/// device its certificate proves and that isn't blocked; once in a while per device.
 async fn verify_asked(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, cert: Option<String>) -> Response<Body> {
     if !inner.config().enabled {
         return status(403);
@@ -228,30 +236,88 @@ async fn verify_asked(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, cer
     let Some(info) = read_json::<DeviceInfo>(req, 64 * 1024).await else {
         return status(400);
     };
-    if !cert.as_ref().is_some_and(|c| c.eq_ignore_ascii_case(&info.fingerprint)) {
+    if !cert.as_ref().is_some_and(|c| c.eq_ignore_ascii_case(&info.fingerprint)) || inner.blocked(&info.fingerprint) {
         return status(403);
     }
     let device = Device::from_info(&info, ip);
+    let fp = device.fingerprint.clone();
     let now = now_ms();
+    let (tx, rx) = oneshot::channel();
     {
         let mut asked = lock(&inner.verify_asked);
-        asked.retain(|_, (_, at)| now - *at < super::ASKED_MS);
-        if asked.get(&device.fingerprint).is_some_and(|(_, at)| now - at < ASK_AGAIN_MS) {
+        asked.retain(|_, a| now - a.at < super::ASKED_MS);
+        if asked.get(&fp).is_some_and(|a| a.answer.is_some() || now - a.at < ASK_AGAIN_MS) {
             return status(429);
         }
-        asked.insert(device.fingerprint.clone(), (device.alias.clone(), now));
+        asked.insert(fp.clone(), Asked { alias: device.alias.clone(), at: now, answer: Some(tx) });
     }
-    let payload = serde_json::json!({ "fingerprint": device.fingerprint, "alias": device.alias });
+    // A new round: what was decided before doesn't count.
+    inner.decided(&fp).send_replace(None);
+    let payload = serde_json::json!({ "fingerprint": fp, "alias": device.alias });
     inner.add_device(device);
+    let guard = AskGuard { inner: inner.clone(), fingerprint: fp.clone() };
     inner.emit("post-verify-asked", payload);
-    status(204)
+    let answer = tokio::time::timeout(Duration::from_secs(ANSWER_SECONDS), rx).await;
+    drop(guard);
+    match answer {
+        Ok(Ok(true)) => json(&serde_json::json!({ "answer": "shown" })),
+        Ok(Ok(false)) => {
+            let mut res = json(&serde_json::json!({ "answer": "declined" }));
+            *res.status_mut() = StatusCode::FORBIDDEN;
+            res
+        }
+        _ => status(408),
+    }
 }
 
-/// Where another ePet asks to compare Verify (not LocalSend's API: LocalSend says 404).
+/// The question about Verify is over (answered, timed out, the asker gone): the pet stops
+/// asking.
+struct AskGuard {
+    inner: Arc<Inner>,
+    fingerprint: String,
+}
+
+impl Drop for AskGuard {
+    fn drop(&mut self) {
+        let unanswered =
+            lock(&self.inner.verify_asked).get_mut(&self.fingerprint).and_then(|a| a.answer.take()).is_some();
+        if unanswered {
+            self.inner.emit("post-verify-ask-closed", serde_json::json!({ "fingerprint": self.fingerprint }));
+        }
+    }
+}
+
+/// Another ePet that compared Verify with this one asks what this side's user decided,
+/// and waits for it: 200 {"result":"match"|"mismatch"}, 408 (not within a few minutes).
+async fn verify_result(inner: Arc<Inner>, req: Request<Incoming>, cert: Option<String>) -> Response<Body> {
+    if !inner.config().enabled {
+        return status(403);
+    }
+    let Some(info) = read_json::<DeviceInfo>(req, 64 * 1024).await else {
+        return status(400);
+    };
+    if !cert.as_ref().is_some_and(|c| c.eq_ignore_ascii_case(&info.fingerprint)) || inner.blocked(&info.fingerprint) {
+        return status(403);
+    }
+    let mut decided = inner.decided(&info.fingerprint).subscribe();
+    let wait = async { decided.wait_for(Option::is_some).await.map(|v| v.unwrap_or(false)) };
+    let result = tokio::time::timeout(Duration::from_millis(RESULT_WAIT_MS), wait).await;
+    match result {
+        Ok(Ok(matched)) => json(&serde_json::json!({ "result": if matched { "match" } else { "mismatch" } })),
+        _ => status(408),
+    }
+}
+
+/// Where another ePet asks to compare Verify, and then what was decided (not LocalSend's
+/// API: LocalSend says 404).
 pub(crate) const VERIFY_ASK: &str = "/api/epet/v1/verify";
+pub(crate) const VERIFY_RESULT: &str = "/api/epet/v1/verify-result";
 
 /// How soon the same device may ask again.
 const ASK_AGAIN_MS: i64 = 10_000;
+
+/// How long a "verify-result" waits for the user to decide.
+pub(crate) const RESULT_WAIT_MS: u64 = 5 * 60_000;
 
 /// Puts the receiving slot back to idle if the offer `id` still holds it: when the
 /// request ends without the delivery starting (declined, timed out, sender gone).
@@ -295,6 +361,10 @@ async fn prepare_upload(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, c
     };
     if files.is_empty() {
         return status(400);
+    }
+    // Blocked (Verify: the icons didn't match): refused, and not remembered.
+    if inner.blocked(&info.fingerprint) || cert.as_ref().is_some_and(|c| inner.blocked(c)) {
+        return status(PostError::Rejected.status());
     }
     let verified = cert.as_ref().is_some_and(|c| c.eq_ignore_ascii_case(&info.fingerprint));
     if verified || cert.is_none() {
@@ -369,6 +439,7 @@ async fn prepare_upload(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, c
             direction: "in",
             state: "failed",
             peer: alias,
+            fingerprint: fingerprint.clone(),
             error: Some(e.to_string()),
             ..Default::default()
         });
@@ -384,7 +455,7 @@ async fn prepare_upload(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, c
         }
         *receive = Receive::Active(Box::new(Active {
             session,
-            fingerprint,
+            fingerprint: fingerprint.clone(),
             save_dir,
             reserved: Default::default(),
             done_bytes: 0,
@@ -397,6 +468,7 @@ async fn prepare_upload(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, c
         direction: "in",
         state: "receiving",
         peer: alias,
+        fingerprint: fingerprint.clone(),
         total,
         files: count,
         ..Default::default()
@@ -455,6 +527,7 @@ fn received(inner: &Inner, session_id: &str, n: u64) -> bool {
             direction: "in",
             state: "receiving",
             peer: a.session.from.alias.clone(),
+            fingerprint: a.fingerprint.clone(),
             done: a.done_bytes,
             total: a.session.total_bytes(),
             files: a.session.files.len(),
@@ -567,6 +640,7 @@ fn finish_file(inner: &Inner, session_id: &str, file_id: &str, path: PathBuf) {
         direction: "in",
         state: "done",
         peer: a.session.from.alias.clone(),
+        fingerprint: a.fingerprint.clone(),
         done: a.session.total_bytes(),
         total: a.session.total_bytes(),
         files: a.session.files.len(),

@@ -680,6 +680,14 @@ const zhTW: Dictionary = {
     None: "無",
     "With a PIN, senders must type it before they can send you anything.":
       "設了 PIN 碼後，對方必須先輸入它，才能傳東西給你。",
+    "Verified devices": "已核對的裝置",
+    "Verified {when}": "{when} 核對",
+    "None yet. In Pet Post, Verify a device and choose “They match”.":
+      "還沒有。在寵物驛站裡核對一台裝置，選「一致」。",
+    "Blocked devices": "已封鎖的裝置",
+    "Blocked {when} · the icons didn't match": "{when} 封鎖 · 圖示不一致",
+    Unblock: "解除封鎖",
+    "None.": "沒有。",
     "Beyond this network": "本網路以外",
     "Devices are found on this network by themselves. Others (behind another router, on Tailscale) can be added by address in Pet Post.":
       "本網路裡的裝置會被自動找到。其他裝置（在另一台路由器後面、在 Tailscale 上）可以在寵物驛站裡依位址加入。",
@@ -794,7 +802,7 @@ const zhTW: Dictionary = {
     "{who}: “{text}”": "{who}：「{text}」",
     "💬 {who} says:": "💬 {who} 說：",
     Copy: "複製",
-    "{who} wants to compare Verify icons with you.": "{who} 想和你核對圖示。",
+    "{who} wants to verify with you.": "{who} 想和你核對。",
     Show: "查看",
     "Add to-do…": "新增待辦…",
     "Set alarm…": "設鬧鐘…",
@@ -833,6 +841,9 @@ const zhTW: Dictionary = {
     "Office trill": "辦公室鈴聲",
     "Field phone": "野戰電話",
     "Added {name}.": "已加入 {name}。",
+    "Verified on {date}: the icons matched on both screens.":
+      "{date} 核對過：兩邊螢幕上的圖示一致。",
+    Verified: "已核對",
     "⚠ Another device answers there now.": "⚠ 這個位址上現在是另一台裝置。",
     "Not answering.": "沒有回應。",
     "A favorite is remembered (looked for even off this network), and what it sends you is accepted without asking.":
@@ -885,13 +896,32 @@ const zhTW: Dictionary = {
     "With {name}": "與 {name}",
     Icons: "圖示",
     Text: "文字",
+    "In LocalSend: the device (or the delivery from this computer), then Verify. In ePet: Pet Post → Verify.":
+      "在 LocalSend 裡：點這台裝置（或這台電腦傳來的內容），再點 Verify。在 ePet 裡：寵物驛站 → 核對。",
+    "Verification request sent to {name}. Waiting for it…":
+      "核對請求已傳給 {name}，等它回應…",
+    "{name} shows them too. Compare the icons on both screens: if they differ, someone may be in between (a man-in-the-middle attack).":
+      "{name} 也顯示了。比較兩邊螢幕上的圖示：如果不一樣，可能有人在中間冒充（中間人攻擊）。",
+    "{name} declined to verify. Nothing is sent to it this time.":
+      "{name} 拒絕了核對。這次不會傳東西給它。",
+    "{name} refused: it may have blocked this computer. To check again, unblock it there (Settings → Pet Post), then Verify again.":
+      "{name} 拒絕了：它可能封鎖了這台電腦。要重新核對，先在那邊解除封鎖（設定 → 寵物驛站），再核對一次。",
+    "Asked just now: try again in a few seconds.": "剛剛問過：過幾秒再試。",
+    "Couldn't ask {name}: open Verify there to compare.":
+      "沒辦法通知 {name}：請在那台裝置上開啟核對來比較。",
     "Does it look the same on the other device?":
       "和另一台裝置上顯示的一樣嗎？",
     "{name} asked to compare.": "{name} 請你核對。",
-    "{name} shows them too: look at its screen.":
-      "{name} 那邊也顯示了：看看它的螢幕。",
-    "In LocalSend: the device (or the delivery from this computer), then Verify. In ePet: Pet Post → Verify.":
-      "在 LocalSend 裡：點這台裝置（或這台電腦傳來的內容），再點 Verify。在 ePet 裡：寵物驛站 → 核對。",
+    "{name} says the icons don't match. Look again: if they really differ, don't trust this connection.":
+      "{name} 說圖示不一致。再看一遍：如果確實不一樣，別信任這個連線。",
+    Block: "封鎖",
+    "Re-check": "重新核對",
+    "Block {name}?": "封鎖 {name}？",
+    "The icons differ: this may not be the device it says it is. Nothing will be sent to it, and what it sends is refused. You can unblock it in Settings → Pet Post.":
+      "圖示不一樣：這台裝置可能不是它自稱的那台。不會再傳東西給它，它傳來的也會被拒收。可以在 設定 → 寵物驛站 裡解除封鎖。",
+    "{name} is marked as verified.": "{name} 已標為「已核對」。",
+    "They match": "一致",
+    "They don't match": "不一致",
     "Declined in {s} s if you don't answer.": "{s} 秒內不回答就自動拒絕。",
     "{who} wants to send you {files} ({size})":
       "{who} 想傳給你 {files}（{size}）",

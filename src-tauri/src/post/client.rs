@@ -214,19 +214,62 @@ async fn introduce(inner: &Inner, peer: &Peer, connect: Duration, total: Duratio
     Ok(d)
 }
 
-/// Asks a device (by fingerprint) to show Verify too: an ePet's pet offers to; LocalSend
-/// doesn't know the request (404). Only over HTTPS, where both certificates are known.
-pub(crate) async fn ask_verify(inner: &Inner, fingerprint: &str) -> bool {
-    let Some(device) = lock(&inner.devices).get(&fingerprint.to_ascii_uppercase()).cloned() else {
-        return false;
+/// Asks a device (by fingerprint) to show Verify too, and waits for its user (a minute):
+/// see `post_verify_ask` for what it says. LocalSend doesn't know the request (404).
+/// Only over HTTPS, where both certificates are known.
+pub(crate) async fn ask_verify(inner: &Inner, fingerprint: &str) -> String {
+    let fp = fingerprint.to_ascii_uppercase();
+    // A new round: what this side decided before doesn't count.
+    inner.decided(&fp).send_replace(None);
+    let Some(device) = lock(&inner.devices).get(&fp).cloned() else {
+        return "unreachable".into();
     };
-    if !device.https || device.ip.is_unspecified() {
-        return false;
+    if !device.https {
+        return "unsupported".into();
+    }
+    if device.ip.is_unspecified() {
+        return "unreachable".into();
     }
     let peer = Peer::of(&device);
     let call =
-        request(inner, &peer, super::server::VERIFY_ASK, json_body(&inner.info(true)), None, Duration::from_secs(3));
-    matches!(tokio::time::timeout(Duration::from_secs(6), call).await, Ok(Ok(r)) if r.status == 204)
+        request(inner, &peer, super::server::VERIFY_ASK, json_body(&inner.info(true)), None, Duration::from_secs(4));
+    let reply = match tokio::time::timeout(Duration::from_secs(75), call).await {
+        Ok(Ok(r)) => r,
+        _ => return "unreachable".into(),
+    };
+    let answer = serde_json::from_slice::<serde_json::Value>(&reply.body)
+        .ok()
+        .and_then(|v| v["answer"].as_str().map(str::to_string))
+        .unwrap_or_default();
+    match reply.status {
+        200 if answer == "shown" => "shown",
+        403 if answer == "declined" => "declined",
+        408 => "declined",
+        403 => "refused",
+        404 => "unsupported",
+        429 => "busy",
+        _ => "unreachable",
+    }
+    .into()
+}
+
+/// After the device showed Verify: waits for what its user decides ("match" or
+/// "mismatch"); None if not within a few minutes, or it can't be asked.
+pub(crate) async fn verify_result(inner: &Inner, fingerprint: &str) -> Option<String> {
+    let device = lock(&inner.devices).get(&fingerprint.to_ascii_uppercase()).cloned()?;
+    if !device.https || device.ip.is_unspecified() {
+        return None;
+    }
+    let peer = Peer::of(&device);
+    let call =
+        request(inner, &peer, super::server::VERIFY_RESULT, json_body(&inner.info(true)), None, Duration::from_secs(4));
+    let wait = Duration::from_millis(super::server::RESULT_WAIT_MS + 30_000);
+    let reply = tokio::time::timeout(wait, call).await.ok()?.ok()?;
+    if reply.status != 200 {
+        return None;
+    }
+    let v: serde_json::Value = serde_json::from_slice(&reply.body).ok()?;
+    v["result"].as_str().filter(|r| matches!(*r, "match" | "mismatch")).map(str::to_string)
 }
 
 /// The files to send: each path a file, or a folder sent with what's in it.
@@ -318,7 +361,8 @@ pub(crate) fn cancel(inner: Arc<Inner>) {
     s.task.abort();
     let session = lock(&s.session).clone().unwrap_or_default();
     let peer = s.device.alias.clone();
-    inner.transfer(Transfer { direction: "out", state: "cancelled", peer, ..Default::default() });
+    let fingerprint = s.device.fingerprint.clone();
+    inner.transfer(Transfer { direction: "out", state: "cancelled", peer, fingerprint, ..Default::default() });
     tauri::async_runtime::spawn(async move {
         let d = s.device;
         let path = format!("{API}/cancel?sessionId={session}");
@@ -356,6 +400,7 @@ async fn run(inner: Arc<Inner>, job: Job, paths: Vec<PathBuf>, text: Option<Stri
             direction: "out",
             state,
             peer: d.alias.clone(),
+            fingerprint: d.fingerprint.clone(),
             done,
             total,
             files,
@@ -427,7 +472,7 @@ async fn run(inner: Arc<Inner>, job: Job, paths: Vec<PathBuf>, text: Option<Stri
     }
     let uploads = jobs.into_iter().map(|(path, size, source)| {
         let (inner, peer, alias, sent, last_emit) =
-            (inner.clone(), peer.clone(), d.alias.clone(), sent.clone(), last_emit.clone());
+            (inner.clone(), peer.clone(), (d.alias.clone(), d.fingerprint.clone()), sent.clone(), last_emit.clone());
         async move {
             let is_text = matches!(source, Source::Text(_));
             let body: ReqBody = match source {
@@ -464,7 +509,8 @@ async fn run(inner: Arc<Inner>, job: Job, paths: Vec<PathBuf>, text: Option<Stri
 fn file_body(
     file: tokio::fs::File,
     inner: Arc<Inner>,
-    peer: String,
+    // The receiver's name and fingerprint.
+    peer: (String, String),
     sent: Arc<AtomicU64>,
     last_emit: Arc<AtomicI64>,
     total: u64,
@@ -486,7 +532,8 @@ fn file_body(
                         inner.transfer(Transfer {
                             direction: "out",
                             state: "sending",
-                            peer,
+                            peer: peer.0,
+                            fingerprint: peer.1,
                             done,
                             total,
                             files,

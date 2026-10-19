@@ -46,6 +46,18 @@ export interface PostSettings {
   tailscale: boolean;
   /** Was told once that a favorite's files are accepted without asking. */
   favoriteNoticeSeen: boolean;
+  /** Verify: the icons matched on both screens (a mark: shown by its name, nothing more). */
+  verified: MarkedDevice[];
+  /** Verify: the icons didn't match. Not listed, nothing sent to it, all it asks refused. */
+  blocked: MarkedDevice[];
+}
+
+/** A device verified or blocked, by its certificate's fingerprint. */
+export interface MarkedDevice {
+  fingerprint: string;
+  alias: string;
+  /** When (ms). */
+  at: number;
 }
 
 export const DEFAULT_POST: PostSettings = {
@@ -59,6 +71,8 @@ export const DEFAULT_POST: PostSettings = {
   networks: [],
   tailscale: true,
   favoriteNoticeSeen: false,
+  verified: [],
+  blocked: [],
 };
 
 /** At most this many addresses in an extra network (a /22). */
@@ -110,7 +124,60 @@ export function postSettings(s: Partial<PostSettings> | undefined): PostSettings
     networks: Array.isArray(s?.networks) ? s.networks.map((n) => (typeof n === "string" ? parseNetwork(n) : null)).filter((n): n is string => !!n) : [],
     tailscale: s?.tailscale !== false,
     favoriteNoticeSeen: s?.favoriteNoticeSeen === true,
+    verified: marked(s?.verified),
+    blocked: marked(s?.blocked),
   };
+}
+
+function marked(list: unknown): MarkedDevice[] {
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((x) => x && typeof x.fingerprint === "string" && x.fingerprint)
+    .map((x) => ({ fingerprint: x.fingerprint.toUpperCase(), alias: typeof x.alias === "string" ? x.alias.slice(0, 64) : "", at: Number.isFinite(x.at) ? x.at : 0 }));
+}
+
+/** The record of a device verified (They match), if it is. */
+export function verifiedMark(s: PostSettings, fingerprint: string | null | undefined): MarkedDevice | null {
+  const fp = fingerprint?.toUpperCase();
+  return (fp && s.verified.find((d) => d.fingerprint === fp)) || null;
+}
+
+export function isBlocked(s: PostSettings, fingerprint: string | null | undefined): boolean {
+  const fp = fingerprint?.toUpperCase();
+  return !!fp && s.blocked.some((d) => d.fingerprint === fp);
+}
+
+/** They match: verified (and no longer blocked, if it was). */
+export function withVerified(s: PostSettings, d: { fingerprint: string; alias: string }, at = Date.now()): PostSettings {
+  const fp = d.fingerprint.toUpperCase();
+  return { ...s, verified: [...s.verified.filter((x) => x.fingerprint !== fp), { fingerprint: fp, alias: d.alias, at }], blocked: s.blocked.filter((x) => x.fingerprint !== fp) };
+}
+
+export function withoutVerified(s: PostSettings, fingerprint: string): PostSettings {
+  const fp = fingerprint.toUpperCase();
+  return { ...s, verified: s.verified.filter((x) => x.fingerprint !== fp) };
+}
+
+/** They don't match: blocked, and no longer verified, a favorite or kept at an address. */
+export function withBlocked(s: PostSettings, d: { fingerprint: string; alias: string }, at = Date.now()): PostSettings {
+  const fp = d.fingerprint.toUpperCase();
+  const rest = withoutFavorite(withoutVerified(s, fp), fp);
+  return { ...rest, devices: rest.devices.filter((x) => x.fingerprint !== fp), blocked: [...rest.blocked.filter((x) => x.fingerprint !== fp), { fingerprint: fp, alias: d.alias, at }] };
+}
+
+export function withoutBlocked(s: PostSettings, fingerprint: string): PostSettings {
+  const fp = fingerprint.toUpperCase();
+  return { ...s, blocked: s.blocked.filter((x) => x.fingerprint !== fp) };
+}
+
+/** A name in the pet's bubble, with a shield when the device is verified. */
+export function markedName(s: PostSettings, name: string, fingerprint: string | null | undefined): string {
+  return verifiedMark(s, fingerprint) ? `${name} 🛡` : name;
+}
+
+/** A short fingerprint, to tell two devices apart ("8C1E…44A0"). */
+export function shortFingerprint(fp: string): string {
+  return fp.length > 10 ? `${fp.slice(0, 4)}…${fp.slice(-4)}` : fp;
 }
 
 /** A favorite (♥): what's sent from it is accepted without asking (the app's "trusted"). */
@@ -158,6 +225,7 @@ export interface PostConfig {
   devices: SavedDevice[];
   networks: string[];
   tailscale: boolean;
+  blocked: string[];
 }
 
 export function postConfig(s: PostSettings, alias: string, port = 0): PostConfig {
@@ -172,6 +240,7 @@ export function postConfig(s: PostSettings, alias: string, port = 0): PostConfig
     devices: s.devices,
     networks: s.networks,
     tailscale: s.tailscale,
+    blocked: s.blocked.map((d) => d.fingerprint),
   };
 }
 
@@ -212,6 +281,8 @@ export interface PostTailnet {
 }
 
 /** What both devices show to check they talk to each other (LocalSend's Verify). */
+export type PostVerifyAnswer = "shown" | "declined" | "refused" | "busy" | "unsupported" | "unreachable";
+
 export interface PostVerify {
   /** Both fingerprints, sorted and joined. */
   text: string;
@@ -241,6 +312,8 @@ export interface PostTransfer {
   direction: "in" | "out";
   state: TransferState;
   peer: string;
+  /** Its fingerprint (receiving: "" unless its certificate proves it). */
+  fingerprint: string;
   done: number;
   total: number;
   files: number;
@@ -314,9 +387,9 @@ export function namesLine(names: string[], total: number): string {
 }
 
 /** The pet's question: "Phone wants to send you 3 files (12 MB): a.jpg, …". */
-export function offerLines(o: PostOffer): string[] {
+export function offerLines(o: PostOffer, who = o.alias): string[] {
   return [
-    t("📦 {who} wants to send you {files} ({size})", { who: o.alias, files: fileCount(o.files), size: formatSize(o.bytes) }),
+    t("📦 {who} wants to send you {files} ({size})", { who, files: fileCount(o.files), size: formatSize(o.bytes) }),
     namesLine(o.names, o.files),
   ];
 }
@@ -387,8 +460,7 @@ export function timeLeft(seconds: number): string {
 }
 
 /** One line on how a transfer goes (the pet's bubble and the Pet Post window). */
-export function transferLine(tr: PostTransfer): string {
-  const who = tr.peer;
+export function transferLine(tr: PostTransfer, who = tr.peer): string {
   if (tr.direction === "in") {
     switch (tr.state) {
       case "receiving":
@@ -510,11 +582,11 @@ export interface RecentSender {
 }
 
 /** The last `n` devices that sent something, proven by their certificates (the latest first). */
-export function recentSenders(history: PostReceived[], n = 5): RecentSender[] {
+export function recentSenders(history: PostReceived[], n = 5, blocked: MarkedDevice[] = []): RecentSender[] {
   const out: RecentSender[] = [];
   for (const r of history) {
     const fp = r.fingerprint?.toUpperCase();
-    if (!fp || out.some((s) => s.fingerprint === fp)) continue;
+    if (!fp || out.some((s) => s.fingerprint === fp) || blocked.some((b) => b.fingerprint === fp)) continue;
     out.push({ fingerprint: fp, alias: r.from, deviceModel: r.deviceModel ?? null, deviceType: r.deviceType ?? "desktop", last: r });
     if (out.length === n) break;
   }

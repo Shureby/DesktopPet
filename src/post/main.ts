@@ -36,6 +36,11 @@ import {
   type SavedDevice,
   namesLine,
   recentSenders,
+  verifiedMark,
+  withBlocked,
+  withVerified,
+  withoutVerified,
+  type PostVerifyAnswer,
 } from "../features/post/post";
 import "../styles/panel.css";
 
@@ -108,8 +113,14 @@ let verifying: {
   code: PostVerify | null;
   mode: "icons" | "text";
   error: string;
-  /** Whether the other device (an ePet) was asked to show it too: "" (not asked), "asking", "yes", "no". */
-  asked: "" | "asking" | "yes" | "no";
+  /** The other device (an ePet) asked to show it too: "" (not asked: it asked us), "asking", or its answer. */
+  asked: "" | "asking" | PostVerifyAnswer;
+  /** Its user says the icons don't match. */
+  mismatch: boolean;
+  /** They match: marked verified. */
+  matched: boolean;
+  /** They don't match: "Block …?" is up. */
+  confirm: boolean;
 } | null = null;
 
 let sendFailed = "";
@@ -176,23 +187,78 @@ async function forget(d: PostDevice): Promise<void> {
 
 function verify(fingerprint: string, alias = ""): void {
   const fp = fingerprint.toUpperCase();
-  const v: NonNullable<typeof verifying> = { fingerprint: fp, alias, code: null, mode: "icons", error: "", asked: "" };
+  const v: NonNullable<typeof verifying> = { fingerprint: fp, alias, code: null, mode: "icons", error: "", asked: "", mismatch: false, matched: false, confirm: false };
   verifying = v;
+  const redraw = () => verifying === v && render();
   render();
   backend
     .postVerify(fp)
     .then((code) => {
       v.code = code;
-      // An ePet shows it too, on its screen (unless it asked for this: it shows it already).
+      // It asked for this: it shows them already (not asked back).
       if (code.askedBy) return;
+      // An ePet is asked to show them too, and its user answers (LocalSend can't be asked).
       v.asked = "asking";
       void backend
         .postVerifyAsk(fp)
-        .catch(() => false)
-        .then((yes) => ((v.asked = yes ? "yes" : "no"), verifying === v && render()));
+        .catch((): PostVerifyAnswer => "unreachable")
+        .then((a) => {
+          v.asked = a;
+          // Declined: nothing is sent to it this time.
+          if (a === "declined" && transfer?.fingerprint === fp && !transferOver(transfer)) void backend.postCancelSend();
+          // Shown: whether its user says they don't match (a warning here, nothing more).
+          if (a === "shown")
+            void backend
+              .postVerifyResult(fp)
+              .catch(() => null)
+              .then((r) => r === "mismatch" && verifying === v && ((v.mismatch = true), render()));
+          redraw();
+        });
     })
     .catch(() => (v.error = t("Pet Post is off.")))
-    .finally(() => verifying === v && render());
+    .finally(redraw);
+}
+
+/** They match: marked verified (here; the other side decides for itself). */
+async function verifiedNow(v: NonNullable<typeof verifying>, name: string): Promise<void> {
+  void backend.postVerifyDecided(v.fingerprint, true);
+  const cur = await backend.getSettings();
+  settings = await backend.setSettings({ post: withVerified(cur.post, { fingerprint: v.fingerprint, alias: name }) });
+  v.matched = true;
+  render();
+}
+
+/** They don't match: blocked (after "Block …?"). */
+async function block(v: NonNullable<typeof verifying>, name: string): Promise<void> {
+  const cur = await backend.getSettings();
+  settings = await backend.setSettings({ post: withBlocked(cur.post, { fingerprint: v.fingerprint, alias: name }) });
+  if (selected === v.fingerprint) selected = null;
+  verifying = null;
+  render();
+}
+
+/** Re-check: no longer verified here (the two sides disagree), and asked again. */
+async function recheck(v: NonNullable<typeof verifying>, name: string): Promise<void> {
+  const cur = await backend.getSettings();
+  settings = await backend.setSettings({ post: withoutVerified(cur.post, v.fingerprint) });
+  verify(v.fingerprint, name);
+}
+
+/** A green "Verified" (the shield alone when `small`) by a verified device's name. */
+function verifiedBadge(fingerprint: string | null | undefined, small = false): Node | null {
+  const mark = verifiedMark(settings.post, fingerprint);
+  if (!mark) return null;
+  const title = t("Verified on {date}: the icons matched on both screens.", { date: formatWhen(mark.at) });
+  return h("span", { class: `post-verified${small ? " small" : ""}`, title, "aria-label": t("Verified") }, icon(VERIFIED_USER), small ? null : t("Verified"));
+}
+
+/** Stands for a name in a line, where it goes with its badge (`named`). */
+const NAME = "\u0001";
+
+/** A line with the device's name (written as NAME in it) and, if verified, its badge. */
+function named(line: string, name: string, fingerprint: string | null | undefined, small = false): Node[] {
+  const [before, after = ""] = line.split(NAME);
+  return [before, h("span", { class: "post-name" }, name), verifiedBadge(fingerprint, small), after].filter((n): n is Node | string => n !== null && n !== "") as Node[];
 }
 
 /** On (the pet window tells the app; it says when it's listening, "post-status"). */
@@ -242,7 +308,7 @@ function deviceRow(d: PostDevice): Node {
     h(
       "span",
       { class: "grow" },
-      h("strong", {}, d.alias),
+      h("strong", {}, d.alias, verifiedBadge(d.fingerprint)),
       h("span", { class: "hint" }, where),
       state ? h("span", { class: `post-device-state${d.changedTo ? " warning" : ""}` }, state) : null,
       favoriteAsk === d.fingerprint
@@ -467,7 +533,7 @@ function receiveTab(): Node[] {
 
 /** Receive → Recent senders: who sent something lately, to Verify (they needn't be found). */
 function recentList(): Node | null {
-  const senders = recentSenders(history);
+  const senders = recentSenders(history, 5, settings.post.blocked);
   if (!senders.length) return null;
   return h(
     "div",
@@ -482,7 +548,7 @@ function recentList(): Node | null {
           "li",
           { class: "post-device post-recent-sender" },
           h("span", { class: "icon" }, DEVICE_ICONS[s.deviceType] ?? "💻"),
-          h("span", { class: "grow" }, h("strong", {}, s.alias), h("span", { class: "hint" }, [s.deviceModel, what, formatWhen(s.last.at)].filter(Boolean).join(" · "))),
+          h("span", { class: "grow" }, h("strong", {}, s.alias, verifiedBadge(s.fingerprint)), h("span", { class: "hint" }, [s.deviceModel, what, formatWhen(s.last.at)].filter(Boolean).join(" · "))),
           h("button", { class: "small post-verify", title: t("Verify: compare with what the other device shows"), onclick: () => verify(s.fingerprint, s.alias) }, icon(VERIFIED_USER), t("Verify")),
         );
       }),
@@ -569,12 +635,96 @@ function verifyView(): Node {
     h("header", { class: "post-head" }, h("h2", {}, icon(VERIFIED_USER, "ui-icon big"), t("Verify")), h("p", { class: "hint" }, t("With {name}", { name }))),
     h("div", { class: "row post-verify-modes" }, mode("icons", t("Icons")), mode("text", t("Text"))),
     body,
-    h("p", {}, t("Does it look the same on the other device?")),
-    v.code?.askedBy ? h("p", { class: "hint post-verify-asked-by" }, t("{name} asked to compare.", { name: v.code.askedBy })) : null,
-    v.asked === "yes" ? h("p", { class: "post-verify-shown" }, `✓ ${t("{name} shows them too: look at its screen.", { name })}`) : null,
+    ...verifyStatus(v, name),
     h("p", { class: "hint" }, t("In LocalSend: the device (or the delivery from this computer), then Verify. In ePet: Pet Post → Verify.")),
     h("p", { class: "row" }, h("button", { class: "primary post-verify-done", onclick: () => ((verifying = null), render()) }, t("Done"))),
   );
+}
+
+/** Under the icons: how asking the other device went, and They match / They don't match. */
+function verifyStatus(v: NonNullable<typeof verifying>, name: string): Node[] {
+  if (!v.code) return [];
+  const out: Node[] = [];
+  const line = (css: string, text: string) => out.push(h("p", { class: `post-verify-line ${css}` }, text));
+  switch (v.asked) {
+    case "asking":
+      line("post-verify-asking", `⏳ ${t("Verification request sent to {name}. Waiting for it…", { name })}`);
+      break;
+    case "shown":
+      line("post-verify-shown", `✓ ${t("{name} shows them too. Compare the icons on both screens: if they differ, someone may be in between (a man-in-the-middle attack).", { name })}`);
+      break;
+    case "declined":
+      line("post-verify-declined warning", t("{name} declined to verify. Nothing is sent to it this time.", { name }));
+      break;
+    case "refused":
+      line("post-verify-refused warning", t("{name} refused: it may have blocked this computer. To check again, unblock it there (Settings → Pet Post), then Verify again.", { name }));
+      break;
+    case "busy":
+      line("post-verify-busy hint", t("Asked just now: try again in a few seconds."));
+      break;
+    case "unreachable":
+      line("post-verify-unreachable hint", t("Couldn't ask {name}: open Verify there to compare.", { name }));
+      break;
+    case "unsupported":
+      line("hint", t("Does it look the same on the other device?"));
+      break;
+    default:
+      if (v.code.askedBy) line("post-verify-asked-by hint", t("{name} asked to compare.", { name: v.code.askedBy }));
+  }
+  if (v.mismatch && !v.confirm) {
+    out.push(
+      h(
+        "div",
+        { class: "box post-verify-mismatch" },
+        h("p", {}, t("{name} says the icons don't match. Look again: if they really differ, don't trust this connection.", { name })),
+        h(
+          "div",
+          { class: "row" },
+          h("button", { class: "danger post-verify-block", onclick: () => ((v.confirm = true), render()) }, t("Block")),
+          h("button", { class: "post-verify-recheck", onclick: () => void recheck(v, name) }, t("Re-check")),
+        ),
+      ),
+    );
+  }
+  if (v.confirm) {
+    out.push(
+      h(
+        "div",
+        { class: "box post-verify-confirm" },
+        h("p", {}, h("strong", {}, t("Block {name}?", { name }))),
+        h("p", { class: "hint" }, t("The icons differ: this may not be the device it says it is. Nothing will be sent to it, and what it sends is refused. You can unblock it in Settings → Pet Post.")),
+        h(
+          "div",
+          { class: "row" },
+          h("button", { class: "danger post-verify-block-yes", onclick: () => void block(v, name) }, t("Block")),
+          h("button", { class: "post-verify-look-again", onclick: () => ((v.confirm = false), render()) }, t("Look again")),
+        ),
+      ),
+    );
+  } else if (v.matched) {
+    line("post-verify-matched", `✓ ${t("{name} is marked as verified.", { name })}`);
+  } else if (!v.mismatch && !["asking", "declined", "refused"].includes(v.asked)) {
+    out.push(
+      h(
+        "div",
+        { class: "row post-verify-decide" },
+        h("button", { class: "post-verify-match", onclick: () => void verifiedNow(v, name) }, `✓ ${t("They match")}`),
+        h(
+          "button",
+          {
+            class: "post-verify-mismatch-button",
+            onclick: () => {
+              void backend.postVerifyDecided(v.fingerprint, false);
+              v.confirm = true;
+              render();
+            },
+          },
+          `✗ ${t("They don't match")}`,
+        ),
+      ),
+    );
+  }
+  return out;
 }
 
 function answer(accept: boolean, always = false): void {
@@ -603,7 +753,7 @@ function offerCard(): Node | null {
   return h(
     "div",
     { class: "box post-offer" },
-    h("p", { class: "post-offer-title" }, `📦 ${t("{who} wants to send you {files} ({size})", { who: o.alias, files: fileCount(o.files), size: formatSize(o.bytes) })}`),
+    h("p", { class: "post-offer-title" }, ...named(`📦 ${t("{who} wants to send you {files} ({size})", { who: NAME, files: fileCount(o.files), size: formatSize(o.bytes) })}`, o.alias, o.fingerprint)),
     h("p", { class: "hint" }, namesLine(o.names, o.files)),
     h("p", { class: "hint post-offer-countdown" }, countdown(o)),
     h(
@@ -622,7 +772,7 @@ function incomingCard(): Node | null {
   const tr = incoming;
   if (!tr) return null;
   const over = transferOver(tr);
-  const rows: Node[] = [h("p", { class: over && tr.state !== "done" ? "warning" : "" }, transferLine(tr))];
+  const rows: Node[] = [h("p", { class: over && tr.state !== "done" ? "warning" : "" }, ...named(transferLine(tr, NAME), tr.peer, tr.fingerprint))];
   if (!over) {
     rows.push(
       h("progress", { max: 1000, value: Math.floor((tr.done / Math.max(1, tr.total)) * 1000) }),
@@ -645,7 +795,7 @@ function receivedRow(r: PostReceived): Node {
     return h(
       "li",
       { class: "post-received-item" },
-      h("div", { class: "row" }, h("strong", { class: "grow" }, `💬 ${r.from}`), when),
+      h("div", { class: "row" }, h("strong", { class: "grow" }, "💬 ", ...named(NAME, r.from, r.fingerprint, true)), when),
       h("div", { class: "row" }, h("span", { class: "grow post-received-text" }, r.text), h("button", { class: "small", onclick: () => copyText(r.text!) }, t("Copy"))),
     );
   }
@@ -653,7 +803,7 @@ function receivedRow(r: PostReceived): Node {
   return h(
     "li",
     { class: "post-received-item" },
-    h("div", { class: "row" }, h("strong", { class: "grow" }, `📦 ${t("{files} from {who}", { files: fileCount(r.files), who: r.from })} · ${formatSize(r.bytes)}`), when),
+    h("div", { class: "row" }, h("strong", { class: "grow" }, ...named(`📦 ${t("{files} from {who}", { files: fileCount(r.files), who: NAME })} · ${formatSize(r.bytes)}`, r.from, r.fingerprint, true)), when),
     h("div", { class: "hint post-received-names" }, namesLine(names.slice(0, 3), r.files)),
     gone.has(r.id)
       ? h("p", { class: "hint warning" }, t("Not there any more (moved or deleted)."))
@@ -671,7 +821,7 @@ function progress(): Node | null {
   if (!tr) return null;
   const over = transferOver(tr);
   const bar = h("progress", { max: 1000, value: Math.floor((tr.done / Math.max(1, tr.total)) * 1000) });
-  const rows: Node[] = [h("p", { class: over && tr.state !== "done" ? "warning" : "" }, transferLine(tr))];
+  const rows: Node[] = [h("p", { class: over && tr.state !== "done" ? "warning" : "" }, ...named(transferLine(tr, NAME), tr.peer, tr.fingerprint))];
   if (!over && tr.state !== "waiting")
     rows.push(bar, h("p", { class: "hint post-rate" }, [`${formatSize(tr.done)} / ${formatSize(tr.total)} · ${fileCount(tr.files)}`, outRate.line(tr)].filter(Boolean).join(" · ")));
   if (tr.direction === "out" && !over && mine) rows.push(h("button", { onclick: () => void backend.postCancelSend() }, t("Cancel")));

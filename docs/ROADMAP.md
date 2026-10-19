@@ -12,7 +12,7 @@
   SteamOS unticked.
 - **Direct build**: auto-updater feed, code signing, license keys.
 
-## Planned for 0.48: Pet Post Verify request, Verified and Blocked
+## Shipped in 0.48.0: Pet Post Verify request, Verified and Blocked
 
 Verify compares icons by eye (the only check a man in the middle can't fake); 0.48 makes
 it a step both sides take, and remembers the result.
@@ -42,6 +42,14 @@ it a step both sides take, and remembers the result.
   Post."). Kept by fingerprint (`post.blocked`). A blocked device isn't listed, nothing is
   sent to it, its register/offers/texts/Verify requests are refused (403), and it's not
   remembered in Recent senders.
+- **The two sides disagree** (one They match, the other They don't match): each keeps its
+  own decision. The side that said they don't match tells the other when it asks (a second
+  request held open, `/api/epet/v1/verify-result`): "B says the icons don't match. Look
+  again: if they really differ, don't trust this connection." with **Block** (the same
+  "Block B?" confirmation) and **Re-check** (no longer verified here, asked again; if B
+  already blocked this computer: "B refused: it may have blocked this computer…"). Never the
+  other way: a "match" over the network marks nothing. B's own "Block A?" also has **Look
+  again** (not blocked).
 - **LocalSend devices**: no request (LocalSend doesn't know it); after comparing with
   LocalSend's own Verify screen, They match / They don't match work the same.
 - **Settings → Pet Post**: "Verified devices" (Remove) and "Blocked devices" (Unblock),

@@ -871,14 +871,35 @@ src-tauri/src/post/, crates/desktoppet-core/src/post.rs).
   for these two devices: both fingerprints sorted and joined, the first 128 bits of its
   SHA-256 as icons of LocalSend's 260 (src/features/post/verifyIcons.ts, made by
   scripts/verify-icons.py). The same on both screens: it's the device it says it is.
-  - **On both screens at once** (since 0.47.0, ePet ↔ ePet): Verify asks the other device
-    (`POST /api/epet/v1/verify`, over HTTPS with this device's certificate; LocalSend
-    answers 404 and nothing changes) to show it too; the line "✓ X shows them too: look at
-    its screen." says it will. There the pet says "X wants to compare Verify icons with
-    you." (Show / Not now, a minute; the hidden pet comes out; stepped aside, or hidden in
-    Quiet mode: nothing). Show opens Verify there, worked out there from the certificates,
-    with "X asked to compare."; that side doesn't ask back. Only a device its certificate
-    proves can ask, and once in ten seconds (429 meanwhile).
+  - **A request, answered on the other screen** (since 0.48.0, ePet ↔ ePet): Verify asks
+    the other device (`POST /api/epet/v1/verify`, over HTTPS with this device's
+    certificate; LocalSend answers 404 and nothing changes) and the request waits for its
+    user: "⏳ Verification request sent to X. Waiting for it…". There the pet says "X wants
+    to verify with you." (Show / Decline, a minute; the hidden pet comes out; stepped
+    aside, or hidden in Quiet mode: declined). Show opens Verify there (worked out there
+    from the certificates, "X asked to compare.", not asked back); here: "✓ X shows them
+    too. Compare the icons on both screens: if they differ, someone may be in between (a
+    man-in-the-middle attack)." Declined or no answer: "X declined to verify. Nothing is
+    sent to it this time." (a delivery waiting for it is cancelled; not blocked). Only a
+    device its certificate proves, and not blocked, can ask; once in ten seconds (429).
+  - **They match / They don't match** (since 0.48.0), on both sides, each for itself
+    (LocalSend devices too, compared with LocalSend's own Verify):
+    - They match: **Verified** (settings `post.verified`): a green 🛡 Verified by its name
+      in the Send list, Recent senders, the offer card and progress in the window (the
+      pet's bubbles: "X 🛡"), and a small shield in Latest and History. Hover: "Verified on
+      …: the icons matched on both screens." Nothing more: unverified devices work as before.
+    - They don't match: "Block X?" (Block / Look again). Blocked (settings `post.blocked`,
+      told to the app): not listed, nothing sent to it; its register, deliveries, texts and
+      Verify requests refused (403); not in Recent senders. Also no longer verified, a
+      favorite or kept at an address.
+    - Told to the other side when it asks (`POST /api/epet/v1/verify-result`, waiting up
+      to five minutes for the decision): "X says the icons don't match. Look again: if they
+      really differ, don't trust this connection." with Block (the same "Block X?") and
+      Re-check (no longer verified here; asked again; if X blocked this computer: "X
+      refused: it may have blocked this computer…"). A "match" from over the network marks
+      nothing: only the user's own eyes do.
+    - Settings → Pet Post lists **Verified devices** (Remove) and **Blocked devices**
+      (Unblock), with when and a short fingerprint.
   - **Recent senders** (since 0.47.0): Receive lists the last five devices that sent
     something (proven by their certificates; kept with what was received, so Clear in
     History empties it too), each with Verify, for a sender this computer doesn't find.

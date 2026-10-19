@@ -16,6 +16,34 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.48.0] - 2026-10-19
+
+### Added
+- **Pet Post: Verify as a request, answered on the other screen (ePet ↔ ePet).** Verify
+  sends "⏳ Verification request sent to X. Waiting for it…"; X's pet asks "… wants to
+  verify with you." (Show / Decline). Shown: "✓ X shows them too. Compare the icons on
+  both screens: if they differ, someone may be in between (a man-in-the-middle attack)."
+  Declined (or no answer in a minute): "X declined to verify. Nothing is sent to it this
+  time." (a delivery waiting for it is cancelled; it isn't blocked). The request waits for
+  the answer, so it works one-way too (a second router, NAT).
+- **They match / They don't match** under the icons, on both sides (each decides for
+  itself; LocalSend devices too, after comparing with LocalSend's Verify).
+  - **They match → Verified:** a green 🛡 Verified by its name in the Send list, the pet's
+    "Deliver to…" buttons and progress, the offer (bubble and window), Receiving…, Recent
+    senders, and a small shield in Latest and History. Nothing changes for devices not
+    verified.
+  - **They don't match → "Block X?"** (Block / Look again). Blocked: not listed, nothing
+    sent to it, its deliveries, texts, introductions and Verify requests refused.
+  - The other side is told "they don't match" when it asks: "X says the icons don't match.
+    Look again: if they really differ, don't trust this connection." with **Block** /
+    **Re-check** (no longer verified here, and asked again). Only a warning: a "match"
+    from over the network never marks anything verified.
+- **Settings → Pet Post: Verified devices** (Remove) and **Blocked devices** (Unblock).
+
+### Changed
+- Pet Post's "✓ X shows them too: look at its screen." (0.47) said so before X showed
+  anything: now it waits for X's answer.
+
 ## [0.47.0] - 2026-10-19
 
 ### Added

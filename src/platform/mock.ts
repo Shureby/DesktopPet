@@ -768,19 +768,29 @@ export const mockBackend: Backend = {
     return { text, icons, askedBy: null };
   },
   async postVerifyAsk(fingerprint) {
+    const q = new URLSearchParams(location.search);
     // ?verify-asked: a pretend ePet asks back (to see the pet's bubble).
-    if (new URLSearchParams(location.search).has("verify-asked")) {
-      setTimeout(() => fire("post-verify-asked", { fingerprint: "C3", alias: "Work laptop" }), 1500);
-    }
-    // The pretend ePet (Work laptop) shows it too; the LocalSend phones can't.
-    return fingerprint === "C3";
+    if (q.has("verify-asked")) setTimeout(() => fire("post-verify-asked", { fingerprint: "C3", alias: "Work laptop" }), 1500);
+    // The pretend ePet (Work laptop) shows it after a moment (?verify-declined: declines);
+    // the LocalSend phones can't be asked.
+    if (fingerprint !== "C3") return "unsupported";
+    await new Promise((r) => setTimeout(r, 1500));
+    return q.has("verify-declined") ? "declined" : "shown";
+  },
+  async postVerifyAnswer() {},
+  async postVerifyDecided() {},
+  async postVerifyResult(fingerprint) {
+    // ?verify-mismatch: the pretend ePet's user says the icons don't match.
+    if (fingerprint !== "C3" || !new URLSearchParams(location.search).has("verify-mismatch")) return new Promise<string | null>(() => {});
+    await new Promise((r) => setTimeout(r, 2500));
+    return "mismatch";
   },
   async postSend(to, paths, text) {
     // A pretend delivery: asked, then a few seconds of progress.
     const peer = mockDevices().find((d) => d.fingerprint === to)?.alias ?? "?";
     const files = text ? 1 : Math.max(1, paths.length);
     const total = text ? text.length : 3_400_000 * files;
-    const base = { direction: "out" as const, peer, files, total, folder: null, first: null, error: null };
+    const base = { direction: "out" as const, peer, fingerprint: to, files, total, folder: null, first: null, error: null };
     fire("post-transfer", { ...base, state: "waiting", done: 0 });
     let done = 0;
     clearInterval(mockSending);
@@ -797,7 +807,7 @@ export const mockBackend: Backend = {
     fire("post-offer-closed", { id, reason: "answered", accept });
     if (!accept) return;
     // A pretend delivery coming in, then kept in what was received.
-    const base = { direction: "in" as const, peer: "Pixel 8", files: 3, total: 4_200_000, folder: "Downloads/ePet", first: null, error: null };
+    const base = { direction: "in" as const, peer: "Pixel 8", fingerprint: "A1", files: 3, total: 4_200_000, folder: "Downloads/ePet", first: null, error: null };
     let done = 0;
     const tick = setInterval(() => {
       done = Math.min(base.total, done + base.total / 6);

@@ -6,8 +6,21 @@
  */
 import { t } from "../i18n";
 import type { Backend, Settings } from "../platform/types";
-import { parseNetwork, withoutFavorite, postAlias, tailnetLine, type PostDevice, type PostSettings, type PostStatus, type PostTailnet } from "../features/post/post";
-import { h } from "./dom";
+import {
+  parseNetwork,
+  withoutFavorite,
+  withoutBlocked,
+  withoutVerified,
+  postAlias,
+  shortFingerprint,
+  tailnetLine,
+  type MarkedDevice,
+  type PostDevice,
+  type PostSettings,
+  type PostStatus,
+  type PostTailnet,
+} from "../features/post/post";
+import { formatWhen, h } from "./dom";
 
 /** Lines of "Also look in these networks" that aren't one (shown until fixed; the page is redrawn on saving). */
 let badNetworks: string[] = [];
@@ -60,6 +73,23 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
           ),
         )
       : h("p", { class: "hint" }, t("None yet. Click ♡ by a device in Pet Post, or choose “Always accept” when it sends you something."));
+
+    /** Verified or blocked devices, each with a button that takes it off the list. */
+    const marks = (list: MarkedDevice[], css: string, when: (d: MarkedDevice) => string, label: string, without: (fp: string) => PostSettings, none: string) =>
+      list.length
+        ? h(
+            "ul",
+            { class: `trusted ${css}` },
+            ...list.map((d) =>
+              h(
+                "li",
+                { class: "row" },
+                h("span", { class: "grow", title: d.fingerprint }, h("span", {}, d.alias || shortFingerprint(d.fingerprint)), h("span", { class: "hint" }, ` · ${when(d)} · ${shortFingerprint(d.fingerprint)}`)),
+                h("button", { class: "small", onclick: () => void save({ post: without(d.fingerprint) }).then(() => poll()) }, label),
+              ),
+            ),
+          )
+        : h("p", { class: "hint" }, none);
 
     root.replaceChildren(
       h(
@@ -150,6 +180,10 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
               }),
             ),
             h("p", { class: "hint" }, t("With a PIN, senders must type it before they can send you anything.")),
+            h("div", { class: "subhead" }, t("Verified devices")),
+            marks(s.verified, "post-verified-list", (d) => t("Verified {when}", { when: formatWhen(d.at) }), t("Remove"), (fp) => withoutVerified(get().post, fp), t("None yet. In Pet Post, Verify a device and choose “They match”.")),
+            h("div", { class: "subhead" }, t("Blocked devices")),
+            marks(s.blocked, "post-blocked-list", (d) => t("Blocked {when} · the icons didn't match", { when: formatWhen(d.at) }), t("Unblock"), (fp) => withoutBlocked(get().post, fp), t("None.")),
             h("hr"),
             h("div", { class: "subhead" }, t("Beyond this network")),
             h("p", { class: "hint" }, t("Devices are found on this network by themselves. Others (behind another router, on Tailscale) can be added by address in Pet Post.")),

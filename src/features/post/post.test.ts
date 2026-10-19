@@ -25,6 +25,13 @@ import {
   transferLine,
   transferOver,
   recentSenders,
+  isBlocked,
+  markedName,
+  verifiedMark,
+  withBlocked,
+  withoutBlocked,
+  withVerified,
+  withoutVerified,
   type PostReceived,
   type PostTransfer,
 } from "./post";
@@ -33,6 +40,7 @@ const tr = (p: Partial<PostTransfer>): PostTransfer => ({
   direction: "out",
   state: "sending",
   peer: "Pixel",
+  fingerprint: "A1",
   done: 0,
   total: 0,
   files: 1,
@@ -56,6 +64,8 @@ describe("Pet Post settings", () => {
       networks: [],
       tailscale: true,
       favoriteNoticeSeen: false,
+      verified: [],
+      blocked: [],
     });
     expect(mergeSettings(null).post.enabled).toBe(false);
   });
@@ -90,6 +100,7 @@ describe("Pet Post settings", () => {
       devices: [],
       networks: [],
       tailscale: true,
+      blocked: [],
     });
   });
 
@@ -258,5 +269,27 @@ describe("recentSenders", () => {
     ]);
     expect(recentSenders([r("1", "Before 0.47")])).toEqual([]);
     expect(recentSenders([r("1", "Tablet", "CC")])[0].deviceType).toBe("desktop");
+  });
+});
+
+describe("Verified and blocked devices", () => {
+  it("They match: verified (a mark); They don't match: blocked, and no longer verified, a favorite or kept", () => {
+    let s = postSettings({ trusted: [{ fingerprint: "AA", alias: "Mac" }], devices: [{ address: "10.0.0.2", port: 53317, fingerprint: "AA", alias: "Mac", deviceType: "desktop", via: "favorite" }] });
+    s = withVerified(s, { fingerprint: "aa", alias: "Mac" }, 1000);
+    expect(verifiedMark(s, "AA")).toEqual({ fingerprint: "AA", alias: "Mac", at: 1000 });
+    expect(markedName(s, "Mac", "aa")).toBe("Mac 🛡");
+    expect(markedName(s, "Pixel", "BB")).toBe("Pixel");
+    expect(postConfig(s, "x").blocked).toEqual([]);
+    s = withBlocked(s, { fingerprint: "AA", alias: "Mac" }, 2000);
+    expect(verifiedMark(s, "AA")).toBeNull();
+    expect(isBlocked(s, "aa")).toBe(true);
+    expect([s.trusted, s.devices]).toEqual([[], []]);
+    expect(postConfig(s, "x").blocked).toEqual(["AA"]);
+    // Verified again: no longer blocked.
+    expect(isBlocked(withVerified(s, { fingerprint: "AA", alias: "Mac" }), "AA")).toBe(false);
+    expect(withoutBlocked(s, "aa").blocked).toEqual([]);
+    expect(withoutVerified(withVerified(s, { fingerprint: "BB", alias: "B" }), "bb").verified).toEqual([]);
+    // Kept in the settings as they were, and junk dropped.
+    expect(postSettings({ ...s, verified: [{ fingerprint: "cc", alias: "C", at: 5 }, { fingerprint: "", alias: "", at: 0 }] as never }).verified).toEqual([{ fingerprint: "CC", alias: "C", at: 5 }]);
   });
 });

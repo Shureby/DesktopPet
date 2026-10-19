@@ -12,8 +12,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const API = "/api/localsend/v2";
-/** Where an ePet asks another to show Verify too (src-tauri/src/post/server.rs, VERIFY_ASK). */
+/** Where an ePet asks another to show Verify too, then what was decided (src-tauri/src/post/server.rs). */
 const VERIFY_ASK = "/api/epet/v1/verify";
+const VERIFY_RESULT = "/api/epet/v1/verify-result";
 export const GROUP = "224.0.0.167";
 export const LOCALSEND_PORT = 53317;
 
@@ -43,6 +44,10 @@ export class Peer {
   epet = false;
   /** Asks to show Verify that came (as an ePet). */
   verifyAsks = [];
+  /** As an ePet, its user's answer to them: "shown" | "declined". */
+  verifyAnswer = "shown";
+  /** As an ePet, what its user decides after comparing ("match" | "mismatch"; null: nothing yet). */
+  verifyResult = null;
   /** How it answers prepare-upload: "accept" | "decline". */
   answer = "accept";
 
@@ -113,7 +118,12 @@ export class Peer {
       case VERIFY_ASK:
         if (!this.epet) return json(404);
         this.verifyAsks.push(JSON.parse(body.toString()));
-        return json(204);
+        return this.verifyAnswer === "shown" ? json(200, { answer: "shown" }) : json(403, { answer: "declined" });
+      case VERIFY_RESULT:
+        if (!this.epet) return json(404);
+        if (!this.verifyResult) return json(408);
+        await new Promise((r) => setTimeout(r, 1500));
+        return json(200, { result: this.verifyResult });
       default:
         return json(404);
     }
@@ -157,9 +167,14 @@ export class Peer {
     });
   }
 
-  /** Asks the app to show Verify too (as another ePet does). */
+  /** Asks the app to show Verify too (as another ePet does): resolves when it's answered. */
   askVerify(port = LOCALSEND_PORT) {
     return this.request(port, VERIFY_ASK, this.info());
+  }
+
+  /** Asks the app what its user decided on Verify: resolves when they do. */
+  askVerifyResult(port = LOCALSEND_PORT) {
+    return this.request(port, VERIFY_RESULT, this.info());
   }
 
   register(port = LOCALSEND_PORT, from = undefined) {

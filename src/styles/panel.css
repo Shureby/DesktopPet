@@ -1547,11 +1547,84 @@ button,
 .post-verify-view .row {
   justify-content: center;
 }
-.post-verify-shown {
-  background: #e3f3e7;
-  color: #2a6b3a;
+.post-verify-line {
   border-radius: 8px;
   padding: 6px 10px;
+  text-align: left;
+}
+.post-verify-asking {
+  background: var(--accent-soft);
+}
+.post-verify-shown,
+.post-verify-matched {
+  background: #e3f3e7;
+  color: #2a6b3a;
+}
+.post-verify-declined,
+.post-verify-refused {
+  background: #fbe9e7;
+}
+.post-verify-mismatch,
+.post-verify-confirm {
+  border-color: #c0392b;
+  background: #fbe9e7;
+  text-align: left;
+}
+.post-verify-mismatch .row,
+.post-verify-confirm .row {
+  justify-content: flex-start;
+}
+.post-verify-decide {
+  margin: 8px 0;
+}
+button.post-verify-match {
+  background: #2f8a4a;
+  border-color: #2f8a4a;
+  color: #fff;
+  font-weight: 700;
+}
+button.post-verify-mismatch-button {
+  border-color: #c0392b;
+  color: #c0392b;
+  font-weight: 700;
+}
+button.danger {
+  background: #c0392b;
+  border-color: #c0392b;
+  color: #fff;
+  font-weight: 700;
+}
+/* A verified device: a green shield (and "Verified") by its name. */
+.post-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 0 7px 0 4px;
+  border: 1px solid #9fd3ae;
+  border-radius: 10px;
+  background: #dff2e4;
+  color: #1f6b38;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+.post-verified .ui-icon {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  fill: #2f8a4a;
+}
+.post-verified.small {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.post-verified.small .ui-icon {
+  width: 15px;
+  height: 15px;
 }
 .post-recent {
   margin-top: 14px;
@@ -1759,9 +1832,27 @@ nav.post-tabs button {
   .post-offer-verify .ui-icon {
     fill: #9db8e3;
   }
-  .post-verify-shown {
+  .post-verify-shown,
+  .post-verify-matched {
     background: #1f3a28;
     color: #9fd8ae;
+  }
+  .post-verify-declined,
+  .post-verify-refused,
+  .post-verify-mismatch,
+  .post-verify-confirm {
+    background: #3a2220;
+  }
+  .post-verified {
+    background: #1f3a28;
+    border-color: #2f6b40;
+    color: #9fd8ae;
+  }
+  .post-verified.small {
+    background: none;
+  }
+  .post-verified .ui-icon {
+    fill: #6cc287;
   }
 }
 .ui-icon.big {

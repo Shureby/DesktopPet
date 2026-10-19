@@ -419,37 +419,96 @@ check("post.verify-offer", "Verify… in the pet's question opens it in Pet Post
   assert.equal((await reply).status, 403);
 });
 
-check("post.verify-ask", "Verify for another ePet asks it to show the icons too, and says so", async () => {
+/** Opens Verify for `name` from Send. */
+async function verifyFromSend(name) {
+  await postTab("send");
+  await ctx.app.b.execute((n) => {
+    const row = [...document.querySelectorAll(".post-device")].find((e) => e.textContent.includes(n));
+    row.querySelector(".post-verify").click();
+  }, name);
+}
+
+/** The settings as the app has them now. */
+const postSettings = async () => (await ctx.app.invoke("get_settings")).post;
+
+check("post.verify-ask", "Verify for another ePet: request sent, it shows them, They match → Verified badge", async () => {
   const app = ctx.app;
-  peer.epet = true;
-  peer.verifyAsks = [];
+  Object.assign(peer, { epet: true, verifyAsks: [], verifyAnswer: "shown", verifyResult: null });
   try {
-    await postTab("send");
-    await app.b.execute((name) => {
-      const row = [...document.querySelectorAll(".post-device")].find((e) => e.textContent.includes(name));
-      row.querySelector(".post-verify").click();
-    }, "Mock Phone");
+    await verifyFromSend("Mock Phone");
     await app.waitText(".post-verify-shown", "Mock Phone shows them too");
     assert.equal(peer.verifyAsks.length, 1);
     assert.equal(peer.verifyAsks[0].fingerprint, fingerprint);
+    await app.click(".post-verify-match");
+    await app.waitText(".post-verify-matched", "Mock Phone is marked as verified");
+    assert.ok((await postSettings()).verified.some((d) => d.fingerprint === peer.fingerprint));
+    await app.click(".post-verify-done");
+    await app.until((n) => [...document.querySelectorAll(".post-device")].some((e) => e.textContent.includes(n) && e.querySelector(".post-verified")), ["Mock Phone"]);
+  } finally {
+    peer.epet = false;
+  }
+});
+
+check("post.verify-declined", "the other ePet declines: said so, and nothing is sent to it this time", async () => {
+  const app = ctx.app;
+  Object.assign(peer, { epet: true, verifyAsks: [], verifyAnswer: "declined", verifyResult: null });
+  try {
+    await verifyFromSend("Mock Phone");
+    await app.waitText(".post-verify-declined", "Mock Phone declined to verify");
+    assert.equal(await app.b.execute(() => !!document.querySelector(".post-verify-match")), false);
+    // Not blocked.
+    assert.equal((await postSettings()).blocked.length, 0);
     await app.click(".post-verify-done");
   } finally {
     peer.epet = false;
   }
 });
 
-check("post.verify-asked", "asked by another ePet: the pet offers to show Verify; Show opens it, without asking back", async () => {
+check("post.verify-mismatch", "its user says they don't match: a warning with Block / Re-check; Block blocks it everywhere", async () => {
   const app = ctx.app;
-  peer.epet = true;
-  peer.verifyAsks = [];
+  Object.assign(peer, { epet: true, verifyAsks: [], verifyAnswer: "shown", verifyResult: "mismatch" });
+  try {
+    await verifyFromSend("Mock Phone");
+    await app.waitText(".post-verify-mismatch", "Mock Phone says the icons don't match", 15_000);
+    // Re-check: no longer verified here, and asked again.
+    await app.click(".post-verify-recheck");
+    await app.until(() => document.querySelector(".post-verify-shown"));
+    assert.equal(peer.verifyAsks.length, 2);
+    assert.ok(!(await postSettings()).verified.some((d) => d.fingerprint === peer.fingerprint));
+    await app.waitText(".post-verify-mismatch", "says the icons don't match", 15_000);
+    await app.click(".post-verify-block");
+    await app.waitText(".post-verify-confirm", "Block Mock Phone?");
+    await app.click(".post-verify-block-yes");
+    await app.until(() => !document.querySelector(".post-verify-view"));
+    assert.ok((await postSettings()).blocked.some((d) => d.fingerprint === peer.fingerprint));
+    // Not listed, and what it sends is refused (and not asked about).
+    assert.equal(await listed(), undefined);
+    assert.equal((await peer.prepare({ "blocked.txt": "x" })).status, 403);
+    assert.equal((await peer.register()).status, 403);
+    // Unblocked (Settings → Pet Post → Blocked devices): found again.
+    await app.setSettings((st) => ({ ...st, post: { ...st.post, blocked: [] } }));
+    await until("unblocked", async () => (await postSettings()).blocked.length === 0);
+    assert.equal((await peer.register()).status, 200);
+    await until("found again after Unblock", () => listed());
+  } finally {
+    peer.epet = false;
+    peer.verifyResult = null;
+  }
+});
+
+check("post.verify-asked", "asked by another ePet: the pet asks (Show / Decline); Show opens Verify there, not asked back; its decision goes back", async () => {
+  const app = ctx.app;
+  Object.assign(peer, { epet: true, verifyAsks: [], verifyAnswer: "shown", verifyResult: null });
   try {
     await app.closeWindow("post");
     await app.toPet();
-    assert.equal((await peer.askVerify()).status, 204);
+    const asking = peer.askVerify();
+    await app.waitBubble("Mock Phone wants to verify with you.");
+    await app.answer("Show");
+    const reply = await asking;
+    assert.deepEqual([reply.status, reply.body?.answer], [200, "shown"]);
     // Not again straight away.
     assert.equal((await peer.askVerify()).status, 429);
-    await app.waitBubble("Mock Phone wants to compare Verify icons with you.");
-    await app.answer("Show");
     await app.toWindow("post.html");
     const shown = await app.until(() => {
       const icons = [...document.querySelectorAll(".post-verify-grid svg")].map((e) => e.dataset.icon);
@@ -457,7 +516,14 @@ check("post.verify-asked", "asked by another ePet: the pet offers to show Verify
     });
     assert.deepEqual(shown, verifyCode(fingerprint, peer.fingerprint).icons);
     await app.waitText(".post-verify-asked-by", "Mock Phone asked to compare.");
-    await new Promise((r) => setTimeout(r, 1500));
+    // What's decided here goes back when asked (They don't match → "mismatch"); Look again: not blocked.
+    const result = peer.askVerifyResult();
+    await new Promise((r) => setTimeout(r, 500));
+    await app.click(".post-verify-mismatch-button");
+    const r = await result;
+    assert.deepEqual([r.status, r.body?.result], [200, "mismatch"]);
+    await app.click(".post-verify-look-again");
+    assert.equal((await postSettings()).blocked.length, 0);
     assert.equal(peer.verifyAsks.length, 0);
     await app.click(".post-verify-done");
   } finally {

@@ -680,6 +680,14 @@ const zhCN: Dictionary = {
     None: "无",
     "With a PIN, senders must type it before they can send you anything.":
       "设了 PIN 码后，对方必须先输入它，才能给你发东西。",
+    "Verified devices": "已核对的设备",
+    "Verified {when}": "{when} 核对",
+    "None yet. In Pet Post, Verify a device and choose “They match”.":
+      "还没有。在宠物驿站里核对一台设备，选“一致”。",
+    "Blocked devices": "已拉黑的设备",
+    "Blocked {when} · the icons didn't match": "{when} 拉黑 · 图标不一致",
+    Unblock: "解除拉黑",
+    "None.": "没有。",
     "Beyond this network": "本网络以外",
     "Devices are found on this network by themselves. Others (behind another router, on Tailscale) can be added by address in Pet Post.":
       "本网络里的设备会被自动找到。其他设备（在另一台路由器后面、在 Tailscale 上）可以在宠物驿站里按地址添加。",
@@ -794,7 +802,7 @@ const zhCN: Dictionary = {
     "{who}: “{text}”": "{who}：“{text}”",
     "💬 {who} says:": "💬 {who} 说：",
     Copy: "复制",
-    "{who} wants to compare Verify icons with you.": "{who} 想和你核对图标。",
+    "{who} wants to verify with you.": "{who} 想和你核对。",
     Show: "查看",
     "Add to-do…": "添加待办…",
     "Set alarm…": "设闹钟…",
@@ -833,6 +841,9 @@ const zhCN: Dictionary = {
     "Office trill": "办公室铃声",
     "Field phone": "野战电话",
     "Added {name}.": "已添加 {name}。",
+    "Verified on {date}: the icons matched on both screens.":
+      "{date} 核对过：两边屏幕上的图标一致。",
+    Verified: "已核对",
     "⚠ Another device answers there now.": "⚠ 这个地址上现在是另一台设备。",
     "Not answering.": "没有回应。",
     "A favorite is remembered (looked for even off this network), and what it sends you is accepted without asking.":
@@ -885,13 +896,32 @@ const zhCN: Dictionary = {
     "With {name}": "与 {name}",
     Icons: "图标",
     Text: "文字",
+    "In LocalSend: the device (or the delivery from this computer), then Verify. In ePet: Pet Post → Verify.":
+      "在 LocalSend 里：点这台设备（或这台电脑发来的内容），再点 Verify。在 ePet 里：宠物驿站 → 核对。",
+    "Verification request sent to {name}. Waiting for it…":
+      "核对请求已发给 {name}，等它回应…",
+    "{name} shows them too. Compare the icons on both screens: if they differ, someone may be in between (a man-in-the-middle attack).":
+      "{name} 也显示了。比较两边屏幕上的图标：如果不一样，可能有人在中间冒充（中间人攻击）。",
+    "{name} declined to verify. Nothing is sent to it this time.":
+      "{name} 拒绝了核对。这次不会发东西给它。",
+    "{name} refused: it may have blocked this computer. To check again, unblock it there (Settings → Pet Post), then Verify again.":
+      "{name} 拒绝了：它可能拉黑了这台电脑。要重新核对，先在那边解除拉黑（设置 → 宠物驿站），再核对一次。",
+    "Asked just now: try again in a few seconds.": "刚刚问过：过几秒再试。",
+    "Couldn't ask {name}: open Verify there to compare.":
+      "没法通知 {name}：请在那台设备上打开核对来比较。",
     "Does it look the same on the other device?":
       "和另一台设备上显示的一样吗？",
     "{name} asked to compare.": "{name} 请你核对。",
-    "{name} shows them too: look at its screen.":
-      "{name} 那边也显示了：看看它的屏幕。",
-    "In LocalSend: the device (or the delivery from this computer), then Verify. In ePet: Pet Post → Verify.":
-      "在 LocalSend 里：点这台设备（或这台电脑发来的内容），再点 Verify。在 ePet 里：宠物驿站 → 核对。",
+    "{name} says the icons don't match. Look again: if they really differ, don't trust this connection.":
+      "{name} 说图标不一致。再看一遍：如果确实不一样，别信任这个连接。",
+    Block: "拉黑",
+    "Re-check": "重新核对",
+    "Block {name}?": "拉黑 {name}？",
+    "The icons differ: this may not be the device it says it is. Nothing will be sent to it, and what it sends is refused. You can unblock it in Settings → Pet Post.":
+      "图标不一样：这台设备可能不是它自称的那台。不会再发东西给它，它发来的也会被拒收。可以在 设置 → 宠物驿站 里解除拉黑。",
+    "{name} is marked as verified.": "{name} 已标为“已核对”。",
+    "They match": "一致",
+    "They don't match": "不一致",
     "Declined in {s} s if you don't answer.": "{s} 秒内不回答就自动拒绝。",
     "{who} wants to send you {files} ({size})":
       "{who} 想给你发 {files}（{size}）",

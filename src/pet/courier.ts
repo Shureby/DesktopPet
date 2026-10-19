@@ -7,6 +7,7 @@ import { t } from "../i18n";
 import type { Backend, Settings } from "../platform";
 import {
   DEVICE_ICONS,
+  markedName,
   sendable,
   sendError,
   withFavorite,
@@ -92,6 +93,7 @@ export class Courier {
     await b.on("post-offer-closed", (c) => this.onClosed(c.id, c.reason));
     await b.on("post-text", (m) => void this.onText(m));
     await b.on("post-verify-asked", (a) => void this.onVerifyAsked(a.fingerprint, a.alias));
+    await b.on("post-verify-ask-closed", (a) => this.onVerifyAskClosed(a.fingerprint));
     await b.on("post-transfer", (tr) => this.onTransfer(tr));
     this.status = await b.postStatus().catch(() => null);
     await this.configure();
@@ -172,7 +174,7 @@ export class Courier {
     const what = paths.length === 1 ? `“${name}”` : t("{n} items", { n: paths.length });
     const shown = this.devices.slice(0, 4);
     this.host.say(t("Deliver {what} to…", { what }), 30_000, [
-      ...shown.map((d) => ({ label: `${DEVICE_ICONS[d.deviceType] ?? "💻"} ${d.alias}`, run: () => this.send(d.fingerprint, paths, null) })),
+      ...shown.map((d) => ({ label: `${DEVICE_ICONS[d.deviceType] ?? "💻"} ${markedName(this.host.settings().post, d.alias, d.fingerprint)}`, run: () => this.send(d.fingerprint, paths, null) })),
       ...(this.devices.length > shown.length ? [{ label: t("More…"), run: () => void b.openPostWindow(null, "send") }] : []),
       { label: t("Cancel"), run: () => {} },
     ]);
@@ -214,7 +216,7 @@ export class Courier {
   }
 
   private ask(o: PostOffer): void {
-    const lines = offerLines(o);
+    const lines = offerLines(o, markedName(this.host.settings().post, o.alias, o.fingerprint));
     this.asking = { offer: o, first: lines[0] };
     const answer = (accept: boolean) => {
       this.asking = null;
@@ -274,46 +276,71 @@ export class Courier {
     this.host.chime();
   }
 
-  /** Another ePet asks to compare Verify: shown here only if you say so (not a window out of the blue). */
+  /** Questions about Verify up now (fingerprint → the bubble's first line). */
+  private verifyAsks = new Map<string, string>();
+
+  /**
+   * Another ePet asks to compare Verify: Show (its icons open in Pet Post) or Decline; not
+   * a window out of the blue. Away, or hidden in Quiet mode: declined.
+   */
   private async onVerifyAsked(fingerprint: string, alias: string): Promise<void> {
-    if (this.host.away() || (this.host.hidden() && this.host.quiet())) return;
+    const b = this.host.backend;
+    if (this.host.away() || (this.host.hidden() && this.host.quiet())) {
+      void b.postVerifyAnswer(fingerprint, false);
+      return;
+    }
     if (this.host.hidden()) await this.host.comeOut();
-    const first = t("{who} wants to compare Verify icons with you.", { who: alias });
-    this.host.say(first, 60_000, [
-      { label: t("Show"), run: () => void this.host.backend.openPostWindow(fingerprint) },
-      { label: t("Not now"), run: () => {} },
-    ], undefined, true);
+    const first = t("{who} wants to verify with you.", { who: alias });
+    this.verifyAsks.set(fingerprint, first);
+    const answered = (show: boolean) => {
+      this.verifyAsks.delete(fingerprint);
+      void b.postVerifyAnswer(fingerprint, show);
+      if (show) void b.openPostWindow(fingerprint);
+    };
+    this.host.say(first, 65_000, [
+      { label: t("Show"), run: () => answered(true) },
+      { label: t("Decline"), run: () => answered(false) },
+    ], () => this.verifyAsks.delete(fingerprint), true);
     this.host.chime();
   }
 
+  /** The question is over unanswered (it gave up, or a minute went by). */
+  private onVerifyAskClosed(fingerprint: string): void {
+    const first = this.verifyAsks.get(fingerprint);
+    if (first === undefined) return;
+    this.verifyAsks.delete(fingerprint);
+    this.host.unsay(first);
+  }
+
   private onTransfer(tr: PostTransfer): void {
+    const line = (x: PostTransfer) => transferLine(x, markedName(this.host.settings().post, x.peer, x.fingerprint));
     const before = this.transfer;
     this.transfer = transferOver(tr) ? null : tr;
     this.host.redraw();
     const b = this.host.backend;
     if (tr.direction === "in") {
       if (tr.state === "done") this.host.chime(true);
-      if (tr.state === "receiving" && !before) this.host.say(transferLine(tr), 4000);
+      if (tr.state === "receiving" && !before) this.host.say(line(tr), 4000);
       else if (tr.state === "done")
-        this.host.say(transferLine(tr), 20_000, [
+        this.host.say(line(tr), 20_000, [
           { label: t("Show"), run: () => void b.postOpen(tr.first) },
           { label: t("OK"), run: () => {} },
         ], undefined, true);
-      else if (transferOver(tr)) this.host.say(transferLine(tr), 6000);
+      else if (transferOver(tr)) this.host.say(line(tr), 6000);
       return;
     }
     // Sent from the Pet Post window: the window says how it goes (the badge shows it too).
     const mine = this.mine;
     if (!mine) return;
     if (tr.state === "waiting") {
-      this.host.say(transferLine(tr), ANSWER_MS, [{ label: t("Cancel"), run: () => void b.postCancelSend() }]);
+      this.host.say(line(tr), ANSWER_MS, [{ label: t("Cancel"), run: () => void b.postCancelSend() }]);
     } else if (tr.state === "sending" && before?.state === "waiting") {
-      this.host.say(transferLine(tr), 3000);
+      this.host.say(line(tr), 3000);
     } else if (tr.state === "pin") {
-      this.host.ask(transferLine(tr), t("PIN"), (pin) => this.send(mine.to, mine.paths, mine.text, pin));
+      this.host.ask(line(tr), t("PIN"), (pin) => this.send(mine.to, mine.paths, mine.text, pin));
     } else if (transferOver(tr)) {
       this.mine = null;
-      this.host.say(transferLine(tr), 6000);
+      this.host.say(line(tr), 6000);
     }
   }
 }

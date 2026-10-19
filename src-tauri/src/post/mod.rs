@@ -58,6 +58,9 @@ pub struct Config {
     pub networks: Vec<String>,
     /// Lists the devices of the Tailscale network (if Tailscale is installed).
     pub tailscale: bool,
+    /// Fingerprints of blocked devices (Verify: the icons didn't match): not listed, nothing
+    /// sent to them, and whatever they ask is refused.
+    pub blocked: Vec<String>,
 }
 
 /// A device added by address, as remembered in the settings.
@@ -198,6 +201,8 @@ pub struct Transfer {
     pub state: &'static str,
     /// The other device's name.
     pub peer: String,
+    /// Its fingerprint (receiving: only when its certificate proves it).
+    pub fingerprint: String,
     pub done: u64,
     pub total: u64,
     pub files: usize,
@@ -315,8 +320,19 @@ pub struct Inner {
     pub(crate) tailnet: Mutex<Tailnet>,
     /// What was received (read from its file when first needed).
     pub(crate) history: Mutex<Option<Vec<Received>>>,
-    /// Devices that asked to compare Verify (fingerprint → their name, when).
-    pub(crate) verify_asked: Mutex<HashMap<String, (String, i64)>>,
+    /// Devices that asked to compare Verify (fingerprint → who, when, and the answer to give).
+    pub(crate) verify_asked: Mutex<HashMap<String, Asked>>,
+    /// What the user decided on Verify for a device (fingerprint → match or not), for its
+    /// asking ("verify-result").
+    pub(crate) verify_decided: Mutex<HashMap<String, watch::Sender<Option<bool>>>>,
+}
+
+/// A device asked to compare Verify.
+pub(crate) struct Asked {
+    pub alias: String,
+    pub at: i64,
+    /// Show (true) or Decline (false), while it waits.
+    pub answer: Option<oneshot::Sender<bool>>,
 }
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -377,7 +393,7 @@ impl Inner {
     /// then reaches us from another one: that's a router it's behind (NAT).
     pub(crate) fn add_device(&self, mut device: Device) {
         let own = self.identity().map(|i| i.fingerprint).unwrap_or_default();
-        if device.fingerprint.is_empty() || device.fingerprint == own {
+        if device.fingerprint.is_empty() || device.fingerprint == own || self.blocked(&device.fingerprint) {
             return;
         }
         let list = {
@@ -402,6 +418,19 @@ impl Inner {
         self.emit("post-devices", list);
     }
 
+    /// Whether the device (by fingerprint) is blocked.
+    pub(crate) fn blocked(&self, fingerprint: &str) -> bool {
+        lock(&self.config).blocked.iter().any(|b| b.eq_ignore_ascii_case(fingerprint))
+    }
+
+    /// Where the user's Verify decision on a device is told (and waited for).
+    pub(crate) fn decided(&self, fingerprint: &str) -> watch::Sender<Option<bool>> {
+        lock(&self.verify_decided)
+            .entry(fingerprint.to_ascii_uppercase())
+            .or_insert_with(|| watch::channel(None).0)
+            .clone()
+    }
+
     /// Changes a listed device (and says so).
     pub(crate) fn update_device(&self, fingerprint: &str, change: impl FnOnce(&mut Device)) {
         let list = {
@@ -416,9 +445,15 @@ impl Inner {
     /// Lists the devices added by address (not answering until they do), and drops the
     /// ones removed from the settings.
     fn sync_saved(&self) {
-        let saved = self.config().devices;
+        let config = self.config();
+        let saved: Vec<&Saved> = config
+            .devices
+            .iter()
+            .filter(|s| !config.blocked.iter().any(|b| b.eq_ignore_ascii_case(&s.fingerprint)))
+            .collect();
         let list = {
             let mut devices = lock(&self.devices);
+            devices.retain(|fp, _| !config.blocked.iter().any(|b| b.eq_ignore_ascii_case(fp)));
             // No longer kept: gone, unless found just now (then listed as found, until it isn't).
             let now = now_ms();
             devices.retain(|fp, d| {
@@ -559,6 +594,7 @@ impl Post {
             tailnet: Mutex::new(Tailnet::default()),
             history: Mutex::new(None),
             verify_asked: Mutex::new(HashMap::new()),
+            verify_decided: Mutex::new(HashMap::new()),
         }))
     }
 }
@@ -627,7 +663,7 @@ pub(crate) async fn configure(inner: &Arc<Inner>, config: Config) -> Status {
             discovery::refresh(inner.clone());
         }
     } else {
-        if before.devices != config.devices {
+        if before.devices != config.devices || before.blocked != config.blocked {
             inner.sync_saved();
         }
         if before.tailscale && !config.tailscale {
@@ -711,18 +747,45 @@ pub(crate) fn verify(inner: &Inner, fingerprint: &str) -> CmdResult<Verify> {
     let mine = inner.identity().ok_or("off")?.fingerprint;
     let fingerprint = fingerprint.to_ascii_uppercase();
     let (text, icons) = desktoppet_core::post::verify_code(&mine, &fingerprint);
-    let asked_by = lock(&inner.verify_asked)
-        .get(&fingerprint)
-        .filter(|(_, at)| now_ms() - at < ASKED_MS)
-        .map(|(alias, _)| alias.clone());
+    let asked_by =
+        lock(&inner.verify_asked).get(&fingerprint).filter(|a| now_ms() - a.at < ASKED_MS).map(|a| a.alias.clone());
     Ok(Verify { text, icons, asked_by })
 }
 
-/// Asks the device (an ePet; LocalSend can't) to show Verify too: its pet offers to.
-/// Whether it said it will.
+/// Asks the device (an ePet; LocalSend can't) to show Verify too, and waits for its
+/// user: "shown", "declined" (or no answer), "refused" (it doesn't take it from this
+/// computer: blocked), "busy" (asked just now), "unsupported" (LocalSend, plain HTTP),
+/// "unreachable".
 #[tauri::command]
-pub async fn post_verify_ask(post: State<'_, Post>, fingerprint: String) -> CmdResult<bool> {
+pub async fn post_verify_ask(post: State<'_, Post>, fingerprint: String) -> CmdResult<String> {
     Ok(client::ask_verify(&post.0, &fingerprint).await)
+}
+
+/// The user's answer to a device asking to compare Verify (`post-verify-asked`).
+#[tauri::command]
+pub fn post_verify_answer(post: State<'_, Post>, fingerprint: String, show: bool) {
+    verify_answer(&post.0, &fingerprint, show);
+}
+
+pub(crate) fn verify_answer(inner: &Inner, fingerprint: &str, show: bool) {
+    let mut asked = lock(&inner.verify_asked);
+    if let Some(tx) = asked.get_mut(&fingerprint.to_ascii_uppercase()).and_then(|a| a.answer.take()) {
+        let _ = tx.send(show);
+    }
+}
+
+/// The user compared Verify with a device: they match, or not. Told to that device when
+/// it asks ("verify-result"); it only warns there.
+#[tauri::command]
+pub fn post_verify_decided(post: State<'_, Post>, fingerprint: String, matched: bool) {
+    post.0.decided(&fingerprint).send_replace(Some(matched));
+}
+
+/// After the device showed Verify: what its user decides ("match" | "mismatch"), when
+/// they do (None: not within a few minutes, or not an ePet).
+#[tauri::command]
+pub async fn post_verify_result(post: State<'_, Post>, fingerprint: String) -> CmdResult<Option<String>> {
+    Ok(client::verify_result(&post.0, &fingerprint).await)
 }
 
 /// What Tailscale said last (Settings → Pet Post shows it).
@@ -797,9 +860,19 @@ pub(crate) fn stop_receiving(inner: &Inner) {
     if let Receive::Active(a) = &*receive {
         let peer = a.session.from.alias.clone();
         let (done, total, files) = (a.done_bytes, a.session.total_bytes(), a.session.files.len());
+        let fingerprint = a.fingerprint.clone();
         *receive = Receive::Idle;
         drop(receive);
-        inner.transfer(Transfer { direction: "in", state: "stopped", peer, done, total, files, ..Default::default() });
+        inner.transfer(Transfer {
+            direction: "in",
+            state: "stopped",
+            peer,
+            fingerprint,
+            done,
+            total,
+            files,
+            ..Default::default()
+        });
     }
 }
 

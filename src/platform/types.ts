@@ -20,6 +20,7 @@ import {
   type PostTailnet,
   type PostReceived,
   type PostVerify,
+  type PostVerifyAnswer,
 } from "../features/post/post";
 
 export interface PomodoroConfig {
@@ -465,6 +466,8 @@ export interface BackendEvents {
   "post-verify": string;
   /** Another ePet asks to compare Verify (its pet offers to show it). */
   "post-verify-asked": { fingerprint: string; alias: string };
+  /** That device's question is over unanswered (it gave up, or a minute went by). */
+  "post-verify-ask-closed": { fingerprint: string };
   /** The Pet Post window, already open, is to show this tab. */
   "post-tab": "receive" | "send" | "history";
 }
@@ -641,8 +644,18 @@ export interface Backend {
   postTailnet(): Promise<PostTailnet>;
   /** What this computer and a device (by fingerprint) both show, to compare. */
   postVerify(fingerprint: string): Promise<PostVerify>;
-  /** Asks the device (an ePet) to show Verify too. Whether it will (LocalSend can't). */
-  postVerifyAsk(fingerprint: string): Promise<boolean>;
+  /**
+   * Asks the device (an ePet; LocalSend can't) to show Verify too, and waits for its user:
+   * "shown" | "declined" (or no answer) | "refused" (blocked there) | "busy" (asked just
+   * now) | "unsupported" (LocalSend) | "unreachable".
+   */
+  postVerifyAsk(fingerprint: string): Promise<PostVerifyAnswer>;
+  /** Answers a device asking to compare Verify ("post-verify-asked"): Show or Decline. */
+  postVerifyAnswer(fingerprint: string, show: boolean): Promise<void>;
+  /** The user compared Verify with a device: they match or not (told to it if it asks). */
+  postVerifyDecided(fingerprint: string, matched: boolean): Promise<void>;
+  /** After the device showed Verify: what its user decides ("match" | "mismatch"), or null. */
+  postVerifyResult(fingerprint: string): Promise<string | null>;
   /** Sends files and folders, or a text, to a device (by fingerprint). */
   postSend(to: string, paths: string[], text?: string | null, pin?: string | null): Promise<void>;
   postCancelSend(): Promise<void>;

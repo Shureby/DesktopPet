@@ -1721,21 +1721,45 @@
         },
         {
           "id": "post.verify-ask",
-          "rev": "0.47.0",
+          "rev": "0.48.0",
           "ci": "partial",
           "mac": true,
           "human": "两台电脑都装 ePet（一台 Windows、一台 Mac）",
-          "do": "在 A 的 Pet Post → Send，点 B 那行的 🛡 Verify",
-          "expect": "A 显示 16 个图标，下面一行绿字 “✓ B shows them too: look at its screen.”；B 的宠物冒出气泡 “A wants to compare Verify icons with you.”（Show / Not now）。对 LocalSend 手机点 Verify：没有这行绿字，手机上也什么都不弹"
+          "do": "在 A 的 Pet Post → Send，点 B 那行的 🛡 Verify；B 上点 Show；对比两边图标后，在 A 上点 ✓ They match",
+          "expect": "A 先显示 “⏳ Verification request sent to B. Waiting for it…”；B 点 Show 后 A 变成绿字 “✓ B shows them too. Compare the icons…（man-in-the-middle）”，下面有 ✓ They match / ✗ They don't match；点 They match 后显示 “B is marked as verified.”，Send 列表里 B 的名字旁出现绿色 🛡 Verified；设置 → Pet Post → Verified devices 里有 B（可 Remove）"
         },
         {
           "id": "post.verify-asked",
-          "rev": "0.47.0",
+          "rev": "0.48.0",
           "ci": "partial",
           "mac": true,
-          "human": "接着上一项，在 B 上做；再试一次 B 的宠物藏起来时",
-          "do": "B 的气泡里点 Show",
-          "expect": "B 打开 Pet Post 的 Verify，图标和 A 上完全一样，下面写 “A asked to compare.”；A 那边不会再收到反过来的气泡。宠物藏起来时会先探出来再问；Not now 或 1 分钟不理，气泡收起"
+          "human": "接着上一项，在 B 上看；再试一次 B 的宠物藏起来时",
+          "do": "A 点 Verify 后，看 B 的宠物；点 Show",
+          "expect": "B 的宠物气泡 “A wants to verify with you.”（Show / Decline）；点 Show 打开 Pet Post 的 Verify，图标和 A 上一样，写着 “A asked to compare.”，也有 They match / They don't match；A 那边不会再收到反过来的请求。宠物藏起来时先探出来再问；1 分钟不理，气泡收起，A 显示 declined"
+        },
+        {
+          "id": "post.verify-declined",
+          "rev": "0.48.0",
+          "ci": "auto",
+          "mac": true,
+          "do": "A 点 Verify，B 的宠物问时点 Decline",
+          "expect": "A 显示 “B declined to verify. Nothing is sent to it this time.”，没有 They match 按钮；如果 A 正在等 B 接收文件，这次发送取消；B 没有被拉黑"
+        },
+        {
+          "id": "post.verify-mismatch",
+          "rev": "0.48.0",
+          "ci": "partial",
+          "mac": true,
+          "human": "两台 ePet：A 点 Verify，B 点 Show",
+          "do": "B 上点 ✗ They don't match，在确认框里先点 Look again；再点一次，这次点 Block。A 上看提示，点 Re-check，再试 Block",
+          "expect": "B 的确认框 “Block A? …” 有 Block / Look again；Look again 不拉黑。A 上出现红框 “B says the icons don't match. Look again…”，有 Block / Re-check：Re-check 去掉 A 上 B 的 Verified 并重新发请求（B 已拉黑 A 时显示 “B refused: it may have blocked this computer…”）；Block 先确认再拉黑：B 从 A 的列表消失，B 发来的东西被拒收；设置 → Pet Post → Blocked devices 里有它，点 Unblock 后又能找到"
+        },
+        {
+          "id": "post.verified-badge",
+          "rev": "0.48.0",
+          "mac": true,
+          "do": "把一台设备标为 Verified 后，给它发文件、让它给你发文件，再看 Receive / History",
+          "expect": "绿色 🛡 Verified 出现在：Send 列表、宠物 “Deliver to…” 按钮（名字后 🛡）、发送 / 接收进度（窗口和气泡）、来件提问（气泡和窗口卡片）、Recent senders；Latest 和 History 每条记录名字后一个小绿盾。悬停显示 “Verified on …: the icons matched on both screens.”。没核对过的设备什么都不显示"
         },
         {
           "id": "post.recent-senders",
