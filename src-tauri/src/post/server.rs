@@ -220,7 +220,7 @@ async fn register(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, cert: O
     }
     // Over TLS with a certificate, the fingerprint it claims must be its certificate's.
     if cert.as_ref().is_none_or(|c| c.eq_ignore_ascii_case(&info.fingerprint)) {
-        inner.add_device(Device::from_info(&info, ip));
+        inner.add_came_in(Device::from_info(&info, ip));
     }
     json(&inner.info(false))
 }
@@ -254,7 +254,7 @@ async fn verify_asked(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, cer
     // A new round: what was decided before doesn't count.
     inner.decided(&fp).send_replace(None);
     let payload = serde_json::json!({ "fingerprint": fp, "alias": device.alias });
-    inner.add_device(device);
+    inner.add_came_in(device);
     let guard = AskGuard { inner: inner.clone(), fingerprint: fp.clone() };
     inner.emit("post-verify-asked", payload);
     let answer = tokio::time::timeout(Duration::from_secs(ANSWER_SECONDS), rx).await;
@@ -368,7 +368,7 @@ async fn prepare_upload(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, c
     }
     let verified = cert.as_ref().is_some_and(|c| c.eq_ignore_ascii_case(&info.fingerprint));
     if verified || cert.is_none() {
-        inner.add_device(Device::from_info(&info, ip));
+        inner.add_came_in(Device::from_info(&info, ip));
     }
     let alias: String = info.alias.chars().take(64).collect();
     if let Some(text) = text_message(&files) {

@@ -749,6 +749,25 @@ check("post.identity", "another device answering at that address: nothing is sen
   }
 });
 
+check("post.one-way", "a device this computer reaches on another network, that never reached it: Receive says it may not get through", async () => {
+  const app = ctx.app;
+  const shy = new Peer("Shy Phone", await freePort());
+  await shy.start();
+  try {
+    await app.invoke("post_add_device", { address: "127.0.0.1", port: shy.port });
+    await postTab("receive");
+    await app.waitText(".post-one-way", "Shy Phone");
+    await app.click(".post-one-way-ok");
+    await app.until(() => !document.querySelector(".post-one-way"));
+    // Once it reaches this computer itself, it isn't one of them.
+    assert.equal((await shy.register()).status, 200);
+    const d = await until("came in", async () => (await ctx.app.invoke("post_devices")).find((x) => x.fingerprint === shy.fingerprint && x.cameIn));
+    assert.equal(d.reached, true);
+  } finally {
+    await shy.stop();
+  }
+});
+
 check("post.off-again", "turned off: it stops listening", async () => {
   const app = ctx.app;
   await app.closeWindow("post");

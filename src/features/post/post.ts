@@ -270,6 +270,19 @@ export interface PostDevice {
   online: boolean;
   /** Added by address, and another device (this fingerprint) answers there now. */
   changedTo: string | null;
+  /** It has reached this computer itself (introduced itself, sent something). */
+  cameIn: boolean;
+}
+
+/**
+ * Devices that may be unable to send here: reached by this computer on another network
+ * (not one of `own`'s /24s, nor Tailscale), but never reaching it themselves: this
+ * computer is probably behind another router (or a firewall), whose way in is closed.
+ */
+export function oneWay(devices: PostDevice[], own: string[]): PostDevice[] {
+  const net = (ip: string) => (/^\d+\.\d+\.\d+\.\d+$/.test(ip) ? ip.split(".").slice(0, 3).join(".") : null);
+  const mine = new Set(own.map(net).filter(Boolean));
+  return devices.filter((d) => d.reached && d.online && !d.cameIn && d.source !== "tailnet" && !!net(d.ip) && !mine.has(net(d.ip)) && !d.ip.startsWith("100."));
 }
 
 /** What Tailscale says ("post-tailnet"). */

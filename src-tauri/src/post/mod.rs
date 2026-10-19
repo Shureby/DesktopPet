@@ -109,6 +109,9 @@ pub struct Device {
     /// Added by address, and what answers there now has another certificate: that one's
     /// fingerprint. Nothing is sent to it until the user trusts the new one.
     pub changed_to: Option<String>,
+    /// It has reached this computer itself (introduced itself, sent something). Reached by
+    /// us but never this: it may be unable to (another router, a firewall).
+    pub came_in: bool,
 }
 
 impl Device {
@@ -131,6 +134,7 @@ impl Device {
             address: None,
             online: true,
             changed_to: None,
+            came_in: false,
         }
     }
 
@@ -150,6 +154,7 @@ impl Device {
             address: Some(s.address.clone()),
             online: false,
             changed_to: None,
+            came_in: false,
         }
     }
 }
@@ -325,6 +330,8 @@ pub struct Inner {
     /// What the user decided on Verify for a device (fingerprint → match or not), for its
     /// asking ("verify-result").
     pub(crate) verify_decided: Mutex<HashMap<String, watch::Sender<Option<bool>>>>,
+    /// Devices (fingerprints) that reached this computer themselves.
+    pub(crate) came_in: Mutex<HashSet<String>>,
 }
 
 /// A device asked to compare Verify.
@@ -396,9 +403,11 @@ impl Inner {
         if device.fingerprint.is_empty() || device.fingerprint == own || self.blocked(&device.fingerprint) {
             return;
         }
+        device.came_in |= lock(&self.came_in).contains(&device.fingerprint);
         let list = {
             let mut devices = lock(&self.devices);
             if let Some(old) = devices.get(&device.fingerprint) {
+                device.came_in |= old.came_in;
                 if old.reached && !device.reached && old.online {
                     device.ip = old.ip;
                     device.port = old.port;
@@ -416,6 +425,13 @@ impl Inner {
             sorted(&devices)
         };
         self.emit("post-devices", list);
+    }
+
+    /// A device reached this computer itself (by its own request): listed as such.
+    pub(crate) fn add_came_in(&self, mut device: Device) {
+        lock(&self.came_in).insert(device.fingerprint.clone());
+        device.came_in = true;
+        self.add_device(device);
     }
 
     /// Whether the device (by fingerprint) is blocked.
@@ -595,6 +611,7 @@ impl Post {
             history: Mutex::new(None),
             verify_asked: Mutex::new(HashMap::new()),
             verify_decided: Mutex::new(HashMap::new()),
+            came_in: Mutex::new(HashSet::new()),
         }))
     }
 }

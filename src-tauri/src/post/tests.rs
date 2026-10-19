@@ -118,6 +118,9 @@ fn two_pets_find_each_other_and_deliver_a_file() {
     assert!(to_b.https);
     // Bob learnt about Alice too (her certificate proves who she is).
     assert!(b.inner.devices().iter().any(|d| d.fingerprint == a.fingerprint() && d.alias == "Alice"));
+    // Alice reached Bob herself; Bob hasn't reached Alice (yet): maybe he can't.
+    assert!(b.inner.devices().iter().any(|d| d.fingerprint == a.fingerprint() && d.came_in));
+    assert!(!to_b.came_in);
 
     let data: Vec<u8> = (0..300_000u32).map(|i| (i % 251) as u8).collect();
     let file = a.dir.join("out").join("photo.jpg");

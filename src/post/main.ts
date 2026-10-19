@@ -36,6 +36,7 @@ import {
   type SavedDevice,
   namesLine,
   recentSenders,
+  oneWay,
   verifiedMark,
   withBlocked,
   withVerified,
@@ -521,6 +522,7 @@ function receiveTab(): Node[] {
   const latest = history[0];
   return ([
     ...(cards.length ? cards : [ready]),
+    oneWayCard(),
     ...[addressPicker()].filter((n): n is Node => n !== null),
     saveDirLine(),
     h("h3", {}, t("Latest")),
@@ -528,6 +530,55 @@ function receiveTab(): Node[] {
     history.length > 1 ? h("p", { class: "hint" }, h("a", { href: "#", class: "post-to-history", onclick: (e: Event) => (e.preventDefault(), show("history")) }, t("All of it: 🕘 History"))) : null,
     recentList(),
   ] as (Node | null)[]).filter((n): n is Node => n !== null);
+}
+
+/** Devices told about "may not get through" ("Got it"): not told again (this window's storage). */
+const ONE_WAY_SEEN = "post.oneWaySeen";
+
+function oneWaySeen(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(ONE_WAY_SEEN) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+/** Receive: devices that may be unable to send here (this computer behind another router). */
+function oneWayCard(): Node | null {
+  const own = (status?.addresses ?? []).map((a) => a.ip);
+  const seen = oneWaySeen();
+  const list = oneWay(devices, own).filter((d) => !seen.includes(d.fingerprint));
+  if (!list.length) return null;
+  const mine = own.find((ip) => !ip.startsWith("100.")) ?? "";
+  const net = mine.split(".").slice(0, 3).join(".");
+  const names = list.map((d) => `${d.alias} (${d.ip.split(".").slice(0, 3).join(".")}.x)`).join(", ");
+  return h(
+    "div",
+    { class: "box post-one-way" },
+    h("p", { class: "post-one-way-title" }, `⚠ ${t("Some devices may not get through")}`),
+    h("p", { class: "hint" }, t("This computer is behind another router ({net}.x). {names} can see it, but what they send may be stopped by that router.", { net, names })),
+    h(
+      "ul",
+      { class: "hint" },
+      h("li", {}, t("From LocalSend: choose Share via link on it instead of sending.")),
+      h("li", {}, t("Or put both on the same Wi-Fi, or use Tailscale on both.")),
+    ),
+    h(
+      "button",
+      {
+        class: "small post-one-way-ok",
+        onclick: () => {
+          try {
+            localStorage.setItem(ONE_WAY_SEEN, JSON.stringify([...seen, ...list.map((d) => d.fingerprint)]));
+          } catch {
+            /* not kept: shown again next time */
+          }
+          render();
+        },
+      },
+      t("Got it"),
+    ),
+  );
 }
 
 /** Receive → Recent senders: who sent something lately, to Verify (they needn't be found). */
@@ -820,6 +871,9 @@ function progress(): Node | null {
   const over = transferOver(tr);
   const bar = h("progress", { max: 1000, value: Math.floor((tr.done / Math.max(1, tr.total)) * 1000) });
   const rows: Node[] = [h("p", { class: over && tr.state !== "done" ? "warning" : "" }, ...named(transferLine(tr, NAME), tr.peer, tr.fingerprint))];
+  // Couldn't get there at all: why that may be.
+  if (tr.direction === "out" && tr.state === "failed" && tr.error?.startsWith("unreachable"))
+    rows.push(h("p", { class: "hint post-unreachable-hint" }, t("Couldn't reach it: it may be behind another router, or a firewall stops it. Putting both on the same Wi-Fi, or Tailscale on both, helps.")));
   if (!over && tr.state !== "waiting")
     rows.push(bar, h("p", { class: "hint post-rate" }, [`${formatSize(tr.done)} / ${formatSize(tr.total)} · ${fileCount(tr.files)}`, outRate.line(tr)].filter(Boolean).join(" · ")));
   if (tr.direction === "out" && !over && mine) rows.push(h("button", { onclick: () => void backend.postCancelSend() }, t("Cancel")));

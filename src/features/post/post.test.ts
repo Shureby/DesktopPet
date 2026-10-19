@@ -25,6 +25,7 @@ import {
   transferLine,
   transferOver,
   recentSenders,
+  oneWay,
   isBlocked,
   markedName,
   verifiedMark,
@@ -150,6 +151,7 @@ const dev = (p: Partial<PostDevice>): PostDevice => ({
   address: null,
   online: true,
   changedTo: null,
+  cameIn: true,
   ...p,
 });
 
@@ -291,5 +293,21 @@ describe("Verified and blocked devices", () => {
     expect(withoutVerified(withVerified(s, { fingerprint: "BB", alias: "B" }), "bb").verified).toEqual([]);
     // Kept in the settings as they were, and junk dropped.
     expect(postSettings({ ...s, verified: [{ fingerprint: "cc", alias: "C", at: 5 }, { fingerprint: "", alias: "", at: 0 }] as never }).verified).toEqual([{ fingerprint: "CC", alias: "C", at: 5 }]);
+  });
+});
+
+describe("oneWay", () => {
+  it("lists devices reached on another network that never reached this computer", () => {
+    const own = ["192.168.8.192", "100.64.0.5"];
+    const phone = dev({ fingerprint: "P", ip: "192.168.31.237", cameIn: false });
+    const list = [
+      phone,
+      dev({ fingerprint: "Q", ip: "192.168.31.20", cameIn: true }),
+      dev({ fingerprint: "R", ip: "192.168.8.30", cameIn: false }),
+      dev({ fingerprint: "S", ip: "100.70.1.2", source: "tailnet", cameIn: false }),
+      dev({ fingerprint: "T", ip: "192.168.31.40", reached: false, cameIn: false }),
+      dev({ fingerprint: "U", ip: "192.168.31.41", online: false, cameIn: false }),
+    ];
+    expect(oneWay(list, own).map((d) => d.fingerprint)).toEqual(["P"]);
   });
 });

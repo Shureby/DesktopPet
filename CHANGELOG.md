@@ -16,6 +16,15 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.48.3] - 2026-10-19
+
+### Added
+- **Pet Post: "Some devices may not get through".** When this computer reaches a device on
+  another network that never reaches it back (this computer behind a second router, or a
+  firewall), Receive says so once, with what helps: Share via link in LocalSend, the same
+  Wi-Fi, or Tailscale ("Got it" hides it for those devices). A delivery that couldn't
+  reach its device says the same.
+
 ## [0.48.2] - 2026-10-19
 
 ### Changed

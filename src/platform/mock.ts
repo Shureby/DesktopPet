@@ -134,10 +134,10 @@ function mutate<T>(fn: (s: MockState) => T): T {
 
 let postEnabled = false;
 let mockSending: ReturnType<typeof setInterval> | undefined;
-const found = { source: "lan" as const, reached: true, address: null, online: true, changedTo: null, lastSeen: 0, https: true, port: 53317 };
+const found = { source: "lan" as const, reached: true, address: null, online: true, changedTo: null, lastSeen: 0, https: true, port: 53317, cameIn: true };
 const MOCK_DEVICES: PostDevice[] = [
   { ...found, fingerprint: "A1", alias: "Pixel 8", deviceModel: "Google", deviceType: "mobile", ip: "192.168.1.20" },
-  { ...found, fingerprint: "B2", alias: "Mum's MacBook", deviceModel: "macOS", deviceType: "desktop", ip: "192.168.1.31" },
+  { ...found, fingerprint: "B2", alias: "Mum's MacBook", deviceModel: "macOS", deviceType: "desktop", ip: "192.168.1.31", cameIn: false },
   { ...found, fingerprint: "C3", alias: "Work laptop", deviceModel: "Windows", deviceType: "desktop", ip: "100.101.2.3", source: "tailnet" },
 ];
 

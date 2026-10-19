@@ -878,6 +878,14 @@ const zhTW: Dictionary = {
     Latest: "最近收到",
     "Nothing received yet.": "還沒有收到過東西。",
     "All of it: 🕘 History": "查看全部（🕘 記錄）",
+    "Some devices may not get through": "有些裝置可能傳不進來",
+    "This computer is behind another router ({net}.x). {names} can see it, but what they send may be stopped by that router.":
+      "這台電腦在另一個路由器後面（{net}.x）。{names} 看得到它，但傳來的東西可能會被那個路由器擋住。",
+    "From LocalSend: choose Share via link on it instead of sending.":
+      "在 LocalSend 上：別用「傳送」，改用 Share via link（透過連結分享）。",
+    "Or put both on the same Wi-Fi, or use Tailscale on both.":
+      "或者讓兩邊連同一個 Wi-Fi，或者都裝 Tailscale。",
+    "Got it": "知道了",
     "Recent senders": "最近寄件者",
     "a message": "一則訊息",
     "The last devices that sent you something.": "最近傳東西給你的裝置。",
@@ -929,6 +937,8 @@ const zhTW: Dictionary = {
     "Not there any more (moved or deleted).":
       "檔案已不在原處（被移動或刪除了）。",
     "Show in folder": "在資料夾中顯示",
+    "Couldn't reach it: it may be behind another router, or a firewall stops it. Putting both on the same Wi-Fi, or Tailscale on both, helps.":
+      "連不上它：它可能在另一個路由器後面，或被防火牆擋住。讓兩邊連同一個 Wi-Fi，或者都裝 Tailscale，就能解決。",
     "Settings…": "設定…",
     "Send files and text to phones and computers nearby, and get theirs.":
       "傳檔案和文字給附近的手機和電腦，也能收下它們傳來的。",
