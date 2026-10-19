@@ -2,7 +2,7 @@
 
 <!-- Generated from test-checklist.json by `npm run test-checklist`. Edit the JSON, not this file. -->
 
-当前版本 `0.48.0`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
+当前版本 `0.48.1`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
 标 🤖 的项目由 CI 自动测（Windows），不用手动测；标 🤖+👀 的项目逻辑由 CI 测，你只看 👀 后面写的部分；标 🌙 的每晚测一次（太久，不在每次推送时测）。
 macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码，在 Windows 上测过就行。
 在线勾选页面（保存结果，自动标出需要重测的项目）：https://claude.ai/artifact/XQVzPKq4w2MThVnTLYCGy1
@@ -11,7 +11,7 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 
 - [ ] 1.1 🍎 安装包安装 → **开始菜单/启动台里有应用，图标和名字正常**
 - [ ] 1.2 🍎 🤖+👀 首次启动 → **宠物从屏幕上方掉下来，落在任务栏/Dock 上方** 👀 你只看掉落的样子（窗口出现、宠物落在任务栏上方由 CI 测）
-- [ ] 1.3 🤖 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.48.0 · …`，与安装包版本一致**
+- [ ] 1.3 🤖 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.48.1 · …`，与安装包版本一致**
 - [ ] 1.4 🍎 🤖 已经运行时再启动一次 → **不会出现第二只宠物（只打开面板）**
 - [ ] 1.5 🤖 装着旧版本、ePet 正在运行时，双击新版本的安装包，一路点 Next / Install / Finish → **不再出现“已安装（Already Installed）/ 是否先卸载”那一页，也不提示 ePet 正在运行（会自动关掉它）；旧版被安静地卸载后装上新版；之前的待办、闹钟、纪念日、设置、心情值都还在。重装同一版本或装更旧的版本时仍会询问**
 - [ ] 1.6 🤖 ePet 开着时，再运行一次同一个版本的安装包（例如同一个测试包装两次） → **不出现“Already Installed / Add/Reinstall / Uninstall”页，也不问 ePet 正在运行；装完 ePet 正常，数据都在。只有用旧版本盖新版本时才会问**
@@ -266,7 +266,7 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 - [ ] 20.9 🤖+👀 手机发文件时点 Always accept；再发一次；然后在 设置 → Pet Post → 收藏的设备（Favorites） 里 Remove 它 → **第一次收下并把手机加入收藏（Pet Post 里它那行变成 ♥）；第二次不再问，直接收下；Remove 后又会问；取消勾选 Accept from favorites without asking 时收藏的设备也要问** 👀 设置里的 收藏的设备（Favorites）列表和 Remove
 - [ ] 20.10 🤖 藏起宠物，手机发文件；再切到 Quiet 模式（藏着）让手机发一次 → **藏着时宠物出来问你，答完回去；Quiet 模式下藏着时不出来，手机显示被拒绝，Show pet 时在 you missed 里看到这次**
 - [ ] 20.11 🍎 把一个文件、再把一个文件夹拖到宠物身上（Pet Post 关着时也试一次） → **关着时宠物说 Pet Post is off. 并给 Turn on；开着时问 Deliver “文件名” to… 并列出附近设备（最多 4 个，多了有 More…）；点一个就发送：Waiting for <设备> to accept…（有 Cancel），对方接收后 📦 进度徽章，完成说 Delivered to <设备>!；对方拒绝说 <设备> didn't accept it.；对方要 PIN 时在气泡里输入 PIN**
-- [ ] 20.12 🍎 🤖+👀 Pet Post 窗口：选手机，点 📄 Send files… 选几个文件；再点 📁 Send a folder…；再在文本框里写一句话点 Send text → **手机上先问是否接收，接收后窗口显示进度条和 Delivering to <手机>… %，完成显示 Delivered to <手机>!；文字在手机上显示为消息；发送中点 Cancel 能取消** 👀 文件选择对话框；手机上收到的文件和文件夹
+- [ ] 20.12 🍎 🤖+👀 **【新】** Pet Post 窗口：选手机，点 📄 Send files… 选几个文件；再点 📁 Send a folder…；再在文本框里写一句话点 Send text → **手机上先问是否接收，接收后窗口显示进度条和 Delivering to <手机>… %，完成显示 Delivered to <手机>!；文字在手机上显示为消息，送到后文本框清空（对方拒收时文字保留，可以再发）；发送中点 Cancel 能取消** 👀 文件选择对话框；手机上收到的文件和文件夹
 - [ ] 20.13 🍎 用 Pet Post 窗口给手机（或另一台电脑）发一个 1 GB 以上的文件，再让对方发一个大文件过来 → **进度写成 37.42%（100 MB–1 GB 是一位小数，更小是整数），下面一行有已传 / 总大小、文件数、速度（如 85 MB/s）和剩余时间（还要约 2 分钟），数字随传输在动；多个文件时两个文件同时传。顺便记一下速度：和 LocalSend 互传同一个文件的速度差不多**
 - [ ] 20.14 用 iPhone 上的 LocalSend 收发一次文件和文字 → **和安卓一样能互传**
 - [ ] 20.15 🍎 两台电脑都装 ePet，都开 Pet Post，互相发文件 → **互相能找到并收发；信任一次后 Always accept 生效**
@@ -278,11 +278,11 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 - [ ] 20.21 🍎 🤖+👀 打开 Pet Post 窗口的 📥 接收页，看“在其他设备上按地址添加这台电脑时，填：” → **只显示一个地址（最可能用到的：有线优先，其次 Wi-Fi，再 Tailscale，虚拟网卡最后），旁边是网卡名；点它展开列表，按 局域网（有线 / 无线）/ Tailscale / 其他虚拟网卡（一般用不到，灰色）分组；选一个后 复制 复制它，下次打开还是它；“保存到：”显示收件文件夹，点 更改… 能直接换；手机 LocalSend 按这个地址手动添加能连上** 👀 在手机 LocalSend 里照着窗口显示的地址手动添加这台电脑
 - [ ] 20.22 🍎 🤖+👀 Pet Post 窗口里在手机那行点 🛡 Verify；手机 LocalSend 里点这台电脑（或它发来的消息），再点 Verify → **两边都是 16 个图标（4×4），一样、顺序一样；切到 Text 是同一串字符；点 Done 回到列表** 👀 和真手机 LocalSend 的 Verify 对照：图标、顺序和文字完全一样
 - [ ] 20.23 🤖 手机发文件，宠物问你时点 Verify… → **Pet Post 窗口打开并显示对这台手机的 Verify；宠物的问题还在（Accept / Decline 仍可点）**
-- [ ] 20.24 🍎 🤖+👀 **【新】** 在 A 的 Pet Post → Send，点 B 那行的 🛡 Verify；B 上点 Show；对比两边图标后，在 A 上点 ✓ They match → **A 先显示 “⏳ Verification request sent to B. Waiting for it…”；B 点 Show 后 A 变成绿字 “✓ B shows them too. Compare the icons…（man-in-the-middle）”，下面有 ✓ They match / ✗ They don't match；点 They match 后显示 “B is marked as verified.”，Send 列表里 B 的名字旁出现绿色 🛡 Verified；设置 → Pet Post → Verified devices 里有 B（可 Remove）** 👀 两台电脑都装 ePet（一台 Windows、一台 Mac）
-- [ ] 20.25 🍎 🤖+👀 **【新】** A 点 Verify 后，看 B 的宠物；点 Show → **B 的宠物气泡 “A wants to verify with you.”（Show / Decline）；点 Show 打开 Pet Post 的 Verify，图标和 A 上一样，写着 “A asked to compare.”，也有 They match / They don't match；A 那边不会再收到反过来的请求。宠物藏起来时先探出来再问；1 分钟不理，气泡收起，A 显示 declined** 👀 接着上一项，在 B 上看；再试一次 B 的宠物藏起来时
-- [ ] 20.26 🍎 🤖 **【新】** A 点 Verify，B 的宠物问时点 Decline → **A 显示 “B declined to verify. Nothing is sent to it this time.”，没有 They match 按钮；如果 A 正在等 B 接收文件，这次发送取消；B 没有被拉黑**
-- [ ] 20.27 🍎 🤖+👀 **【新】** B 上点 ✗ They don't match，在确认框里先点 Look again；再点一次，这次点 Block。A 上看提示，点 Re-check，再试 Block → **B 的确认框 “Block A? …” 有 Block / Look again；Look again 不拉黑。A 上出现红框 “B says the icons don't match. Look again…”，有 Block / Re-check：Re-check 去掉 A 上 B 的 Verified 并重新发请求（B 已拉黑 A 时显示 “B refused: it may have blocked this computer…”）；Block 先确认再拉黑：B 从 A 的列表消失，B 发来的东西被拒收；设置 → Pet Post → Blocked devices 里有它，点 Unblock 后又能找到** 👀 两台 ePet：A 点 Verify，B 点 Show
-- [ ] 20.28 🍎 **【新】** 把一台设备标为 Verified 后，给它发文件、让它给你发文件，再看 Receive / History → **绿色 🛡 Verified 出现在：Send 列表、宠物 “Deliver to…” 按钮（名字后 🛡）、发送 / 接收进度（窗口和气泡）、来件提问（气泡和窗口卡片）、Recent senders；Latest 和 History 每条记录名字后一个小绿盾。悬停显示 “Verified on …: the icons matched on both screens.”。没核对过的设备什么都不显示**
+- [ ] 20.24 🍎 🤖+👀 在 A 的 Pet Post → Send，点 B 那行的 🛡 Verify；B 上点 Show；对比两边图标后，在 A 上点 ✓ They match → **A 先显示 “⏳ Verification request sent to B. Waiting for it…”；B 点 Show 后 A 变成绿字 “✓ B shows them too. Compare the icons…（man-in-the-middle）”，下面有 ✓ They match / ✗ They don't match；点 They match 后显示 “B is marked as verified.”，Send 列表里 B 的名字旁出现绿色 🛡 Verified；设置 → Pet Post → Verified devices 里有 B（可 Remove）** 👀 两台电脑都装 ePet（一台 Windows、一台 Mac）
+- [ ] 20.25 🍎 🤖+👀 A 点 Verify 后，看 B 的宠物；点 Show → **B 的宠物气泡 “A wants to verify with you.”（Show / Decline）；点 Show 打开 Pet Post 的 Verify，图标和 A 上一样，写着 “A asked to compare.”，也有 They match / They don't match；A 那边不会再收到反过来的请求。宠物藏起来时先探出来再问；1 分钟不理，气泡收起，A 显示 declined** 👀 接着上一项，在 B 上看；再试一次 B 的宠物藏起来时
+- [ ] 20.26 🍎 🤖 A 点 Verify，B 的宠物问时点 Decline → **A 显示 “B declined to verify. Nothing is sent to it this time.”，没有 They match 按钮；如果 A 正在等 B 接收文件，这次发送取消；B 没有被拉黑**
+- [ ] 20.27 🍎 🤖+👀 B 上点 ✗ They don't match，在确认框里先点 Look again；再点一次，这次点 Block。A 上看提示，点 Re-check，再试 Block → **B 的确认框 “Block A? …” 有 Block / Look again；Look again 不拉黑。A 上出现红框 “B says the icons don't match. Look again…”，有 Block / Re-check：Re-check 去掉 A 上 B 的 Verified 并重新发请求（B 已拉黑 A 时显示 “B refused: it may have blocked this computer…”）；Block 先确认再拉黑：B 从 A 的列表消失，B 发来的东西被拒收；设置 → Pet Post → Blocked devices 里有它，点 Unblock 后又能找到** 👀 两台 ePet：A 点 Verify，B 点 Show
+- [ ] 20.28 🍎 把一台设备标为 Verified 后，给它发文件、让它给你发文件，再看 Receive / History → **绿色 🛡 Verified 出现在：Send 列表、宠物 “Deliver to…” 按钮（名字后 🛡）、发送 / 接收进度（窗口和气泡）、来件提问（气泡和窗口卡片）、Recent senders；Latest 和 History 每条记录名字后一个小绿盾。悬停显示 “Verified on …: the icons matched on both screens.”。没核对过的设备什么都不显示**
 - [ ] 20.29 🍎 🤖 用手机 LocalSend 或另一台 ePet 给这台电脑发一个文件，接收后打开 Pet Post → Receive → **Receive 页下面有 “Recent senders”，列出发件设备（型号 · 1 file · 时间）和 🛡 Verify；点 Verify 显示和对方一样的图标。就算 Send 页里找不到那台设备也能用。最多 5 个，同一设备只列一次**
 - [ ] 20.30 🍎 🤖+👀 Pet Post 窗口 发送 页，点手机那行的 ♡；以后再点一次 ♥ → **第一次点 ♡ 先在那一行下面说明“收藏的设备会被记住……直接接收”，点 收藏 才生效（以后再收藏不再提示）；♡ 变成红色 ♥；手机再发文件不问直接收下；设置 → 宠物驿站 → 收藏的设备 里列出它；离开本网络（如切到 Tailscale）也会按地址去找它；再点 ♥ 取消，之后发来又会问。收到文件时点 总是接收 也会变成收藏** 👀 真手机：收藏后它发来的直接收；DHCP 换了 IP（或重连 Wi-Fi）后还认得它
 - [ ] 20.31 🍎 🤖+👀 Pet Post 窗口点 ＋ Add by address…，填对方的 IP（或名字）和端口（默认 53317），点 Add → **显示 Connecting… 然后 Added <名字>.；设备出现在列表里，标 added by address；重启 ePet 后还在；能向它发文件和文字；设置 → Pet Post → Beyond this network 里列出它，可 Remove** 👀 二级路由下的设备（如 192.168.8.x）或 Tailscale 地址（100.x 或 MagicDNS 名）

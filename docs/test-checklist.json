@@ -1626,12 +1626,12 @@
         },
         {
           "id": "post.send",
-          "rev": "0.44.0",
+          "rev": "0.48.1",
           "ci": "partial",
           "mac": true,
           "human": "文件选择对话框；手机上收到的文件和文件夹",
           "do": "Pet Post 窗口：选手机，点 📄 Send files… 选几个文件；再点 📁 Send a folder…；再在文本框里写一句话点 Send text",
-          "expect": "手机上先问是否接收，接收后窗口显示进度条和 Delivering to <手机>… %，完成显示 Delivered to <手机>!；文字在手机上显示为消息；发送中点 Cancel 能取消"
+          "expect": "手机上先问是否接收，接收后窗口显示进度条和 Delivering to <手机>… %，完成显示 Delivered to <手机>!；文字在手机上显示为消息，送到后文本框清空（对方拒收时文字保留，可以再发）；发送中点 Cancel 能取消"
         },
         {
           "id": "post.progress",

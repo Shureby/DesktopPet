@@ -244,6 +244,23 @@ check("post.send", "the Pet Post window lists the device; a file and a text reac
   await app.click(".post-send-text");
   await until("text arrived", () => peer.texts?.includes("sent from ePet"));
   await app.waitText(".post-progress", "Delivered to Mock Phone!");
+  // Delivered: the box is emptied. Declined: the text stays, to send again.
+  await app.until(() => document.querySelector(".post-text")?.value === "");
+  peer.answer = "decline";
+  try {
+    await app.until(() => !document.querySelector(".post-send-text")?.disabled);
+    await app.type(".post-text", "not wanted");
+    await app.click(".post-send-text");
+    await app.waitText(".post-progress", "Mock Phone didn't accept it.");
+    assert.equal(await app.b.execute(() => document.querySelector(".post-text").value), "not wanted");
+    await app.b.execute(() => {
+      const box = document.querySelector(".post-text");
+      box.value = "";
+      box.dispatchEvent(new Event("input"));
+    });
+  } finally {
+    peer.answer = "accept";
+  }
 });
 
 check("post.tabs", "the Pet Post window's tabs: opened on the one asked for (Send from the pet), else the one left last", async () => {

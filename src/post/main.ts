@@ -1010,6 +1010,8 @@ async function main(): Promise<void> {
     if (tr.state === "waiting") outRate.push(0);
     outRate.push(tr.done);
     transfer = tr;
+    // A text that got there: the box is emptied (unless something else was typed meanwhile).
+    if (tr.state === "done" && mine.text !== null && draft === mine.text) draft = "";
     if (tr.direction === "out" && transferOver(tr) && tr.state !== "pin") mine = null;
     render();
   });

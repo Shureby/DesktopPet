@@ -16,6 +16,13 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.48.1] - 2026-10-19
+
+### Changed
+- **Pet Post:** a text sent from the window is cleared from the box once it's delivered
+  (it stays when it isn't: declined, busy, a PIN asked, failed, cancelled; and when
+  something else was typed meanwhile).
+
 ## [0.48.0] - 2026-10-19
 
 ### Added
