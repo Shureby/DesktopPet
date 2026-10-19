@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 import { createHash, X509Certificate } from "node:crypto";
 import dgram from "node:dgram";
 import { mkdtempSync, readFileSync } from "node:fs";
+import http from "node:http";
 import https from "node:https";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -29,12 +30,31 @@ function makeCertificate() {
   const cert = join(dir, "cert.pem");
   const r = spawnSync(
     "openssl",
-    ["req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:P-256", "-nodes", "-days", "3650", "-subj", "/CN=Mock Phone", "-keyout", key, "-out", cert],
+    [
+      "req",
+      "-x509",
+      "-newkey",
+      "ec",
+      "-pkeyopt",
+      "ec_paramgen_curve:P-256",
+      "-nodes",
+      "-days",
+      "3650",
+      "-subj",
+      "/CN=Mock Phone",
+      "-keyout",
+      key,
+      "-out",
+      cert,
+    ],
     { encoding: "utf8" },
   );
   if (r.status !== 0) throw new Error(`openssl failed: ${r.stderr || r.error}`);
   const pem = readFileSync(cert, "utf8");
-  const fingerprint = createHash("sha256").update(new X509Certificate(pem).raw).digest("hex").toUpperCase();
+  const fingerprint = createHash("sha256")
+    .update(new X509Certificate(pem).raw)
+    .digest("hex")
+    .toUpperCase();
   return { key: readFileSync(key, "utf8"), cert: pem, fingerprint };
 }
 
@@ -67,6 +87,8 @@ export class Peer {
   pickupAsks = 0;
   /** How it answers prepare-upload: "accept" | "decline". */
   answer = "accept";
+  /** Serves plain HTTP (LocalSend's Share via link with Encryption unchecked); else HTTPS. */
+  http = false;
 
   constructor(alias = "Mock Phone", port = 53318) {
     this.alias = alias;
@@ -76,14 +98,39 @@ export class Peer {
   }
 
   info(withAddress = true) {
-    const base = { alias: this.alias, version: "2.1", deviceModel: "Mock", deviceType: "mobile", fingerprint: this.fingerprint, download: !!this.share, ...(this.epet ? { epet: 1 } : {}) };
-    return withAddress ? { ...base, port: this.port, protocol: "https" } : base;
+    const base = {
+      alias: this.alias,
+      version: "2.1",
+      deviceModel: "Mock",
+      deviceType: "mobile",
+      fingerprint: this.fingerprint,
+      download: !!this.share,
+      ...(this.epet ? { epet: 1 } : {}),
+    };
+    return withAddress
+      ? { ...base, port: this.port, protocol: this.http ? "http" : "https" }
+      : base;
   }
 
   /** Listens (HTTPS) as a LocalSend device does. */
   async start() {
     this.sessions = new Map();
-    this.server = https.createServer({ key: this.tls.key, cert: this.tls.cert }, (req, res) => this.handle(req, res));
+    const handle = (req, res) => this.handle(req, res);
+    this.server = this.http
+      ? http.createServer(handle)
+      : https.createServer({ key: this.tls.key, cert: this.tls.cert }, handle);
+    await new Promise((r) => this.server.listen(this.port, "0.0.0.0", r));
+  }
+
+  /** Listens again, over plain HTTP (true) or HTTPS, as LocalSend does when Encryption is switched. */
+  async restart(plain) {
+    this.server?.close();
+    this.server?.closeAllConnections?.();
+    this.http = plain;
+    const handle = (req, res) => this.handle(req, res);
+    this.server = plain
+      ? http.createServer(handle)
+      : https.createServer({ key: this.tls.key, cert: this.tls.cert }, handle);
     await new Promise((r) => this.server.listen(this.port, "0.0.0.0", r));
   }
 
@@ -106,7 +153,10 @@ export class Peer {
     };
     switch (url.pathname) {
       case `${API}/register`:
-        this.registered.push({ ...JSON.parse(body.toString()), from: req.socket.remoteAddress });
+        this.registered.push({
+          ...JSON.parse(body.toString()),
+          from: req.socket.remoteAddress,
+        });
         return json(200, this.info(false));
       case `${API}/prepare-upload`: {
         const offer = JSON.parse(body.toString());
@@ -126,7 +176,8 @@ export class Peer {
       case `${API}/upload`: {
         const offer = this.sessions.get(url.searchParams.get("sessionId"));
         const id = url.searchParams.get("fileId");
-        if (!offer || url.searchParams.get("token") !== `t-${id}`) return json(403);
+        if (!offer || url.searchParams.get("token") !== `t-${id}`)
+          return json(403);
         this.files.set(offer.files[id].fileName, body);
         return json(200);
       }
@@ -135,20 +186,37 @@ export class Peer {
       case `${API}/prepare-download`: {
         if (!this.share) return json(403);
         this.shareAsks++;
-        if (this.share.pin && url.searchParams.get("pin") !== this.share.pin) return json(401);
+        if (this.share.pin && url.searchParams.get("pin") !== this.share.pin)
+          return json(401);
         if (this.share.answer === "decline") return json(403);
         const files = Object.fromEntries(
           Object.entries(this.share.files).map(([name, data], i) => {
             const buf = Buffer.from(data);
             const sha256 = createHash("sha256").update(buf).digest("hex");
-            return [`s${i}`, { id: `s${i}`, fileName: name, size: buf.length, fileType: "application/octet-stream", sha256 }];
+            return [
+              `s${i}`,
+              {
+                id: `s${i}`,
+                fileName: name,
+                size: buf.length,
+                fileType: "application/octet-stream",
+                sha256,
+              },
+            ];
           }),
         );
-        return json(200, { info: this.info(false), sessionId: "share1", files });
+        return json(200, {
+          info: this.info(false),
+          sessionId: "share1",
+          files,
+        });
       }
       case `${API}/download`: {
         const i = Number(String(url.searchParams.get("fileId")).slice(1));
-        const entry = this.share && url.searchParams.get("sessionId") === "share1" ? Object.values(this.share.files)[i] : undefined;
+        const entry =
+          this.share && url.searchParams.get("sessionId") === "share1"
+            ? Object.values(this.share.files)[i]
+            : undefined;
         if (entry === undefined) return json(403);
         res.writeHead(200, { "content-type": "application/octet-stream" });
         return res.end(Buffer.from(entry));
@@ -163,7 +231,15 @@ export class Peer {
         }
         p.told = true;
         const files = Object.fromEntries(
-          Object.entries(p.files).map(([name, data], i) => [`p${i}`, { id: `p${i}`, fileName: name, size: Buffer.byteLength(data), fileType: "application/octet-stream" }]),
+          Object.entries(p.files).map(([name, data], i) => [
+            `p${i}`,
+            {
+              id: `p${i}`,
+              fileName: name,
+              size: Buffer.byteLength(data),
+              fileType: "application/octet-stream",
+            },
+          ]),
         );
         return json(200, { sessionId: "pk1", info: this.info(true), files });
       }
@@ -172,7 +248,9 @@ export class Peer {
         return json(204);
       case PICKUP_FILE: {
         const i = Number(String(url.searchParams.get("fileId")).slice(1));
-        const entry = this.pickup ? Object.values(this.pickup.files)[i] : undefined;
+        const entry = this.pickup
+          ? Object.values(this.pickup.files)[i]
+          : undefined;
         if (entry === undefined) return json(404);
         res.writeHead(200, { "content-type": "application/octet-stream" });
         return res.end(Buffer.from(entry));
@@ -180,7 +258,9 @@ export class Peer {
       case VERIFY_ASK:
         if (!this.epet) return json(404);
         this.verifyAsks.push(JSON.parse(body.toString()));
-        return this.verifyAnswer === "shown" ? json(200, { answer: "shown" }) : json(403, { answer: "declined" });
+        return this.verifyAnswer === "shown"
+          ? json(200, { answer: "shown" })
+          : json(403, { answer: "declined" });
       case VERIFY_RESULT:
         if (!this.epet) return json(404);
         if (!this.verifyResult) return json(408);
@@ -198,7 +278,10 @@ export class Peer {
    */
   request(port, path, body, expect, from) {
     return new Promise((resolve, reject) => {
-      const data = typeof body === "string" || Buffer.isBuffer(body) ? body : JSON.stringify(body ?? {});
+      const data =
+        typeof body === "string" || Buffer.isBuffer(body)
+          ? body
+          : JSON.stringify(body ?? {});
       const req = https.request(
         {
           host: "127.0.0.1",
@@ -214,13 +297,20 @@ export class Peer {
         (res) => {
           // (Read now: the socket is let go once the response is over.)
           const cert = res.socket?.getPeerCertificate?.();
-          const fp = cert?.raw ? createHash("sha256").update(cert.raw).digest("hex").toUpperCase() : null;
+          const fp = cert?.raw
+            ? createHash("sha256").update(cert.raw).digest("hex").toUpperCase()
+            : null;
           const chunks = [];
           res.on("data", (c) => chunks.push(c));
           res.on("end", () => {
-            if (expect && fp !== expect) return reject(new Error(`certificate ${fp}, expected ${expect}`));
+            if (expect && fp !== expect)
+              return reject(new Error(`certificate ${fp}, expected ${expect}`));
             const text = Buffer.concat(chunks).toString();
-            resolve({ status: res.statusCode, body: text ? JSON.parse(text) : null, fingerprint: fp });
+            resolve({
+              status: res.statusCode,
+              body: text ? JSON.parse(text) : null,
+              fingerprint: fp,
+            });
           });
         },
       );
@@ -247,11 +337,29 @@ export class Peer {
   prepare(files, { pin, port = LOCALSEND_PORT } = {}) {
     const entries = Object.entries(files).map(([name, data], i) => {
       const buf = Buffer.from(data);
-      return [`f${i}`, { id: `f${i}`, fileName: name, size: buf.length, fileType: "application/octet-stream", buf }];
+      return [
+        `f${i}`,
+        {
+          id: `f${i}`,
+          fileName: name,
+          size: buf.length,
+          fileType: "application/octet-stream",
+          buf,
+        },
+      ];
     });
     this.outgoing = Object.fromEntries(entries.map(([id, f]) => [id, f.buf]));
-    const body = { info: this.info(), files: Object.fromEntries(entries.map(([id, { buf: _, ...f }]) => [id, f])) };
-    return this.request(port, `${API}/prepare-upload${pin ? `?pin=${pin}` : ""}`, body);
+    const body = {
+      info: this.info(),
+      files: Object.fromEntries(
+        entries.map(([id, { buf: _, ...f }]) => [id, f]),
+      ),
+    };
+    return this.request(
+      port,
+      `${API}/prepare-upload${pin ? `?pin=${pin}` : ""}`,
+      body,
+    );
   }
 
   /** Uploads every file the app accepted (`answer`: prepare's reply body). */
@@ -259,7 +367,10 @@ export class Peer {
     const codes = [];
     for (const [id, token] of Object.entries(answer.files)) {
       const q = `sessionId=${answer.sessionId}&fileId=${id}&token=${token}`;
-      codes.push((await this.request(port, `${API}/upload?${q}`, this.outgoing[id])).status);
+      codes.push(
+        (await this.request(port, `${API}/upload?${q}`, this.outgoing[id]))
+          .status,
+      );
     }
     return codes;
   }
@@ -267,7 +378,15 @@ export class Peer {
   sendText(text, port = LOCALSEND_PORT) {
     const body = {
       info: this.info(),
-      files: { m: { id: "m", fileName: "m.txt", size: Buffer.byteLength(text), fileType: "text/plain", preview: text } },
+      files: {
+        m: {
+          id: "m",
+          fileName: "m.txt",
+          size: Buffer.byteLength(text),
+          fileType: "text/plain",
+          preview: text,
+        },
+      },
     };
     return this.request(port, `${API}/prepare-upload`, body);
   }

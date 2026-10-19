@@ -231,16 +231,21 @@ pub(crate) async fn ask_listed(inner: &Arc<Inner>, stale: Vec<Device>) {
         async move {
             let expected = d.https.then(|| d.fingerprint.clone());
             let mut found = client::register(&inner, d.ip, d.port, d.https, expected).await;
-            if found.is_none() && d.https {
-                found = client::register(&inner, d.ip, d.port, false, None).await;
+            // Its server may have switched (LocalSend's Share via link with Encryption
+            // unchecked serves plain HTTP; checked again, HTTPS).
+            if found.is_none() {
+                found = client::register(&inner, d.ip, d.port, !d.https, None).await;
             }
             match found {
                 Some(mut f) if f.fingerprint == d.fingerprint => {
                     if lock(&inner.devices).contains_key(&d.fingerprint) {
-                        let (sharing, epet) = (f.sharing, f.epet);
+                        let (sharing, epet, https, port) = (f.sharing, f.epet, f.https, f.port);
                         inner.update_device(&d.fingerprint, |x| {
                             x.sharing = sharing;
                             x.epet = epet;
+                            // How it answers now (asked so, it would fail).
+                            x.https = https;
+                            x.port = port;
                             // Reached just now, where it's listed.
                             x.reached = true;
                             x.last_seen = crate::state::now_ms();

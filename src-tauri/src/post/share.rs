@@ -138,13 +138,36 @@ pub(crate) async fn open(
         }
     }
     let path = format!("{API}/prepare-download{}", client::pin_query(&pin));
-    let body = Full::new(Bytes::new()).map_err(|never| match never {}).boxed();
-    // Its user may be asked first (unless it accepts by itself).
-    let call = client::request(inner, &peer, &path, body, None, Duration::from_secs(5));
-    let reply = match tokio::time::timeout(Duration::from_secs(120), call).await {
+    let ask = |peer: Peer| {
+        let path = path.clone();
+        async move {
+            let body = Full::new(Bytes::new()).map_err(|never| match never {}).boxed();
+            // Its user may be asked first (unless it accepts by itself).
+            let call = client::request(inner, &peer, &path, body, None, Duration::from_secs(5));
+            (tokio::time::timeout(Duration::from_secs(120), call).await, peer)
+        }
+    };
+    let (mut answer, mut peer) = ask(peer).await;
+    // A listed device may have switched since (LocalSend's Share via link: Encryption
+    // unchecked serves plain HTTP, checked HTTPS): asked the other way too.
+    if let (Some(d), Ok(Err(_))) = (&known, &answer) {
+        let other = if peer.https {
+            Peer { https: false, expected: None, ..peer.clone() }
+        } else {
+            Peer { https: true, expected: Some(d.fingerprint.clone()), ..peer.clone() }
+        };
+        let (again, other) = ask(other).await;
+        if !matches!(again, Ok(Err(ref e)) if e.starts_with("unreachable")) {
+            (answer, peer) = (again, other);
+        }
+    }
+    let reply = match answer {
         Ok(Ok(r)) => r,
         Ok(Err(e)) if e.starts_with("unreachable") => return Err("unreachable".into()),
-        Ok(Err(_)) => return Err("failed".into()),
+        Ok(Err(e)) => {
+            log::warn!("Pet Post: asking {} what it shares: {e}", peer.ip);
+            return Err("failed".into());
+        }
         Err(_) => return Err("declined".into()),
     };
     match reply.status {

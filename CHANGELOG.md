@@ -16,6 +16,15 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.49.1] - 2026-10-19
+
+### Fixed
+- **Pet Post: "See what's shared" failed after the other device switched Encryption.**
+  LocalSend's Share via link serves plain HTTP when Encryption is unchecked (HTTPS when
+  checked). A device listed one way was still asked that way: listed, but its files
+  couldn't be got. Now each look asks it the other way too and keeps how it answers, and
+  "See what's shared" tries both.
+
 ## [0.49.0] - 2026-10-19
 
 ### Added
