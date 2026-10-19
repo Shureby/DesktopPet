@@ -12,6 +12,45 @@
   SteamOS unticked.
 - **Direct build**: auto-updater feed, code signing, license keys.
 
+## Planned for 0.48: Pet Post Verify request, Verified and Blocked
+
+Verify compares icons by eye (the only check a man in the middle can't fake); 0.48 makes
+it a step both sides take, and remembers the result.
+
+- **Verify request (ePet ↔ ePet), one request held open.** A's Verify for B sends
+  `POST /api/epet/v1/verify` and the request waits (as prepare-upload waits for Accept) for
+  B's answer, so B never has to reach A (one-way routes, NAT, a second router still work):
+  - A at once: "⏳ Verification request sent to B. Waiting for it…".
+  - B's pet: "A wants to verify with you." Show / Decline (a minute; the hidden pet comes
+    out; stepped aside or hidden in Quiet mode: declined).
+  - B shows them: 200 → A: "✓ B shows them too. Compare the icons on both screens: if
+    they differ, someone may be in between (a man-in-the-middle attack)." with
+    **✓ They match** / **✗ They don't match**. B's Verify has the same two buttons
+    (each side decides for itself).
+  - B declines or doesn't answer: 403/408 → A: "B declined to verify. Nothing is sent to
+    it this time." A delivery A was about to start is cancelled; B is not blocked.
+  - Anyone may ask (sender or receiver); only a device its certificate proves; once in
+    ten seconds per device; a blocked device's request is refused. The "shown" answer only
+    tells A's user to look: the check is still the user's eyes.
+- **They match → Verified** (a mark, nothing more: unverified devices send and receive as
+  now). Kept by fingerprint in the settings (`post.verified`: fingerprint, name, when).
+  A green shield "Verified" badge by the name wherever the device shows: Send list, the
+  pet's "Deliver to…" buttons and progress, the offer (bubble and window card),
+  Receiving…, Recent senders, Latest and History (a small shield). Unverified devices show
+  nothing. Hover: "Verified on 10/19: the icons matched on both screens."
+- **They don't match → Block** (after "Block B? … You can unblock it in Settings → Pet
+  Post."). Kept by fingerprint (`post.blocked`). A blocked device isn't listed, nothing is
+  sent to it, its register/offers/texts/Verify requests are refused (403), and it's not
+  remembered in Recent senders.
+- **LocalSend devices**: no request (LocalSend doesn't know it); after comparing with
+  LocalSend's own Verify screen, They match / They don't match work the same.
+- **Settings → Pet Post**: "Verified devices" (Remove) and "Blocked devices" (Unblock),
+  each with name, date and a short fingerprint.
+- Tests: Rust (held request: shown / declined / timeout / blocked; blocked refused
+  everywhere), unit (verified/blocked settings helpers), e2e (request → Show → match →
+  badge; Decline cancels; don't match → blocked, refused; Settings lists, unblock),
+  checklist items, docs, i18n.
+
 ## Shipped in 0.47.0
 
 - **Pet Post: Verify on both screens at once, and Recent senders.** The receiving side had
