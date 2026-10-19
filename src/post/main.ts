@@ -36,6 +36,7 @@ import {
   type SavedDevice,
   namesLine,
   recentSenders,
+  collects,
   oneWay,
   shareError,
   isBlocked,
@@ -331,6 +332,7 @@ function deviceRow(d: PostDevice): Node {
       { class: "grow" },
       h("strong", {}, d.alias, verifiedBadge(d.fingerprint)),
       h("span", { class: "hint" }, where),
+      collects(d) ? h("span", { class: "post-collects", title: t("It's behind another router: what's sent to it waits until it collects it.") }, `↩ ${t("It collects")}`) : null,
       state ? h("span", { class: `post-device-state${d.changedTo ? " warning" : ""}` }, state) : null,
       favoriteAsk === d.fingerprint
         ? h(

@@ -43,6 +43,10 @@ pub struct DeviceInfo {
     pub protocol: Option<String>,
     #[serde(default)]
     pub download: bool,
+    /// ePet (its revision of what it adds: Verify requests, collecting deliveries);
+    /// LocalSend leaves it out (and ignores it).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub epet: Option<u32>,
 }
 
 fn default_version() -> String {

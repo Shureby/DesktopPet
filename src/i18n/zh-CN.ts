@@ -213,6 +213,7 @@ const zhCN: Dictionary = {
     "{who} stopped sending.": "{who} 停止了发送。",
     "Stopped receiving from {who}.": "已停止接收 {who} 发来的文件。",
     "Receiving from {who} didn't work.": "没能收下 {who} 发来的文件。",
+    "Waiting for {who} to collect it…": "等 {who} 来取…",
     "Waiting for {who} to accept…": "等 {who} 接收…",
     "Delivering to {who}… {pct}%": "正在送给 {who}… {pct}%",
     "Delivered to {who}!": "已送到 {who}！",
@@ -859,6 +860,9 @@ const zhCN: Dictionary = {
     Verified: "已核对",
     "⚠ Another device answers there now.": "⚠ 这个地址上现在是另一台设备。",
     "Not answering.": "没有回应。",
+    "It's behind another router: what's sent to it waits until it collects it.":
+      "它在另一个路由器后面：发给它的东西会等它自己来取。",
+    "It collects": "由它来取",
     "A favorite is remembered (looked for even off this network), and what it sends you is accepted without asking.":
       "收藏的设备会被记住（不在本网络也会去找它），它发给你的文件和消息不再询问，直接接收。",
     "Add to favorites": "收藏",

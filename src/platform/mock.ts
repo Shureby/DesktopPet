@@ -134,7 +134,7 @@ function mutate<T>(fn: (s: MockState) => T): T {
 
 let postEnabled = false;
 let mockSending: ReturnType<typeof setInterval> | undefined;
-const found = { source: "lan" as const, reached: true, address: null, online: true, changedTo: null, lastSeen: 0, https: true, port: 53317, cameIn: true, sharing: false };
+const found = { source: "lan" as const, reached: true, address: null, online: true, changedTo: null, lastSeen: 0, https: true, port: 53317, cameIn: true, sharing: false, epet: false, collectsAt: 0 };
 const MOCK_DEVICES: PostDevice[] = [
   // ?sharing: the phone shares files by link.
   { ...found, fingerprint: "A1", alias: "Pixel 8", deviceModel: "Google", deviceType: "mobile", ip: "192.168.1.20", sharing: new URLSearchParams(location.search).has("sharing") },

@@ -1635,6 +1635,16 @@ button.danger {
   width: 15px;
   height: 15px;
 }
+.post-collects {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: #eceafd;
+  color: #4b3fa8;
+  font-size: 11px;
+  font-weight: 600;
+}
 .post-share {
   border-color: var(--accent);
   background: var(--accent-soft);

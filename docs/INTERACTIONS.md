@@ -903,6 +903,22 @@ src-tauri/src/post/, crates/desktoppet-core/src/post.rs).
   - **Recent senders** (since 0.47.0): Receive lists the last five devices that sent
     something (proven by their certificates; kept with what was received, so Clear in
     History empties it too), each with Verify, for a sender this computer doesn't find.
+- **Through a second router** (0.48.3, 0.49.0). A computer behind a second router reaches
+  devices outside, but they can't reach it (the router stops what comes in).
+  - Receive says "Some devices may not get through" for devices reached on another network
+    that never reached this computer themselves (`cameIn`), once ("Got it").
+  - **Shared by link** (LocalSend's Share via link: its info says `download: true`; listed
+    devices are asked again every 20 s and on Look again): the pet says "📤 X is sharing
+    files with you." (See them / Not now); Receive's card: See what's shared → its list
+    (`prepare-download`; its user may be asked; a PIN asked here), ticked files fetched
+    (`download`), saved and kept like files received. Nothing is asked of it until See
+    what's shared. "Get files from a link…" for the address LocalSend shows. Plain HTTP:
+    "Not encrypted"; blocked devices: refused.
+  - **Collected (ePet ↔ ePet)**: an ePet asks each ePet it reaches on another network for
+    deliveries (`POST /api/epet/v1/pickup`, waiting 25 s, again and again). A delivery
+    that can't reach a device that asked within a minute waits for it ("Waiting for X to
+    collect it…"; its row: "↩ It collects"); there it's asked about as any delivery
+    (`pickup-answer`), then fetched (`pickup-file`). A text is shown at once.
 - **Beyond this network** (since 0.45.0). Discovery stops at a router: a device behind a
   second router (192.168.8.x behind 192.168.31.234, say) or on Tailscale isn't found by
   itself.

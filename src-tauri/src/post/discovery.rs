@@ -237,9 +237,12 @@ pub(crate) async fn ask_listed(inner: &Arc<Inner>, stale: Vec<Device>) {
             match found {
                 Some(mut f) if f.fingerprint == d.fingerprint => {
                     if lock(&inner.devices).contains_key(&d.fingerprint) {
-                        let sharing = f.sharing;
+                        let (sharing, epet) = (f.sharing, f.epet);
                         inner.update_device(&d.fingerprint, |x| {
                             x.sharing = sharing;
+                            x.epet = epet;
+                            // Reached just now, where it's listed.
+                            x.reached = true;
                             x.last_seen = crate::state::now_ms();
                         });
                     } else {

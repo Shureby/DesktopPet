@@ -15,6 +15,10 @@ const API = "/api/localsend/v2";
 /** Where an ePet asks another to show Verify too, then what was decided (src-tauri/src/post/server.rs). */
 const VERIFY_ASK = "/api/epet/v1/verify";
 const VERIFY_RESULT = "/api/epet/v1/verify-result";
+/** Where an ePet asks another for deliveries to collect, answers, and fetches them (pickup.rs). */
+const PICKUP = "/api/epet/v1/pickup";
+const PICKUP_ANSWER = "/api/epet/v1/pickup-answer";
+const PICKUP_FILE = "/api/epet/v1/pickup-file";
 export const GROUP = "224.0.0.167";
 export const LOCALSEND_PORT = 53317;
 
@@ -55,6 +59,12 @@ export class Peer {
   share = null;
   /** prepare-download requests that came (its "Requests" list). */
   shareAsks = 0;
+  /** As an ePet: a delivery waiting for the app to collect it ({ name: Buffer|string }). */
+  pickup = null;
+  /** The app's answers about it (true / false). */
+  pickupAnswers = [];
+  /** Asks for deliveries that came from the app. */
+  pickupAsks = 0;
   /** How it answers prepare-upload: "accept" | "decline". */
   answer = "accept";
 
@@ -66,7 +76,7 @@ export class Peer {
   }
 
   info(withAddress = true) {
-    const base = { alias: this.alias, version: "2.1", deviceModel: "Mock", deviceType: "mobile", fingerprint: this.fingerprint, download: !!this.share };
+    const base = { alias: this.alias, version: "2.1", deviceModel: "Mock", deviceType: "mobile", fingerprint: this.fingerprint, download: !!this.share, ...(this.epet ? { epet: 1 } : {}) };
     return withAddress ? { ...base, port: this.port, protocol: "https" } : base;
   }
 
@@ -140,6 +150,30 @@ export class Peer {
         const i = Number(String(url.searchParams.get("fileId")).slice(1));
         const entry = this.share && url.searchParams.get("sessionId") === "share1" ? Object.values(this.share.files)[i] : undefined;
         if (entry === undefined) return json(403);
+        res.writeHead(200, { "content-type": "application/octet-stream" });
+        return res.end(Buffer.from(entry));
+      }
+      case PICKUP: {
+        if (!this.epet) return json(404);
+        this.pickupAsks++;
+        const p = this.pickup;
+        if (!p || p.told) {
+          await new Promise((r) => setTimeout(r, 500));
+          return json(204);
+        }
+        p.told = true;
+        const files = Object.fromEntries(
+          Object.entries(p.files).map(([name, data], i) => [`p${i}`, { id: `p${i}`, fileName: name, size: Buffer.byteLength(data), fileType: "application/octet-stream" }]),
+        );
+        return json(200, { sessionId: "pk1", info: this.info(true), files });
+      }
+      case PICKUP_ANSWER:
+        this.pickupAnswers.push(url.searchParams.get("accept") === "true");
+        return json(204);
+      case PICKUP_FILE: {
+        const i = Number(String(url.searchParams.get("fileId")).slice(1));
+        const entry = this.pickup ? Object.values(this.pickup.files)[i] : undefined;
+        if (entry === undefined) return json(404);
         res.writeHead(200, { "content-type": "application/octet-stream" });
         return res.end(Buffer.from(entry));
       }

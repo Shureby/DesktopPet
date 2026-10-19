@@ -213,6 +213,7 @@ const zhTW: Dictionary = {
     "{who} stopped sending.": "{who} 停止了傳送。",
     "Stopped receiving from {who}.": "已停止接收 {who} 傳來的檔案。",
     "Receiving from {who} didn't work.": "沒能收下 {who} 傳來的檔案。",
+    "Waiting for {who} to collect it…": "等 {who} 來取…",
     "Waiting for {who} to accept…": "等 {who} 接收…",
     "Delivering to {who}… {pct}%": "正在送給 {who}… {pct}%",
     "Delivered to {who}!": "已送到 {who}！",
@@ -859,6 +860,9 @@ const zhTW: Dictionary = {
     Verified: "已核對",
     "⚠ Another device answers there now.": "⚠ 這個位址上現在是另一台裝置。",
     "Not answering.": "沒有回應。",
+    "It's behind another router: what's sent to it waits until it collects it.":
+      "它在另一個路由器後面：傳給它的東西會等它自己來取。",
+    "It collects": "由它來取",
     "A favorite is remembered (looked for even off this network), and what it sends you is accepted without asking.":
       "收藏的裝置會被記住（不在本網路也會去找它），它傳給你的檔案和訊息不再詢問，直接接收。",
     "Add to favorites": "收藏",

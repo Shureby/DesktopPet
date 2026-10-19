@@ -9,6 +9,7 @@
 
 mod client;
 mod discovery;
+mod pickup;
 mod server;
 pub(crate) mod share;
 mod tailscale;
@@ -115,6 +116,11 @@ pub struct Device {
     pub came_in: bool,
     /// It shares files by link (LocalSend's Share via link: its download API is on).
     pub sharing: bool,
+    /// It runs ePet (else LocalSend).
+    pub epet: bool,
+    /// When it last asked for deliveries to collect (pickup.rs; 0: never): it can't be
+    /// reached, so what's sent to it waits for it to collect it.
+    pub collects_at: i64,
 }
 
 impl Device {
@@ -139,6 +145,8 @@ impl Device {
             changed_to: None,
             came_in: false,
             sharing: info.download,
+            epet: info.epet.is_some(),
+            collects_at: 0,
         }
     }
 
@@ -160,6 +168,8 @@ impl Device {
             changed_to: None,
             came_in: false,
             sharing: false,
+            epet: false,
+            collects_at: 0,
         }
     }
 }
@@ -216,6 +226,8 @@ pub struct Transfer {
     pub done: u64,
     pub total: u64,
     pub files: usize,
+    /// Sent to a device that collects it (it can't be reached): waiting for it to.
+    pub collect: bool,
     /// Received: the save folder and the first file.
     pub folder: Option<String>,
     pub first: Option<String>,
@@ -340,6 +352,8 @@ pub struct Inner {
     /// Files shared by link that are being looked at or fetched (share.rs).
     pub(crate) share: Mutex<Option<share::Session>>,
     pub(crate) fetching: Mutex<Option<tauri::async_runtime::JoinHandle<()>>>,
+    /// Collecting deliveries (pickup.rs).
+    pub(crate) pickup: pickup::State,
 }
 
 /// A device asked to compare Verify.
@@ -393,6 +407,7 @@ impl Inner {
             port: with_address.then(|| self.port()),
             protocol: with_address.then(|| "https".into()),
             download: false,
+            epet: Some(1),
         }
     }
 
@@ -428,6 +443,7 @@ impl Inner {
                 if device.address.is_none() {
                     device.address = old.address.clone();
                 }
+                device.collects_at = device.collects_at.max(old.collects_at);
             }
             devices.insert(device.fingerprint.clone(), device);
             sorted(&devices)
@@ -622,6 +638,7 @@ impl Post {
             came_in: Mutex::new(HashSet::new()),
             share: Mutex::new(None),
             fetching: Mutex::new(None),
+            pickup: pickup::State::default(),
         }))
     }
 }
@@ -650,6 +667,7 @@ async fn start(inner: &Arc<Inner>, port: u16) -> Result<(), String> {
     // Discovery listens on LocalSend's port whatever port the server got (another app
     // may hold the TCP port; the UDP one is shared).
     discovery::watch(inner.clone(), stop_rx.clone());
+    pickup::collect(inner.clone(), stop_rx.clone());
     let udp = match discovery::spawn(inner.clone(), stop_rx).await {
         Ok(udp) => Some(udp),
         Err(e) => {

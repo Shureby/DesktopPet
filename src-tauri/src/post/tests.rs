@@ -212,6 +212,40 @@ fn verify_is_asked_answered_and_decided() {
 }
 
 #[test]
+fn a_pet_that_cant_be_reached_collects_what_is_sent_to_it() {
+    let (alice, bob) = (peer("Alice", |_| {}), peer("Bob", |_| {}));
+    // Bob reached Alice (he's behind a router she can't get through).
+    let to_alice = bob.find(&alice);
+    assert!(to_alice.epet);
+    // Bob asks Alice for deliveries (a request that waits).
+    let (inner, d) = (bob.inner.clone(), to_alice.clone());
+    let asking = std::thread::spawn(move || tauri::async_runtime::block_on(super::pickup::ask_once(&inner, &d)));
+    std::thread::sleep(Duration::from_millis(400));
+    // Alice can't reach Bob where she sees him.
+    let fp = bob.fingerprint();
+    alice.inner.update_device(&fp, |d| d.port = free_port());
+    let to_bob = alice.inner.devices().into_iter().find(|d| d.fingerprint == fp).unwrap();
+    assert!(super::pickup::collects(&alice.inner, &fp));
+    let file = alice.dir.join("out").join("collected.txt");
+    write(&file, b"collect me");
+    client::send(alice.inner.clone(), to_bob, vec![file], None, None).unwrap();
+    let waiting = alice.wait("post-transfer", |v| v["state"] == "waiting" && v["collect"] == true);
+    assert_eq!(waiting["files"], 1);
+    // Asked about at Bob's as any delivery is; accepted, fetched.
+    let offer = bob.wait("post-offer", |_| true);
+    assert_eq!(
+        (offer["alias"].as_str(), offer["fingerprint"].as_str()),
+        (Some("Alice"), Some(alice.fingerprint().as_str()))
+    );
+    answer(&bob.inner, offer["id"].as_str().unwrap(), true);
+    bob.transfer("done");
+    alice.transfer("done");
+    assert_eq!(asking.join().unwrap(), Ok(true));
+    assert_eq!(std::fs::read(bob.saved("collected.txt")).unwrap(), b"collect me");
+    assert_eq!(bob.inner.history()[0].fingerprint, alice.fingerprint());
+}
+
+#[test]
 fn a_blocked_device_is_refused_everywhere() {
     let (a, b) = (peer("Alice", |_| {}), peer("Mallory", |_| {}));
     a.find(&b);

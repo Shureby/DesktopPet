@@ -12,6 +12,17 @@
   SteamOS unticked.
 - **Direct build**: auto-updater feed, code signing, license keys.
 
+## Shipped in 0.49.0 (and 0.48.3): getting through a second router
+
+A computer behind a second router (192.168.8.x behind 192.168.31.x) reaches devices
+outside, but they can't reach it: they see it, and what they send times out.
+- 0.48.3: Receive says so ("Some devices may not get through"), with what helps.
+- 0.49: files shared by link (LocalSend's Share via link, its download API) are fetched by
+  this computer; an ePet that can't be reached collects what's sent to it (it keeps asking
+  the ePets it reaches; held requests, `/api/epet/v1/pickup`).
+- Later, maybe: asking the router to open the port (UPnP) — uncertain with routers that
+  route without translating addresses (the user's), so not done yet.
+
 ## Shipped in 0.48.0: Pet Post Verify request, Verified and Blocked
 
 Verify compares icons by eye (the only check a man in the middle can't fake); 0.48 makes

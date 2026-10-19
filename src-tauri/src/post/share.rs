@@ -23,18 +23,21 @@ use super::client::{self, Peer};
 use super::{discovery, lock, CmdResult, Device, Inner, Post, Received, Transfer};
 use crate::state::now_ms;
 
-/// The files a device shares, as asked for (`post_share_open`).
+/// The files a device shares, as asked for (`post_share_open`); or a delivery collected
+/// (pickup.rs).
 pub(crate) struct Session {
-    peer: Peer,
-    alias: String,
+    pub(crate) peer: Peer,
+    pub(crate) alias: String,
     /// Proven by its certificate ("" over plain HTTP).
-    fingerprint: String,
-    device_model: Option<String>,
-    device_type: String,
-    session_id: String,
-    files: BTreeMap<String, FileInfo>,
+    pub(crate) fingerprint: String,
+    pub(crate) device_model: Option<String>,
+    pub(crate) device_type: String,
+    pub(crate) session_id: String,
+    pub(crate) files: BTreeMap<String, FileInfo>,
     /// The file being written now (removed if it's stopped).
-    part: Arc<Mutex<Option<PathBuf>>>,
+    pub(crate) part: Arc<Mutex<Option<PathBuf>>>,
+    /// Collected from an ePet (pickup.rs) rather than shared by link.
+    pub(crate) pickup: bool,
 }
 
 /// What a device shares, as the Pet Post window shows it.
@@ -189,6 +192,7 @@ pub(crate) async fn open(
         session_id: list.session_id,
         files: list.files,
         part: Arc::new(Mutex::new(None)),
+        pickup: false,
     });
     Ok(out)
 }
@@ -232,7 +236,7 @@ pub(crate) fn cancel(inner: &Inner) {
     }
 }
 
-async fn fetch(inner: Arc<Inner>, s: Session, files: Vec<FileInfo>) {
+pub(crate) async fn fetch(inner: Arc<Inner>, s: Session, files: Vec<FileInfo>) {
     let total: u64 = files.iter().map(|f| f.size).sum();
     let count = files.len();
     let say = |state: &'static str, done: u64, error: Option<String>, folder: Option<String>, first: Option<String>| {
@@ -247,6 +251,7 @@ async fn fetch(inner: Arc<Inner>, s: Session, files: Vec<FileInfo>) {
             folder,
             first,
             error,
+            collect: false,
         })
     };
     // Stopped (the task aborted): said, and the file being written removed.
@@ -277,7 +282,11 @@ async fn fetch(inner: Arc<Inner>, s: Session, files: Vec<FileInfo>) {
     let mut last_emit = 0i64;
     let mut saved: Vec<PathBuf> = Vec::new();
     for f in &files {
-        let path = format!("{API}/download?sessionId={}&fileId={}", s.session_id, query_value(&f.id));
+        let path = if s.pickup {
+            format!("{}?sessionId={}&fileId={}", super::pickup::FILE, s.session_id, query_value(&f.id))
+        } else {
+            format!("{API}/download?sessionId={}&fileId={}", s.session_id, query_value(&f.id))
+        };
         let result = async {
             let (res, _) = client::get_stream(&inner, &s.peer, &path).await?;
             if res.status() != 200 {
@@ -331,7 +340,6 @@ async fn fetch(inner: Arc<Inner>, s: Session, files: Vec<FileInfo>) {
     saved.sort();
     let folder = Some(dir.to_string_lossy().into_owned());
     let first = saved.first().map(|p| p.to_string_lossy().into_owned());
-    say("done", total, None, folder.clone(), first);
     inner.remember(Received {
         id: random_id(),
         at: now_ms(),
@@ -343,8 +351,9 @@ async fn fetch(inner: Arc<Inner>, s: Session, files: Vec<FileInfo>) {
         files: count,
         bytes: total,
         paths: saved.iter().take(20).map(|p| p.to_string_lossy().into_owned()).collect(),
-        folder,
+        folder: folder.clone(),
     });
+    say("done", total, None, folder, first);
 }
 
 fn part_of(path: &std::path::Path) -> PathBuf {

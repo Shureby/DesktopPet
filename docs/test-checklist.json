@@ -1811,6 +1811,39 @@
           "expect": "黄卡 “⚠ 有些设备可能发不进来”，写出手机名字和网段，下面两条建议（Share via link；同一 Wi-Fi 或 Tailscale）；点 知道了 后不再出现；手机一旦自己连进来过（例如它成功发过东西），就不算在内"
         },
         {
+          "id": "post.share",
+          "rev": "0.49.0",
+          "ci": "auto",
+          "mac": true,
+          "do": "手机 LocalSend：选文件 → Nearby devices 旁的 ⚙ → Share via link（勾或不勾 Encryption 都试）；电脑上看宠物和 宠物驿站 → 接收",
+          "expect": "20 秒内宠物说 “📤 <手机> 正在分享文件。”（去看看 / 不用了）；接收页有卡片，点 看看分享了什么 后手机上会出现请求（没勾自动接受时要在手机上允许）；电脑列出文件可勾选，点 取 N 个文件 后有进度，存进收件文件夹并进 最新 / 记录；不勾 Encryption 时写 “未加密”"
+        },
+        {
+          "id": "post.share-pin",
+          "rev": "0.49.0",
+          "ci": "auto",
+          "mac": true,
+          "do": "手机 Share via link 勾 Require PIN；电脑上点 看看分享了什么",
+          "expect": "电脑要求输入 PIN；输错写 “PIN 不对。”，输对后列出文件"
+        },
+        {
+          "id": "post.share-link",
+          "rev": "0.49.0",
+          "ci": "auto",
+          "mac": true,
+          "do": "宠物驿站 → 接收 → 🔗 从链接取文件…，填手机 Share via link 显示的地址",
+          "expect": "列出文件、可取；地址乱填时写 “这不是 LocalSend 显示的那种地址…”"
+        },
+        {
+          "id": "post.collect",
+          "rev": "0.49.0",
+          "ci": "partial",
+          "mac": true,
+          "human": "两台 ePet：一台在二级路由后面（例如 PC 在 192.168.8.x），另一台在主路由（例如 Mac 在 192.168.31.x 或 20.x）",
+          "do": "在 Mac 的 宠物驿站 → 发送 里选 PC，发一个文件；再发一段文字",
+          "expect": "Mac 上 PC 那行有 “↩ 由它来取”；发送后显示 “等 <PC> 来取…”；几秒内 PC 的宠物照常问是否接收，接收后 Mac 显示进度直到送到，PC 存好并进记录；文字直接在 PC 的气泡里显示；PC 拒收时 Mac 显示对方没接收"
+        },
+        {
           "id": "post.offline",
           "rev": "0.45.0",
           "ci": "auto",

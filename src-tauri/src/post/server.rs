@@ -28,7 +28,7 @@ use tokio_rustls::TlsAcceptor;
 use super::{lock, Active, Asked, Device, Inner, Offer, Receive, Received, TextMessage, Transfer};
 use crate::state::now_ms;
 
-type Body = Full<Bytes>;
+type Body = http_body_util::combinators::BoxBody<Bytes, std::io::Error>;
 
 /// How long the pet waits for an answer to a delivery before declining it.
 pub const ANSWER_SECONDS: u64 = 60;
@@ -137,14 +137,14 @@ where
 }
 
 fn status(code: u16) -> Response<Body> {
-    let mut res = Response::new(Body::default());
+    let mut res = Response::new(Full::new(Bytes::new()).map_err(|never| match never {}).boxed());
     *res.status_mut() = StatusCode::from_u16(code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
     res
 }
 
 fn json(value: &impl serde::Serialize) -> Response<Body> {
     let body = serde_json::to_vec(value).unwrap_or_default();
-    let mut res = Response::new(Body::from(body));
+    let mut res = Response::new(Full::new(Bytes::from(body)).map_err(|never| match never {}).boxed());
     res.headers_mut().insert(hyper::header::CONTENT_TYPE, hyper::header::HeaderValue::from_static("application/json"));
     res
 }
@@ -195,6 +195,12 @@ async fn route(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, cert: Opti
     }
     if req.method() == Method::POST && path == VERIFY_RESULT {
         return verify_result(inner, req, cert).await;
+    }
+    match (req.method().clone(), path.as_str()) {
+        (Method::POST, super::pickup::ASK) => return super::pickup::asked(inner, req, ip, cert).await,
+        (Method::POST, super::pickup::ANSWER) => return super::pickup::answered(inner, req, cert).await,
+        (Method::GET, super::pickup::FILE) => return super::pickup::file(inner, req, cert).await,
+        _ => {}
     }
     let Some(endpoint) = path.strip_prefix(API) else {
         return status(404);
@@ -647,6 +653,7 @@ fn finish_file(inner: &Inner, session_id: &str, file_id: &str, path: PathBuf) {
         folder: Some(a.save_dir.to_string_lossy().into_owned()),
         first: first.map(|p| p.to_string_lossy().into_owned()),
         error: None,
+        collect: false,
     };
     let mut paths: Vec<String> =
         a.session.files.values().filter_map(|f| f.saved.as_ref().map(|p| p.to_string_lossy().into_owned())).collect();
@@ -666,8 +673,9 @@ fn finish_file(inner: &Inner, session_id: &str, file_id: &str, path: PathBuf) {
     };
     *receive = Receive::Idle;
     drop(receive);
-    inner.transfer(t);
+    // Kept first: "done" is the cue to look at what was received.
     inner.remember(entry);
+    inner.transfer(t);
 }
 
 /// The sender cancels: before the answer (the pet stops asking) or while sending.

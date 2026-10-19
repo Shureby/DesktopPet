@@ -274,6 +274,15 @@ export interface PostDevice {
   cameIn: boolean;
   /** It shares files by link (LocalSend's Share via link): this computer can fetch them. */
   sharing: boolean;
+  /** It runs ePet (else LocalSend). */
+  epet: boolean;
+  /** When it last asked for deliveries to collect (0: never): what's sent to it waits for it. */
+  collectsAt: number;
+}
+
+/** It collects what's sent to it (an ePet that can't be reached: behind another router). */
+export function collects(d: PostDevice, now = Date.now()): boolean {
+  return d.collectsAt > 0 && now - d.collectsAt < 60_000;
 }
 
 /** What a device shares by link (`postShareOpen`). */
@@ -363,6 +372,8 @@ export interface PostTransfer {
   peer: string;
   /** Its fingerprint (receiving: "" unless its certificate proves it). */
   fingerprint: string;
+  /** Sent to a device that collects it: waiting for it to. */
+  collect?: boolean;
   done: number;
   total: number;
   files: number;
@@ -526,7 +537,7 @@ export function transferLine(tr: PostTransfer, who = tr.peer): string {
   }
   switch (tr.state) {
     case "waiting":
-      return t("Waiting for {who} to accept…", { who });
+      return tr.collect ? t("Waiting for {who} to collect it…", { who }) : t("Waiting for {who} to accept…", { who });
     case "sending":
       return t("Delivering to {who}… {pct}%", { who, pct: percentText(tr) });
     case "done":

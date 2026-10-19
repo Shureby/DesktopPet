@@ -16,6 +16,28 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.49.0] - 2026-10-19
+
+### Added
+- **Pet Post: files shared by link are fetched by this computer.** When a device shares
+  files with LocalSend's **Share via link**, the pet says "📤 X is sharing files with you."
+  and Receive lists it: **See what's shared** (its user may be asked to allow it, or a PIN
+  asked here), tick the files, **Get N files**. This computer fetches them, so it works
+  where the other device can't reach this one (this computer behind another router). Saved
+  and kept like files received. **Get files from a link…** for the address LocalSend shows,
+  when the device isn't listed. Over plain HTTP (LocalSend's link without encryption) it
+  says "Not encrypted".
+- **Pet Post: an ePet that can't be reached collects what's sent to it.** An ePet keeps
+  asking the ePets it reaches on other networks for deliveries (a request that waits).
+  Sending to one that can't be reached but asked lately: "Waiting for X to collect it…";
+  there it's asked about as any delivery (Accept / Decline, favorites accepted), then
+  fetched. Its row in Send says "↩ It collects".
+
+### Fixed
+- **Pet Post:** "Got N files" no longer comes before the delivery is in Received (a test
+  could look in between). Look again no longer forgets a device that's still there just
+  because it hadn't been heard from for a while.
+
 ## [0.48.3] - 2026-10-19
 
 ### Added

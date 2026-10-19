@@ -673,6 +673,25 @@ check("post.share-link", "Get files from a link: the address LocalSend shows is 
   await sharingSeen(false);
 });
 
+check("post.collect", "an ePet that can't reach this computer leaves a delivery: it's collected (asked about as any delivery, then fetched)", async () => {
+  const app = ctx.app;
+  Object.assign(peer, { epet: true, pickup: { files: { "collected.txt": "picked up" } }, pickupAnswers: [], pickupAsks: 0 });
+  try {
+    await app.toPet();
+    // Seen as an ePet (it says so when asked again): then it's asked for deliveries.
+    await lookUntil("seen as an ePet", async () => (await listed())?.epet === true);
+    await app.waitBubble("Mock Phone wants to send you 1 file", 30_000).catch(async (e) => {
+      throw new Error(`${e.message}; asks ${peer.pickupAsks}, answers ${JSON.stringify(peer.pickupAnswers)}, told ${peer.pickup?.told}, device ${JSON.stringify(await listed())}, bubble ${await app.bubble()}`);
+    });
+    await app.answer("Accept");
+    await until("collected", () => existsSync(join(inbox, "collected.txt")));
+    assert.equal(readFileSync(join(inbox, "collected.txt"), "utf8"), "picked up");
+    assert.deepEqual(peer.pickupAnswers, [true]);
+  } finally {
+    Object.assign(peer, { epet: false, pickup: null });
+  }
+});
+
 check("post.networks", "an extra network in Settings → Pet Post is looked in too", async () => {
   const app = ctx.app;
   await app.setSettings((s) => ({ ...s, post: { ...s.post, networks: ["127.0.0.1/32"] } }));

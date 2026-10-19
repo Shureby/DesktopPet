@@ -45,7 +45,7 @@ pub(crate) struct Sending {
 }
 
 /// Where a file's data comes from.
-enum Source {
+pub(crate) enum Source {
     File(PathBuf),
     Text(Bytes),
 }
@@ -472,7 +472,7 @@ async fn run(inner: Arc<Inner>, job: Job, paths: Vec<PathBuf>, text: Option<Stri
     report("waiting", 0, total, count, None);
     let files: BTreeMap<String, FileInfo> = items.iter().map(|(f, _)| (f.id.clone(), f.clone())).collect();
     let mut sources: HashMap<String, (u64, Source)> = items.into_iter().map(|(f, s)| (f.id, (f.size, s))).collect();
-    let body = json_body(&PrepareUpload { info: inner.info(true), files });
+    let body = json_body(&PrepareUpload { info: inner.info(true), files: files.clone() });
     let path = format!("{API}/prepare-upload{}", pin_query(&pin));
     let peer = Peer::of(&d);
     // The receiver's owner decides meanwhile (LocalSend waits as long as it takes).
@@ -484,6 +484,21 @@ async fn run(inner: Arc<Inner>, job: Job, paths: Vec<PathBuf>, text: Option<Stri
     .unwrap_or_else(|_| Err("timeout".into()));
     let reply = match reply {
         Ok(r) => r,
+        // It can't be reached, but it collects deliveries (an ePet behind another router):
+        // this one waits for it to.
+        Err(e) if e.starts_with(UNREACHABLE) && super::pickup::collects(&inner, &d.fingerprint) => {
+            inner.transfer(Transfer {
+                direction: "out",
+                state: "waiting",
+                peer: d.alias.clone(),
+                fingerprint: d.fingerprint.clone(),
+                total,
+                files: count,
+                collect: true,
+                ..Default::default()
+            });
+            return super::pickup::deliver(&inner, &d, files, sources, &report).await;
+        }
         Err(e) => return report("failed", 0, total, count, Some(e)),
     };
     let state = match reply.status {
