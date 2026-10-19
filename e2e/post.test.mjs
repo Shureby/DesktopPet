@@ -419,6 +419,73 @@ check("post.verify-offer", "Verify… in the pet's question opens it in Pet Post
   assert.equal((await reply).status, 403);
 });
 
+check("post.verify-ask", "Verify for another ePet asks it to show the icons too, and says so", async () => {
+  const app = ctx.app;
+  peer.epet = true;
+  peer.verifyAsks = [];
+  try {
+    await postTab("send");
+    await app.b.execute((name) => {
+      const row = [...document.querySelectorAll(".post-device")].find((e) => e.textContent.includes(name));
+      row.querySelector(".post-verify").click();
+    }, "Mock Phone");
+    await app.waitText(".post-verify-shown", "Mock Phone shows them too");
+    assert.equal(peer.verifyAsks.length, 1);
+    assert.equal(peer.verifyAsks[0].fingerprint, fingerprint);
+    await app.click(".post-verify-done");
+  } finally {
+    peer.epet = false;
+  }
+});
+
+check("post.verify-asked", "asked by another ePet: the pet offers to show Verify; Show opens it, without asking back", async () => {
+  const app = ctx.app;
+  peer.epet = true;
+  peer.verifyAsks = [];
+  try {
+    await app.closeWindow("post");
+    await app.toPet();
+    assert.equal((await peer.askVerify()).status, 204);
+    // Not again straight away.
+    assert.equal((await peer.askVerify()).status, 429);
+    await app.waitBubble("Mock Phone wants to compare Verify icons with you.");
+    await app.answer("Show");
+    await app.toWindow("post.html");
+    const shown = await app.until(() => {
+      const icons = [...document.querySelectorAll(".post-verify-grid svg")].map((e) => e.dataset.icon);
+      return icons.length === 16 && icons;
+    });
+    assert.deepEqual(shown, verifyCode(fingerprint, peer.fingerprint).icons);
+    await app.waitText(".post-verify-asked-by", "Mock Phone asked to compare.");
+    await new Promise((r) => setTimeout(r, 1500));
+    assert.equal(peer.verifyAsks.length, 0);
+    await app.click(".post-verify-done");
+  } finally {
+    peer.epet = false;
+  }
+});
+
+check("post.recent-senders", "Receive → Recent senders lists who sent something lately, with Verify", async () => {
+  const app = ctx.app;
+  await app.toPet();
+  const reply = peer.prepare({ "recent.txt": "recent" });
+  await app.waitBubble("Mock Phone wants to send you 1 file");
+  await app.answer("Accept");
+  const r = await reply;
+  assert.deepEqual(await peer.upload(r.body), [200]);
+  await app.waitBubble("Got 1 file from Mock Phone!");
+  await postTab("receive");
+  await app.waitText(".post-recent-sender", "Mock Phone");
+  await app.click(".post-recent-sender .post-verify");
+  const shown = await app.until(() => {
+    const icons = [...document.querySelectorAll(".post-verify-grid svg")].map((e) => e.dataset.icon);
+    return icons.length === 16 && icons;
+  });
+  assert.deepEqual(shown, verifyCode(fingerprint, peer.fingerprint).icons);
+  await app.waitText(".post-verify-view", "With Mock Phone");
+  await app.click(".post-verify-done");
+});
+
 check("post.networks", "an extra network in Settings → Pet Post is looked in too", async () => {
   const app = ctx.app;
   await app.setSettings((s) => ({ ...s, post: { ...s.post, networks: ["127.0.0.1/32"] } }));

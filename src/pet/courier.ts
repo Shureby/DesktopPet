@@ -91,6 +91,7 @@ export class Courier {
     await b.on("post-offer", (o) => void this.onOffer(o));
     await b.on("post-offer-closed", (c) => this.onClosed(c.id, c.reason));
     await b.on("post-text", (m) => void this.onText(m));
+    await b.on("post-verify-asked", (a) => void this.onVerifyAsked(a.fingerprint, a.alias));
     await b.on("post-transfer", (tr) => this.onTransfer(tr));
     this.status = await b.postStatus().catch(() => null);
     await this.configure();
@@ -269,6 +270,18 @@ export class Courier {
     this.host.say([t("💬 {who} says:", { who: m.alias }), short], 60_000, [
       { label: t("Copy"), run: () => copyText(m.text) },
       { label: t("OK"), run: () => {} },
+    ], undefined, true);
+    this.host.chime();
+  }
+
+  /** Another ePet asks to compare Verify: shown here only if you say so (not a window out of the blue). */
+  private async onVerifyAsked(fingerprint: string, alias: string): Promise<void> {
+    if (this.host.away() || (this.host.hidden() && this.host.quiet())) return;
+    if (this.host.hidden()) await this.host.comeOut();
+    const first = t("{who} wants to compare Verify icons with you.", { who: alias });
+    this.host.say(first, 60_000, [
+      { label: t("Show"), run: () => void this.host.backend.openPostWindow(fingerprint) },
+      { label: t("Not now"), run: () => {} },
     ], undefined, true);
     this.host.chime();
   }

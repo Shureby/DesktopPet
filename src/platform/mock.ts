@@ -142,8 +142,8 @@ const MOCK_DEVICES: PostDevice[] = [
 ];
 
 const mockHistory: PostReceived[] = [
-  { id: "h2", at: Date.now() - 600_000, from: "Pixel 8", text: "Dinner at 7? 🍜", files: 0, bytes: 0, paths: [], folder: null },
-  { id: "h1", at: Date.now() - 3_600_000, from: "Mum's MacBook", text: null, files: 1, bytes: 2_400_000, paths: ["Downloads/ePet/trip.pdf"], folder: "Downloads/ePet" },
+  { id: "h2", at: Date.now() - 600_000, from: "Pixel 8", fingerprint: "A1", deviceModel: "Google", deviceType: "mobile", text: "Dinner at 7? 🍜", files: 0, bytes: 0, paths: [], folder: null },
+  { id: "h1", at: Date.now() - 3_600_000, from: "Mum's MacBook", fingerprint: "B2", deviceModel: "macOS", deviceType: "desktop", text: null, files: 1, bytes: 2_400_000, paths: ["Downloads/ePet/trip.pdf"], folder: "Downloads/ePet" },
 ];
 
 /** The pretend devices, and the ones added by address (in the settings). */
@@ -765,7 +765,15 @@ export const mockBackend: Backend = {
     // Pretend: icons from the fingerprint's letters.
     const text = ["MOCK", fingerprint].sort().join("");
     const icons = Array.from({ length: 16 }, (_, i) => (text.charCodeAt(i % text.length) * (i + 7)) % 260);
-    return { text, icons };
+    return { text, icons, askedBy: null };
+  },
+  async postVerifyAsk(fingerprint) {
+    // ?verify-asked: a pretend ePet asks back (to see the pet's bubble).
+    if (new URLSearchParams(location.search).has("verify-asked")) {
+      setTimeout(() => fire("post-verify-asked", { fingerprint: "C3", alias: "Work laptop" }), 1500);
+    }
+    // The pretend ePet (Work laptop) shows it too; the LocalSend phones can't.
+    return fingerprint === "C3";
   },
   async postSend(to, paths, text) {
     // A pretend delivery: asked, then a few seconds of progress.
@@ -796,7 +804,7 @@ export const mockBackend: Backend = {
       fire("post-transfer", { ...base, state: done < base.total ? "receiving" : "done", done });
       if (done >= base.total) {
         clearInterval(tick);
-        mockHistory.unshift({ id: `r${Date.now()}`, at: Date.now(), from: "Pixel 8", text: null, files: 3, bytes: base.total, paths: ["Downloads/ePet/a.jpg"], folder: "Downloads/ePet" });
+        mockHistory.unshift({ id: `r${Date.now()}`, at: Date.now(), from: "Pixel 8", fingerprint: "A1", deviceModel: "Google", deviceType: "mobile", text: null, files: 3, bytes: base.total, paths: ["Downloads/ePet/a.jpg"], folder: "Downloads/ePet" });
         fire("post-history", mockHistory);
       }
     }, 500);

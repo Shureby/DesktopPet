@@ -72,6 +72,7 @@ export const tauriBackend: Backend = {
   postAddDevice: (address, port) => invoke("post_add_device", { address, port: port ?? null }),
   postTailnet: () => invoke("post_tailnet"),
   postVerify: (fingerprint) => invoke("post_verify", { fingerprint }),
+  postVerifyAsk: (fingerprint) => invoke("post_verify_ask", { fingerprint }),
   postSend: (to, paths, text, pin) => invoke("post_send", { to, paths, text: text ?? null, pin: pin ?? null }),
   postCancelSend: () => invoke("post_cancel_send"),
   postAnswer: (id, accept) => invoke("post_answer", { id, accept }),

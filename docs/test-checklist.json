@@ -1720,6 +1720,32 @@
           "expect": "Pet Post 窗口打开并显示对这台手机的 Verify；宠物的问题还在（Accept / Decline 仍可点）"
         },
         {
+          "id": "post.verify-ask",
+          "rev": "0.47.0",
+          "ci": "partial",
+          "mac": true,
+          "human": "两台电脑都装 ePet（一台 Windows、一台 Mac）",
+          "do": "在 A 的 Pet Post → Send，点 B 那行的 🛡 Verify",
+          "expect": "A 显示 16 个图标，下面一行绿字 “✓ B shows them too: look at its screen.”；B 的宠物冒出气泡 “A wants to compare Verify icons with you.”（Show / Not now）。对 LocalSend 手机点 Verify：没有这行绿字，手机上也什么都不弹"
+        },
+        {
+          "id": "post.verify-asked",
+          "rev": "0.47.0",
+          "ci": "partial",
+          "mac": true,
+          "human": "接着上一项，在 B 上做；再试一次 B 的宠物藏起来时",
+          "do": "B 的气泡里点 Show",
+          "expect": "B 打开 Pet Post 的 Verify，图标和 A 上完全一样，下面写 “A asked to compare.”；A 那边不会再收到反过来的气泡。宠物藏起来时会先探出来再问；Not now 或 1 分钟不理，气泡收起"
+        },
+        {
+          "id": "post.recent-senders",
+          "rev": "0.47.0",
+          "ci": "auto",
+          "mac": true,
+          "do": "用手机 LocalSend 或另一台 ePet 给这台电脑发一个文件，接收后打开 Pet Post → Receive",
+          "expect": "Receive 页下面有 “Recent senders”，列出发件设备（型号 · 1 file · 时间）和 🛡 Verify；点 Verify 显示和对方一样的图标。就算 Send 页里找不到那台设备也能用。最多 5 个，同一设备只列一次"
+        },
+        {
           "id": "post.favorite",
           "rev": "0.45.0",
           "ci": "partial",

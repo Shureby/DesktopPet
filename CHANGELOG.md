@@ -16,6 +16,20 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.47.0] - 2026-10-19
+
+### Added
+- **Pet Post: Verify on both screens at once (ePet ↔ ePet).** Verify for a device that
+  runs ePet asks it to show the icons too: its pet says "… wants to compare Verify icons
+  with you." with **Show** / **Not now** (no window out of the blue), and this side says
+  "✓ … shows them too: look at its screen." Show opens the same 16 icons there (worked
+  out there, from the certificates, not sent over), with "… asked to compare." Only a
+  device its certificate proves can ask, once in ten seconds; LocalSend doesn't know the
+  request (nothing changes with it).
+- **Pet Post: Recent senders** on the Receive tab: the last five devices that sent you
+  something (proven by their certificates), each with **Verify**: even one this computer
+  doesn't find (behind another router, added by address only on the other side).
+
 ## [0.46.0] - 2026-10-16
 
 ### Changed

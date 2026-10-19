@@ -233,6 +233,12 @@ pub struct Received {
     pub at: i64,
     /// Who sent it.
     pub from: String,
+    /// Its fingerprint, proven by its certificate (empty when not): Receive → Recent
+    /// senders, with Verify.
+    pub fingerprint: String,
+    pub device_model: Option<String>,
+    /// "mobile" | "desktop" | … (as `Device`).
+    pub device_type: String,
     /// A text message (else files).
     pub text: Option<String>,
     pub files: usize,
@@ -270,6 +276,8 @@ pub(crate) enum Receive {
 
 pub(crate) struct Active {
     pub session: ReceiveSession,
+    /// The sender's fingerprint, proven by its certificate (empty when not).
+    pub fingerprint: String,
     pub save_dir: PathBuf,
     /// Final paths taken by files of this delivery (two may have the same name).
     pub reserved: HashSet<PathBuf>,
@@ -307,6 +315,8 @@ pub struct Inner {
     pub(crate) tailnet: Mutex<Tailnet>,
     /// What was received (read from its file when first needed).
     pub(crate) history: Mutex<Option<Vec<Received>>>,
+    /// Devices that asked to compare Verify (fingerprint → their name, when).
+    pub(crate) verify_asked: Mutex<HashMap<String, (String, i64)>>,
 }
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -548,6 +558,7 @@ impl Post {
             sending: Mutex::new(None),
             tailnet: Mutex::new(Tailnet::default()),
             history: Mutex::new(None),
+            verify_asked: Mutex::new(HashMap::new()),
         }))
     }
 }
@@ -678,18 +689,40 @@ pub(crate) async fn add_device(inner: &Arc<Inner>, address: &str, port: u16) -> 
 
 /// What both sides show to check they talk to each other (LocalSend's Verify).
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Verify {
     pub text: String,
     /// Numbers of the icons (src/features/post/verifyIcons.ts).
     pub icons: Vec<usize>,
+    /// That device asked for it lately (its name): then it isn't asked back.
+    pub asked_by: Option<String>,
 }
+
+/// How long a device's asking to compare Verify counts as "lately".
+pub(crate) const ASKED_MS: i64 = 5 * 60_000;
 
 /// Verify for a device (by its fingerprint): what it should show too.
 #[tauri::command]
 pub fn post_verify(post: State<'_, Post>, fingerprint: String) -> CmdResult<Verify> {
-    let mine = post.0.identity().ok_or("off")?.fingerprint;
-    let (text, icons) = desktoppet_core::post::verify_code(&mine, &fingerprint.to_ascii_uppercase());
-    Ok(Verify { text, icons })
+    verify(&post.0, &fingerprint)
+}
+
+pub(crate) fn verify(inner: &Inner, fingerprint: &str) -> CmdResult<Verify> {
+    let mine = inner.identity().ok_or("off")?.fingerprint;
+    let fingerprint = fingerprint.to_ascii_uppercase();
+    let (text, icons) = desktoppet_core::post::verify_code(&mine, &fingerprint);
+    let asked_by = lock(&inner.verify_asked)
+        .get(&fingerprint)
+        .filter(|(_, at)| now_ms() - at < ASKED_MS)
+        .map(|(alias, _)| alias.clone());
+    Ok(Verify { text, icons, asked_by })
+}
+
+/// Asks the device (an ePet; LocalSend can't) to show Verify too: its pet offers to.
+/// Whether it said it will.
+#[tauri::command]
+pub async fn post_verify_ask(post: State<'_, Post>, fingerprint: String) -> CmdResult<bool> {
+    Ok(client::ask_verify(&post.0, &fingerprint).await)
 }
 
 /// What Tailscale said last (Settings → Pet Post shows it).

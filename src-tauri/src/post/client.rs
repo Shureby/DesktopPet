@@ -214,6 +214,21 @@ async fn introduce(inner: &Inner, peer: &Peer, connect: Duration, total: Duratio
     Ok(d)
 }
 
+/// Asks a device (by fingerprint) to show Verify too: an ePet's pet offers to; LocalSend
+/// doesn't know the request (404). Only over HTTPS, where both certificates are known.
+pub(crate) async fn ask_verify(inner: &Inner, fingerprint: &str) -> bool {
+    let Some(device) = lock(&inner.devices).get(&fingerprint.to_ascii_uppercase()).cloned() else {
+        return false;
+    };
+    if !device.https || device.ip.is_unspecified() {
+        return false;
+    }
+    let peer = Peer::of(&device);
+    let call =
+        request(inner, &peer, super::server::VERIFY_ASK, json_body(&inner.info(true)), None, Duration::from_secs(3));
+    matches!(tokio::time::timeout(Duration::from_secs(6), call).await, Ok(Ok(r)) if r.status == 204)
+}
+
 /// The files to send: each path a file, or a folder sent with what's in it.
 fn collect(paths: &[PathBuf]) -> Result<Vec<(FileInfo, Source)>, String> {
     let mut out = Vec::new();

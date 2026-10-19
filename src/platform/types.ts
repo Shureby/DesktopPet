@@ -463,6 +463,8 @@ export interface BackendEvents {
   "post-tailnet": PostTailnet;
   /** The Pet Post window, already open, is to show Verify for this device (fingerprint). */
   "post-verify": string;
+  /** Another ePet asks to compare Verify (its pet offers to show it). */
+  "post-verify-asked": { fingerprint: string; alias: string };
   /** The Pet Post window, already open, is to show this tab. */
   "post-tab": "receive" | "send" | "history";
 }
@@ -639,6 +641,8 @@ export interface Backend {
   postTailnet(): Promise<PostTailnet>;
   /** What this computer and a device (by fingerprint) both show, to compare. */
   postVerify(fingerprint: string): Promise<PostVerify>;
+  /** Asks the device (an ePet) to show Verify too. Whether it will (LocalSend can't). */
+  postVerifyAsk(fingerprint: string): Promise<boolean>;
   /** Sends files and folders, or a text, to a device (by fingerprint). */
   postSend(to: string, paths: string[], text?: string | null, pin?: string | null): Promise<void>;
   postCancelSend(): Promise<void>;

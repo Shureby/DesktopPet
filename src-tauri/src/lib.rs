@@ -131,6 +131,7 @@ pub fn run() {
             post::post_add_device,
             post::post_tailnet,
             post::post_verify,
+            post::post_verify_ask,
             post::post_pending_offer,
             post::post_stop_receiving,
             post::post_history,

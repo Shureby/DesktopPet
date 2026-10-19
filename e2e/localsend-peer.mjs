@@ -12,6 +12,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const API = "/api/localsend/v2";
+/** Where an ePet asks another to show Verify too (src-tauri/src/post/server.rs, VERIFY_ASK). */
+const VERIFY_ASK = "/api/epet/v1/verify";
 export const GROUP = "224.0.0.167";
 export const LOCALSEND_PORT = 53317;
 
@@ -37,6 +39,10 @@ export class Peer {
   files = new Map();
   /** register requests it got (who introduced themselves). */
   registered = [];
+  /** Answers as an ePet would to being asked to show Verify (else as LocalSend: 404). */
+  epet = false;
+  /** Asks to show Verify that came (as an ePet). */
+  verifyAsks = [];
   /** How it answers prepare-upload: "accept" | "decline". */
   answer = "accept";
 
@@ -104,6 +110,10 @@ export class Peer {
       }
       case `${API}/cancel`:
         return json(200);
+      case VERIFY_ASK:
+        if (!this.epet) return json(404);
+        this.verifyAsks.push(JSON.parse(body.toString()));
+        return json(204);
       default:
         return json(404);
     }
@@ -145,6 +155,11 @@ export class Peer {
       req.on("error", reject);
       req.end(data);
     });
+  }
+
+  /** Asks the app to show Verify too (as another ePet does). */
+  askVerify(port = LOCALSEND_PORT) {
+    return this.request(port, VERIFY_ASK, this.info());
   }
 
   register(port = LOCALSEND_PORT, from = undefined) {

@@ -217,6 +217,8 @@ export interface PostVerify {
   text: string;
   /** 16 numbers into VERIFY_ICONS. */
   icons: number[];
+  /** That device asked for it lately (its name): then it isn't asked back. */
+  askedBy: string | null;
 }
 
 export interface PostStatus {
@@ -266,6 +268,10 @@ export interface PostReceived {
   id: string;
   at: number;
   from: string;
+  /** Its fingerprint, proven by its certificate ("" when not; absent before 0.47). */
+  fingerprint?: string;
+  deviceModel?: string | null;
+  deviceType?: PostDevice["deviceType"];
   /** A text message (else files). */
   text: string | null;
   files: number;
@@ -491,4 +497,26 @@ export function tailnetLine(tn: PostTailnet, found: number): string {
     default:
       return t("Looks when you press Look again in Pet Post.");
   }
+}
+
+/** Someone who sent something lately (Receive → Recent senders, with Verify). */
+export interface RecentSender {
+  fingerprint: string;
+  alias: string;
+  deviceModel: string | null;
+  deviceType: PostDevice["deviceType"];
+  /** The latest thing they sent. */
+  last: PostReceived;
+}
+
+/** The last `n` devices that sent something, proven by their certificates (the latest first). */
+export function recentSenders(history: PostReceived[], n = 5): RecentSender[] {
+  const out: RecentSender[] = [];
+  for (const r of history) {
+    const fp = r.fingerprint?.toUpperCase();
+    if (!fp || out.some((s) => s.fingerprint === fp)) continue;
+    out.push({ fingerprint: fp, alias: r.from, deviceModel: r.deviceModel ?? null, deviceType: r.deviceType ?? "desktop", last: r });
+    if (out.length === n) break;
+  }
+  return out;
 }

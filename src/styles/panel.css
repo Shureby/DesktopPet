@@ -1547,6 +1547,18 @@ button,
 .post-verify-view .row {
   justify-content: center;
 }
+.post-verify-shown {
+  background: #e3f3e7;
+  color: #2a6b3a;
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+.post-recent {
+  margin-top: 14px;
+}
+.post-recent .post-device {
+  cursor: default;
+}
 .post-addresses {
   list-style: none;
   padding: 0;
@@ -1746,6 +1758,10 @@ nav.post-tabs button {
   .post-verify .ui-icon,
   .post-offer-verify .ui-icon {
     fill: #9db8e3;
+  }
+  .post-verify-shown {
+    background: #1f3a28;
+    color: #9fd8ae;
   }
 }
 .ui-icon.big {

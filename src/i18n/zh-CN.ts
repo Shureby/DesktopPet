@@ -794,6 +794,7 @@ const zhCN: Dictionary = {
     "{who}: “{text}”": "{who}：“{text}”",
     "💬 {who} says:": "💬 {who} 说：",
     Copy: "复制",
+    "{who} wants to compare Verify icons with you.": "{who} 想和你核对图标。",
     Show: "查看",
     "Add to-do…": "添加待办…",
     "Set alarm…": "设闹钟…",
@@ -866,6 +867,9 @@ const zhCN: Dictionary = {
     Latest: "最近收到",
     "Nothing received yet.": "还没有收到过东西。",
     "All of it: 🕘 History": "查看全部（🕘 记录）",
+    "Recent senders": "最近发件人",
+    "a message": "一条消息",
+    "The last devices that sent you something.": "最近给你发过东西的设备。",
     "Received files and messages": "收到的文件和消息",
     "Open the received files folder": "打开收件文件夹",
     "Add by address…": "按地址添加…",
@@ -883,6 +887,9 @@ const zhCN: Dictionary = {
     Text: "文字",
     "Does it look the same on the other device?":
       "和另一台设备上显示的一样吗？",
+    "{name} asked to compare.": "{name} 请你核对。",
+    "{name} shows them too: look at its screen.":
+      "{name} 那边也显示了：看看它的屏幕。",
     "In LocalSend: the device (or the delivery from this computer), then Verify. In ePet: Pet Post → Verify.":
       "在 LocalSend 里：点这台设备（或这台电脑发来的内容），再点 Verify。在 ePet 里：宠物驿站 → 核对。",
     "Declined in {s} s if you don't answer.": "{s} 秒内不回答就自动拒绝。",

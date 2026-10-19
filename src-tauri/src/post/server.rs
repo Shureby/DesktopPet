@@ -190,6 +190,9 @@ async fn read_json<T: DeserializeOwned>(req: Request<Incoming>, max: usize) -> O
 
 async fn route(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, cert: Option<String>) -> Response<Body> {
     let path = req.uri().path().to_string();
+    if path == VERIFY_ASK && req.method() == Method::POST {
+        return verify_asked(inner, req, ip, cert).await;
+    }
     let Some(endpoint) = path.strip_prefix(API) else {
         return status(404);
     };
@@ -215,6 +218,40 @@ async fn register(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, cert: O
     }
     json(&inner.info(false))
 }
+
+/// Another ePet asks to compare Verify (`client::ask_verify`): the pet offers to show it.
+/// Only from a device its certificate proves; once in a while per device.
+async fn verify_asked(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, cert: Option<String>) -> Response<Body> {
+    if !inner.config().enabled {
+        return status(403);
+    }
+    let Some(info) = read_json::<DeviceInfo>(req, 64 * 1024).await else {
+        return status(400);
+    };
+    if !cert.as_ref().is_some_and(|c| c.eq_ignore_ascii_case(&info.fingerprint)) {
+        return status(403);
+    }
+    let device = Device::from_info(&info, ip);
+    let now = now_ms();
+    {
+        let mut asked = lock(&inner.verify_asked);
+        asked.retain(|_, (_, at)| now - *at < super::ASKED_MS);
+        if asked.get(&device.fingerprint).is_some_and(|(_, at)| now - at < ASK_AGAIN_MS) {
+            return status(429);
+        }
+        asked.insert(device.fingerprint.clone(), (device.alias.clone(), now));
+    }
+    let payload = serde_json::json!({ "fingerprint": device.fingerprint, "alias": device.alias });
+    inner.add_device(device);
+    inner.emit("post-verify-asked", payload);
+    status(204)
+}
+
+/// Where another ePet asks to compare Verify (not LocalSend's API: LocalSend says 404).
+pub(crate) const VERIFY_ASK: &str = "/api/epet/v1/verify";
+
+/// How soon the same device may ask again.
+const ASK_AGAIN_MS: i64 = 10_000;
 
 /// Puts the receiving slot back to idle if the offer `id` still holds it: when the
 /// request ends without the delivery starting (declined, timed out, sender gone).
@@ -270,6 +307,9 @@ async fn prepare_upload(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, c
             id: random_id(),
             at: now_ms(),
             from: alias.clone(),
+            fingerprint: if verified { info.fingerprint.to_ascii_uppercase() } else { String::new() },
+            device_model: info.device_model.clone(),
+            device_type: Device::from_info(&info, ip).device_type,
             text: Some(text.clone()),
             ..Default::default()
         });
@@ -344,6 +384,7 @@ async fn prepare_upload(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, c
         }
         *receive = Receive::Active(Box::new(Active {
             session,
+            fingerprint,
             save_dir,
             reserved: Default::default(),
             done_bytes: 0,
@@ -540,6 +581,9 @@ fn finish_file(inner: &Inner, session_id: &str, file_id: &str, path: PathBuf) {
         id: random_id(),
         at: now_ms(),
         from: t.peer.clone(),
+        fingerprint: a.fingerprint.clone(),
+        device_model: a.session.from.device_model.clone(),
+        device_type: Device::from_info(&a.session.from, a.session.sender).device_type,
         text: None,
         files: t.files,
         bytes: t.total,

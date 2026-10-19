@@ -10,7 +10,7 @@ use std::time::{Duration, Instant};
 
 use serde_json::Value;
 
-use super::{add_device, answer, client, configure, discovery, Config, Device, Inner, Post, Saved};
+use super::{add_device, answer, client, configure, discovery, verify, Config, Device, Inner, Post, Saved};
 
 const LOCALHOST: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
 
@@ -141,6 +141,11 @@ fn two_pets_find_each_other_and_deliver_a_file() {
     let history = b.inner.history();
     assert_eq!(history.len(), 1);
     assert_eq!((history[0].from.as_str(), history[0].files, history[0].bytes), ("Alice", 1, 300_000));
+    // Who it was, proven by her certificate (Receive → Recent senders).
+    assert_eq!(
+        (history[0].fingerprint.as_str(), history[0].device_type.as_str()),
+        (a.fingerprint().as_str(), "desktop")
+    );
     assert_eq!(history[0].paths, vec![b.saved("photo.jpg").to_string_lossy().into_owned()]);
     let kept: Vec<super::Received> =
         serde_json::from_slice(&std::fs::read(b.dir.join("data").join("post-history.json")).unwrap()).unwrap();
@@ -157,6 +162,26 @@ fn two_pets_find_each_other_and_deliver_a_file() {
     a.transfer("done");
     b.transfer("done");
     assert_eq!(std::fs::read(b.saved("photo (2).jpg")).unwrap(), b"again");
+}
+
+#[test]
+fn a_pet_asks_another_to_show_verify_too() {
+    let (a, b) = (peer("Alice", |_| {}), peer("Bob", |_| {}));
+    // Not found yet: nobody to ask.
+    assert!(!tauri::async_runtime::block_on(client::ask_verify(&a.inner, &b.fingerprint())));
+    a.find(&b);
+    assert!(tauri::async_runtime::block_on(client::ask_verify(&a.inner, &b.fingerprint())));
+    let asked = b.wait("post-verify-asked", |_| true);
+    assert_eq!(
+        (asked["fingerprint"].as_str(), asked["alias"].as_str()),
+        (Some(a.fingerprint().as_str()), Some("Alice"))
+    );
+    // Bob's Verify for Alice: the same icons, and asked by her (so not asked back).
+    let (on_a, on_b) = (verify(&a.inner, &b.fingerprint()).unwrap(), verify(&b.inner, &a.fingerprint()).unwrap());
+    assert_eq!((on_a.text, on_a.icons), (on_b.text, on_b.icons));
+    assert_eq!((on_a.asked_by, on_b.asked_by.as_deref()), (None, Some("Alice")));
+    // Not again straight away.
+    assert!(!tauri::async_runtime::block_on(client::ask_verify(&a.inner, &b.fingerprint())));
 }
 
 #[test]

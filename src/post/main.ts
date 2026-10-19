@@ -35,6 +35,7 @@ import {
   type PostReceived,
   type SavedDevice,
   namesLine,
+  recentSenders,
 } from "../features/post/post";
 import "../styles/panel.css";
 
@@ -100,7 +101,16 @@ let draft = "";
 /** Adding a device by address: the form is open, and how it went. */
 let adding: { address: string; port: string; state: "" | "busy" | "done" | "failed"; message: string; firewall: boolean } | null = null;
 /** Verify shown for a device. */
-let verifying: { fingerprint: string; code: PostVerify | null; mode: "icons" | "text"; error: string } | null = null;
+let verifying: {
+  fingerprint: string;
+  /** Its name, when it isn't listed (a recent sender). */
+  alias: string;
+  code: PostVerify | null;
+  mode: "icons" | "text";
+  error: string;
+  /** Whether the other device (an ePet) was asked to show it too: "" (not asked), "asking", "yes", "no". */
+  asked: "" | "asking" | "yes" | "no";
+} | null = null;
 
 let sendFailed = "";
 
@@ -164,16 +174,25 @@ async function forget(d: PostDevice): Promise<void> {
   render();
 }
 
-function verify(fingerprint: string): void {
-  verifying = { fingerprint: fingerprint.toUpperCase(), code: null, mode: "icons", error: "" };
+function verify(fingerprint: string, alias = ""): void {
+  const fp = fingerprint.toUpperCase();
+  const v: NonNullable<typeof verifying> = { fingerprint: fp, alias, code: null, mode: "icons", error: "", asked: "" };
+  verifying = v;
   render();
   backend
-    .postVerify(fingerprint)
+    .postVerify(fp)
     .then((code) => {
-      if (verifying?.fingerprint === fingerprint.toUpperCase()) verifying.code = code;
+      v.code = code;
+      // An ePet shows it too, on its screen (unless it asked for this: it shows it already).
+      if (code.askedBy) return;
+      v.asked = "asking";
+      void backend
+        .postVerifyAsk(fp)
+        .catch(() => false)
+        .then((yes) => ((v.asked = yes ? "yes" : "no"), verifying === v && render()));
     })
-    .catch(() => verifying && (verifying.error = t("Pet Post is off.")))
-    .finally(render);
+    .catch(() => (v.error = t("Pet Post is off.")))
+    .finally(() => verifying === v && render());
 }
 
 /** On (the pet window tells the app; it says when it's listening, "post-status"). */
@@ -442,7 +461,34 @@ function receiveTab(): Node[] {
     h("h3", {}, t("Latest")),
     latest ? h("ul", { class: "post-received" }, receivedRow(latest)) : h("p", { class: "hint" }, t("Nothing received yet.")),
     history.length > 1 ? h("p", { class: "hint" }, h("a", { href: "#", class: "post-to-history", onclick: (e: Event) => (e.preventDefault(), show("history")) }, t("All of it: 🕘 History"))) : null,
+    recentList(),
   ] as (Node | null)[]).filter((n): n is Node => n !== null);
+}
+
+/** Receive → Recent senders: who sent something lately, to Verify (they needn't be found). */
+function recentList(): Node | null {
+  const senders = recentSenders(history);
+  if (!senders.length) return null;
+  return h(
+    "div",
+    { class: "post-recent" },
+    h("h3", {}, t("Recent senders")),
+    h(
+      "ul",
+      { class: "post-devices" },
+      ...senders.map((s) => {
+        const what = s.last.text !== null ? t("a message") : fileCount(s.last.files);
+        return h(
+          "li",
+          { class: "post-device post-recent-sender" },
+          h("span", { class: "icon" }, DEVICE_ICONS[s.deviceType] ?? "💻"),
+          h("span", { class: "grow" }, h("strong", {}, s.alias), h("span", { class: "hint" }, [s.deviceModel, what, formatWhen(s.last.at)].filter(Boolean).join(" · "))),
+          h("button", { class: "small post-verify", title: t("Verify: compare with what the other device shows"), onclick: () => verify(s.fingerprint, s.alias) }, icon(VERIFIED_USER), t("Verify")),
+        );
+      }),
+    ),
+    h("p", { class: "hint" }, t("The last devices that sent you something.")),
+  );
 }
 
 /** The History tab: everything received (the last 50). */
@@ -494,6 +540,7 @@ function addForm(): Node {
 function verifyView(): Node {
   const v = verifying!;
   const d = devices.find((x) => x.fingerprint === v.fingerprint);
+  const name = d?.alias ?? (v.alias || v.code?.askedBy || v.fingerprint.slice(0, 12));
   const icons = v.code?.icons.map((i) => VERIFY_ICONS[i]) ?? [];
   const mode = (m: "icons" | "text", label: string) =>
     h("button", { class: `small post-verify-${m}${v.mode === m ? " primary" : ""}`, "aria-pressed": String(v.mode === m), onclick: () => ((v.mode = m), render()) }, label);
@@ -519,10 +566,12 @@ function verifyView(): Node {
   return h(
     "div",
     { class: "post-verify-view" },
-    h("header", { class: "post-head" }, h("h2", {}, icon(VERIFIED_USER, "ui-icon big"), t("Verify")), h("p", { class: "hint" }, t("With {name}", { name: d?.alias ?? v.fingerprint.slice(0, 12) }))),
+    h("header", { class: "post-head" }, h("h2", {}, icon(VERIFIED_USER, "ui-icon big"), t("Verify")), h("p", { class: "hint" }, t("With {name}", { name }))),
     h("div", { class: "row post-verify-modes" }, mode("icons", t("Icons")), mode("text", t("Text"))),
     body,
     h("p", {}, t("Does it look the same on the other device?")),
+    v.code?.askedBy ? h("p", { class: "hint post-verify-asked-by" }, t("{name} asked to compare.", { name: v.code.askedBy })) : null,
+    v.asked === "yes" ? h("p", { class: "post-verify-shown" }, `✓ ${t("{name} shows them too: look at its screen.", { name })}`) : null,
     h("p", { class: "hint" }, t("In LocalSend: the device (or the delivery from this computer), then Verify. In ePet: Pet Post → Verify.")),
     h("p", { class: "row" }, h("button", { class: "primary post-verify-done", onclick: () => ((verifying = null), render()) }, t("Done"))),
   );
@@ -563,7 +612,7 @@ function offerCard(): Node | null {
       h("button", { class: "primary post-accept", onclick: () => answer(true) }, t("Accept")),
       h("button", { class: "post-decline", onclick: () => answer(false) }, t("Decline")),
       o.fingerprint && !trusted ? h("button", { class: "post-always", onclick: () => answer(true, true) }, t("Always accept")) : null,
-      o.fingerprint ? h("button", { class: "small post-offer-verify", onclick: () => verify(o.fingerprint) }, icon(VERIFIED_USER), t("Verify")) : null,
+      o.fingerprint ? h("button", { class: "small post-offer-verify", onclick: () => verify(o.fingerprint, o.alias) }, icon(VERIFIED_USER), t("Verify")) : null,
     ),
   );
 }

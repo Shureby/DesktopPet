@@ -24,6 +24,8 @@ import {
   postSettings,
   transferLine,
   transferOver,
+  recentSenders,
+  type PostReceived,
   type PostTransfer,
 } from "./post";
 
@@ -243,5 +245,18 @@ describe("Pet Post: what the pet and the window say", () => {
     expect(percent(tr({ done: 5, total: 0 }))).toBe(0);
     expect(transferOver(tr({ state: "sending" }))).toBe(false);
     expect(transferOver(tr({ state: "busy" }))).toBe(true);
+  });
+});
+
+describe("recentSenders", () => {
+  const r = (id: string, from: string, fingerprint?: string): PostReceived => ({ id, at: 0, from, fingerprint, text: null, files: 1, bytes: 1, paths: [], folder: null });
+  it("lists each proven sender once, the latest first, at most n", () => {
+    const list = recentSenders([r("5", "Phone", "aa"), r("4", "Old name", "AA"), r("3", "Laptop", "BB"), r("2", "Unproven", ""), r("1", "Before 0.47"), r("0", "Tablet", "CC")], 2);
+    expect(list.map((s) => [s.fingerprint, s.alias, s.last.id])).toEqual([
+      ["AA", "Phone", "5"],
+      ["BB", "Laptop", "3"],
+    ]);
+    expect(recentSenders([r("1", "Before 0.47")])).toEqual([]);
+    expect(recentSenders([r("1", "Tablet", "CC")])[0].deviceType).toBe("desktop");
   });
 });

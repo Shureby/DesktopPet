@@ -871,6 +871,17 @@ src-tauri/src/post/, crates/desktoppet-core/src/post.rs).
   for these two devices: both fingerprints sorted and joined, the first 128 bits of its
   SHA-256 as icons of LocalSend's 260 (src/features/post/verifyIcons.ts, made by
   scripts/verify-icons.py). The same on both screens: it's the device it says it is.
+  - **On both screens at once** (since 0.47.0, ePet ↔ ePet): Verify asks the other device
+    (`POST /api/epet/v1/verify`, over HTTPS with this device's certificate; LocalSend
+    answers 404 and nothing changes) to show it too; the line "✓ X shows them too: look at
+    its screen." says it will. There the pet says "X wants to compare Verify icons with
+    you." (Show / Not now, a minute; the hidden pet comes out; stepped aside, or hidden in
+    Quiet mode: nothing). Show opens Verify there, worked out there from the certificates,
+    with "X asked to compare."; that side doesn't ask back. Only a device its certificate
+    proves can ask, and once in ten seconds (429 meanwhile).
+  - **Recent senders** (since 0.47.0): Receive lists the last five devices that sent
+    something (proven by their certificates; kept with what was received, so Clear in
+    History empties it too), each with Verify, for a sender this computer doesn't find.
 - **Beyond this network** (since 0.45.0). Discovery stops at a router: a device behind a
   second router (192.168.8.x behind 192.168.31.234, say) or on Tailscale isn't found by
   itself.
