@@ -192,7 +192,9 @@ pub(crate) async fn open(
 ) -> Result<Mapping, NotOpened> {
     if let Some(m) = renew {
         let again = match &m.via {
-            Via::Upnp { control, service } => upnp_map(&router, control, service, internal_port, wanted, allow_public).await,
+            Via::Upnp { control, service } => {
+                upnp_map(&router, control, service, internal_port, wanted, allow_public).await
+            }
             Via::NatPmp => natpmp_map(&router, internal_port, wanted, allow_public).await,
             Via::Pcp { nonce } => pcp_map(&router, internal_port, wanted, allow_public, *nonce).await,
         };
@@ -248,7 +250,9 @@ fn rand_nonce() -> [u8; 12] {
 async fn upnp_find(router: &Router) -> Option<(String, String)> {
     let socket = UdpSocket::bind((router.local, 0)).await.ok()?;
     let _ = socket.set_multicast_ttl_v4(2);
-    for st in ["urn:schemas-upnp-org:device:InternetGatewayDevice:1", "urn:schemas-upnp-org:device:InternetGatewayDevice:2"] {
+    for st in
+        ["urn:schemas-upnp-org:device:InternetGatewayDevice:1", "urn:schemas-upnp-org:device:InternetGatewayDevice:2"]
+    {
         let msg = format!(
             "M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nST: {st}\r\nMAN: \"ssdp:discover\"\r\nMX: 2\r\n\r\n"
         );
@@ -473,7 +477,9 @@ async fn natpmp_ask(router: &Router, request: &[u8], tries: u32) -> Option<Vec<u
         let deadline = tokio::time::Instant::now() + wait;
         loop {
             match tokio::time::timeout_at(deadline, socket.recv_from(&mut buf)).await {
-                Ok(Ok((n, from))) if from.ip() == IpAddr::V4(router.gateway) && n >= 4 => return Some(buf[..n].to_vec()),
+                Ok(Ok((n, from))) if from.ip() == IpAddr::V4(router.gateway) && n >= 4 => {
+                    return Some(buf[..n].to_vec())
+                }
                 Ok(Ok(_)) => continue,
                 _ => break,
             }
@@ -492,7 +498,12 @@ fn natpmp_request(internal: u16, external: u16, lifetime: u32) -> Vec<u8> {
     r
 }
 
-async fn natpmp_map(router: &Router, internal_port: u16, wanted: u16, allow_public: bool) -> Result<Mapping, NotOpened> {
+async fn natpmp_map(
+    router: &Router,
+    internal_port: u16,
+    wanted: u16,
+    allow_public: bool,
+) -> Result<Mapping, NotOpened> {
     let refused = |error: String| NotOpened::Refused { error, via: "natpmp" };
     // Its outside address first.
     let a = natpmp_ask(router, &[0, 0], 3).await.ok_or(NotOpened::Nobody)?;
@@ -737,13 +748,19 @@ mod tests {
             <controlURL>ctl/IPConn</controlURL></service></serviceList></device></deviceList></device></root>"#;
         assert_eq!(
             wan_service(xml, "http://192.168.8.1:5000/rootDesc.xml"),
-            Some(("http://192.168.8.1:5000/ctl/IPConn".into(), "urn:schemas-upnp-org:service:WANIPConnection:1".into()))
+            Some((
+                "http://192.168.8.1:5000/ctl/IPConn".into(),
+                "urn:schemas-upnp-org:service:WANIPConnection:1".into()
+            ))
         );
         let answer = "<s:Envelope><s:Body><u:GetExternalIPAddressResponse xmlns:u=\"x\"><NewExternalIPAddress>192.168.31.178</NewExternalIPAddress></u:GetExternalIPAddressResponse></s:Body></s:Envelope>";
         assert_eq!(tag(answer, "NewExternalIPAddress").as_deref(), Some("192.168.31.178"));
         let fault = "<s:Fault><detail><UPnPError xmlns=\"urn:schemas-upnp-org:control-1-0\"><errorCode>718</errorCode><errorDescription>ConflictInMappingEntry</errorDescription></UPnPError></detail></s:Fault>";
         assert_eq!(tag(fault, "errorCode").as_deref(), Some("718"));
-        assert_eq!(header("HTTP/1.1 200 OK\r\nLOCATION: http://192.168.8.1:5000/d.xml\r\n", "location").as_deref(), Some("http://192.168.8.1:5000/d.xml"));
+        assert_eq!(
+            header("HTTP/1.1 200 OK\r\nLOCATION: http://192.168.8.1:5000/d.xml\r\n", "location").as_deref(),
+            Some("http://192.168.8.1:5000/d.xml")
+        );
     }
 
     // --- A pretend router ---------------------------------------------------------------
@@ -783,7 +800,12 @@ mod tests {
                 let reply: Option<Vec<u8>> = {
                     let mut f = f.lock().unwrap();
                     if m.starts_with(b"M-SEARCH") {
-                        f.upnp.then(|| format!("HTTP/1.1 200 OK\r\nST: x\r\nLocation: http://127.0.0.1:{tcp_port}/desc.xml\r\n\r\n").into_bytes())
+                        f.upnp.then(|| {
+                            format!(
+                                "HTTP/1.1 200 OK\r\nST: x\r\nLocation: http://127.0.0.1:{tcp_port}/desc.xml\r\n\r\n"
+                            )
+                            .into_bytes()
+                        })
                     } else if m[0] == 0 && f.natpmp {
                         let ip = f.outside.unwrap().octets();
                         if m[1] == 0 {
@@ -836,7 +858,8 @@ mod tests {
                         data.extend_from_slice(&buf[..n]);
                         let text = String::from_utf8_lossy(&data).to_string();
                         if let Some(end) = text.find("\r\n\r\n") {
-                            let len = header(&text[..end], "content-length").and_then(|l| l.parse().ok()).unwrap_or(0usize);
+                            let len =
+                                header(&text[..end], "content-length").and_then(|l| l.parse().ok()).unwrap_or(0usize);
                             if data.len() >= end + 4 + len {
                                 break;
                             }
@@ -844,7 +867,10 @@ mod tests {
                     }
                     let text = String::from_utf8_lossy(&data).to_string();
                     let (status, body) = answer(&f, &text);
-                    let reply = format!("HTTP/1.1 {status} X\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len());
+                    let reply = format!(
+                        "HTTP/1.1 {status} X\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                        body.len()
+                    );
                     let _ = stream.write_all(reply.as_bytes()).await;
                 });
             }
@@ -866,7 +892,9 @@ mod tests {
         let mut f = f.lock().unwrap();
         let action = header(req, "soapaction").unwrap_or_default();
         let get = |n: &str| tag(req, n).unwrap_or_default();
-        let fault = |code: u32| (500, format!("<s:Fault><UPnPError><errorCode>{code}</errorCode><errorDescription>E{code}</errorDescription></UPnPError></s:Fault>"));
+        let fault = |code: u32| {
+            (500, format!("<s:Fault><UPnPError><errorCode>{code}</errorCode><errorDescription>E{code}</errorDescription></UPnPError></s:Fault>"))
+        };
         if action.ends_with("#GetExternalIPAddress\"") {
             (200, format!("<NewExternalIPAddress>{}</NewExternalIPAddress>", f.outside.unwrap()))
         } else if action.ends_with("#AddPortMapping\"") {
@@ -881,8 +909,14 @@ mod tests {
         } else if action.ends_with("#GetSpecificPortMappingEntry\"") {
             let port: u16 = get("NewExternalPort").parse().unwrap();
             match f.doors.iter().find(|d| d.0 == port) {
-                Some((_, client, to)) => (200, format!("<NewInternalPort>{to}</NewInternalPort><NewInternalClient>{client}</NewInternalClient>")),
-                None => (200, "<NewInternalPort>80</NewInternalPort><NewInternalClient>192.168.8.50</NewInternalClient>".into()),
+                Some((_, client, to)) => (
+                    200,
+                    format!("<NewInternalPort>{to}</NewInternalPort><NewInternalClient>{client}</NewInternalClient>"),
+                ),
+                None => (
+                    200,
+                    "<NewInternalPort>80</NewInternalPort><NewInternalClient>192.168.8.50</NewInternalClient>".into(),
+                ),
             }
         } else if action.ends_with("#DeletePortMapping\"") {
             let port: u16 = get("NewExternalPort").parse().unwrap();
@@ -912,7 +946,8 @@ mod tests {
 
     #[tokio::test]
     async fn a_port_another_computer_holds_is_skipped() {
-        let (router, _) = pretend(Fake { upnp: true, outside: Some(HOME), taken: vec![53317], ..Fake::default() }).await;
+        let (router, _) =
+            pretend(Fake { upnp: true, outside: Some(HOME), taken: vec![53317], ..Fake::default() }).await;
         let m = open(router, 53317, 53317, false, None).await.unwrap();
         assert_eq!(m.external_port, 53318);
     }
