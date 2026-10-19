@@ -468,7 +468,8 @@ async fn run(inner: Arc<Inner>, job: Job, paths: Vec<PathBuf>, text: Option<Stri
             ..Default::default()
         };
         // Over and not all there: every file (what didn't get there can be sent again).
-        let t = if matches!(state, "failed" | "cancelled") { t.listing_all(&tracker) } else { t.listing_shared(&tracker) };
+        let t =
+            if matches!(state, "failed" | "cancelled") { t.listing_all(&tracker) } else { t.listing_shared(&tracker) };
         inner.transfer(t);
     };
     let items = match text.as_deref() {
