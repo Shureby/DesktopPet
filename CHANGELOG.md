@@ -16,6 +16,8 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.50.0] - 2026-10-19
+
 ### Added
 - **Pet Post: the router door.** When this computer is behind a second router, ePet asks
   that router (UPnP, NAT-PMP or PCP) to let devices on the network outside it in, so a
