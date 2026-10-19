@@ -20,6 +20,7 @@ use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite};
 use tokio::net::TcpStream;
 use tokio_rustls::TlsConnector;
 
+use super::items::{Item, Items, Shared};
 use super::{lock, tls, Device, Inner, Transfer};
 use crate::state::now_ms;
 
@@ -443,12 +444,19 @@ struct Job {
 
 async fn run(inner: Arc<Inner>, job: Job, paths: Vec<PathBuf>, text: Option<String>, pin: Option<String>) {
     let Job { device: d, session, over } = job;
+    // Each file and how far it is.
+    let tracker: Shared = Default::default();
     let report = |state: &'static str, done: u64, total: u64, files: usize, error: Option<String>| {
         if !matches!(state, "waiting" | "sending") && over.swap(true, Ordering::SeqCst) {
             // Cancelled meanwhile: that was the last word.
             return;
         }
-        inner.transfer(Transfer {
+        match state {
+            "done" => lock(&tracker).finish_all(),
+            "failed" | "cancelled" => lock(&tracker).stop_moving(),
+            _ => {}
+        }
+        let t = Transfer {
             direction: "out",
             state,
             peer: d.alias.clone(),
@@ -458,7 +466,10 @@ async fn run(inner: Arc<Inner>, job: Job, paths: Vec<PathBuf>, text: Option<Stri
             files,
             error,
             ..Default::default()
-        });
+        };
+        // Over and not all there: every file (what didn't get there can be sent again).
+        let t = if matches!(state, "failed" | "cancelled") { t.listing_all(&tracker) } else { t.listing_shared(&tracker) };
+        inner.transfer(t);
     };
     let items = match text.as_deref() {
         Some(t) => Ok(vec![text_file(t)]),
@@ -472,6 +483,18 @@ async fn run(inner: Arc<Inner>, job: Job, paths: Vec<PathBuf>, text: Option<Stri
     };
     let total: u64 = items.iter().map(|(f, _)| f.size).sum();
     let count = items.len();
+    *lock(&tracker) = Items::new(
+        items
+            .iter()
+            .map(|(f, s)| {
+                let path = match s {
+                    Source::File(p) => Some(p.to_string_lossy().into_owned()),
+                    Source::Text(_) => None,
+                };
+                Item::new(&f.id, &f.file_name, f.size, path)
+            })
+            .collect(),
+    );
     report("waiting", 0, total, count, None);
     let files: BTreeMap<String, FileInfo> = items.iter().map(|(f, _)| (f.id.clone(), f.clone())).collect();
     let mut sources: HashMap<String, (u64, Source)> = items.into_iter().map(|(f, s)| (f.id, (f.size, s))).collect();
@@ -521,43 +544,64 @@ async fn run(inner: Arc<Inner>, job: Job, paths: Vec<PathBuf>, text: Option<Stri
         return report("failed", 0, total, count, Some("bad answer".into()));
     };
     *lock(&session) = Some(accepted.session_id.clone());
+    for id in files.keys().filter(|id| !accepted.files.contains_key(*id)) {
+        lock(&tracker).skip(id);
+    }
     // Only the files the receiver wants (it may have skipped some).
     let total: u64 = accepted.files.keys().filter_map(|id| sources.get(id).map(|(n, _)| *n)).sum();
     let sent = Arc::new(AtomicU64::new(0));
     let last_emit = Arc::new(AtomicI64::new(0));
     report("sending", 0, total, count, None);
     // Two files at a time, as LocalSend does (a small file needn't wait behind a big one).
-    let mut jobs: Vec<(String, u64, Source)> = Vec::new();
+    let mut jobs: Vec<(String, String, u64, Source)> = Vec::new();
     for (file_id, token) in &accepted.files {
         if let Some((size, source)) = sources.remove(file_id) {
             jobs.push((
+                file_id.clone(),
                 format!("{API}/upload?sessionId={}&fileId={}&token={}", accepted.session_id, file_id, token),
                 size,
                 source,
             ));
         }
     }
-    let uploads = jobs.into_iter().map(|(path, size, source)| {
-        let (inner, peer, alias, sent, last_emit) =
-            (inner.clone(), peer.clone(), (d.alias.clone(), d.fingerprint.clone()), sent.clone(), last_emit.clone());
+    let uploads = jobs.into_iter().map(|(id, path, size, source)| {
+        let (inner, peer, alias, sent, last_emit, tracker) = (
+            inner.clone(),
+            peer.clone(),
+            (d.alias.clone(), d.fingerprint.clone()),
+            sent.clone(),
+            last_emit.clone(),
+            tracker.clone(),
+        );
         async move {
+            lock(&tracker).start(&id);
             let is_text = matches!(source, Source::Text(_));
-            let body: ReqBody = match source {
-                Source::Text(b) => Full::new(b).map_err(|never| match never {}).boxed(),
-                Source::File(p) => {
-                    let f = tokio::fs::File::open(&p).await.map_err(|e| e.to_string())?;
-                    file_body(f, inner.clone(), alias, sent.clone(), last_emit, total, count)
+            let result = async {
+                let body: ReqBody = match source {
+                    Source::Text(b) => Full::new(b).map_err(|never| match never {}).boxed(),
+                    Source::File(p) => {
+                        let f = tokio::fs::File::open(&p).await.map_err(|e| e.to_string())?;
+                        let progress = Progress { alias, sent: sent.clone(), last_emit, total, files: count };
+                        file_body(f, inner.clone(), progress, (tracker.clone(), id.clone()))
+                    }
+                };
+                match request(&inner, &peer, &path, body, Some(size), Duration::from_secs(5)).await {
+                    Ok(r) if r.status == 200 || r.status == 204 => Ok(()),
+                    Ok(r) => Err(format!("HTTP {}", r.status)),
+                    Err(e) => Err(e),
                 }
-            };
-            match request(&inner, &peer, &path, body, Some(size), Duration::from_secs(5)).await {
-                Ok(r) if r.status == 200 || r.status == 204 => {}
-                Ok(r) => return Err(format!("HTTP {}", r.status)),
-                Err(e) => return Err(e),
             }
-            if is_text {
-                sent.fetch_add(size, Ordering::Relaxed);
+            .await;
+            match &result {
+                Ok(()) => {
+                    if is_text {
+                        sent.fetch_add(size, Ordering::Relaxed);
+                    }
+                    lock(&tracker).finish(&id);
+                }
+                Err(e) => lock(&tracker).fail(&id, Some(e.clone())),
             }
-            Ok::<(), String>(())
+            result
         }
     });
     let mut uploads = futures_util::stream::iter(uploads).buffer_unordered(UPLOADS_AT_ONCE);
@@ -572,20 +616,23 @@ async fn run(inner: Arc<Inner>, job: Job, paths: Vec<PathBuf>, text: Option<Stri
     report("done", total, total, count, None);
 }
 
-/// A file's data for an upload, counting what's sent (and saying so a few times a second).
-fn file_body(
-    file: tokio::fs::File,
-    inner: Arc<Inner>,
-    // The receiver's name and fingerprint.
-    peer: (String, String),
+/// How a delivery being sent goes (for `file_body` to say).
+#[derive(Clone)]
+struct Progress {
+    /// The receiver's name and fingerprint.
+    alias: (String, String),
     sent: Arc<AtomicU64>,
     last_emit: Arc<AtomicI64>,
     total: u64,
     files: usize,
-) -> ReqBody {
+}
+
+/// A file's data for an upload, counting what's sent (and saying so a few times a second).
+fn file_body(file: tokio::fs::File, inner: Arc<Inner>, progress: Progress, item: (Shared, String)) -> ReqBody {
     let stream = futures_util::stream::unfold(Some(file), move |file| {
-        let (inner, peer, sent, last_emit) = (inner.clone(), peer.clone(), sent.clone(), last_emit.clone());
+        let (inner, p, item) = (inner.clone(), progress.clone(), item.clone());
         async move {
+            let Progress { alias: peer, sent, last_emit, total, files } = p;
             let mut f = file?;
             let mut buf = vec![0u8; READ_SIZE];
             match f.read(&mut buf).await {
@@ -593,10 +640,11 @@ fn file_body(
                 Ok(n) => {
                     buf.truncate(n);
                     let done = sent.fetch_add(n as u64, Ordering::Relaxed) + n as u64;
+                    lock(&item.0).add(&item.1, n as u64);
                     let now = now_ms();
                     if now - last_emit.load(Ordering::Relaxed) >= 200 {
                         last_emit.store(now, Ordering::Relaxed);
-                        inner.transfer(Transfer {
+                        let t = Transfer {
                             direction: "out",
                             state: "sending",
                             peer: peer.0,
@@ -605,7 +653,8 @@ fn file_body(
                             total,
                             files,
                             ..Default::default()
-                        });
+                        };
+                        inner.transfer(t.listing_shared(&item.0));
                     }
                     Some((Ok(Frame::data(Bytes::from(buf))), Some(f)))
                 }

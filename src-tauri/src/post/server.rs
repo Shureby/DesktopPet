@@ -25,6 +25,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{oneshot, watch};
 use tokio_rustls::TlsAcceptor;
 
+use super::items::{Item, Items};
 use super::{lock, Active, Asked, Device, Inner, Offer, Receive, Received, TextMessage, Transfer};
 use crate::state::now_ms;
 
@@ -452,6 +453,8 @@ async fn prepare_upload(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, c
         return status(500);
     }
     let session = ReceiveSession::new(ip, info, files);
+    let items =
+        Items::new(session.files.iter().map(|(id, f)| Item::new(id, &f.info.file_name, f.info.size, None)).collect());
     let response = session.response();
     let (total, count, session_id) = (session.total_bytes(), session.files.len(), session.id.clone());
     {
@@ -467,10 +470,11 @@ async fn prepare_upload(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, c
             done_bytes: 0,
             last_activity: now_ms(),
             last_emit: 0,
+            items,
         }));
     }
     guard.armed = false;
-    inner.transfer(Transfer {
+    let t = Transfer {
         direction: "in",
         state: "receiving",
         peer: alias,
@@ -478,7 +482,12 @@ async fn prepare_upload(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, c
         total,
         files: count,
         ..Default::default()
-    });
+    };
+    let t = match &*lock(&inner.receive) {
+        Receive::Active(a) => t.listing(&a.items),
+        _ => t,
+    };
+    inner.transfer(t);
     watch_idle(inner, session_id);
     json(&response)
 }
@@ -518,13 +527,14 @@ fn part_path(path: &Path) -> PathBuf {
 
 /// Counts received bytes (and says how far it is, a few times a second). False once the
 /// delivery is over (cancelled).
-fn received(inner: &Inner, session_id: &str, n: u64) -> bool {
+fn received(inner: &Inner, session_id: &str, file_id: &str, n: u64) -> bool {
     let mut receive = lock(&inner.receive);
     let Receive::Active(a) = &mut *receive else { return false };
     if a.session.id != session_id {
         return false;
     }
     a.done_bytes += n;
+    a.items.add(file_id, n);
     let now = now_ms();
     a.last_activity = now;
     if now - a.last_emit >= 200 {
@@ -538,11 +548,35 @@ fn received(inner: &Inner, session_id: &str, n: u64) -> bool {
             total: a.session.total_bytes(),
             files: a.session.files.len(),
             ..Default::default()
-        };
+        }
+        .listing(&a.items);
         drop(receive);
         inner.transfer(t);
     }
     true
+}
+
+/// A file that didn't make it (the delivery may go on with the others).
+fn file_failed(inner: &Inner, session_id: &str, file_id: &str, code: u16) {
+    let mut receive = lock(&inner.receive);
+    let Receive::Active(a) = &mut *receive else { return };
+    if a.session.id != session_id {
+        return;
+    }
+    a.items.fail(file_id, Some(format!("HTTP {code}")));
+    let t = Transfer {
+        direction: "in",
+        state: "receiving",
+        peer: a.session.from.alias.clone(),
+        fingerprint: a.fingerprint.clone(),
+        done: a.done_bytes,
+        total: a.session.total_bytes(),
+        files: a.session.files.len(),
+        ..Default::default()
+    }
+    .listing(&a.items);
+    drop(receive);
+    inner.transfer(t);
 }
 
 async fn upload(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr) -> Response<Body> {
@@ -563,6 +597,7 @@ async fn upload(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr) -> Respon
         let reserved = &a.reserved;
         let path = unique_path(&a.save_dir, &rel, |p| p.exists() || part_path(p).exists() || reserved.contains(p));
         a.reserved.insert(path.clone());
+        a.items.start(file_id);
         a.last_activity = now_ms();
         (info, path)
     };
@@ -581,9 +616,11 @@ async fn upload(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr) -> Respon
     let mut got = 0u64;
     let mut hasher = info.sha256.as_ref().map(|_| Sha256::new());
     let fail = |code: u16| {
-        let part = part.clone();
+        let (part, inner) = (part.clone(), inner.clone());
+        let (session_id, file_id) = (session_id.clone(), file_id.clone());
         async move {
             let _ = tokio::fs::remove_file(&part).await;
+            file_failed(&inner, &session_id, &file_id, code);
             status(code)
         }
     };
@@ -605,7 +642,7 @@ async fn upload(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr) -> Respon
             drop(file);
             return fail(500).await;
         }
-        if !received(&inner, session_id, data.len() as u64) {
+        if !received(&inner, session_id, file_id, data.len() as u64) {
             drop(file);
             return fail(PostError::Rejected.status()).await;
         }
@@ -638,6 +675,7 @@ fn finish_file(inner: &Inner, session_id: &str, file_id: &str, path: PathBuf) {
         f.done = true;
         f.saved = Some(path);
     }
+    a.items.finish(file_id);
     if !a.session.finished() {
         return;
     }
@@ -654,7 +692,10 @@ fn finish_file(inner: &Inner, session_id: &str, file_id: &str, path: PathBuf) {
         first: first.map(|p| p.to_string_lossy().into_owned()),
         error: None,
         collect: false,
-    };
+        items: Vec::new(),
+        tally: None,
+    }
+    .listing(&a.items);
     let mut paths: Vec<String> =
         a.session.files.values().filter_map(|f| f.saved.as_ref().map(|p| p.to_string_lossy().into_owned())).collect();
     paths.sort();

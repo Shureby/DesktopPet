@@ -1626,12 +1626,28 @@
         },
         {
           "id": "post.send",
-          "rev": "0.48.2",
+          "rev": "0.51.0",
           "ci": "partial",
           "mac": true,
           "human": "文件选择对话框；手机上收到的文件和文件夹",
-          "do": "Pet Post 窗口：选手机，点 📄 Send files… 选几个文件；再点 📁 Send a folder…；再在文本框里写一句话点 Send text",
-          "expect": "手机上先问是否接收，接收后窗口显示进度条和 Delivering to <手机>… %，完成显示 Delivered to <手机>!；点 粘贴 时剪贴板里的文字直接进文本框（Mac 上不会再弹出“粘贴”气泡要你再点一次）；文字在手机上显示为消息，送到后文本框清空（对方拒收时文字保留，可以再发）；发送中点 Cancel 能取消"
+          "do": "Pet Post 窗口：选手机，点 📄 Send files… 选几个文件；再点它旁边的 ▾ → 📁 A folder…；再点 💬 Send a message，写一句话点 Send text",
+          "expect": "Send files… 和 ▾ 连在一起，▾ 里有 Files… / A folder…，点别处菜单收起；手机上先问是否接收，接收后窗口显示进度条和 Delivering to <手机>… %，完成显示 Delivered to <手机>!；Send a message 是开关：点了才出现文本框（按钮变成按下的样子，下次打开驿站保持），文本框空着时 Send text 是灰的，打了字才变成橙色可点；点 Paste 时剪贴板里的文字直接进文本框（Mac 上不会再弹出“粘贴”气泡要你再点一次）；文字在手机上显示为消息，送到后文本框清空（对方拒收时文字保留，可以再发）；发送中点 Stop 能取消"
+        },
+        {
+          "id": "post.send-files",
+          "rev": "0.51.0",
+          "ci": "auto",
+          "mac": true,
+          "do": "Pet Post 窗口给手机发 3 个以上文件，再发一个有很多文件的文件夹；中途让手机那边断开一次（例如关掉 LocalSend）",
+          "expect": "进度框里每个文件一行：文件名 · 进度条 · 百分比，完成的写 ✓ Finished，还没轮到的写 Waiting；文件很多时只列几行，上面一行写 ✓ N finished · N sending · N waiting，下面写 … and N more；全部送达后显示 Delivered to <手机>! 约 5 秒后进度框自动收起；有失败时不自动收起，写 Delivered 3 of 4 files to <手机>.，失败那行 ✗ Failed，有 Send the rest again（只重发没送到的）和 Close"
+        },
+        {
+          "id": "post.receive-files",
+          "rev": "0.51.0",
+          "ci": "auto",
+          "mac": true,
+          "do": "手机给电脑发几个文件（打开 Pet Post 窗口 → 接收 页看着）",
+          "expect": "接收卡片里每个文件一行，和发送时一样（百分比 / ✓ Finished / Waiting）；全部收到后约 6 秒卡片收起；有没收到的文件时卡片不收起，写 Got N of M files from <手机>.，可以点 Close"
         },
         {
           "id": "post.progress",

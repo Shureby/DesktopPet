@@ -20,6 +20,7 @@ use tauri::State;
 use tokio::io::AsyncWriteExt;
 
 use super::client::{self, Peer};
+use super::items::{Item, Items, Shared};
 use super::{discovery, lock, CmdResult, Device, Inner, Post, Received, Transfer};
 use crate::state::now_ms;
 
@@ -262,8 +263,15 @@ pub(crate) fn cancel(inner: &Inner) {
 pub(crate) async fn fetch(inner: Arc<Inner>, s: Session, files: Vec<FileInfo>) {
     let total: u64 = files.iter().map(|f| f.size).sum();
     let count = files.len();
+    let tracker: Shared =
+        Arc::new(Mutex::new(Items::new(files.iter().map(|f| Item::new(&f.id, &f.file_name, f.size, None)).collect())));
     let say = |state: &'static str, done: u64, error: Option<String>, folder: Option<String>, first: Option<String>| {
-        inner.transfer(Transfer {
+        match state {
+            "done" => lock(&tracker).finish_all(),
+            "failed" | "cancelled" => lock(&tracker).stop_moving(),
+            _ => {}
+        }
+        let t = Transfer {
             direction: "in",
             state,
             peer: s.alias.clone(),
@@ -275,7 +283,10 @@ pub(crate) async fn fetch(inner: Arc<Inner>, s: Session, files: Vec<FileInfo>) {
             first,
             error,
             collect: false,
-        })
+            items: Vec::new(),
+            tally: None,
+        };
+        inner.transfer(t.listing_shared(&tracker))
     };
     // Stopped (the task aborted): said, and the file being written removed.
     struct Stopped<'a> {
@@ -310,6 +321,7 @@ pub(crate) async fn fetch(inner: Arc<Inner>, s: Session, files: Vec<FileInfo>) {
         } else {
             format!("{API}/download?sessionId={}&fileId={}", s.session_id, query_value(&f.id))
         };
+        lock(&tracker).start(&f.id);
         let result = async {
             let (res, _) = client::get_stream(&inner, &s.peer, &path).await?;
             if res.status() != 200 {
@@ -332,6 +344,7 @@ pub(crate) async fn fetch(inner: Arc<Inner>, s: Session, files: Vec<FileInfo>) {
                     out.write_all(data).await.map_err(|e| e.to_string())?;
                     hash.update(data);
                     done += data.len() as u64;
+                    lock(&tracker).add(&f.id, data.len() as u64);
                     let now = now_ms();
                     if now - last_emit >= 200 {
                         last_emit = now;
@@ -352,8 +365,12 @@ pub(crate) async fn fetch(inner: Arc<Inner>, s: Session, files: Vec<FileInfo>) {
         }
         .await;
         match result {
-            Ok(p) => saved.push(p),
+            Ok(p) => {
+                lock(&tracker).finish(&f.id);
+                saved.push(p);
+            }
             Err(e) => {
+                lock(&tracker).fail(&f.id, Some(e.clone()));
                 stopped.over = true;
                 return say("failed", done, Some(e), None, None);
             }

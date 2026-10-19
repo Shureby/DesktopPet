@@ -46,6 +46,13 @@ import {
   withVerified,
   withoutVerified,
   type PostVerifyAnswer,
+  itemStatus,
+  listsItems,
+  partialLine,
+  retryPaths,
+  shownItems,
+  tallyLine,
+  unlisted,
 } from "../features/post/post";
 import "../styles/panel.css";
 
@@ -145,10 +152,33 @@ let verifying: {
 } | null = null;
 
 let sendFailed = "";
+/** Send files…'s ▾ menu (Files… / A folder…) is open. */
+let filesMenu = false;
+/** The delivery shown was a text (its files aren't listed). */
+let lastText = false;
+/** "Send a message" is open (remembered on this computer). */
+let messageOpen = (() => {
+  try {
+    return localStorage.getItem("post.messageOpen") === "1";
+  } catch {
+    return false;
+  }
+})();
+
+function setMessageOpen(open: boolean): void {
+  messageOpen = open;
+  try {
+    localStorage.setItem("post.messageOpen", open ? "1" : "0");
+  } catch {
+    // Not kept: fine.
+  }
+}
 
 function send(paths: string[], text: string | null, pin: string | null = null): void {
   if (!selected) return;
   mine = { to: selected, paths, text };
+  lastText = text !== null;
+  filesMenu = false;
   sendFailed = "";
   backend.postSend(selected, paths, text, pin).catch((e) => {
     mine = null;
@@ -990,19 +1020,53 @@ function offerCard(): Node | null {
   );
 }
 
+/** Each file of a delivery and how far it is (when there's more than one, or one failed). */
+function itemRows(tr: PostTransfer): Node[] {
+  if (!listsItems(tr)) return [];
+  const rows = shownItems(tr).map((x) =>
+    h(
+      "li",
+      { class: `post-item ${x.state}` },
+      h("span", { class: "post-item-name", title: x.error ? `${x.name}: ${x.error}` : x.name }, x.name),
+      x.state === "moving" ? h("progress", { max: 1000, value: Math.floor((x.done / Math.max(1, x.size)) * 1000) }) : h("span"),
+      h("span", { class: "post-item-state" }, itemStatus(x)),
+    ),
+  );
+  const more = unlisted(tr);
+  const counts = tallyLine(tr);
+  return [
+    ...(counts ? [h("p", { class: "hint post-tally" }, counts)] : []),
+    h("ul", { class: "post-items" }, ...rows),
+    ...(more ? [h("p", { class: "hint post-items-more" }, t("… and {n} more", { n: more }))] : []),
+  ];
+}
+
 /** A delivery coming in: how far, and Stop receiving. */
 function incomingCard(): Node | null {
   const tr = incoming;
   if (!tr) return null;
   const over = transferOver(tr);
-  const rows: Node[] = [h("p", { class: over && tr.state !== "done" ? "warning" : "" }, ...named(transferLine(tr, NAME), tr.peer, tr.fingerprint))];
-  if (!over) {
+  const partial = partialLine(tr, NAME);
+  const rows: Node[] = [
+    partial
+      ? h("p", { class: "warning post-partial" }, ...named(partial, tr.peer, tr.fingerprint))
+      : h("p", { class: over && tr.state !== "done" ? "warning" : "" }, ...named(transferLine(tr, NAME), tr.peer, tr.fingerprint)),
+  ];
+  if (!over)
     rows.push(
       h("progress", { max: 1000, value: Math.floor((tr.done / Math.max(1, tr.total)) * 1000) }),
       h("p", { class: "hint post-rate" }, [`${formatSize(tr.done)} / ${formatSize(tr.total)} · ${fileCount(tr.files)}`, inRate.line(tr)].filter(Boolean).join(" · ")),
-      h("button", { class: "post-stop-receiving", onclick: () => void (fetchingShare ? backend.postShareCancel() : backend.postStopReceiving()) }, t("Stop receiving")),
     );
-  }
+  rows.push(...itemRows(tr));
+  if (!over)
+    rows.push(
+      h(
+        "div",
+        { class: "row end" },
+        h("button", { class: "small post-stop-receiving", onclick: () => void (fetchingShare ? backend.postShareCancel() : backend.postStopReceiving()) }, t("Stop receiving")),
+      ),
+    );
+  else if (tr.state !== "done") rows.push(h("div", { class: "row end" }, h("button", { class: "small post-incoming-close", onclick: () => ((incoming = null), render()) }, t("Close"))));
   return h("div", { class: "box post-incoming" }, ...rows);
 }
 
@@ -1048,9 +1112,23 @@ function progress(): Node | null {
   // Couldn't get there at all: why that may be.
   if (tr.direction === "out" && tr.state === "failed" && tr.error?.startsWith("unreachable"))
     rows.push(h("p", { class: "hint post-unreachable-hint" }, t("Couldn't reach it: it may be behind another router, or a firewall stops it. Putting both on the same Wi-Fi, or Tailscale on both, helps.")));
+  const partial = partialLine(tr, NAME);
+  if (partial) rows[0] = h("p", { class: "warning post-partial" }, ...named(partial, tr.peer, tr.fingerprint));
   if (!over && tr.state !== "waiting")
     rows.push(bar, h("p", { class: "hint post-rate" }, [`${formatSize(tr.done)} / ${formatSize(tr.total)} · ${fileCount(tr.files)}`, outRate.line(tr)].filter(Boolean).join(" · ")));
-  if (tr.direction === "out" && !over && mine) rows.push(h("button", { onclick: () => void backend.postCancelSend() }, t("Cancel")));
+  // Not a text: each file.
+  if (!(mine?.text ?? lastText)) rows.push(...itemRows(tr));
+  if (tr.direction === "out" && !over && mine) rows.push(h("div", { class: "row end" }, h("button", { class: "small post-stop-send", onclick: () => void backend.postCancelSend() }, t("Stop"))));
+  const again = retryPaths(tr);
+  if (over && tr.state !== "done" && tr.state !== "pin")
+    rows.push(
+      h(
+        "div",
+        { class: "row end" },
+        again.length ? h("button", { class: "small post-send-again", onclick: () => send(again, null) }, t("Send the rest again")) : null,
+        h("button", { class: "small post-progress-close", onclick: () => ((transfer = null), render()) }, t("Close")),
+      ),
+    );
   if (tr.direction === "out" && tr.state === "pin" && mine) {
     const input = h("input", { type: "text", class: "post-pin-input", placeholder: t("PIN"), autocomplete: "off" });
     const go = () => {
@@ -1114,9 +1192,27 @@ function render(): void {
 /** The Send tab: devices (found, added by address), files, a folder or a text, and how it goes. */
 function sendTab(): Node[] {
   const busy = !!transfer && !transferOver(transfer);
+  // An unsent draft keeps the message open.
+  const open = messageOpen || !!draft.trim();
   const text = h("textarea", { class: "post-text", rows: 3, placeholder: t("A message, a link…") }) as HTMLTextAreaElement;
   text.value = draft;
-  text.addEventListener("input", () => (draft = text.value));
+  const canSendText = () => !!selected && !busy && !!draft.trim();
+  const sendText = h(
+    "button",
+    {
+      class: `post-send-text${canSendText() ? " primary" : ""}`,
+      disabled: !canSendText(),
+      onclick: () => {
+        if (draft.trim()) send([], draft);
+      },
+    },
+    t("Send text"),
+  ) as HTMLButtonElement;
+  text.addEventListener("input", () => {
+    draft = text.value;
+    sendText.disabled = !canSendText();
+    sendText.classList.toggle("primary", canSendText());
+  });
   return [
     h(
       "div",
@@ -1128,39 +1224,77 @@ function sendTab(): Node[] {
     addForm(),
     h(
       "div",
-      { class: "row wrap post-send" },
-      h("button", { class: "primary post-files", disabled: !selected || busy, onclick: () => void pick(false) }, `📄 ${t("Send files…")}`),
-      h("button", { class: "post-folder", disabled: !selected || busy, onclick: () => void pick(true) }, `📁 ${t("Send a folder…")}`),
+      { class: "row post-send" },
+      h(
+        "span",
+        { class: "post-split" },
+        h("button", { class: "primary post-files", disabled: !selected || busy, onclick: () => ((filesMenu = false), void pick(false)) }, `📄 ${t("Send files…")}`),
+        h(
+          "button",
+          {
+            class: "primary post-files-more",
+            disabled: !selected || busy,
+            title: t("Files or a folder"),
+            "aria-label": t("Files or a folder"),
+            "aria-expanded": String(filesMenu),
+            onclick: (e: Event) => {
+              e.stopPropagation();
+              filesMenu = !filesMenu;
+              render();
+            },
+          },
+          "▾",
+        ),
+      ),
+      h(
+        "button",
+        {
+          class: `post-message${open ? " on" : ""}`,
+          "aria-pressed": String(open),
+          onclick: () => {
+            setMessageOpen(!open);
+            render();
+            if (messageOpen) root.querySelector<HTMLTextAreaElement>(".post-text")?.focus();
+          },
+        },
+        `💬 ${t("Send a message")}`,
+      ),
+      filesMenu && selected && !busy
+        ? h(
+            "div",
+            { class: "post-send-menu", role: "menu" },
+            h("button", { class: "post-files-menu", role: "menuitem", onclick: () => ((filesMenu = false), void pick(false)) }, `📄 ${t("Files…")}`),
+            h("button", { class: "post-folder", role: "menuitem", onclick: () => ((filesMenu = false), void pick(true)) }, `📁 ${t("A folder…")}`),
+          )
+        : null,
     ),
     h("p", { class: "hint" }, t("Or drop files on the pet.")),
-    text,
-    h(
-      "div",
-      { class: "row" },
-      h(
-        "button",
-        {
-          class: "small post-paste",
-          onclick: async () => {
-            draft = (await backend.postClipboardText().catch(() => "")) || draft;
-            render();
-          },
-        },
-        t("Paste"),
-      ),
-      h(
-        "button",
-        {
-          class: "post-send-text",
-          disabled: !selected || busy,
-          onclick: () => {
-            if (!draft.trim()) return text.focus();
-            send([], draft);
-          },
-        },
-        t("Send text"),
-      ),
-    ),
+    ...(open
+      ? [
+          h(
+            "div",
+            { class: "post-message-box" },
+            text,
+            h(
+              "div",
+              { class: "row" },
+              h(
+                "button",
+                {
+                  class: "small post-paste",
+                  onclick: async () => {
+                    draft = (await backend.postClipboardText().catch(() => "")) || draft;
+                    render();
+                  },
+                },
+                t("Paste"),
+              ),
+              h("span", { class: "grow" }),
+              sendText,
+            ),
+          ),
+        ]
+      : []),
     ...[sendFailed ? h("p", { class: "warning post-send-failed" }, sendFailed) : null, progress()].filter((n): n is Node => n !== null),
   ];
 }
@@ -1184,6 +1318,15 @@ function remember(): () => void {
 }
 
 async function main(): Promise<void> {
+  // A click elsewhere closes Send files…'s menu.
+  document.addEventListener("click", (e) => {
+    if (filesMenu && !(e.target as Element | null)?.closest?.(".post-send-menu, .post-files-more")) {
+      filesMenu = false;
+      render();
+    }
+  });
+  // Tests send files from here as the file dialog would (it can't be driven).
+  if (await backend.e2eEnabled()) Object.assign(window, { __post: { send: (paths: string[]) => send(paths, null) } });
   await followTestClock(backend, () => render());
   settings = await backend.getSettings();
   await followLocale(backend, settings);
@@ -1229,8 +1372,8 @@ async function main(): Promise<void> {
       incoming = tr;
       render();
       if (transferOver(tr)) fetchingShare = false;
-      // Done or stopped: said for a moment, then the card goes.
-      if (transferOver(tr)) setTimeout(() => incoming === tr && ((incoming = null), render()), 6000);
+      // Done: said for a moment, then the card goes. Not all of it got here: it stays (Close).
+      if (transferOver(tr) && !(tr.tally?.failed || partialLine(tr))) setTimeout(() => incoming === tr && ((incoming = null), render()), 6000);
       return;
     }
     // How a delivery from the pet goes is the pet's to say; this window shows its own.
@@ -1240,7 +1383,12 @@ async function main(): Promise<void> {
     transfer = tr;
     // A text that got there: the box is emptied (unless something else was typed meanwhile).
     if (tr.state === "done" && mine.text !== null && draft === mine.text) draft = "";
-    if (tr.direction === "out" && transferOver(tr) && tr.state !== "pin") mine = null;
+    if (tr.direction === "out" && transferOver(tr) && tr.state !== "pin") {
+      lastText = mine.text !== null;
+      mine = null;
+    }
+    // All of it got there: said for a moment, then the box goes (History has it).
+    if (tr.state === "done") setTimeout(() => transfer === tr && ((transfer = null), render()), 5000);
     render();
   });
   offer = await backend.postPendingOffer().catch(() => null);

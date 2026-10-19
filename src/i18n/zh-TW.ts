@@ -221,6 +221,20 @@ const zhTW: Dictionary = {
     "The router{router} said no: {error}": "路由器{router}拒絕了：{error}",
     "Not installed. With it on both, your phone and this computer reach each other on any network.":
       "沒有安裝。兩邊都裝上後，手機和這台電腦在任何網路都能互相連到。",
+    Finished: "已完成",
+    Failed: "失敗",
+    Skipped: "已略過",
+    Waiting: "等待中",
+    "{n} sending": "{n} 個正在傳送",
+    "{n} receiving": "{n} 個正在接收",
+    "{n} finished": "{n} 個已完成",
+    "{n} waiting": "{n} 個等待中",
+    "{n} failed": "{n} 個失敗",
+    "{n} skipped": "{n} 個已略過",
+    "Delivered {done} of {of} files to {who}.":
+      "已送達 {who} {done}/{of} 個檔案。",
+    "Got {done} of {of} files from {who}.":
+      "已收到 {who} 的 {done}/{of} 個檔案。",
     "{n} bytes": "{n} 位元組",
     "1 file": "1 個檔案",
     "{n} files": "{n} 個檔案",
@@ -1002,6 +1016,7 @@ const zhTW: Dictionary = {
     "Declined in {s} s if you don't answer.": "{s} 秒內不回答就自動拒絕。",
     "{who} wants to send you {files} ({size})":
       "{who} 想傳給你 {files}（{size}）",
+    "… and {n} more": "… 還有 {n} 個",
     "Stop receiving": "停止接收",
     "{files} from {who}": "{who} 傳來的 {files}",
     "Not there any more (moved or deleted).":
@@ -1009,18 +1024,22 @@ const zhTW: Dictionary = {
     "Show in folder": "在資料夾中顯示",
     "Couldn't reach it: it may be behind another router, or a firewall stops it. Putting both on the same Wi-Fi, or Tailscale on both, helps.":
       "連不上它：它可能在另一個路由器後面，或被防火牆擋住。讓兩邊連同一個 Wi-Fi，或者都裝 Tailscale，就能解決。",
+    "Send the rest again": "重傳剩下的",
     "Settings…": "設定…",
     "Send files and text to phones and computers nearby, and get theirs.":
       "傳檔案和文字給附近的手機和電腦，也能收下它們傳來的。",
     "Works with LocalSend on phones and computers, and with ePet on other computers.":
       "可與手機和電腦上的 LocalSend 互傳，也可與其他電腦上的 ePet 互傳。",
     "A message, a link…": "一段話、一個連結…",
+    "Send text": "傳送文字",
     "Send to": "傳給",
     "Send files…": "傳送檔案…",
-    "Send a folder…": "傳送資料夾…",
+    "Files or a folder": "檔案或資料夾",
+    "Send a message": "傳訊息",
+    "Files…": "檔案…",
+    "A folder…": "資料夾…",
     "Or drop files on the pet.": "也可以把檔案拖到寵物身上。",
     Paste: "貼上",
-    "Send text": "傳送文字",
   },
   lines: {
     "avoid.leaving.fullscreen": [

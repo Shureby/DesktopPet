@@ -1749,6 +1749,121 @@ button.danger {
     color: #ff8a7a;
   }
 }
+.post-send {
+  position: relative;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.post-split {
+  display: inline-flex;
+}
+.post-split .post-files {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.post-split .post-files-more {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.45);
+  padding-left: 9px;
+  padding-right: 9px;
+}
+.post-message.on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}
+.post-send-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  min-width: 170px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+.post-send-menu button {
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 7px 10px;
+  border-radius: 6px;
+}
+.post-send-menu button:hover,
+.post-send-menu button:focus-visible {
+  background: var(--accent-soft);
+}
+.post-message-box {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 8px;
+  margin: 4px 0 8px;
+}
+.post-message-box textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+.post-message-box .row {
+  margin-top: 6px;
+}
+.post-send-text:disabled {
+  opacity: 0.45;
+}
+.row.end {
+  justify-content: flex-end;
+}
+.post-items {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 2px;
+}
+.post-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 90px 88px;
+  gap: 8px;
+  align-items: center;
+  padding: 2px 0;
+  font-size: 13px;
+}
+.post-item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.post-item progress {
+  width: 90px;
+  height: 8px;
+}
+.post-item-state {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.post-item.done .post-item-state {
+  color: #2a7a40;
+}
+.post-item.failed .post-item-state {
+  color: #c0392b;
+}
+.post-item.waiting,
+.post-item.skipped {
+  color: var(--muted);
+}
+@media (prefers-color-scheme: dark) {
+  .post-item.done .post-item-state {
+    color: #6fcf8a;
+  }
+  .post-item.failed .post-item-state {
+    color: #ff8a7a;
+  }
+}
 .post-recent {
   margin-top: 14px;
 }

@@ -821,7 +821,16 @@ src-tauri/src/post/, crates/desktoppet-core/src/post.rs).
   their certificate (HTTPS with a self-signed certificate kept in the app's data folder).
 - **Sending:** drop files or folders on the pet: it asks "Deliver “x” to…" with the devices
   found (up to four, then "More…"). Or the Pet Post window (right-click the pet, or the
-  tray → "Open Pet Post…"): pick a device, then "Send files…", "Send a folder…" or a text.
+  tray → "Open Pet Post…"): pick a device, then "Send files…" (its ▾: "Files…" or "A
+  folder…") or "💬 Send a message" (since 0.51.0: a switch that opens the text box, kept
+  on this computer and open while a draft is unsent; "Send text" is grey while it's empty).
+  - Each file has its line (since 0.51.0, sending and receiving, when there's more than
+    one): name, progress bar and percentage, "✓ Finished", "Waiting", "✗ Failed" or
+    "Skipped" (the receiver didn't want it). Many files: at most eight lines (failed and
+    moving first), "✓ 38 finished · 2 sending · 80 waiting" and "… and N more". All there:
+    the box goes by itself (5 s sending, 6 s receiving). Not all: "Delivered 3 of 4 files
+    to X." (or "Got … from X."), with "Send the rest again" (only what didn't get there)
+    and Close.
   - "Waiting for X to accept…" (with Cancel), a 📦 badge with the percentage while
     sending (in the window: with one decimal from 100 MB, two from 1 GB, and the speed and
     time left, "85 MB/s · about 2 min left"; the same for receiving, since 0.46.0; two

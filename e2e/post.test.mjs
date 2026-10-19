@@ -366,8 +366,16 @@ check(
     });
     await until("file arrived", () => peer.files.get("report.pdf"));
     assert.equal(peer.files.get("report.pdf").toString(), "PDF?");
-    await app.until(() => !document.querySelector(".post-send-text")?.disabled);
+    // Send a message opens the box; Send text stays grey while it's empty.
+    await openMessage();
+    assert.equal(
+      await app.b.execute(
+        () => document.querySelector(".post-send-text").disabled,
+      ),
+      true,
+    );
     await app.type(".post-text", "sent from ePet");
+    await app.until(() => !document.querySelector(".post-send-text")?.disabled);
     await app.click(".post-send-text");
     await until("text arrived", () => peer.texts?.includes("sent from ePet"));
     await app.waitText(".post-progress", "Delivered to Mock Phone!");
@@ -388,10 +396,10 @@ check(
     await app.until(() => document.querySelector(".post-text")?.value === "");
     peer.answer = "decline";
     try {
+      await app.type(".post-text", "not wanted");
       await app.until(
         () => !document.querySelector(".post-send-text")?.disabled,
       );
-      await app.type(".post-text", "not wanted");
       await app.click(".post-send-text");
       await app.waitText(".post-progress", "Mock Phone didn't accept it.");
       assert.equal(
@@ -406,6 +414,88 @@ check(
     } finally {
       peer.answer = "accept";
     }
+  },
+);
+
+/** Opens "Send a message" (its box) in the Pet Post window, if it isn't. */
+async function openMessage() {
+  await ctx.app.b.execute(() => {
+    if (!document.querySelector(".post-text"))
+      document.querySelector(".post-message").click();
+  });
+  await ctx.app.until(() => !!document.querySelector(".post-text"));
+}
+
+check(
+  "post.send-files",
+  "Send files… has a ▾ menu (Files… / A folder…); sending several files lists each with how far it is, then the box goes by itself",
+  async () => {
+    const app = ctx.app;
+    const dir = mkdtempSync(join(tmpdir(), "epet-many-"));
+    const names = ["one.txt", "two.txt", "three.txt"];
+    for (const n of names) writeFileSync(join(dir, n), `data of ${n}`);
+    await postTab("send");
+    await app.waitText(".post-device", "Mock Phone");
+    await app.click(".post-files-more");
+    await app.waitText(".post-send-menu", "A folder…");
+    await app.until(
+      () => !!document.querySelector(".post-send-menu .post-folder"),
+    );
+    // A click elsewhere closes it.
+    await app.b.execute(() =>
+      document.querySelector(".post-tab-body h3").click(),
+    );
+    await app.until(() => !document.querySelector(".post-send-menu"));
+    // (The file dialog can't be driven: what it gives is sent as it would.)
+    await app.b.execute(
+      (paths) => window.__post.send(paths),
+      names.map((n) => join(dir, n)),
+    );
+    await until("files arrived", () => names.every((n) => peer.files.get(n)));
+    await app.waitText(".post-progress", "Delivered to Mock Phone!");
+    const rows = await app.until(() => {
+      const r = [...document.querySelectorAll(".post-progress .post-item")].map(
+        (e) => e.textContent,
+      );
+      return r.length === 3 && r;
+    });
+    for (const n of names)
+      assert.ok(
+        rows.some((r) => r.includes(n) && r.includes("Finished")),
+        `${n}: ${rows}`,
+      );
+    // All there: the box goes by itself.
+    await app.until(
+      () => !document.querySelector(".post-progress"),
+      [],
+      15_000,
+    );
+  },
+);
+
+check(
+  "post.receive-files",
+  "receiving several files: the Pet Post window lists each with how far it is",
+  async () => {
+    const app = ctx.app;
+    await postTab("receive");
+    const reply = peer.prepare({ "a-1.txt": "first", "a-2.txt": "second" });
+    await app.waitText(".post-offer", "Mock Phone wants to send you 2 files");
+    await app.click(".post-accept");
+    const r = await reply;
+    assert.equal(r.status, 200);
+    assert.deepEqual(await peer.upload(r.body), [200, 200]);
+    await app.waitText(".post-incoming", "Got 2 files from Mock Phone!");
+    const rows = await app.until(() => {
+      const x = [...document.querySelectorAll(".post-incoming .post-item")].map(
+        (e) => e.textContent,
+      );
+      return x.length === 2 && x;
+    });
+    assert.ok(
+      rows.every((x) => x.includes("Finished")),
+      String(rows),
+    );
   },
 );
 

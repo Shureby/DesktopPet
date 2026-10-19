@@ -37,6 +37,13 @@ import {
   type PostTransfer,
   reachLines,
   DOOR_OFF,
+  itemStatus,
+  listsItems,
+  partialLine,
+  retryPaths,
+  shownItems,
+  tallyLine,
+  type PostItem,
   type PostStatus,
 } from "./post";
 
@@ -352,5 +359,51 @@ describe("how others reach this computer", () => {
     const lines = reachLines(status, [here, tailnet], { ...DOOR_OFF, state: "public", externalIp: "203.0.113.7" }, { state: "running", online: 2 }, true);
     expect(marks(lines)).toEqual(["here:true", "door:false", "tailscale:true"]);
     expect(lines[1].detail).toContain("203.0.113.7");
+  });
+});
+
+describe("each file of a delivery", () => {
+  const it_ = (i: number, state: PostItem["state"], done = 0): PostItem => ({ id: `f${i}`, name: `f${i}.jpg`, size: 100, done, state, path: `C:/x/f${i}.jpg` });
+  const tr = (items: PostItem[], state: PostTransfer["state"] = "sending", extra = {}): PostTransfer => {
+    const n = (s: PostItem["state"]) => items.filter((x) => x.state === s).length;
+    return {
+      direction: "out",
+      state,
+      peer: "Phone",
+      fingerprint: "",
+      done: 0,
+      total: 0,
+      files: items.length,
+      folder: null,
+      first: null,
+      error: null,
+      items,
+      tally: { done: n("done"), moving: n("moving"), waiting: n("waiting"), failed: n("failed"), skipped: n("skipped") },
+      ...extra,
+    };
+  };
+
+  it("say how far each is", () => {
+    expect([it_(0, "moving", 35), it_(1, "done"), it_(2, "waiting"), it_(3, "failed"), it_(4, "skipped")].map(itemStatus)).toEqual(["35%", "✓ Finished", "Waiting", "✗ Failed", "Skipped"]);
+    expect(listsItems(tr([it_(0, "moving")]))).toBe(false);
+    expect(listsItems(tr([it_(0, "failed")], "failed"))).toBe(true);
+    expect(listsItems(tr([it_(0, "done"), it_(1, "moving")]))).toBe(true);
+  });
+
+  it("not all of it got there: said so, and the rest can be sent again", () => {
+    const t = tr([it_(0, "done"), it_(1, "done"), it_(2, "done"), it_(3, "failed")], "failed");
+    expect(partialLine(t)).toBe("Delivered 3 of 4 files to Phone.");
+    expect(retryPaths(t)).toEqual(["C:/x/f3.jpg"]);
+    expect(partialLine(tr([it_(0, "done")], "done"))).toBe("");
+  });
+
+  it("many files: the failed and moving first, at most eight, with the counts", () => {
+    const items = Array.from({ length: 20 }, (_, i) => it_(i, i < 10 ? "done" : i === 10 ? "moving" : i === 15 ? "failed" : "waiting"));
+    const t = tr(items);
+    const shown = shownItems(t).map((x) => x.id);
+    expect(shown).toHaveLength(8);
+    expect(shown).toContain("f10");
+    expect(shown).toContain("f15");
+    expect(tallyLine(t)).toBe("✓ 10 finished · 1 sending · 8 waiting · ✗ 1 failed");
   });
 });

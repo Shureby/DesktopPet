@@ -10,6 +10,7 @@
 mod client;
 mod discovery;
 mod door;
+pub(crate) mod items;
 mod pickup;
 mod server;
 pub(crate) mod share;
@@ -237,6 +238,9 @@ pub struct Transfer {
     pub folder: Option<String>,
     pub first: Option<String>,
     pub error: Option<String>,
+    /// Each file and how far it is (items.rs: all of them when few, else some), and the counts.
+    pub items: Vec<items::Item>,
+    pub tally: Option<items::Tally>,
 }
 
 /// Someone wants to send files ("post-offer"): the pet asks, `post_answer` answers.
@@ -316,6 +320,8 @@ pub(crate) struct Active {
     pub done_bytes: u64,
     pub last_activity: i64,
     pub last_emit: i64,
+    /// Each file and how far it is.
+    pub items: items::Items,
 }
 
 pub(crate) struct Running {

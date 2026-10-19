@@ -487,6 +487,108 @@ export interface PostTransfer {
   folder: string | null;
   first: string | null;
   error: string | null;
+  /** Each file and how far it is (all of them when few; else the ones moving, failed, just finished and next), and the counts. */
+  items?: PostItem[];
+  tally?: PostTally | null;
+}
+
+/** One file of a delivery. */
+export interface PostItem {
+  id: string;
+  name: string;
+  size: number;
+  done: number;
+  /** "skipped": the receiver didn't want it. */
+  state: "waiting" | "moving" | "done" | "failed" | "skipped";
+  /** Sending: where it is on this computer (to send it again). */
+  path?: string;
+  error?: string;
+}
+
+/** How many files of a delivery are where. */
+export interface PostTally {
+  done: number;
+  moving: number;
+  waiting: number;
+  failed: number;
+  skipped: number;
+}
+
+/** A file's line: "35%", "✓ Finished", "Waiting", "✗ Failed", "Skipped". */
+export function itemStatus(it: PostItem): string {
+  switch (it.state) {
+    case "moving":
+      return `${Math.floor((it.done / Math.max(1, it.size)) * 100)}%`;
+    case "done":
+      return `✓ ${t("Finished")}`;
+    case "failed":
+      return `✗ ${t("Failed")}`;
+    case "skipped":
+      return t("Skipped");
+    default:
+      return t("Waiting");
+  }
+}
+
+/** At most this many files listed in the window. */
+const ITEMS_SHOWN = 8;
+
+/** The files to list: failed and moving first, then the rest in order, at most ITEMS_SHOWN (in their own order). */
+export function shownItems(tr: PostTransfer): PostItem[] {
+  const items = tr.items ?? [];
+  if (items.length <= ITEMS_SHOWN) return items;
+  const rank = (x: PostItem) => (x.state === "failed" ? 0 : x.state === "moving" ? 1 : x.state === "done" ? 2 : 3);
+  const pick = new Set(
+    items
+      .map((x, i) => ({ x, i }))
+      .sort((a, b) => rank(a.x) - rank(b.x) || a.i - b.i)
+      .slice(0, ITEMS_SHOWN)
+      .map((p) => p.i),
+  );
+  return items.filter((_, i) => pick.has(i));
+}
+
+/** Its files are listed: more than one, or one that failed. */
+export function listsItems(tr: PostTransfer): boolean {
+  const items = tr.items ?? [];
+  return items.length > 1 || items.some((x) => x.state === "failed");
+}
+
+/** The files not listed (a big delivery). */
+export function unlisted(tr: PostTransfer): number {
+  const t = tr.tally;
+  if (!t) return 0;
+  return Math.max(0, t.done + t.moving + t.waiting + t.failed + t.skipped - shownItems(tr).length);
+}
+
+/** The counts, when not every file is listed: "✓ 38 finished · 2 sending · 80 waiting". */
+export function tallyLine(tr: PostTransfer): string {
+  const c = tr.tally;
+  if (!c || !unlisted(tr)) return "";
+  const moving = tr.direction === "out" ? t("{n} sending", { n: c.moving }) : t("{n} receiving", { n: c.moving });
+  return [
+    `✓ ${t("{n} finished", { n: c.done })}`,
+    c.moving ? moving : "",
+    c.waiting ? t("{n} waiting", { n: c.waiting }) : "",
+    c.failed ? `✗ ${t("{n} failed", { n: c.failed })}` : "",
+    c.skipped ? t("{n} skipped", { n: c.skipped }) : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+/** Some files got there and some didn't: "Delivered 3 of 4 files to X" (else ""). */
+export function partialLine(tr: PostTransfer, who = tr.peer): string {
+  const c = tr.tally;
+  if (!c || !transferOver(tr) || tr.state === "done" || !c.done) return "";
+  const of = c.done + c.moving + c.waiting + c.failed;
+  return tr.direction === "out" ? t("Delivered {done} of {of} files to {who}.", { done: c.done, of, who }) : t("Got {done} of {of} files from {who}.", { done: c.done, of, who });
+}
+
+/** Files of a delivery sent from here that didn't get there (to send again). */
+export function retryPaths(tr: PostTransfer): string[] {
+  if (tr.direction !== "out" || !transferOver(tr) || tr.state === "done") return [];
+  return (tr.items ?? []).filter((x) => (x.state === "failed" || x.state === "waiting") && x.path).map((x) => x.path!);
 }
 
 /** Someone wants to send files: the pet asks. */

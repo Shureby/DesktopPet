@@ -16,6 +16,19 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.51.0] - 2026-10-19
+
+### Added
+- **Pet Post: each file's progress.** Sending or receiving several files lists each one
+  with its own percentage, "✓ Finished" or "Waiting" (a big folder: the files moving and
+  just finished, with the counts). When everything got there the box goes by itself; when
+  something didn't, it stays and says which, with "Send the rest again".
+
+### Changed
+- **Pet Post → Send:** "Send files…" has a ▾ for "Files…" or "A folder…" (one button
+  instead of two), and "💬 Send a message" opens the text box only when wanted. "Send
+  text" stays grey until something is typed.
+
 ## [0.50.0] - 2026-10-19
 
 ### Added

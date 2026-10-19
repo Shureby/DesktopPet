@@ -221,6 +221,20 @@ const zhCN: Dictionary = {
     "The router{router} said no: {error}": "路由器{router}拒绝了：{error}",
     "Not installed. With it on both, your phone and this computer reach each other on any network.":
       "没有安装。两边都装上后，手机和这台电脑在任何网络都能互相连到。",
+    Finished: "已完成",
+    Failed: "失败",
+    Skipped: "已跳过",
+    Waiting: "等待中",
+    "{n} sending": "{n} 个正在发送",
+    "{n} receiving": "{n} 个正在接收",
+    "{n} finished": "{n} 个已完成",
+    "{n} waiting": "{n} 个等待中",
+    "{n} failed": "{n} 个失败",
+    "{n} skipped": "{n} 个已跳过",
+    "Delivered {done} of {of} files to {who}.":
+      "已送达 {who} {done}/{of} 个文件。",
+    "Got {done} of {of} files from {who}.":
+      "已收到 {who} 的 {done}/{of} 个文件。",
     "{n} bytes": "{n} 字节",
     "1 file": "1 个文件",
     "{n} files": "{n} 个文件",
@@ -1002,6 +1016,7 @@ const zhCN: Dictionary = {
     "Declined in {s} s if you don't answer.": "{s} 秒内不回答就自动拒绝。",
     "{who} wants to send you {files} ({size})":
       "{who} 想给你发 {files}（{size}）",
+    "… and {n} more": "… 还有 {n} 个",
     "Stop receiving": "停止接收",
     "{files} from {who}": "{who} 发来的 {files}",
     "Not there any more (moved or deleted).":
@@ -1009,18 +1024,22 @@ const zhCN: Dictionary = {
     "Show in folder": "在文件夹中显示",
     "Couldn't reach it: it may be behind another router, or a firewall stops it. Putting both on the same Wi-Fi, or Tailscale on both, helps.":
       "连不上它：它可能在另一个路由器后面，或被防火墙挡住。让两边连同一个 Wi-Fi，或者都装 Tailscale，就能解决。",
+    "Send the rest again": "重发剩下的",
     "Settings…": "设置…",
     "Send files and text to phones and computers nearby, and get theirs.":
       "给附近的手机和电脑发文件和文字，也能收下它们发来的。",
     "Works with LocalSend on phones and computers, and with ePet on other computers.":
       "可与手机和电脑上的 LocalSend 互传，也可与其他电脑上的 ePet 互传。",
     "A message, a link…": "一段话、一个链接…",
+    "Send text": "发送文字",
     "Send to": "发给",
     "Send files…": "发送文件…",
-    "Send a folder…": "发送文件夹…",
+    "Files or a folder": "文件或文件夹",
+    "Send a message": "发消息",
+    "Files…": "文件…",
+    "A folder…": "文件夹…",
     "Or drop files on the pet.": "也可以把文件拖到宠物身上。",
     Paste: "粘贴",
-    "Send text": "发送文字",
   },
   lines: {
     "avoid.leaving.fullscreen": [
