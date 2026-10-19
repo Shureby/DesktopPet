@@ -919,7 +919,6 @@ const zhTW: Dictionary = {
     "Block {name}?": "封鎖 {name}？",
     "The icons differ: this may not be the device it says it is. Nothing will be sent to it, and what it sends is refused. You can unblock it in Settings → Pet Post.":
       "圖示不一樣：這台裝置可能不是它自稱的那台。不會再傳東西給它，它傳來的也會被拒收。可以在 設定 → 寵物驛站 裡解除封鎖。",
-    "{name} is marked as verified.": "{name} 已標為「已核對」。",
     "They match": "一致",
     "They don't match": "不一致",
     "Declined in {s} s if you don't answer.": "{s} 秒內不回答就自動拒絕。",

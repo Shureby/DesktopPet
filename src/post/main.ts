@@ -117,8 +117,6 @@ let verifying: {
   asked: "" | "asking" | PostVerifyAnswer;
   /** Its user says the icons don't match. */
   mismatch: boolean;
-  /** They match: marked verified. */
-  matched: boolean;
   /** They don't match: "Block …?" is up. */
   confirm: boolean;
 } | null = null;
@@ -187,7 +185,7 @@ async function forget(d: PostDevice): Promise<void> {
 
 function verify(fingerprint: string, alias = ""): void {
   const fp = fingerprint.toUpperCase();
-  const v: NonNullable<typeof verifying> = { fingerprint: fp, alias, code: null, mode: "icons", error: "", asked: "", mismatch: false, matched: false, confirm: false };
+  const v: NonNullable<typeof verifying> = { fingerprint: fp, alias, code: null, mode: "icons", error: "", asked: "", mismatch: false, confirm: false };
   verifying = v;
   const redraw = () => verifying === v && render();
   render();
@@ -224,7 +222,8 @@ async function verifiedNow(v: NonNullable<typeof verifying>, name: string): Prom
   void backend.postVerifyDecided(v.fingerprint, true);
   const cur = await backend.getSettings();
   settings = await backend.setSettings({ post: withVerified(cur.post, { fingerprint: v.fingerprint, alias: name }) });
-  v.matched = true;
+  // Back to the list, where its name now has the badge.
+  if (verifying === v) verifying = null;
   render();
 }
 
@@ -637,7 +636,8 @@ function verifyView(): Node {
     body,
     ...verifyStatus(v, name),
     h("p", { class: "hint" }, t("In LocalSend: the device (or the delivery from this computer), then Verify. In ePet: Pet Post → Verify.")),
-    h("p", { class: "row" }, h("button", { class: "primary post-verify-done", onclick: () => ((verifying = null), render()) }, t("Done"))),
+    // Kept in sight at the bottom, however long the rest is (it scrolls).
+    h("div", { class: "row post-verify-foot" }, h("button", { class: "primary post-verify-done", onclick: () => ((verifying = null), render()) }, t("Done"))),
   );
 }
 
@@ -701,8 +701,6 @@ function verifyStatus(v: NonNullable<typeof verifying>, name: string): Node[] {
         ),
       ),
     );
-  } else if (v.matched) {
-    line("post-verify-matched", `✓ ${t("{name} is marked as verified.", { name })}`);
   } else if (!v.mismatch && !["asking", "declined", "refused"].includes(v.asked)) {
     out.push(
       h(
@@ -914,9 +912,9 @@ function sendTab(): Node[] {
       h(
         "button",
         {
-          class: "small",
+          class: "small post-paste",
           onclick: async () => {
-            draft = (await navigator.clipboard.readText().catch(() => "")) || draft;
+            draft = (await backend.postClipboardText().catch(() => "")) || draft;
             render();
           },
         },

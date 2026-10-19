@@ -16,6 +16,17 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.48.2] - 2026-10-19
+
+### Changed
+- **Pet Post, Verify:** ✓ They match goes straight back to the list (the device's name now
+  has its Verified badge): no Done needed. Done (and the other buttons) stay in sight at
+  the bottom of the window however long the page is (on a Mac it ran off the bottom).
+
+### Fixed
+- **Pet Post, Paste on a Mac:** the clipboard is read by the app, so the Mac no longer asks
+  "Paste" first (a second click).
+
 ## [0.48.1] - 2026-10-19
 
 ### Changed

@@ -29,6 +29,7 @@ pub fn run() {
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&dir)?;
@@ -89,6 +90,7 @@ pub fn run() {
             locale::system_locale,
             commands::e2e_tray,
             commands::e2e_close,
+            commands::e2e_set_clipboard,
             commands::e2e_resize,
             commands::e2e_present,
             commands::test_clock,
@@ -135,6 +137,7 @@ pub fn run() {
             post::post_verify_answer,
             post::post_verify_decided,
             post::post_verify_result,
+            post::post_clipboard_text,
             post::post_pending_offer,
             post::post_stop_receiving,
             post::post_history,

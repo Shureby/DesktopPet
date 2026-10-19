@@ -1626,12 +1626,12 @@
         },
         {
           "id": "post.send",
-          "rev": "0.48.1",
+          "rev": "0.48.2",
           "ci": "partial",
           "mac": true,
           "human": "文件选择对话框；手机上收到的文件和文件夹",
           "do": "Pet Post 窗口：选手机，点 📄 Send files… 选几个文件；再点 📁 Send a folder…；再在文本框里写一句话点 Send text",
-          "expect": "手机上先问是否接收，接收后窗口显示进度条和 Delivering to <手机>… %，完成显示 Delivered to <手机>!；文字在手机上显示为消息，送到后文本框清空（对方拒收时文字保留，可以再发）；发送中点 Cancel 能取消"
+          "expect": "手机上先问是否接收，接收后窗口显示进度条和 Delivering to <手机>… %，完成显示 Delivered to <手机>!；点 粘贴 时剪贴板里的文字直接进文本框（Mac 上不会再弹出“粘贴”气泡要你再点一次）；文字在手机上显示为消息，送到后文本框清空（对方拒收时文字保留，可以再发）；发送中点 Cancel 能取消"
         },
         {
           "id": "post.progress",
@@ -1721,12 +1721,12 @@
         },
         {
           "id": "post.verify-ask",
-          "rev": "0.48.0",
+          "rev": "0.48.2",
           "ci": "partial",
           "mac": true,
           "human": "两台电脑都装 ePet（一台 Windows、一台 Mac）",
           "do": "在 A 的 Pet Post → Send，点 B 那行的 🛡 Verify；B 上点 Show；对比两边图标后，在 A 上点 ✓ They match",
-          "expect": "A 先显示 “⏳ Verification request sent to B. Waiting for it…”；B 点 Show 后 A 变成绿字 “✓ B shows them too. Compare the icons…（man-in-the-middle）”，下面有 ✓ They match / ✗ They don't match；点 They match 后显示 “B is marked as verified.”，Send 列表里 B 的名字旁出现绿色 🛡 Verified；设置 → Pet Post → Verified devices 里有 B（可 Remove）"
+          "expect": "A 先显示 “⏳ Verification request sent to B. Waiting for it…”；B 点 Show 后 A 变成绿字 “✓ B shows them too. Compare the icons…（man-in-the-middle）”，下面有 ✓ They match / ✗ They don't match；点 They match 后直接回到列表（不用点 Done），B 的名字旁出现绿色 🛡 Verified；页面再长，Done 等按钮也固定在窗口底部看得到（Mac 上也一样）；设置 → Pet Post → Verified devices 里有 B（可 Remove）"
         },
         {
           "id": "post.verify-asked",

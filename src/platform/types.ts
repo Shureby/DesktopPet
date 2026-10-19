@@ -656,6 +656,8 @@ export interface Backend {
   postVerifyDecided(fingerprint: string, matched: boolean): Promise<void>;
   /** After the device showed Verify: what its user decides ("match" | "mismatch"), or null. */
   postVerifyResult(fingerprint: string): Promise<string | null>;
+  /** The clipboard's text (read by the app: the Mac asks "Paste" first when a page does). */
+  postClipboardText(): Promise<string>;
   /** Sends files and folders, or a text, to a device (by fingerprint). */
   postSend(to: string, paths: string[], text?: string | null, pin?: string | null): Promise<void>;
   postCancelSend(): Promise<void>;

@@ -919,7 +919,6 @@ const zhCN: Dictionary = {
     "Block {name}?": "拉黑 {name}？",
     "The icons differ: this may not be the device it says it is. Nothing will be sent to it, and what it sends is refused. You can unblock it in Settings → Pet Post.":
       "图标不一样：这台设备可能不是它自称的那台。不会再发东西给它，它发来的也会被拒收。可以在 设置 → 宠物驿站 里解除拉黑。",
-    "{name} is marked as verified.": "{name} 已标为“已核对”。",
     "They match": "一致",
     "They don't match": "不一致",
     "Declined in {s} s if you don't answer.": "{s} 秒内不回答就自动拒绝。",

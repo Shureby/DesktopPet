@@ -667,6 +667,16 @@ pub fn e2e_close(app: AppHandle, label: String) -> CmdResult<()> {
     Ok(())
 }
 
+/// Puts text on the clipboard (Pet Post's Paste).
+#[tauri::command]
+pub fn e2e_set_clipboard(app: AppHandle, text: String) -> CmdResult<()> {
+    use tauri_plugin_clipboard_manager::ClipboardExt;
+    if !e2e_enabled() {
+        return Err("only in end-to-end tests".into());
+    }
+    app.clipboard().write_text(text).map_err(err)
+}
+
 /// Resizes a window (e.g. the panel to its narrowest), in logical pixels.
 #[tauri::command]
 pub fn e2e_resize(app: AppHandle, label: String, width: f64, height: f64) -> CmdResult<()> {

@@ -778,6 +778,9 @@ export const mockBackend: Backend = {
     return q.has("verify-declined") ? "declined" : "shown";
   },
   async postVerifyAnswer() {},
+  async postClipboardText() {
+    return navigator.clipboard.readText().catch(() => "");
+  },
   async postVerifyDecided() {},
   async postVerifyResult(fingerprint) {
     // ?verify-mismatch: the pretend ePet's user says the icons don't match.

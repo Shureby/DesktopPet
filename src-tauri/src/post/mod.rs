@@ -900,6 +900,14 @@ pub fn post_open_received(app: AppHandle, post: State<'_, Post>, id: String, rev
     }
 }
 
+/// The clipboard's text (Paste in the Pet Post window): read here, not by the page, so the
+/// Mac doesn't ask "Paste" first.
+#[tauri::command]
+pub fn post_clipboard_text(app: AppHandle) -> String {
+    use tauri_plugin_clipboard_manager::ClipboardExt;
+    app.clipboard().read_text().unwrap_or_default()
+}
+
 /// Whether the Pet Post window is open (and not minimized): then it asks about deliveries
 /// itself, and the hidden pet needn't come out.
 #[tauri::command]

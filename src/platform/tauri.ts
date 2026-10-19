@@ -76,6 +76,7 @@ export const tauriBackend: Backend = {
   postVerifyAnswer: (fingerprint, show) => invoke("post_verify_answer", { fingerprint, show }),
   postVerifyDecided: (fingerprint, matched) => invoke("post_verify_decided", { fingerprint, matched }),
   postVerifyResult: (fingerprint) => invoke("post_verify_result", { fingerprint }),
+  postClipboardText: () => invoke("post_clipboard_text"),
   postSend: (to, paths, text, pin) => invoke("post_send", { to, paths, text: text ?? null, pin: pin ?? null }),
   postCancelSend: () => invoke("post_cancel_send"),
   postAnswer: (id, accept) => invoke("post_answer", { id, accept }),

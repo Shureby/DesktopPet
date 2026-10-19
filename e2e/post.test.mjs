@@ -244,6 +244,16 @@ check("post.send", "the Pet Post window lists the device; a file and a text reac
   await app.click(".post-send-text");
   await until("text arrived", () => peer.texts?.includes("sent from ePet"));
   await app.waitText(".post-progress", "Delivered to Mock Phone!");
+  // Paste: the clipboard's text goes in at once (read by the app: no "Paste" asked on a Mac).
+  await app.invoke("e2e_set_clipboard", { text: "from the clipboard" });
+  await app.until(() => document.querySelector(".post-text")?.value === "");
+  await app.click(".post-paste");
+  await app.until(() => document.querySelector(".post-text")?.value === "from the clipboard");
+  await app.b.execute(() => {
+    const box = document.querySelector(".post-text");
+    box.value = "";
+    box.dispatchEvent(new Event("input"));
+  });
   // Delivered: the box is emptied. Declined: the text stays, to send again.
   await app.until(() => document.querySelector(".post-text")?.value === "");
   peer.answer = "decline";
@@ -456,10 +466,15 @@ check("post.verify-ask", "Verify for another ePet: request sent, it shows them, 
     await app.waitText(".post-verify-shown", "Mock Phone shows them too");
     assert.equal(peer.verifyAsks.length, 1);
     assert.equal(peer.verifyAsks[0].fingerprint, fingerprint);
+    // The Done button stays in sight at the bottom, even in a short window.
+    assert.ok(await app.b.execute(() => {
+      const r = document.querySelector(".post-verify-done").getBoundingClientRect();
+      return r.bottom <= window.innerHeight && r.top >= 0;
+    }));
+    // They match: back to the list at once, the badge by its name.
     await app.click(".post-verify-match");
-    await app.waitText(".post-verify-matched", "Mock Phone is marked as verified");
+    await app.until(() => !document.querySelector(".post-verify-view"));
     assert.ok((await postSettings()).verified.some((d) => d.fingerprint === peer.fingerprint));
-    await app.click(".post-verify-done");
     await app.until((n) => [...document.querySelectorAll(".post-device")].some((e) => e.textContent.includes(n) && e.querySelector(".post-verified")), ["Mock Phone"]);
   } finally {
     peer.epet = false;
