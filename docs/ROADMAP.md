@@ -279,6 +279,25 @@ icons:
   he can compute and replace whatever is sent. (HTTPS works because of CAs the browser
   already trusts; home devices have self-signed certificates.)
 
+## ePet-to-ePet protocol (after the Steam launch)
+
+Discussed 2026-10-20; not scheduled. LocalSend v2.1 stays the common language (phones,
+Linux, everything with LocalSend, files and texts). Between two ePets, more, on the
+extensions we already have (`epet: 1` in the device info, LocalSend ignores it;
+`/api/epet/v1/...`, as Verify requests and pickup use).
+- **Encryption stays TLS** (rustls, both sides show certificates): no home-made crypto.
+  What's weak is the first meeting (who is it?), which pairing fixes.
+- **Pairing** (see "Pairing ePets with a code"): a one-time code, then the certificates
+  are pinned.
+- **Strict mode between paired ePets:** HTTPS only (no LocalSend-style plain HTTP), and a
+  certificate that doesn't match is refused and warned about.
+- **Chat:** a conversation with history, read or not, and messages left for an ePet that
+  can't be reached now (collected as pickup does).
+- **Schedule sync** between your own computers (to-dos, alarms, anniversaries): uid,
+  updated_at and tombstones are there since 0.35; conflicts and deletions to work out.
+- Order if started: pairing and strict mode first (security, smallest), then chat, then
+  sync (the biggest).
+
 ## Release order: Windows, then macOS, then mobile
 
 Windows (direct download, then Steam) ships first; macOS next; Android last.
