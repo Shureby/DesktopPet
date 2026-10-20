@@ -263,6 +263,25 @@ installer too (look for the `ePet` uninstall entry), or tell testers to.
 **Outside the code:** a page at ezyappco.com/ChimePet (redirect /ePet there), and the
 store listings under the new name.
 
+## Release order: Windows, then macOS, then mobile
+
+Windows (direct download, then Steam) ships first; macOS next; Android last.
+
+## Android (low priority, after Windows and macOS)
+
+Discussed 2026-10-20; not scheduled.
+- **Carries over:** the Rust core (schedule store, backup, Pet Post: LocalSend runs on
+  Android) and the web UI (panel, Pet Post window, mini-game). Tauri 2 builds for Android.
+- **Rewritten:** reminders (alarms, timers, focus, to-dos) go through the system's exact
+  alarms and notifications, because Android stops background apps. No tray, autostart,
+  installer, Steam or multi-monitor; a notification and a home-screen widget instead.
+- **The pet:** step 1 is a companion app (the pet lives in the app and a widget;
+  schedule synced with the computer through backups or Pet Post, using the uid and
+  updated_at added in 0.35). Step 2, maybe: a floating pet over other apps ("display over
+  other apps", a native Kotlin foreground service). Touch replaces the mouse; other
+  apps' windows can't be seen; battery, the permanent notification and Play review
+  make this one costly.
+
 ## Linux (later, if users ask)
 
 > **Status: idea for later.** Recorded 2026-10-01. Not planned for launch: Steam ships
