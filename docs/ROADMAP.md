@@ -263,6 +263,22 @@ installer too (look for the `ePet` uninstall entry), or tell testers to.
 **Outside the code:** a page at ezyappco.com/ChimePet (redirect /ePet there), and the
 store listings under the new name.
 
+## Pairing ePets with a code (later)
+
+Discussed 2026-10-20; not scheduled. Verify (icons compared by eye) stays: it's the only
+check that works with LocalSend. Between two ePets, a one-time code can replace the 16
+icons:
+- One ePet shows 6 digits; you type them into the other once. They run a PAKE (SPAKE2 or
+  CPace, RustCrypto `spake2`) over the existing HTTPS connection, bound to both
+  certificates' fingerprints. The code never crosses the network, so a man in the middle
+  gets one guess; a wrong code fails the pairing.
+- On success both mark each other Verified (as "They match" does) and keep the pinned
+  fingerprints; a changed certificate later is warned about, as now.
+- Not this: comparing hashes of the fingerprints over the network, however many round
+  trips. Fingerprints are public and everything passes through the man in the middle, so
+  he can compute and replace whatever is sent. (HTTPS works because of CAs the browser
+  already trusts; home devices have self-signed certificates.)
+
 ## Release order: Windows, then macOS, then mobile
 
 Windows (direct download, then Steam) ships first; macOS next; Android last.
