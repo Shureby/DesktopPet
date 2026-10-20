@@ -1864,6 +1864,24 @@ button.danger {
     color: #ff8a7a;
   }
 }
+button.copied {
+  color: #2a7a40;
+  border-color: #2a7a40;
+}
+button.copy-failed {
+  color: #c0392b;
+  border-color: #c0392b;
+}
+@media (prefers-color-scheme: dark) {
+  button.copied {
+    color: #6fcf8a;
+    border-color: #6fcf8a;
+  }
+  button.copy-failed {
+    color: #ff8a7a;
+    border-color: #ff8a7a;
+  }
+}
 .post-recent {
   margin-top: 14px;
 }

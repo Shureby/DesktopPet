@@ -79,6 +79,7 @@ export const tauriBackend: Backend = {
   postVerifyDecided: (fingerprint, matched) => invoke("post_verify_decided", { fingerprint, matched }),
   postVerifyResult: (fingerprint) => invoke("post_verify_result", { fingerprint }),
   postClipboardText: () => invoke("post_clipboard_text"),
+  postCopyText: (text) => invoke("post_copy_text", { text }),
   postShareOpen: (target, pin) => invoke("post_share_open", { fingerprint: target.fingerprint ?? null, link: target.link ?? null, pin: pin ?? null }),
   postShareGet: (ids) => invoke("post_share_get", { ids }),
   postShareCancel: () => invoke("post_share_cancel"),

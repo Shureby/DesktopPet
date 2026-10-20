@@ -273,11 +273,24 @@ export class Courier {
       return;
     }
     if (this.host.hidden()) await this.host.comeOut();
-    this.host.say([t("💬 {who} says:", { who: m.alias }), short], 60_000, [
-      { label: t("Copy"), run: () => copyText(m.text) },
+    this.showText(m, short);
+    this.host.chime();
+  }
+
+  /** A text received, with Copy (said whether it worked) and OK. */
+  private showText(m: PostText, short: string, failed = false): void {
+    const lines = [t("💬 {who} says:", { who: m.alias }), short];
+    if (failed) lines.push(t("Couldn't copy it. Try again?"));
+    this.host.say(lines, 60_000, [
+      {
+        label: t("Copy"),
+        run: () =>
+          void copyText(this.host.backend, m.text).then((ok) =>
+            ok ? this.host.say(t("📋 Copied to the clipboard."), 2500) : this.showText(m, short, true),
+          ),
+      },
       { label: t("OK"), run: () => {} },
     ], undefined, true);
-    this.host.chime();
   }
 
   /** Devices sharing files by link already told about (until they stop sharing). */
@@ -378,14 +391,22 @@ export class Courier {
 }
 
 /** Copies to the clipboard (with the old way as a fallback). */
-export function copyText(text: string): void {
-  const fallback = () => {
-    const area = Object.assign(document.createElement("textarea"), { value: text });
-    document.body.append(area);
-    area.select();
-    document.execCommand("copy");
-    area.remove();
-  };
-  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).catch(fallback);
-  else fallback();
+/** Puts text on the clipboard (by the app; the page's own ways if that fails): whether it worked. */
+export async function copyText(backend: Backend, text: string): Promise<boolean> {
+  try {
+    await backend.postCopyText(text);
+    return true;
+  } catch {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      const area = Object.assign(document.createElement("textarea"), { value: text });
+      document.body.append(area);
+      area.select();
+      const ok = document.execCommand("copy");
+      area.remove();
+      return ok;
+    }
+  }
 }

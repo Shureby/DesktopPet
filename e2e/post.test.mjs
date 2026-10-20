@@ -239,7 +239,36 @@ check(
     assert.equal(r.status, 204);
     const bubble = await app.waitBubble("Mock Phone says:");
     assert.match(bubble, /Dinner at 7\?/);
-    await app.answer("OK");
+    // Copy: on the clipboard, and the pet says so.
+    await app.invoke("e2e_set_clipboard", { text: "before" });
+    await app.answer("Copy");
+    await app.waitBubble("📋 Copied to the clipboard.");
+    assert.equal(await app.invoke("post_clipboard_text"), "Dinner at 7?");
+  },
+);
+
+check(
+  "post.copy",
+  "Copy in the Pet Post window says it worked (✓ Copied), then goes back",
+  async () => {
+    const app = ctx.app;
+    await app.invoke("open_post_window");
+    await postTab("receive");
+    await app.until(() => !!document.querySelector(".post-address-copy"));
+    const address = await app.b.execute(
+      () => document.querySelector(".post-address").textContent,
+    );
+    await app.click(".post-address-copy");
+    await app.waitText(".post-address-copy", "✓ Copied");
+    assert.equal(await app.invoke("post_clipboard_text"), address);
+    await app.until(
+      () =>
+        document.querySelector(".post-address-copy")?.textContent === "Copy",
+      [],
+      5000,
+    );
+    // (Open, the hidden pet would stay hidden: the next checks need it closed.)
+    await app.closeWindow("post");
   },
 );
 

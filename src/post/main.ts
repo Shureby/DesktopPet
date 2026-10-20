@@ -523,7 +523,7 @@ function addressPicker(): Node | null {
         tag(current),
         list.length > 1 ? h("span", { class: "chev" }, addressesOpen ? "▴" : `▾ ${t("{n} more", { n: list.length - 1 })}`) : null,
       ),
-      h("button", { class: "small post-address-copy", onclick: () => copyText(text(current)) }, t("Copy")),
+      copyButton("small post-address-copy", text(current)),
     ),
     menu,
     addressesOpen ? h("p", { class: "hint" }, t("Pick the one on the network the other device is on: the same Wi-Fi, or Tailscale when you're apart.")) : null,
@@ -1070,6 +1070,24 @@ function incomingCard(): Node | null {
   return h("div", { class: "box post-incoming" }, ...rows);
 }
 
+/** Copy: the button says whether it worked ("✓ Copied" / "✗ Couldn't copy"), then goes back. */
+function copyButton(css: string, text: string): HTMLButtonElement {
+  const b = h("button", { class: css }, t("Copy")) as HTMLButtonElement;
+  let back = 0;
+  b.onclick = async () => {
+    const ok = await copyText(backend, text);
+    b.textContent = ok ? `✓ ${t("Copied")}` : `✗ ${t("Couldn't copy")}`;
+    b.classList.toggle("copied", ok);
+    b.classList.toggle("copy-failed", !ok);
+    clearTimeout(back);
+    back = window.setTimeout(() => {
+      b.textContent = t("Copy");
+      b.classList.remove("copied", "copy-failed");
+    }, 1500);
+  };
+  return b;
+}
+
 /** One thing received: files (Open, Show in folder) or a text (Copy). */
 function receivedRow(r: PostReceived): Node {
   const when = h("span", { class: "hint" }, formatWhen(r.at));
@@ -1083,7 +1101,7 @@ function receivedRow(r: PostReceived): Node {
       "li",
       { class: "post-received-item" },
       h("div", { class: "row" }, h("strong", { class: "grow" }, "💬 ", ...named(NAME, r.from, r.fingerprint, true)), when),
-      h("div", { class: "row" }, h("span", { class: "grow post-received-text" }, r.text), h("button", { class: "small", onclick: () => copyText(r.text!) }, t("Copy"))),
+      h("div", { class: "row" }, h("span", { class: "grow post-received-text" }, r.text), copyButton("small post-received-copy", r.text!)),
     );
   }
   const names = r.paths.map((p) => p.split(/[\\/]/).pop() ?? p);

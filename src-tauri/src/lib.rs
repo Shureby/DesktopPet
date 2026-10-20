@@ -140,6 +140,7 @@ pub fn run() {
             post::post_verify_decided,
             post::post_verify_result,
             post::post_clipboard_text,
+            post::post_copy_text,
             post::share::post_share_open,
             post::share::post_share_get,
             post::share::post_share_cancel,

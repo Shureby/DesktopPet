@@ -865,7 +865,9 @@ const zhCN: Dictionary = {
     "Always accept": "总是接收",
     "{who}: “{text}”": "{who}：“{text}”",
     "💬 {who} says:": "💬 {who} 说：",
+    "Couldn't copy it. Try again?": "没复制成功，再试一次？",
     Copy: "复制",
+    "📋 Copied to the clipboard.": "📋 已复制到剪贴板。",
     "📤 {who} is sharing files with you.": "📤 {who} 正在分享文件。",
     "See them": "去看看",
     "{who} wants to verify with you.": "{who} 想和你核对。",
@@ -1018,6 +1020,8 @@ const zhCN: Dictionary = {
       "{who} 想给你发 {files}（{size}）",
     "… and {n} more": "… 还有 {n} 个",
     "Stop receiving": "停止接收",
+    Copied: "已复制",
+    "Couldn't copy": "没复制成功",
     "{files} from {who}": "{who} 发来的 {files}",
     "Not there any more (moved or deleted).":
       "文件已不在原处（被移动或删除了）。",

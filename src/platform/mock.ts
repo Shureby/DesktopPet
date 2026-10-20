@@ -818,6 +818,9 @@ export const mockBackend: Backend = {
   async postClipboardText() {
     return navigator.clipboard.readText().catch(() => "");
   },
+  async postCopyText(text) {
+    await navigator.clipboard.writeText(text);
+  },
   async postVerifyDecided() {},
   async postVerifyResult(fingerprint) {
     // ?verify-mismatch: the pretend ePet's user says the icons don't match.

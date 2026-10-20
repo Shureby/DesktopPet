@@ -665,6 +665,8 @@ export interface Backend {
   postVerifyResult(fingerprint: string): Promise<string | null>;
   /** The clipboard's text (read by the app: the Mac asks "Paste" first when a page does). */
   postClipboardText(): Promise<string>;
+  /** Puts text on the clipboard (Copy); rejects if it didn't work. */
+  postCopyText(text: string): Promise<void>;
   /**
    * What a device shares by link (listed: by fingerprint; or at a link): its user may be
    * asked first. Errors: see shareError.

@@ -1588,11 +1588,19 @@
         },
         {
           "id": "post.text",
-          "rev": "0.44.0",
+          "rev": "0.51.2",
           "ci": "partial",
-          "human": "用真手机发一段文字（LocalSend 的“文字”）",
-          "do": "手机 LocalSend 选 文字，发一句话给 ePet",
-          "expect": "宠物气泡显示 💬 <手机名> says: 和那句话，点 Copy 后能粘贴出来；Pet Post 窗口开着时 Received 下也有这条，带 Copy"
+          "human": "用真手机发一段文字（LocalSend 的“文字”），含一个很长的链接",
+          "do": "手机 LocalSend 选 文字，发一句话给 ePet；点 Copy",
+          "expect": "宠物气泡显示 💬 <手机名> says: 和那句话，长链接在气泡里换行不溢出；点 Copy 后宠物说 “📋 Copied to the clipboard.”（约 2 秒），能粘贴出来；拷贝失败时气泡留着并写 “Couldn't copy it. Try again?”；Pet Post 窗口开着时 Received 下也有这条，带 Copy"
+        },
+        {
+          "id": "post.copy",
+          "rev": "0.51.2",
+          "ci": "auto",
+          "mac": true,
+          "do": "Pet Post 窗口：接收 页点地址旁的 Copy；“最新”里收到的文字旁点 Copy",
+          "expect": "按钮原地变成绿色的 “✓ Copied”，约 1.5 秒后变回 Copy，内容在剪贴板里；拷贝失败时变成红色的 “✗ Couldn't copy”"
         },
         {
           "id": "post.pin",

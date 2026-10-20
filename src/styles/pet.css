@@ -37,8 +37,9 @@ body {
   font-size: 13px;
   line-height: 1.3;
   text-align: center;
-  /* A long link or word wraps instead of running out of the bubble. */
-  overflow-wrap: anywhere;
+  /* A long link or word wraps instead of running out of the bubble ("break-word", not
+     "anywhere": that one also lets the bubble shrink until every button breaks apart). */
+  overflow-wrap: break-word;
   box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.25);
   z-index: 2;
 }
@@ -55,6 +56,7 @@ body {
 }
 .bubble .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   justify-content: center;
   margin-top: 6px;
@@ -62,6 +64,9 @@ body {
 .bubble button {
   font: inherit;
   font-size: 12px;
+  /* A button's label stays on one line; buttons that don't fit go to the next row. */
+  white-space: nowrap;
+  flex: 0 0 auto;
   padding: 2px 8px;
   border: 1.5px solid var(--bubble-border);
   border-radius: 6px;

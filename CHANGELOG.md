@@ -16,6 +16,19 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.51.2] - 2026-10-20
+
+### Fixed
+- **The pet's buttons broke apart letter by letter** (0.51.1, seen with Chinese labels on a
+  Mac): a button's label stays on one line again, and buttons that don't fit go to a
+  second row. Long links still wrap.
+
+### Changed
+- **Copy says it worked.** In the pet's bubble (a text received), the pet says "📋 Copied
+  to the clipboard." (or, if it didn't work, keeps the text up: "Couldn't copy it. Try
+  again?"). In the Pet Post window, Copy turns into "✓ Copied" for a moment. Copying now
+  goes through the app (as Paste does), so it's known whether it worked.
+
 ## [0.51.1] - 2026-10-20
 
 ### Fixed

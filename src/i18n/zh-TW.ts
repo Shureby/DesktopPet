@@ -865,7 +865,9 @@ const zhTW: Dictionary = {
     "Always accept": "總是接收",
     "{who}: “{text}”": "{who}：「{text}」",
     "💬 {who} says:": "💬 {who} 說：",
+    "Couldn't copy it. Try again?": "沒複製成功，再試一次？",
     Copy: "複製",
+    "📋 Copied to the clipboard.": "📋 已複製到剪貼簿。",
     "📤 {who} is sharing files with you.": "📤 {who} 正在分享檔案。",
     "See them": "去看看",
     "{who} wants to verify with you.": "{who} 想和你核對。",
@@ -1018,6 +1020,8 @@ const zhTW: Dictionary = {
       "{who} 想傳給你 {files}（{size}）",
     "… and {n} more": "… 還有 {n} 個",
     "Stop receiving": "停止接收",
+    Copied: "已複製",
+    "Couldn't copy": "沒複製成功",
     "{files} from {who}": "{who} 傳來的 {files}",
     "Not there any more (moved or deleted).":
       "檔案已不在原處（被移動或刪除了）。",

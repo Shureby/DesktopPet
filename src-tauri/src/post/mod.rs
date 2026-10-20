@@ -994,6 +994,13 @@ pub fn post_clipboard_text(app: AppHandle) -> String {
     app.clipboard().read_text().unwrap_or_default()
 }
 
+/// Puts text on the clipboard (Copy): by the app, so it's known whether it worked.
+#[tauri::command]
+pub fn post_copy_text(app: AppHandle, text: String) -> CmdResult<()> {
+    use tauri_plugin_clipboard_manager::ClipboardExt;
+    app.clipboard().write_text(text).map_err(err)
+}
+
 /// Whether the Pet Post window is open (and not minimized): then it asks about deliveries
 /// itself, and the hidden pet needn't come out.
 #[tauri::command]
