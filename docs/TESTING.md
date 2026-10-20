@@ -2,7 +2,7 @@
 
 <!-- Generated from test-checklist.json by `npm run test-checklist`. Edit the JSON, not this file. -->
 
-当前版本 `0.51.0`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
+当前版本 `0.51.1`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
 标 🤖 的项目由 CI 自动测（Windows），不用手动测；标 🤖+👀 的项目逻辑由 CI 测，你只看 👀 后面写的部分；标 🌙 的每晚测一次（太久，不在每次推送时测）。
 macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码，在 Windows 上测过就行。
 在线勾选页面（保存结果，自动标出需要重测的项目）：https://claude.ai/artifact/XQVzPKq4w2MThVnTLYCGy1
@@ -11,7 +11,7 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 
 - [ ] 1.1 🍎 安装包安装 → **开始菜单/启动台里有应用，图标和名字正常**
 - [ ] 1.2 🍎 🤖+👀 首次启动 → **宠物从屏幕上方掉下来，落在任务栏/Dock 上方** 👀 你只看掉落的样子（窗口出现、宠物落在任务栏上方由 CI 测）
-- [ ] 1.3 🤖 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.51.0 · …`，与安装包版本一致**
+- [ ] 1.3 🤖 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.51.1 · …`，与安装包版本一致**
 - [ ] 1.4 🍎 🤖 已经运行时再启动一次 → **不会出现第二只宠物（只打开面板）**
 - [ ] 1.5 🤖 装着旧版本、ePet 正在运行时，双击新版本的安装包，一路点 Next / Install / Finish → **不再出现“已安装（Already Installed）/ 是否先卸载”那一页，也不提示 ePet 正在运行（会自动关掉它）；旧版被安静地卸载后装上新版；之前的待办、闹钟、纪念日、设置、心情值都还在。重装同一版本或装更旧的版本时仍会询问**
 - [ ] 1.6 🤖 ePet 开着时，再运行一次同一个版本的安装包（例如同一个测试包装两次） → **不出现“Already Installed / Add/Reinstall / Uninstall”页，也不问 ePet 正在运行；装完 ePet 正常，数据都在。只有用旧版本盖新版本时才会问**
@@ -266,9 +266,9 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 - [ ] 20.9 🤖+👀 手机发文件时点 Always accept；再发一次；然后在 设置 → Pet Post → 收藏的设备（Favorites） 里 Remove 它 → **第一次收下并把手机加入收藏（Pet Post 里它那行变成 ♥）；第二次不再问，直接收下；Remove 后又会问；取消勾选 Accept from favorites without asking 时收藏的设备也要问** 👀 设置里的 收藏的设备（Favorites）列表和 Remove
 - [ ] 20.10 🤖 藏起宠物，手机发文件；再切到 Quiet 模式（藏着）让手机发一次 → **藏着时宠物出来问你，答完回去；Quiet 模式下藏着时不出来，手机显示被拒绝，Show pet 时在 you missed 里看到这次**
 - [ ] 20.11 🍎 把一个文件、再把一个文件夹拖到宠物身上（Pet Post 关着时也试一次） → **关着时宠物说 Pet Post is off. 并给 Turn on；开着时问 Deliver “文件名” to… 并列出附近设备（最多 4 个，多了有 More…）；点一个就发送：Waiting for <设备> to accept…（有 Cancel），对方接收后 📦 进度徽章，完成说 Delivered to <设备>!；对方拒绝说 <设备> didn't accept it.；对方要 PIN 时在气泡里输入 PIN**
-- [ ] 20.12 🍎 🤖+👀 **【新】** Pet Post 窗口：选手机，点 📄 Send files… 选几个文件；再点它旁边的 ▾ → 📁 A folder…；再点 💬 Send a message，写一句话点 Send text → **Send files… 和 ▾ 连在一起，▾ 里有 Files… / A folder…，点别处菜单收起；手机上先问是否接收，接收后窗口显示进度条和 Delivering to <手机>… %，完成显示 Delivered to <手机>!；Send a message 是开关：点了才出现文本框（按钮变成按下的样子，下次打开驿站保持），文本框空着时 Send text 是灰的，打了字才变成橙色可点；点 Paste 时剪贴板里的文字直接进文本框（Mac 上不会再弹出“粘贴”气泡要你再点一次）；文字在手机上显示为消息，送到后文本框清空（对方拒收时文字保留，可以再发）；发送中点 Stop 能取消** 👀 文件选择对话框；手机上收到的文件和文件夹
-- [ ] 20.13 🍎 🤖 **【新】** Pet Post 窗口给手机发 3 个以上文件，再发一个有很多文件的文件夹；中途让手机那边断开一次（例如关掉 LocalSend） → **进度框里每个文件一行：文件名 · 进度条 · 百分比，完成的写 ✓ Finished，还没轮到的写 Waiting；文件很多时只列几行，上面一行写 ✓ N finished · N sending · N waiting，下面写 … and N more；全部送达后显示 Delivered to <手机>! 约 5 秒后进度框自动收起；有失败时不自动收起，写 Delivered 3 of 4 files to <手机>.，失败那行 ✗ Failed，有 Send the rest again（只重发没送到的）和 Close**
-- [ ] 20.14 🍎 🤖 **【新】** 手机给电脑发几个文件（打开 Pet Post 窗口 → 接收 页看着） → **接收卡片里每个文件一行，和发送时一样（百分比 / ✓ Finished / Waiting）；全部收到后约 6 秒卡片收起；有没收到的文件时卡片不收起，写 Got N of M files from <手机>.，可以点 Close**
+- [ ] 20.12 🍎 🤖+👀 Pet Post 窗口：选手机，点 📄 Send files… 选几个文件；再点它旁边的 ▾ → 📁 A folder…；再点 💬 Send a message，写一句话点 Send text → **Send files… 和 ▾ 连在一起，▾ 里有 Files… / A folder…，点别处菜单收起；手机上先问是否接收，接收后窗口显示进度条和 Delivering to <手机>… %，完成显示 Delivered to <手机>!；Send a message 是开关：点了才出现文本框（按钮变成按下的样子，下次打开驿站保持），文本框空着时 Send text 是灰的，打了字才变成橙色可点；点 Paste 时剪贴板里的文字直接进文本框（Mac 上不会再弹出“粘贴”气泡要你再点一次）；文字在手机上显示为消息，送到后文本框清空（对方拒收时文字保留，可以再发）；发送中点 Stop 能取消** 👀 文件选择对话框；手机上收到的文件和文件夹
+- [ ] 20.13 🍎 🤖 Pet Post 窗口给手机发 3 个以上文件，再发一个有很多文件的文件夹；中途让手机那边断开一次（例如关掉 LocalSend） → **进度框里每个文件一行：文件名 · 进度条 · 百分比，完成的写 ✓ Finished，还没轮到的写 Waiting；文件很多时只列几行，上面一行写 ✓ N finished · N sending · N waiting，下面写 … and N more；全部送达后显示 Delivered to <手机>! 约 5 秒后进度框自动收起；有失败时不自动收起，写 Delivered 3 of 4 files to <手机>.，失败那行 ✗ Failed，有 Send the rest again（只重发没送到的）和 Close**
+- [ ] 20.14 🍎 🤖 手机给电脑发几个文件（打开 Pet Post 窗口 → 接收 页看着） → **接收卡片里每个文件一行，和发送时一样（百分比 / ✓ Finished / Waiting）；全部收到后约 6 秒卡片收起；有没收到的文件时卡片不收起，写 Got N of M files from <手机>.，可以点 Close**
 - [ ] 20.15 🍎 用 Pet Post 窗口给手机（或另一台电脑）发一个 1 GB 以上的文件，再让对方发一个大文件过来 → **进度写成 37.42%（100 MB–1 GB 是一位小数，更小是整数），下面一行有已传 / 总大小、文件数、速度（如 85 MB/s）和剩余时间（还要约 2 分钟），数字随传输在动；多个文件时两个文件同时传。顺便记一下速度：和 LocalSend 互传同一个文件的速度差不多**
 - [ ] 20.16 用 iPhone 上的 LocalSend 收发一次文件和文字 → **和安卓一样能互传**
 - [ ] 20.17 🍎 两台电脑都装 ePet，都开 Pet Post，互相发文件 → **互相能找到并收发；信任一次后 Always accept 生效**

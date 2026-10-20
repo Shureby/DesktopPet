@@ -16,6 +16,12 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.51.1] - 2026-10-20
+
+### Fixed
+- **A long link or word in the pet's bubble** (a text received through Pet Post, say) ran
+  out of the bubble. It wraps now.
+
 ## [0.51.0] - 2026-10-19
 
 ### Added
