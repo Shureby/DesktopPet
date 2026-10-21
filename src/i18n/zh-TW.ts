@@ -858,6 +858,7 @@ const zhTW: Dictionary = {
     "Pet Post…": "寵物驛站…",
     "{n} items": "{n} 項",
     "Deliver {what} to…": "把 {what} 送給…",
+    "That's {files}, {size} in all.": "一共 {files}，{size}。",
     "More…": "更多…",
     Accept: "接收",
     Decline: "拒絕",
@@ -1030,6 +1031,8 @@ const zhTW: Dictionary = {
     "Not there any more (moved or deleted).":
       "檔案已不在原處（被移動或刪除了）。",
     "Show in folder": "在資料夾中顯示",
+    "The PIN is set on the other device (LocalSend: Settings → Receive → Require PIN; ePet: Settings → Pet Post → PIN). Ask its owner.":
+      "PIN 碼是在對方裝置上設定的（LocalSend：設定 → 接收 → Require PIN；ePet：設定 → 寵物驛站 → PIN 碼），請向對方詢問。",
     "Couldn't reach it: it may be behind another router, or a firewall stops it. Putting both on the same Wi-Fi, or Tailscale on both, helps.":
       "連不上它：它可能在另一個路由器後面，或被防火牆擋住。讓兩邊連同一個 Wi-Fi，或者都裝 Tailscale，就能解決。",
     "Send the rest again": "重傳剩下的",
@@ -1056,6 +1059,9 @@ const zhTW: Dictionary = {
     "The text you dropped is in. Check it, then Send text.":
       "已填入拖進來的文字，看一下再按「傳送文字」。",
     Paste: "貼上",
+    "Send {files} ({size}) to {who}?": "要把 {files}（{size}）傳給 {who} 嗎？",
+    "That's a lot. Check it's what you meant to send.":
+      "數量不少，確認一下是不是要傳這些。",
   },
   lines: {
     "avoid.leaving.fullscreen": [

@@ -514,6 +514,15 @@ export interface PostTally {
   skipped: number;
 }
 
+/** Asked about before sending: more than this many files, or this much in all. */
+export const LARGE_FILES = 100;
+export const LARGE_BYTES = 1024 ** 3;
+
+/** A delivery big enough to ask about first (a whole disk dropped by mistake, say). */
+export function largeDelivery(m: { files: number; bytes: number }): boolean {
+  return m.files > LARGE_FILES || m.bytes >= LARGE_BYTES;
+}
+
 /** A file's line: "35%", "✓ Finished", "Waiting", "✗ Failed", "Skipped". */
 export function itemStatus(it: PostItem): string {
   switch (it.state) {

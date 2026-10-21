@@ -87,6 +87,8 @@ export class Peer {
   pickupAsks = 0;
   /** How it answers prepare-upload: "accept" | "decline". */
   answer = "accept";
+  /** A PIN it asks senders for (LocalSend's Require PIN); null: none. */
+  pin = null;
   /** Serves plain HTTP (LocalSend's Share via link with Encryption unchecked); else HTTPS. */
   http = false;
 
@@ -160,6 +162,8 @@ export class Peer {
         return json(200, this.info(false));
       case `${API}/prepare-upload`: {
         const offer = JSON.parse(body.toString());
+        if (this.pin && url.searchParams.get("pin") !== this.pin)
+          return json(401);
         this.offers.push(offer);
         if (this.answer === "decline") return json(403);
         const files = Object.keys(offer.files);

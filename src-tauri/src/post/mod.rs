@@ -1068,6 +1068,20 @@ pub async fn post_pick(
     Ok(Some(paths.into_iter().map(|p| p.to_string_lossy().into_owned()).collect()))
 }
 
+/// How many files (folders counted through) and how big: asked before sending a great many.
+#[derive(Debug, Clone, Serialize)]
+pub struct Measure {
+    pub files: usize,
+    pub bytes: u64,
+}
+
+#[tauri::command]
+pub async fn post_measure(paths: Vec<String>) -> Measure {
+    let paths: Vec<PathBuf> = paths.into_iter().map(PathBuf::from).collect();
+    let (files, bytes) = tauri::async_runtime::spawn_blocking(move || client::measure(&paths)).await.unwrap_or((0, 0));
+    Measure { files, bytes }
+}
+
 /// Picks the folder received files go to.
 #[tauri::command]
 pub async fn post_pick_save_dir(app: AppHandle, post: State<'_, Post>) -> CmdResult<Option<String>> {

@@ -155,6 +155,7 @@ pub fn run() {
             post::post_cancel_send,
             post::post_answer,
             post::post_pick,
+            post::post_measure,
             post::post_pick_save_dir,
             post::post_open,
             post::post_peek,

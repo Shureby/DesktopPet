@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import {
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -574,6 +575,83 @@ check(
       box.value = "";
       box.dispatchEvent(new Event("input"));
     });
+  },
+);
+
+check(
+  "post.pin-cancel",
+  "the other device asks for a PIN: no files listed, where the PIN comes from, and Cancel gives up (nothing stuck); the right PIN sends",
+  async () => {
+    const app = ctx.app;
+    const file = join(mkdtempSync(join(tmpdir(), "epet-pin-")), "pinned.txt");
+    writeFileSync(file, "pinned");
+    peer.pin = "1357";
+    try {
+      await postTab("send");
+      await app.waitText(".post-device", "Mock Phone");
+      await app.click(".post-files-more");
+      await app.b.execute(() =>
+        document.querySelector(".post-tab-body h3").click(),
+      );
+      await app.b.execute((p) => window.__post.send(p), [file]);
+      await app.waitText(".post-progress", "Mock Phone asks for a PIN.");
+      await app.waitText(".post-pin-where", "Require PIN");
+      assert.equal(
+        await app.b.execute(
+          () => document.querySelectorAll(".post-progress .post-item").length,
+        ),
+        0,
+      );
+      await app.click(".post-pin-cancel");
+      await app.until(
+        () =>
+          !document.querySelector(".post-progress") &&
+          !!document.querySelector(".post-drop"),
+      );
+      assert.equal(peer.files.has("pinned.txt"), false);
+      // Again, with the PIN.
+      await app.b.execute((p) => window.__post.send(p), [file]);
+      await app.until(() => !!document.querySelector(".post-pin-input"));
+      await app.type(".post-pin-input", "1357");
+      await app.click(".post-pin-send");
+      await until("sent with the PIN", () => peer.files.get("pinned.txt"));
+      await app.waitText(".post-progress", "Delivered to Mock Phone!");
+    } finally {
+      peer.pin = null;
+    }
+  },
+);
+
+check(
+  "post.large",
+  "more than 100 files (or 1 GB) dropped: asked first (how many, how big); Cancel sends nothing, Send sends",
+  async () => {
+    const app = ctx.app;
+    const dir = join(mkdtempSync(join(tmpdir(), "epet-large-")), "many");
+    mkdirSync(dir);
+    for (let i = 0; i < 101; i++) writeFileSync(join(dir, `f${i}.txt`), "x");
+    await postTab("send");
+    await app.waitText(".post-device", "Mock Phone");
+    await app.until(
+      () => !document.querySelector(".post-progress"),
+      [],
+      15_000,
+    );
+    const before = peer.offers.length;
+    await app.b.execute((p) => window.__post.drop(p), [dir]);
+    await app.waitText(".post-large", "Send 101 files");
+    await app.click(".post-large-no");
+    await app.until(
+      () =>
+        !document.querySelector(".post-large") &&
+        !!document.querySelector(".post-drop"),
+    );
+    assert.equal(peer.offers.length, before);
+    await app.b.execute((p) => window.__post.drop(p), [dir]);
+    await app.waitText(".post-large", "Send 101 files");
+    await app.click(".post-large-yes");
+    await app.waitText(".post-progress", "Delivered to Mock Phone!", 30_000);
+    assert.equal(peer.offers.length, before + 1);
   },
 );
 

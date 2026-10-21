@@ -47,6 +47,7 @@ import {
   withoutVerified,
   type PostVerifyAnswer,
   itemStatus,
+  largeDelivery,
   listsItems,
   partialLine,
   retryPaths,
@@ -225,8 +226,23 @@ function dropText(text: string): void {
   box?.setSelectionRange(box.value.length, box.value.length);
 }
 
-function send(paths: string[], text: string | null, pin: string | null = null): void {
+/** A great many files (or much data) about to be sent: asked first. */
+let confirming: { paths: string[]; files: number; bytes: number } | null = null;
+
+function send(paths: string[], text: string | null, pin: string | null = null, sure = false): void {
   if (!selected) return;
+  // Files: how many and how big, first (a whole disk dropped by mistake, say).
+  if (text === null && !pin && !sure) {
+    const go = () => send(paths, null, null, true);
+    void backend.postMeasure(paths).then((m) => {
+      if (!largeDelivery(m)) return go();
+      confirming = { paths, ...m };
+      setSendMode("files");
+      render();
+    }, go);
+    return;
+  }
+  confirming = null;
   mine = { to: selected, paths, text };
   lastText = text !== null;
   textDropped = false;
@@ -1183,6 +1199,39 @@ function progress(): Node | null {
   const over = transferOver(tr);
   const bar = h("progress", { max: 1000, value: Math.floor((tr.done / Math.max(1, tr.total)) * 1000) });
   const rows: Node[] = [h("p", { class: over && tr.state !== "done" ? "warning" : "" }, ...named(transferLine(tr, NAME), tr.peer, tr.fingerprint))];
+  // It asks for a PIN: nothing has been sent yet, so no files listed; the PIN, Send, or
+  // Cancel (to give up: nothing is left half-sent).
+  if (tr.direction === "out" && tr.state === "pin" && mine) {
+    const cancel = () => {
+      mine = null;
+      transfer = null;
+      render();
+    };
+    const input = h("input", { type: "text", class: "post-pin-input", placeholder: t("PIN"), autocomplete: "off" }) as HTMLInputElement;
+    const go = () => {
+      const pin = input.value.trim();
+      if (pin && mine) send(mine.paths, mine.text, pin);
+    };
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") go();
+      if (e.key === "Escape") cancel();
+    });
+    setTimeout(() => input.focus());
+    return h(
+      "div",
+      { class: "box post-progress" },
+      ...rows,
+      mine.text === null ? h("p", { class: "hint post-pin-what" }, `${fileCount(tr.files)} · ${formatSize(tr.total)}`) : null,
+      h(
+        "div",
+        { class: "row" },
+        input,
+        h("button", { class: "primary post-pin-send", onclick: go }, t("Send")),
+        h("button", { class: "post-pin-cancel", onclick: cancel }, t("Cancel")),
+      ),
+      h("p", { class: "hint post-pin-where" }, t("The PIN is set on the other device (LocalSend: Settings → Receive → Require PIN; ePet: Settings → Pet Post → PIN). Ask its owner.")),
+    );
+  }
   // Couldn't get there at all: why that may be.
   if (tr.direction === "out" && tr.state === "failed" && tr.error?.startsWith("unreachable"))
     rows.push(h("p", { class: "hint post-unreachable-hint" }, t("Couldn't reach it: it may be behind another router, or a firewall stops it. Putting both on the same Wi-Fi, or Tailscale on both, helps.")));
@@ -1194,7 +1243,7 @@ function progress(): Node | null {
   if (!(mine?.text ?? lastText)) rows.push(...itemRows(tr));
   if (tr.direction === "out" && !over && mine) rows.push(h("div", { class: "row end" }, h("button", { class: "small post-stop-send", onclick: () => void backend.postCancelSend() }, t("Stop"))));
   const again = retryPaths(tr);
-  if (over && tr.state !== "done" && tr.state !== "pin")
+  if (over && tr.state !== "done")
     rows.push(
       h(
         "div",
@@ -1203,16 +1252,6 @@ function progress(): Node | null {
         h("button", { class: "small post-progress-close", onclick: () => ((transfer = null), render()) }, t("Close")),
       ),
     );
-  if (tr.direction === "out" && tr.state === "pin" && mine) {
-    const input = h("input", { type: "text", class: "post-pin-input", placeholder: t("PIN"), autocomplete: "off" });
-    const go = () => {
-      const pin = input.value.trim();
-      if (pin && mine) send(mine.paths, mine.text, pin);
-    };
-    input.addEventListener("keydown", (e) => e.key === "Enter" && go());
-    rows.push(h("div", { class: "row" }, input, h("button", { class: "primary", onclick: go }, t("Send"))));
-    setTimeout(() => input.focus());
-  }
   return h("div", { class: "box post-progress" }, ...rows);
 }
 
@@ -1372,7 +1411,7 @@ function sendTab(): Node[] {
         : null,
     ),
     ...(files
-      ? [sendFailed ? h("p", { class: "warning post-send-failed" }, sendFailed) : null, dragging || !shown ? zone() : shown]
+      ? [sendFailed ? h("p", { class: "warning post-send-failed" }, sendFailed) : null, confirming && !dragging ? confirmBox(confirming) : dragging || !shown ? zone() : shown]
       : [
           h(
             "div",
@@ -1402,6 +1441,22 @@ function sendTab(): Node[] {
         ]
     ).filter((n): n is Node => n !== null),
   ];
+}
+
+/** "Send 5472 files (2.1 GB) to X?": Send or Cancel. */
+function confirmBox(c: NonNullable<typeof confirming>): Node {
+  return h(
+    "div",
+    { class: "box post-large" },
+    h("p", { class: "post-large-title" }, t("Send {files} ({size}) to {who}?", { files: fileCount(c.files), size: formatSize(c.bytes), who: selectedName() })),
+    h("p", { class: "hint" }, t("That's a lot. Check it's what you meant to send.")),
+    h(
+      "div",
+      { class: "row end" },
+      h("button", { class: "post-large-no", onclick: () => ((confirming = null), render()) }, t("Cancel")),
+      h("button", { class: "primary post-large-yes", onclick: () => send(c.paths, null, null, true) }, t("Send")),
+    ),
+  );
 }
 
 /** Where the cursor is (an input, by its class), to put it back after redrawing. */

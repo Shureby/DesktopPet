@@ -7,6 +7,9 @@ import { t } from "../i18n";
 import type { Backend, Settings } from "../platform";
 import {
   DEVICE_ICONS,
+  fileCount,
+  formatSize,
+  largeDelivery,
   markedName,
   isBlocked,
   sendable,
@@ -177,7 +180,10 @@ export class Courier {
     const name = paths[0].split(/[\\/]/).pop() ?? paths[0];
     const what = paths.length === 1 ? `“${name}”` : t("{n} items", { n: paths.length });
     const shown = this.devices.slice(0, 4);
-    this.host.say(t("Deliver {what} to…", { what }), 30_000, [
+    // A great many files (or much data): said, so a disk dropped by mistake is noticed.
+    const m = await b.postMeasure(paths).catch(() => null);
+    const title = m && largeDelivery(m) ? [t("Deliver {what} to…", { what }), `⚠ ${t("That's {files}, {size} in all.", { files: fileCount(m.files), size: formatSize(m.bytes) })}`] : t("Deliver {what} to…", { what });
+    this.host.say(title, 30_000, [
       ...shown.map((d) => ({ label: `${DEVICE_ICONS[d.deviceType] ?? "💻"} ${markedName(this.host.settings().post, d.alias, d.fingerprint)}`, run: () => this.send(d.fingerprint, paths, null) })),
       ...(this.devices.length > shown.length ? [{ label: t("More…"), run: () => void b.openPostWindow(null, "send") }] : []),
       { label: t("Cancel"), run: () => {} },

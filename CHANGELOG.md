@@ -16,6 +16,18 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.52.1] - 2026-10-21
+
+### Fixed
+- **Pet Post: stuck when the other device asks for a PIN you don't know.** There's now
+  Cancel (or Esc) next to the PIN, a line saying where the PIN is set on the other
+  device, and no list of files while it's asked (nothing has been sent yet).
+
+### Added
+- **Asked before sending a great many files:** more than 100 files, or 1 GB in all
+  ("Send 5472 files (2.1 GB) to X?"), so a whole disk dropped by mistake isn't sent. The
+  pet's "Deliver … to…" says how many and how big too.
+
 ## [0.52.0] - 2026-10-21
 
 ### Added

@@ -880,6 +880,9 @@ export const mockBackend: Backend = {
     return false;
   },
   async postAttention() {},
+  async postMeasure(paths) {
+    return { files: paths.length, bytes: paths.length * 1024 };
+  },
   async postPick() {
     return ["C:/Users/me/Pictures/cat.jpg", "C:/Users/me/Pictures/dog.jpg"];
   },

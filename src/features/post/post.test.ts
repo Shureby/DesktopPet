@@ -38,6 +38,7 @@ import {
   reachLines,
   DOOR_OFF,
   itemStatus,
+  largeDelivery,
   listsItems,
   partialLine,
   retryPaths,
@@ -405,5 +406,14 @@ describe("each file of a delivery", () => {
     expect(shown).toContain("f10");
     expect(shown).toContain("f15");
     expect(tallyLine(t)).toBe("✓ 10 finished · 1 sending · 8 waiting · ✗ 1 failed");
+  });
+});
+
+describe("a large delivery", () => {
+  it("is asked about over 100 files or from 1 GB", () => {
+    expect(largeDelivery({ files: 100, bytes: 1000 })).toBe(false);
+    expect(largeDelivery({ files: 101, bytes: 1000 })).toBe(true);
+    expect(largeDelivery({ files: 1, bytes: 1024 ** 3 - 1 })).toBe(false);
+    expect(largeDelivery({ files: 1, bytes: 1024 ** 3 })).toBe(true);
   });
 });

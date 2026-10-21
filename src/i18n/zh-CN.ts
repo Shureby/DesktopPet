@@ -858,6 +858,7 @@ const zhCN: Dictionary = {
     "Pet Post…": "宠物驿站…",
     "{n} items": "{n} 项",
     "Deliver {what} to…": "把 {what} 送给…",
+    "That's {files}, {size} in all.": "一共 {files}，{size}。",
     "More…": "更多…",
     Accept: "接收",
     Decline: "拒绝",
@@ -1030,6 +1031,8 @@ const zhCN: Dictionary = {
     "Not there any more (moved or deleted).":
       "文件已不在原处（被移动或删除了）。",
     "Show in folder": "在文件夹中显示",
+    "The PIN is set on the other device (LocalSend: Settings → Receive → Require PIN; ePet: Settings → Pet Post → PIN). Ask its owner.":
+      "PIN 码是在对方设备上设置的（LocalSend：设置 → 接收 → Require PIN；ePet：设置 → 宠物驿站 → PIN 码），请问对方要。",
     "Couldn't reach it: it may be behind another router, or a firewall stops it. Putting both on the same Wi-Fi, or Tailscale on both, helps.":
       "连不上它：它可能在另一个路由器后面，或被防火墙挡住。让两边连同一个 Wi-Fi，或者都装 Tailscale，就能解决。",
     "Send the rest again": "重发剩下的",
@@ -1056,6 +1059,9 @@ const zhCN: Dictionary = {
     "The text you dropped is in. Check it, then Send text.":
       "已填入拖进来的文字，看一下再点“发送文字”。",
     Paste: "粘贴",
+    "Send {files} ({size}) to {who}?": "要把 {files}（{size}）发给 {who} 吗？",
+    "That's a lot. Check it's what you meant to send.":
+      "数量不少，确认一下是不是要发这些。",
   },
   lines: {
     "avoid.leaving.fullscreen": [

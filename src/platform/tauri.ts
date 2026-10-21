@@ -94,6 +94,7 @@ export const tauriBackend: Backend = {
   postWindowShown: () => invoke<boolean>("post_window_shown"),
   postAttention: () => invoke("post_attention"),
   postPick: (folder, title) => invoke("post_pick", { folder, title: title ?? null }),
+  postMeasure: (paths) => invoke("post_measure", { paths }),
   postPickSaveDir: () => invoke("post_pick_save_dir"),
   postOpen: (path) => invoke("post_open", { path: path ?? null }),
   openPostWindow: (verify, tab) => invoke("open_post_window", { verify: verify ?? null, tab: tab ?? null }),

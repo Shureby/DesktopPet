@@ -338,6 +338,33 @@ fn collect(paths: &[PathBuf]) -> Result<Vec<(FileInfo, Source)>, String> {
     Ok(out)
 }
 
+/// How many files these paths hold (folders counted through, as `collect` reads them) and
+/// their size, to ask before sending a great many. Stops counting past `MAX_FILES`.
+pub(crate) fn measure(paths: &[PathBuf]) -> (usize, u64) {
+    fn go(path: &Path, depth: u32, files: &mut usize, bytes: &mut u64) {
+        if *files > MAX_FILES {
+            return;
+        }
+        let Ok(meta) = std::fs::metadata(path) else { return };
+        if meta.is_dir() {
+            if depth > 32 {
+                return;
+            }
+            for e in std::fs::read_dir(path).into_iter().flatten().flatten() {
+                go(&e.path(), depth + 1, files, bytes);
+            }
+        } else {
+            *files += 1;
+            *bytes += meta.len();
+        }
+    }
+    let (mut files, mut bytes) = (0, 0);
+    for p in paths {
+        go(p, 0, &mut files, &mut bytes);
+    }
+    (files, bytes)
+}
+
 fn walk(path: &Path, rel: &str, depth: u32, out: &mut Vec<(FileInfo, Source)>) -> Result<(), String> {
     let meta = std::fs::metadata(path).map_err(|e| e.to_string())?;
     if meta.is_dir() {

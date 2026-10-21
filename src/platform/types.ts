@@ -697,6 +697,8 @@ export interface Backend {
   /** Asks for files (or folders) to send; null if cancelled. */
   /** `title`: what the picker says (who it's for). */
   postPick(folder: boolean, title?: string): Promise<string[] | null>;
+  /** How many files these paths hold (folders counted through) and how big. */
+  postMeasure(paths: string[]): Promise<{ files: number; bytes: number }>;
   /** Asks for the folder received files go to; null if cancelled. */
   postPickSaveDir(): Promise<string | null>;
   /** Shows a received file in its folder, or opens the save folder. */
