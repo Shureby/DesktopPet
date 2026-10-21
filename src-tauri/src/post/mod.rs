@@ -575,6 +575,22 @@ impl Inner {
         }
     }
 
+    fn last_dir_file(&self) -> PathBuf {
+        self.data_dir.join("post-last-dir.txt")
+    }
+
+    /// The folder files were last sent from (picked).
+    pub(crate) fn last_dir(&self) -> Option<PathBuf> {
+        let text = std::fs::read_to_string(self.last_dir_file()).ok()?;
+        let dir = PathBuf::from(text.trim());
+        dir.is_dir().then_some(dir)
+    }
+
+    pub(crate) fn set_last_dir(&self, dir: &std::path::Path) {
+        let _ = std::fs::create_dir_all(&self.data_dir);
+        let _ = std::fs::write(self.last_dir_file(), dir.to_string_lossy().as_bytes());
+    }
+
     fn history_file(&self) -> PathBuf {
         self.data_dir.join("post-history.json")
     }
@@ -1014,11 +1030,26 @@ pub fn post_attention(app: AppHandle) {
     crate::app_windows::post_attention(&app);
 }
 
-/// Picks files (or a folder) to send.
+/// Picks files (or a folder) to send: titled for whom it's for (`title`, as the window
+/// says it), over the window that asks (modal: nothing else is clicked meanwhile), in the
+/// folder files were last sent from (else Documents).
 #[tauri::command]
-pub async fn post_pick(app: AppHandle, folder: bool) -> Option<Vec<String>> {
+pub async fn post_pick(
+    app: AppHandle,
+    window: tauri::Window,
+    post: State<'_, Post>,
+    folder: bool,
+    title: Option<String>,
+) -> CmdResult<Option<Vec<String>>> {
     let (tx, rx) = oneshot::channel();
-    let dialog = app.dialog().file();
+    let start = post.0.last_dir().or_else(|| app.path().document_dir().ok());
+    let mut dialog = app.dialog().file().set_parent(&window);
+    if let Some(t) = title.filter(|t| !t.trim().is_empty()) {
+        dialog = dialog.set_title(t);
+    }
+    if let Some(dir) = start.filter(|d| d.is_dir()) {
+        dialog = dialog.set_directory(dir);
+    }
     if folder {
         dialog.pick_folders(move |p| {
             let _ = tx.send(p);
@@ -1028,8 +1059,13 @@ pub async fn post_pick(app: AppHandle, folder: bool) -> Option<Vec<String>> {
             let _ = tx.send(p);
         });
     }
-    let picked = rx.await.ok().flatten()?;
-    Some(picked.into_iter().filter_map(|p| p.into_path().ok()).map(|p| p.to_string_lossy().into_owned()).collect())
+    let Some(picked) = rx.await.ok().flatten() else { return Ok(None) };
+    let paths: Vec<PathBuf> = picked.into_iter().filter_map(|p| p.into_path().ok()).collect();
+    // Next time, where these came from (a folder: where it is).
+    if let Some(dir) = paths.first().and_then(|p| p.parent()) {
+        post.0.set_last_dir(dir);
+    }
+    Ok(Some(paths.into_iter().map(|p| p.to_string_lossy().into_owned()).collect()))
 }
 
 /// Picks the folder received files go to.

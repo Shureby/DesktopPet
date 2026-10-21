@@ -822,8 +822,19 @@ src-tauri/src/post/, crates/desktoppet-core/src/post.rs).
 - **Sending:** drop files or folders on the pet: it asks "Deliver “x” to…" with the devices
   found (up to four, then "More…"). Or the Pet Post window (right-click the pet, or the
   tray → "Open Pet Post…"): pick a device, then "Send files…" (its ▾: "Files…" or "A
-  folder…") or "💬 Send a message" (since 0.51.0: a switch that opens the text box, kept
-  on this computer and open while a draft is unsent; "Send text" is grey while it's empty).
+  folder…") or "💬 Send a message". Since 0.52.0 the two are a choice: the one chosen is
+  dark, and below it is either the files side (a dashed "Drop files or folders here to
+  send to X", or how the delivery goes) or the message (text box, Paste, Send text, grey
+  while it's empty). The choice is kept on this computer; a draft left while on files
+  shows as a dot on "Send a message".
+  - Files and folders dropped anywhere on the Pet Post window are sent to the selected
+    device ("Let go to send to X" while dragging; "Pick a device above first." or "Wait
+    until this delivery is done." when they can't be). Text dropped goes into the message,
+    after the draft, and isn't sent ("The text you dropped is in. Check it, then Send
+    text.").
+  - The file picker says whom it's for ("Choose files to send to X"), sits over the Pet
+    Post window (nothing else there can be clicked meanwhile) and opens where files were
+    last sent from (first: Documents). The window's title bar says Pet Post.
   - Each file has its line (since 0.51.0, sending and receiving, when there's more than
     one): name, progress bar and percentage, "✓ Finished", "Waiting", "✗ Failed" or
     "Skipped" (the receiver didn't want it). Many files: at most eight lines (failed and

@@ -908,10 +908,14 @@ const zhTW: Dictionary = {
     "Rooster crow": "公雞啼叫",
     "Office trill": "辦公室鈴聲",
     "Field phone": "野戰電話",
+    "Pick a device above first.": "先在上面選一台裝置。",
+    "Wait until this delivery is done.": "等這批傳完再傳。",
     "Added {name}.": "已加入 {name}。",
     "Verified on {date}: the icons matched on both screens.":
       "{date} 核對過：兩邊螢幕上的圖示一致。",
     Verified: "已核對",
+    "Choose a folder to send to {who}": "選擇要傳送給 {who} 的資料夾",
+    "Choose files to send to {who}": "選擇要傳送給 {who} 的檔案",
     "⚠ Another device answers there now.": "⚠ 這個位址上現在是另一台裝置。",
     "Not answering.": "沒有回應。",
     "It's behind another router: what's sent to it waits until it collects it.":
@@ -1036,13 +1040,21 @@ const zhTW: Dictionary = {
       "可與手機和電腦上的 LocalSend 互傳，也可與其他電腦上的 ePet 互傳。",
     "A message, a link…": "一段話、一個連結…",
     "Send text": "傳送文字",
+    "Let go to send to {who}": "放開就傳送給 {who}",
+    "Drop files or folders here to send to {who}":
+      "把檔案或資料夾拖到這裡，傳給 {who}",
+    "You can also drop them on the pet.": "也可以拖到寵物身上。",
+    "Pick a device above, then drop files or folders here.":
+      "先在上面選一台裝置，再把檔案或資料夾拖到這裡。",
     "Send to": "傳給",
     "Send files…": "傳送檔案…",
     "Files or a folder": "檔案或資料夾",
     "Send a message": "傳訊息",
+    "A message you haven't sent": "有沒傳出的訊息",
     "Files…": "檔案…",
     "A folder…": "資料夾…",
-    "Or drop files on the pet.": "也可以把檔案拖到寵物身上。",
+    "The text you dropped is in. Check it, then Send text.":
+      "已填入拖進來的文字，看一下再按「傳送文字」。",
     Paste: "貼上",
   },
   lines: {

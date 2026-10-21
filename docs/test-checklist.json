@@ -1634,12 +1634,21 @@
         },
         {
           "id": "post.send",
-          "rev": "0.51.0",
+          "rev": "0.52.0",
           "ci": "partial",
           "mac": true,
           "human": "文件选择对话框；手机上收到的文件和文件夹",
           "do": "Pet Post 窗口：选手机，点 📄 Send files… 选几个文件；再点它旁边的 ▾ → 📁 A folder…；再点 💬 Send a message，写一句话点 Send text",
-          "expect": "Send files… 和 ▾ 连在一起，▾ 里有 Files… / A folder…，点别处菜单收起；手机上先问是否接收，接收后窗口显示进度条和 Delivering to <手机>… %，完成显示 Delivered to <手机>!；Send a message 是开关：点了才出现文本框（按钮变成按下的样子，下次打开驿站保持），文本框空着时 Send text 是灰的，打了字才变成橙色可点；点 Paste 时剪贴板里的文字直接进文本框（Mac 上不会再弹出“粘贴”气泡要你再点一次）；文字在手机上显示为消息，送到后文本框清空（对方拒收时文字保留，可以再发）；发送中点 Stop 能取消"
+          "expect": "选中的那个（Send files… 或 Send a message）是深色，另一个是白底；选文件窗口的标题写着“选择要发送给 <手机> 的文件”，挂在驿站窗口上（选完之前驿站窗口点不动），从上次发送的文件夹开始（第一次从“文档”）；Send files… 和 ▾ 连在一起，▾ 里有 Files… / A folder…，点别处菜单收起；手机上先问是否接收，接收后窗口显示进度条和 Delivering to <手机>… %，完成显示 Delivered to <手机>!；Send a message 是开关：点了才出现文本框（按钮变成按下的样子，下次打开驿站保持），文本框空着时 Send text 是灰的，打了字才变成橙色可点；点 Paste 时剪贴板里的文字直接进文本框（Mac 上不会再弹出“粘贴”气泡要你再点一次）；文字在手机上显示为消息，送到后文本框清空（对方拒收时文字保留，可以再发）；发送中点 Stop 能取消"
+        },
+        {
+          "id": "post.drop-window",
+          "rev": "0.52.0",
+          "ci": "partial",
+          "mac": true,
+          "human": "真的从资源管理器 / 访达拖文件、文件夹和一段文字进窗口（自动测试只能模拟松手那一下）",
+          "do": "Pet Post 窗口 → 发送：先在 Send a message 里打几个字，再点 Send files… 的 ▾ 收起；从资源管理器（Mac：访达）把几个文件、一个文件夹拖进窗口；再从浏览器或文档里选一段文字拖进窗口；窗口标题栏",
+          "expect": "切到文件模式后文字框收起，Send a message 上有一个小圆点（草稿还在）；下面是虚线框“Drop files or folders here to send to <设备>”；拖着文件经过窗口时框变亮写“Let go to send to <设备>”和文件数，松手就开始发送，进度框里每个文件一行；没选设备时写“Pick a device above first.”，正在发另一批时写“Wait until this delivery is done.”；拖进文字：切到消息模式，文字接在草稿后面另起一行，写“The text you dropped is in…”，不自动发送（Windows / Mac 上如果拖文字没反应，记下来）；窗口标题栏写 Pet Post"
         },
         {
           "id": "post.send-files",

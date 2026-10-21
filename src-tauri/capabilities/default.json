@@ -9,6 +9,7 @@
     "core:tray:default",
     "core:window:allow-set-focus",
     "core:window:allow-hide",
+    "core:window:allow-set-title",
     "autostart:allow-enable",
     "autostart:allow-disable",
     "autostart:allow-is-enabled"

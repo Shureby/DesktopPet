@@ -503,6 +503,81 @@ check(
 );
 
 check(
+  "post.drop-window",
+  "Send files and Send a message: the one chosen is dark; files or folders dropped on the window are sent; text dropped goes into the message (after the draft), not sent",
+  async () => {
+    const app = ctx.app;
+    const dir = mkdtempSync(join(tmpdir(), "epet-drop-"));
+    const names = ["dropped-1.txt", "dropped-2.txt"];
+    for (const n of names) writeFileSync(join(dir, n), `dropped ${n}`);
+    await postTab("send");
+    await app.waitText(".post-device", "Mock Phone");
+    // A draft, then Files: the message box goes (the draft stays: a dot says so).
+    await openMessage();
+    await app.type(".post-text", "half a message");
+    assert.equal(
+      await app.b.execute(() =>
+        document.querySelector(".post-message").classList.contains("primary"),
+      ),
+      true,
+    );
+    await app.click(".post-files-more");
+    await app.b.execute(() =>
+      document.querySelector(".post-tab-body h3").click(),
+    );
+    await app.until(
+      () =>
+        !document.querySelector(".post-text") &&
+        !!document.querySelector(".post-draft-dot"),
+    );
+    assert.equal(
+      await app.b.execute(() =>
+        document.querySelector(".post-files").classList.contains("primary"),
+      ),
+      true,
+    );
+    await app.waitText(
+      ".post-drop",
+      "Drop files or folders here to send to Mock Phone",
+    );
+    // Dropped on the window (the app's drop, as the system gives it): sent.
+    await app.b.execute(
+      (paths) => window.__post.drop(paths),
+      names.map((n) => join(dir, n)),
+    );
+    await until("dropped files arrived", () =>
+      names.every((n) => peer.files.get(n)),
+    );
+    await app.waitText(".post-progress", "Delivered to Mock Phone!");
+    await app.until(() => !!document.querySelector(".post-drop"), [], 15_000);
+    // Text dropped: into the message, after the draft; not sent.
+    await app.b.execute(() => {
+      const dt = new DataTransfer();
+      dt.setData("text/plain", "https://example.com/x");
+      document.querySelector(".post-drop").dispatchEvent(
+        new DragEvent("drop", {
+          dataTransfer: dt,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+    await app.until(
+      () =>
+        document.querySelector(".post-text")?.value ===
+        "half a message\nhttps://example.com/x",
+    );
+    await app.waitText(".post-dropped-text", "The text you dropped is in");
+    assert.equal(peer.texts?.includes("https://example.com/x") ?? false, false);
+    await app.b.execute(() => {
+      const box = document.querySelector(".post-text");
+      box.value = "";
+      box.dispatchEvent(new Event("input"));
+    });
+  },
+);
+
+check(
   "post.receive-files",
   "receiving several files: the Pet Post window lists each with how far it is",
   async () => {

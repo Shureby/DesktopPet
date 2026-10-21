@@ -1768,12 +1768,6 @@ button.danger {
   padding-left: 9px;
   padding-right: 9px;
 }
-.post-message.on {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
-  font-weight: 700;
-}
 .post-send-menu {
   position: absolute;
   top: calc(100% + 4px);
@@ -1798,6 +1792,54 @@ button.danger {
 .post-send-menu button:hover,
 .post-send-menu button:focus-visible {
   background: var(--accent-soft);
+}
+.post-drop {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  margin: 8px 0;
+  padding: 22px 12px;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+.post-drop strong,
+.post-drop span:first-child {
+  color: var(--fg);
+}
+.post-drop.hot {
+  border-style: solid;
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.post-drop.hot strong {
+  color: var(--accent);
+}
+.post-draft-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: 2px;
+}
+.post-dropped-text {
+  margin: 6px 0 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #eaf6ec;
+  color: #2a6b3a;
+  font-size: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  .post-dropped-text {
+    background: #1f3a26;
+    color: #8fd6a2;
+  }
 }
 .post-message-box {
   border: 1px solid var(--border);

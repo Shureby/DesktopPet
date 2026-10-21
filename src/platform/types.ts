@@ -695,7 +695,8 @@ export interface Backend {
   /** The Pet Post window behind others: its taskbar button flashes. */
   postAttention(): Promise<void>;
   /** Asks for files (or folders) to send; null if cancelled. */
-  postPick(folder: boolean): Promise<string[] | null>;
+  /** `title`: what the picker says (who it's for). */
+  postPick(folder: boolean, title?: string): Promise<string[] | null>;
   /** Asks for the folder received files go to; null if cancelled. */
   postPickSaveDir(): Promise<string | null>;
   /** Shows a received file in its folder, or opens the save folder. */

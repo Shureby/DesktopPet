@@ -156,28 +156,80 @@ let sendFailed = "";
 let filesMenu = false;
 /** The delivery shown was a text (its files aren't listed). */
 let lastText = false;
-/** "Send a message" is open (remembered on this computer). */
-let messageOpen = (() => {
+/** Send: files (picked or dropped) or a message (remembered on this computer). */
+type SendMode = "files" | "message";
+let sendMode: SendMode = (() => {
   try {
-    return localStorage.getItem("post.messageOpen") === "1";
+    const m = localStorage.getItem("post.sendMode");
+    if (m === "files" || m === "message") return m;
+    // (0.51 kept whether the message box was open.)
+    return localStorage.getItem("post.messageOpen") === "1" ? "message" : "files";
   } catch {
-    return false;
+    return "files";
   }
 })();
 
-function setMessageOpen(open: boolean): void {
-  messageOpen = open;
+function setSendMode(mode: SendMode): void {
+  sendMode = mode;
   try {
-    localStorage.setItem("post.messageOpen", open ? "1" : "0");
+    localStorage.setItem("post.sendMode", mode);
   } catch {
     // Not kept: fine.
   }
+}
+
+/** Files being dragged over the window: how many (0: none). */
+let dragging = 0;
+/** A drop that was refused: why (said for a moment where it was dropped). */
+let dropNote = "";
+/** Text was dropped and filled in (said until it's sent or typed on). */
+let textDropped = false;
+
+/** The selected device's name. */
+function selectedName(): string {
+  return devices.find((d) => d.fingerprint === selected)?.alias ?? "";
+}
+
+function sendingNow(): boolean {
+  return !!transfer && !transferOver(transfer);
+}
+
+function dropNoteFor(msg: string): void {
+  dropNote = msg;
+  render();
+  setTimeout(() => dropNote === msg && ((dropNote = ""), render()), 4000);
+}
+
+/** Files or folders dropped on the window: sent to the selected device. */
+function dropFiles(paths: string[]): void {
+  dragging = 0;
+  if (!paths.length) return render();
+  if (tab !== "send") tab = "send";
+  setSendMode("files");
+  if (!selected) return dropNoteFor(t("Pick a device above first."));
+  if (sendingNow()) return dropNoteFor(t("Wait until this delivery is done."));
+  send(paths, null);
+}
+
+/** Text dropped on the window: into the message (after what's there), not sent. */
+function dropText(text: string): void {
+  const dropped = text.trim();
+  if (!dropped) return;
+  draft = draft.trim() ? `${draft.replace(/\s+$/, "")}\n${dropped}` : dropped;
+  if (tab !== "send") tab = "send";
+  setSendMode("message");
+  textDropped = true;
+  render();
+  const box = root.querySelector<HTMLTextAreaElement>(".post-text");
+  box?.focus();
+  box?.setSelectionRange(box.value.length, box.value.length);
 }
 
 function send(paths: string[], text: string | null, pin: string | null = null): void {
   if (!selected) return;
   mine = { to: selected, paths, text };
   lastText = text !== null;
+  textDropped = false;
   filesMenu = false;
   sendFailed = "";
   backend.postSend(selected, paths, text, pin).catch((e) => {
@@ -322,7 +374,11 @@ async function turnOn(): Promise<void> {
 }
 
 async function pick(folder: boolean): Promise<void> {
-  const paths = await backend.postPick(folder);
+  setSendMode("files");
+  render();
+  const who = selectedName();
+  const title = folder ? t("Choose a folder to send to {who}", { who }) : t("Choose files to send to {who}", { who });
+  const paths = await backend.postPick(folder, title);
   if (paths?.length) send(paths, null);
 }
 
@@ -1160,8 +1216,17 @@ function progress(): Node | null {
   return h("div", { class: "box post-progress" }, ...rows);
 }
 
+/** The window's own title bar (not just the page's title): Pet Post, in the app's language. */
+let titled = "";
+function windowTitle(title: string): void {
+  if (title === titled || backend.kind !== "tauri") return;
+  titled = title;
+  void import("@tauri-apps/api/window").then(({ getCurrentWindow }) => getCurrentWindow().setTitle(title)).catch(() => {});
+}
+
 function render(): void {
   document.title = t("Pet Post");
+  windowTitle(t("Pet Post"));
   if (verifying) {
     root.replaceChildren(verifyView());
     return;
@@ -1209,9 +1274,9 @@ function render(): void {
 
 /** The Send tab: devices (found, added by address), files, a folder or a text, and how it goes. */
 function sendTab(): Node[] {
-  const busy = !!transfer && !transferOver(transfer);
-  // An unsent draft keeps the message open.
-  const open = messageOpen || !!draft.trim();
+  const busy = sendingNow();
+  // Files dragged over the window: the files side shows, to drop them on.
+  const mode: SendMode = dragging ? "files" : sendMode;
   const text = h("textarea", { class: "post-text", rows: 3, placeholder: t("A message, a link…") }) as HTMLTextAreaElement;
   text.value = draft;
   const canSendText = () => !!selected && !busy && !!draft.trim();
@@ -1228,9 +1293,26 @@ function sendTab(): Node[] {
   ) as HTMLButtonElement;
   text.addEventListener("input", () => {
     draft = text.value;
+    textDropped = false;
+    root.querySelector(".post-dropped-text")?.remove();
     sendText.disabled = !canSendText();
     sendText.classList.toggle("primary", canSendText());
   });
+  const files = mode === "files";
+  // How the delivery shown goes: the files' under Files, a text's under the message.
+  const shown = transfer && (lastText ? !files : files) ? progress() : null;
+  const who = selectedName();
+  const zone = () => {
+    const lines: Node[] = [];
+    if (dragging) {
+      if (!selected) lines.push(h("strong", {}, t("Pick a device above first.")));
+      else if (busy) lines.push(h("strong", {}, t("Wait until this delivery is done.")));
+      else lines.push(h("strong", {}, `⬇ ${t("Let go to send to {who}", { who })}`), h("span", { class: "hint" }, fileCount(dragging)));
+    } else if (dropNote) lines.push(h("strong", { class: "warning" }, dropNote));
+    else if (selected) lines.push(h("span", {}, t("Drop files or folders here to send to {who}", { who })), h("span", { class: "hint" }, t("You can also drop them on the pet.")));
+    else lines.push(h("span", {}, t("Pick a device above, then drop files or folders here.")));
+    return h("div", { class: `post-drop${dragging ? " hot" : ""}` }, ...lines);
+  };
   return [
     h(
       "div",
@@ -1245,18 +1327,19 @@ function sendTab(): Node[] {
       { class: "row post-send" },
       h(
         "span",
-        { class: "post-split" },
-        h("button", { class: "primary post-files", disabled: !selected || busy, onclick: () => ((filesMenu = false), void pick(false)) }, `📄 ${t("Send files…")}`),
+        { class: `post-split${files ? " on" : ""}` },
+        h("button", { class: `post-files${files ? " primary" : ""}`, disabled: !selected || busy, onclick: () => ((filesMenu = false), void pick(false)) }, `📄 ${t("Send files…")}`),
         h(
           "button",
           {
-            class: "primary post-files-more",
+            class: `post-files-more${files ? " primary" : ""}`,
             disabled: !selected || busy,
             title: t("Files or a folder"),
             "aria-label": t("Files or a folder"),
             "aria-expanded": String(filesMenu),
             onclick: (e: Event) => {
               e.stopPropagation();
+              setSendMode("files");
               filesMenu = !filesMenu;
               render();
             },
@@ -1267,15 +1350,17 @@ function sendTab(): Node[] {
       h(
         "button",
         {
-          class: `post-message${open ? " on" : ""}`,
-          "aria-pressed": String(open),
+          class: `post-message${files ? "" : " primary"}`,
+          "aria-pressed": String(!files),
           onclick: () => {
-            setMessageOpen(!open);
+            setSendMode("message");
             render();
-            if (messageOpen) root.querySelector<HTMLTextAreaElement>(".post-text")?.focus();
+            root.querySelector<HTMLTextAreaElement>(".post-text")?.focus();
           },
         },
         `💬 ${t("Send a message")}`,
+        // A draft waits there.
+        files && draft.trim() ? h("span", { class: "post-draft-dot", title: t("A message you haven't sent") }) : null,
       ),
       filesMenu && selected && !busy
         ? h(
@@ -1286,13 +1371,14 @@ function sendTab(): Node[] {
           )
         : null,
     ),
-    h("p", { class: "hint" }, t("Or drop files on the pet.")),
-    ...(open
-      ? [
+    ...(files
+      ? [sendFailed ? h("p", { class: "warning post-send-failed" }, sendFailed) : null, dragging || !shown ? zone() : shown]
+      : [
           h(
             "div",
             { class: "post-message-box" },
             text,
+            textDropped ? h("p", { class: "post-dropped-text" }, `✓ ${t("The text you dropped is in. Check it, then Send text.")}`) : null,
             h(
               "div",
               { class: "row" },
@@ -1311,9 +1397,10 @@ function sendTab(): Node[] {
               sendText,
             ),
           ),
+          sendFailed ? h("p", { class: "warning post-send-failed" }, sendFailed) : null,
+          shown,
         ]
-      : []),
-    ...[sendFailed ? h("p", { class: "warning post-send-failed" }, sendFailed) : null, progress()].filter((n): n is Node => n !== null),
+    ).filter((n): n is Node => n !== null),
   ];
 }
 
@@ -1343,8 +1430,36 @@ async function main(): Promise<void> {
       render();
     }
   });
-  // Tests send files from here as the file dialog would (it can't be driven).
-  if (await backend.e2eEnabled()) Object.assign(window, { __post: { send: (paths: string[]) => send(paths, null) } });
+  // Tests send files from here as the file dialog (or a drop) would: neither can be driven.
+  if (await backend.e2eEnabled()) Object.assign(window, { __post: { send: (paths: string[]) => send(paths, null), drop: dropFiles } });
+  // Text dropped on the window (files come through the app, below): into the message.
+  document.addEventListener("dragover", (e) => {
+    const types = e.dataTransfer?.types ?? [];
+    if (types.includes("text/plain") && !types.includes("Files")) e.preventDefault();
+  });
+  document.addEventListener("drop", (e) => {
+    const dt = e.dataTransfer;
+    if (!dt || dt.types.includes("Files")) return;
+    const dropped = dt.getData("text/plain");
+    if (!dropped.trim()) return;
+    e.preventDefault();
+    dropText(dropped);
+  });
+  // Files and folders dropped on the window (the app gives their paths).
+  if (backend.kind === "tauri") {
+    const { getCurrentWebview } = await import("@tauri-apps/api/webview");
+    await getCurrentWebview().onDragDropEvent((e) => {
+      const p = e.payload;
+      if (p.type === "enter") {
+        dragging = p.paths.length;
+        if (dragging && tab !== "send") tab = "send";
+        render();
+      } else if (p.type === "leave") {
+        dragging = 0;
+        render();
+      } else if (p.type === "drop") dropFiles(p.paths);
+    });
+  }
   await followTestClock(backend, () => render());
   settings = await backend.getSettings();
   await followLocale(backend, settings);

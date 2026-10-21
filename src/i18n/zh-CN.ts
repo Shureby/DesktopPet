@@ -908,10 +908,14 @@ const zhCN: Dictionary = {
     "Rooster crow": "公鸡打鸣",
     "Office trill": "办公室铃声",
     "Field phone": "野战电话",
+    "Pick a device above first.": "先在上面选一台设备。",
+    "Wait until this delivery is done.": "等这批发完再发。",
     "Added {name}.": "已添加 {name}。",
     "Verified on {date}: the icons matched on both screens.":
       "{date} 核对过：两边屏幕上的图标一致。",
     Verified: "已核对",
+    "Choose a folder to send to {who}": "选择要发送给 {who} 的文件夹",
+    "Choose files to send to {who}": "选择要发送给 {who} 的文件",
     "⚠ Another device answers there now.": "⚠ 这个地址上现在是另一台设备。",
     "Not answering.": "没有回应。",
     "It's behind another router: what's sent to it waits until it collects it.":
@@ -1036,13 +1040,21 @@ const zhCN: Dictionary = {
       "可与手机和电脑上的 LocalSend 互传，也可与其他电脑上的 ePet 互传。",
     "A message, a link…": "一段话、一个链接…",
     "Send text": "发送文字",
+    "Let go to send to {who}": "松手就发送给 {who}",
+    "Drop files or folders here to send to {who}":
+      "把文件或文件夹拖到这里，发给 {who}",
+    "You can also drop them on the pet.": "也可以拖到宠物身上。",
+    "Pick a device above, then drop files or folders here.":
+      "先在上面选一台设备，再把文件或文件夹拖到这里。",
     "Send to": "发给",
     "Send files…": "发送文件…",
     "Files or a folder": "文件或文件夹",
     "Send a message": "发消息",
+    "A message you haven't sent": "有没发出的消息",
     "Files…": "文件…",
     "A folder…": "文件夹…",
-    "Or drop files on the pet.": "也可以把文件拖到宠物身上。",
+    "The text you dropped is in. Check it, then Send text.":
+      "已填入拖进来的文字，看一下再点“发送文字”。",
     Paste: "粘贴",
   },
   lines: {

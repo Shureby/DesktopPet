@@ -16,6 +16,21 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.52.0] - 2026-10-21
+
+### Added
+- **Pet Post: drop files, folders or text on the window.** Files and folders dropped
+  anywhere on the Pet Post window go to the selected device; text dropped goes into the
+  message (after what's there), to check before sending.
+
+### Changed
+- **Pet Post → Send: files or a message.** The one chosen is dark; the message box shows
+  only for a message (a draft stays, a dot on "Send a message" says so), and the files
+  side shows where to drop them, or how the delivery goes.
+- **The file picker says whom it's for** ("Choose files to send to X"), stays over the Pet
+  Post window until you pick, and opens where files were last sent from. The window's
+  title bar says Pet Post.
+
 ## [0.51.2] - 2026-10-20
 
 ### Fixed
