@@ -302,6 +302,19 @@ extensions we already have (`epet: 1` in the device info, LocalSend ignores it;
 
 Windows (direct download, then Steam) ships first; macOS next; Android last.
 
+## Steam launch (Early Access): waits for the owner's go-ahead
+
+Decided 2026-10-20: Steam first, paid, as Early Access. **Not started until the owner
+says so** (there are still things to adjust first). When it starts:
+- Owner: Steamworks account, the $100 app fee (at least 30 days before release), the tax
+  interview (W-8BEN-E, treaty rate), ChimePet / 铃宠 trademark and domain checks.
+- Code: the ChimePet rename (last change before the store build), the real App ID and
+  achievements, a check of the Steam build on a PC without WebView2 (an install script
+  if needed), the store copy (docs/store/steam-page.md), a trailer script and
+  screenshots; the Coming soon page at least two weeks before release.
+- Price: US$4.99 in Early Access (a launch discount), US$6.99–7.99 at full release;
+  Steam's suggested regional prices.
+
 ## Android (low priority, after Windows and macOS)
 
 Discussed 2026-10-20; not scheduled.
