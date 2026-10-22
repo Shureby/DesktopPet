@@ -20,6 +20,8 @@ interface Climb {
   top: number;
   /** Window to step onto at the top, if climbing a window's side. */
   windowId?: string;
+  /** Screen (area) to step onto at the top: a neighbouring screen's higher floor. */
+  area?: number;
 }
 
 const climbOf = (p: Pet) => p.scratch.climb as Climb | undefined;
@@ -42,6 +44,11 @@ export const climbWall: AbilityModule<Params> = {
     const [, top, , floor] = areaBounds(p);
     p.facing = side === "left" ? -1 : 1;
     return startClimb(p, { x: p.body.x, top: floor - (floor - top) * params.maxHeight * (0.5 + p.rng() * 0.5) });
+  },
+  onLedge(p, ledge) {
+    if (p.def.stats.climbSpeed <= 0) return;
+    p.facing = ledge.side === "left" ? -1 : 1;
+    return startClimb(p, { x: p.body.x, top: ledge.top, area: ledge.area });
   },
   onCrossWindowSide(p, edge, params) {
     if (p.state !== "walk" && p.state !== "run") return;
@@ -67,6 +74,13 @@ export const climbWall: AbilityModule<Params> = {
         p.body.x = win ? (p.facing === 1 ? win.x : win.x + win.w) - (p.facing * p.body.w) / 2 : c.x;
         p.body.y -= p.u(p.def.stats.climbSpeed) * dt;
         if (p.body.y > top) return;
+        if (c.area !== undefined && p.world.areas[c.area]) {
+          // Over the edge onto the higher screen's floor.
+          p.body.y = c.top;
+          p.body.x += p.facing * p.body.w;
+          p.body.support = { kind: "floor", area: c.area };
+          return p.next();
+        }
         if (win) {
           // Pull up onto the window's top edge.
           p.body.y = win.y;

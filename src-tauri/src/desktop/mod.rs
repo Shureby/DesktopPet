@@ -26,9 +26,21 @@ pub struct WindowRect {
     pub h: f64,
 }
 
+/// A monitor, for choosing the screens the pet lives on (in the order of `areas`).
+#[derive(Debug, Clone, Serialize)]
+pub struct Screen {
+    /// The same monitor at the same place is the same screen after a restart.
+    pub id: String,
+    pub name: String,
+    pub primary: bool,
+    /// The whole monitor (the diagram in Settings), physical px.
+    pub frame: Rect,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct DesktopSnapshot {
     pub areas: Vec<Rect>,
+    pub screens: Vec<Screen>,
     /// Front-to-back z-order.
     pub windows: Vec<WindowRect>,
     pub scale: f64,
@@ -55,10 +67,28 @@ fn area(m: &Monitor) -> Area {
     }
 }
 
+pub fn screen(m: &Monitor, primary: Option<&Monitor>) -> Screen {
+    let (p, z) = (m.position(), m.size());
+    let name = m.name().cloned().unwrap_or_default();
+    Screen {
+        id: screen_id(&name, p.x, p.y, z.width, z.height),
+        primary: primary.is_some_and(|q| q.name() == m.name() && q.position() == p),
+        frame: Rect { x: p.x as f64, y: p.y as f64, w: z.width as f64, h: z.height as f64 },
+        name,
+    }
+}
+
+pub fn screen_id(name: &str, x: i32, y: i32, w: u32, h: u32) -> String {
+    format!("{name}|{w}x{h}|{x},{y}")
+}
+
 pub fn snapshot<R: Runtime>(pet: &WebviewWindow<R>) -> tauri::Result<DesktopSnapshot> {
-    let areas: Vec<Area> = pet.available_monitors()?.iter().map(area).collect();
+    let monitors = pet.available_monitors()?;
+    let primary = pet.primary_monitor()?;
+    let areas: Vec<Area> = monitors.iter().map(area).collect();
+    let screens = monitors.iter().map(|m| screen(m, primary.as_ref())).collect();
     let scale = pet.scale_factor()?;
-    Ok(DesktopSnapshot { windows: list_windows(&areas), areas: areas.iter().map(|a| a.rect).collect(), scale })
+    Ok(DesktopSnapshot { windows: list_windows(&areas), areas: areas.iter().map(|a| a.rect).collect(), screens, scale })
 }
 
 /// Other applications' visible windows, front-to-back, excluding our own.

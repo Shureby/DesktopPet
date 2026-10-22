@@ -16,6 +16,18 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.53.0] - 2026-10-22
+
+### Added
+- **Choose the screens the pet lives on** (Settings → Screens the pet lives on): the
+  screens as arranged, a tick on each (all ticked, new ones too), **Identify** to show each
+  screen's number on it, **Detect again**. The pet starts, walks and comes out (alarms,
+  anniversaries) only on ticked screens; an unticked screen's edge is a wall.
+- **Visits:** carried onto an unticked screen, the pet plays there, then after 10 minutes
+  walks home (or, with no ticked screen next to it, vanishes and appears on the nearest).
+- **Screens not aligned at the bottom:** the pet no longer gets stuck on the lowest one.
+  Heading for a higher screen it climbs (cat), flutters up (rooster) or jumps (others).
+
 ## [0.52.1] - 2026-10-21
 
 ### Fixed

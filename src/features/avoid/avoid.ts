@@ -85,9 +85,12 @@ export function catchUp<T>(held: Held<T>[], now: number): { ring: Held<T>[]; mis
  * An important alarm while a slide show runs: the pet comes out on a screen without it (the
  * presenter's), if the one it's on shows the slides. Returns the area's index.
  */
-export function outOfTheSlideShow(areas: Rect[], current: number, slideshows: Rect[]): number {
+export function outOfTheSlideShow(areas: Rect[], current: number, slideshows: Rect[], home?: boolean[]): number {
   if (!areas[current] || !showsSlides(areas[current], slideshows)) return current;
-  const other = areas.findIndex((a) => !showsSlides(a, slideshows));
+  // A screen it lives on first (Settings → Screens the pet lives on), else any other.
+  const free = (a: Rect) => !showsSlides(a, slideshows);
+  const lives = areas.findIndex((a, i) => free(a) && home?.[i] !== false);
+  const other = lives >= 0 ? lives : areas.findIndex(free);
   return other >= 0 ? other : current;
 }
 

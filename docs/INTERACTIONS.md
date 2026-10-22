@@ -753,12 +753,41 @@ panel.
 - **Settings is grouped by what it's about:**
   - Pet: size, speed, and "When hidden, it comes out for" (with its warning); Quiet hours
     before 0.37.0;
+  - Screens the pet lives on (since 0.53.0, see "Screens");
   - Modes (since 0.37.0, see "Modes");
   - Alarms & timers: ring (tone, preview, volume), Ring for / If nobody answers side by
     side, coming to the middle, the 🔔 look-ahead;
   - To-do reminders: ring, coming to the middle;
   - General: start with the computer, other sounds (petting);
   - Backup (since 0.35.0).
+
+## Screens (since 0.53.0)
+
+Settings → Screens the pet lives on: the screens as they are arranged (as in the
+system's display settings), each with its number, size ("main" on the main one) and a
+**Here** tick.
+
+- **All ticked by default**, and a screen plugged in later is ticked too (what's kept is
+  the list of unticked screens). The last ticked screen can't be unticked.
+- **Identify** shows each screen's number big in its middle for about 2 seconds. The
+  numbers are Windows' own (DISPLAY2 is 2) when it has them, otherwise the main screen
+  is 1 and the others follow left to right. **Detect again** reads the screens again.
+- **The pet lives on the ticked screens:** it starts on one (the main screen if ticked),
+  walks and is thrown only there (the edge to an unticked screen is a wall), and comes
+  out there for alarms and anniversaries. Stepping aside for a slide show prefers a ticked
+  screen too.
+- **A visit:** carried (dragged or thrown) onto an unticked screen, it plays there as
+  usual. The way back to a ticked screen stays open, but once home the edge is a wall
+  again. After 10 minutes it heads home: across the edge if a ticked screen is right
+  next to it, otherwise it vanishes and appears on the nearest ticked screen, falling in
+  from a little above its floor. Unticking the screen it's on sends it home the same way
+  at once.
+- **Screens not aligned at the bottom:** walking from a lower floor toward a screen whose
+  floor is higher, the pet gets up there its own way — the cat climbs the edge, the
+  rooster flutters up, others jump — and carries on where it was going. It does so only
+  when it wants to go that way (always on purpose, often when wandering); otherwise the
+  edge is a wall as before. Walking the other way it simply drops down. Screens with a
+  gap between them don't connect.
 
 ## Backup and restore (since 0.35.0)
 

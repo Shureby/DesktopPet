@@ -1,6 +1,6 @@
 import type { z } from "zod";
 import type { StateDef } from "../../engine/fsm";
-import type { Side } from "../../engine/physics";
+import type { Ledge, Side } from "../../engine/physics";
 import type { Pet } from "../Pet";
 
 /** Something the brain can choose to do when the pet is left alone. */
@@ -57,6 +57,8 @@ export interface AbilityModule<P = Record<string, unknown>> {
   onFalling?(pet: Pet, params: P): string | void;
   onHitWall?(pet: Pet, side: Side, params: P): string | void;
   onCrossWindowSide?(pet: Pet, edge: WindowSideEdge, params: P): string | void;
+  /** A neighbouring screen's floor is higher (screens not aligned at the bottom): how to get up there. */
+  onLedge?(pet: Pet, ledge: Ledge, params: P): string | void;
   gameModifiers?(params: P, mods: GameModifiers): void;
 }
 

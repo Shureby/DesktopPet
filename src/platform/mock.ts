@@ -1,3 +1,4 @@
+import type { Rect } from "../engine/geometry";
 import { nextPhase, startFocus, tick } from "../features/pomodoro/logic";
 import { currentWorkPeriod, runCutoff } from "../features/pomodoro/workHours";
 import { endOfDay, nextAfterTick, todoRemindsAt } from "../features/todo/repeat";
@@ -725,7 +726,8 @@ export const mockBackend: Backend = {
     fire("avoid", reason);
   },
   async e2eEnabled() {
-    return false;
+    // ?e2e: the test hooks in the browser preview too (window.__epet).
+    return new URLSearchParams(location.search).has("e2e");
   },
   async systemLocale() {
     // ?lang=zh-TW tries a language in the browser preview.
@@ -1010,7 +1012,23 @@ export const mockBackend: Backend = {
     });
     // Front-to-back like a real window list: later DOM elements render on top.
     windows.reverse();
+    // Pretend screens (to look at Settings → Screens the pet lives on): localStorage
+    // "mock-screens" = [{ x, y, w, h, name? }, …], the first one the main screen.
+    let fake: (Rect & { name?: string })[] = [];
+    try {
+      fake = JSON.parse(localStorage.getItem("mock-screens") ?? "[]");
+    } catch {
+      fake = [];
+    }
+    if (fake.length) {
+      const areas = fake.map(({ x, y, w, h }) => ({ x, y, w, h: h - 48 }));
+      const screens = fake.map(({ x, y, w, h, name }, i) => ({ id: `${name ?? i}|${w}x${h}|${x},${y}`, name: name ?? "", primary: i === 0, frame: { x, y, w, h } }));
+      return { areas, screens, windows, scale: 1 };
+    }
     return { areas: [{ x: 0, y: 0, w: window.innerWidth, h: window.innerHeight }], windows, scale: 1 };
+  },
+  async identifyScreens(numbers) {
+    console.info(`[mock] identify screens: ${numbers.join(", ")}`);
   },
   async petFrame() {
     return cursor;

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { createBody, isPlatformAt, step, type PhysicsOptions, type World } from "./physics";
 
+// The user's screens: 2 (portrait, the lowest bottom) | 1 | 3 (the highest bottom).
+const two = { x: -1080, y: -200, w: 1080, h: 1920 };
+const one = { x: 0, y: 0, w: 2560, h: 1400 };
+const three = { x: 2560, y: 100, w: 1920, h: 1040 };
+
 const opt: PhysicsOptions = { gravity: 2000, gravityScale: 1, maxFallSpeed: 1400, airDrag: 0 };
 const screen = { x: 0, y: 0, w: 1000, h: 800 };
 
@@ -100,5 +105,66 @@ describe("physics", () => {
     run(glider, world, 0.5, { ...opt, maxFallSpeed: 200 });
     expect(heavy.y).toBeGreaterThan(light.y);
     expect(glider.y).toBeLessThan(light.y);
+  });
+});
+
+describe("screens not aligned at the bottom, and screens the pet doesn't go to", () => {
+  const walk = (body: ReturnType<typeof createBody>, world: World, vx: number, seconds: number) => {
+    const results = [];
+    for (let t = 0; t < seconds; t += 1 / 30) {
+      if (body.support) body.vx = vx;
+      results.push(step(body, world, 1 / 30, opt));
+    }
+    return results;
+  };
+
+  it("walking down onto a lower screen falls onto its floor", () => {
+    const world: World = { areas: [one, two, three], windows: [] };
+    const body = createBody(200, 1400, 40, 40);
+    body.support = { kind: "floor", area: 0 };
+    walk(body, world, -400, 2);
+    expect(body.support).toEqual({ kind: "floor", area: 1 });
+    expect(body.y).toBe(1720);
+  });
+
+  it("walking up to a higher screen meets a ledge (its floor), not just a wall", () => {
+    const world: World = { areas: [one, two, three], windows: [] };
+    const body = createBody(-300, 1720, 40, 40);
+    body.support = { kind: "floor", area: 1 };
+    const r = walk(body, world, 400, 2).find((x) => x.ledge);
+    expect(r?.ledge).toEqual({ side: "right", x: 0, top: 1400, area: 0 });
+    const body3 = createBody(2400, 1400, 40, 40);
+    body3.support = { kind: "floor", area: 0 };
+    expect(walk(body3, world, 400, 2).find((x) => x.ledge)?.ledge).toMatchObject({ top: 1140, area: 2 });
+  });
+
+  it("a jump high enough over the ledge lands on the higher screen", () => {
+    const world: World = { areas: [one, two, three], windows: [] };
+    const body = createBody(-30, 1720, 40, 40);
+    body.vy = -Math.sqrt(2 * 2000 * (1720 - 1400 + 14)) - 2000 / 30;
+    body.vx = 400;
+    run(body, world, 2);
+    expect(body.support).toEqual({ kind: "floor", area: 0 });
+    expect(body.y).toBe(1400);
+  });
+
+  it("a screen not allowed is a wall, walking or thrown; allowed again, it's open", () => {
+    const world: World = { areas: [one, two, three], windows: [], allowed: [true, false, true] };
+    const body = createBody(200, 1400, 40, 40);
+    body.support = { kind: "floor", area: 0 };
+    const r = walk(body, world, -400, 2);
+    expect(body.support).toEqual({ kind: "floor", area: 0 });
+    expect(r.some((x) => x.hitWall === "left" && !x.ledge)).toBe(true);
+    const thrown = createBody(100, 600, 40, 40);
+    thrown.vx = -2000;
+    run(thrown, world, 2);
+    expect(thrown.x).toBeGreaterThanOrEqual(0);
+    // Carried onto 2 (allowed for the visit): from there, home is open.
+    const visiting: World = { ...world, allowed: [true, true, true] };
+    const back = createBody(-30, 1720, 40, 40);
+    back.vy = -Math.sqrt(2 * 2000 * (1720 - 1400 + 14)) - 2000 / 30;
+    back.vx = 400;
+    run(back, visiting, 2);
+    expect(back.support).toEqual({ kind: "floor", area: 0 });
   });
 });

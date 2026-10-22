@@ -10,7 +10,8 @@ import { applyMoodEvent, isHungry, moodTier, parseMood, type Mood, type MoodEven
 import { RulesBrain } from "../brain/RulesBrain";
 import { Pet } from "../characters/Pet";
 import { loadAll, type CharacterRegistry, type LoadedCharacter } from "../characters/registry";
-import { areaIndexAt } from "../engine/physics";
+import { areaIndexAt, nearestAreaIndex } from "../engine/physics";
+import { allowedScreens, homeScreen, nearestAllowed, screensOf, VISIT_MS, walkHome, type ScreenInfo } from "../features/screens/screens";
 import type { Rect } from "../engine/geometry";
 import { lateness, lateNote, type LateReason } from "../features/alarm/late";
 import { backLine, leavingLine } from "../features/avoid/lines";
@@ -45,7 +46,7 @@ import {
   timerName,
 } from "../features/alarm/timers";
 import { formatRemaining, gameHeld } from "../features/pomodoro/logic";
-import type { Alarm, Backend, Celebration, PetActivity, PomodoroStatus, ReminderEvent, Settings, Unseen } from "../platform";
+import type { Alarm, Backend, Celebration, DesktopSnapshot, PetActivity, PomodoroStatus, ReminderEvent, Settings, Unseen } from "../platform";
 import type { CareAction } from "../characters/schema";
 import { buildItems, buildTrayItems, nativeMenu, showPetMenu, type Item, type MenuContext, type PetMenuContext } from "./menu";
 import { CLOCK_STEPS, shiftLabel } from "../platform/testClock";
@@ -195,6 +196,15 @@ export class PetHost {
    * out, and whether it is walking back to the edge to hide again.
    */
   private peek: { since: number; leaving: { x: number; since: number } | null } | null = null;
+  /** The monitors (in the order of the world's areas) and which the pet lives on. */
+  private screens: ScreenInfo[] = [];
+  private home: boolean[] = [];
+  /** Carried to a screen it doesn't live on: which, and since when (src/features/screens). */
+  private visit: { id: string; since: number } | null = null;
+  /** On its way home from a visit, on foot (since when: too long and it vanishes there). */
+  private homing: number | null = null;
+  /** End-to-end tests: pretend screens (work areas) instead of the real ones. */
+  private fakeAreas: Rect[] | null = null;
   /** The celebration playing last (for the end-to-end tests). */
   private lastCelebration: Celebration | null = null;
   /** A mini-game is open (the pet is hidden for it). */
@@ -305,9 +315,13 @@ export class PetHost {
     });
     const snap = await this.backend.desktopSnapshot();
     this.dpr = this.windowed ? window.devicePixelRatio || 1 : snap.scale;
-    const area = snap.areas[0] ?? { x: 0, y: 0, w: 1280, h: 720 };
+    this.screens = screensOf(snap);
+    this.home = allowedScreens(this.screens, this.settings.screens.off);
+    // On a screen it lives on (the main one if ticked).
+    const area = snap.areas[homeScreen(this.screens, this.home)] ?? snap.areas[0] ?? { x: 0, y: 0, w: 1280, h: 720 };
     await this.setCharacter(this.settings.character, area.x + area.w * (0.3 + Math.random() * 0.4), area.y + area.h * 0.3);
     this.pet.world = { areas: snap.areas, windows: snap.windows };
+    this.applyScreens();
 
     this.resize();
     window.addEventListener("resize", () => this.resize());
@@ -415,6 +429,7 @@ export class PetHost {
     setInterval(() => {
       this.watchPeek();
       this.watchLeaving();
+      this.watchScreens();
     }, 300);
     // Timers that ran out leave the tray menu even if no event arrives (unchanged menus aren't rebuilt).
     setInterval(() => this.scheduleTray(), 30_000);
@@ -479,6 +494,7 @@ export class PetHost {
       this.pet.setUnit(this.dpr * s.size);
       this.pet.speed = s.speed;
     }
+    this.applyScreens();
     this.updateMode();
     // Pet Post: on or off, its name (the pet's), who's trusted.
     void this.courier.configure();
@@ -658,8 +674,10 @@ export class PetHost {
     if (this.snapshotPending) return;
     this.snapshotPending = true;
     try {
-      const snap = await this.backend.desktopSnapshot();
+      const snap = this.pretendScreens(await this.backend.desktopSnapshot());
       this.pet.world = { areas: snap.areas, windows: snap.windows };
+      this.screens = screensOf(snap);
+      this.applyScreens();
       // In the app the webview's own pixel ratio is the truth (checked every frame).
       if (!this.windowed && snap.scale !== this.dpr) this.setScale(snap.scale);
     } finally {
@@ -1193,6 +1211,7 @@ export class PetHost {
     this.drag = null;
     if (d.moved) {
       this.pet.endDrag();
+      this.droppedOn();
       // Being carried around is play; it shares the hourly cap with petting.
       this.moodEvent("carried");
     } else this.care({ label: "", kind: "pet" });
@@ -1294,6 +1313,23 @@ export class PetHost {
         this.pet.target = { x };
         this.pet.fsm.set("walkTo", true);
       },
+      /** Puts the pet down at (x, y) (physical px) as if carried there and let go. */
+      dropAt: (x: number, y: number) => {
+        Object.assign(this.pet.body, { x, y, vx: 0, vy: 0, support: null });
+        this.pet.fsm.set("fall", true);
+        this.droppedOn();
+      },
+      /** Pretend screens (work areas, physical px; null: the real ones again). Their ids: fake0, fake1… */
+      fakeScreens: async (areas: Rect[] | null) => {
+        this.fakeAreas = areas;
+        this.visit = null;
+        this.homing = null;
+        await this.refreshWorld();
+      },
+      /** The visit started `ms` ago (to see it head home without waiting 10 minutes). */
+      ageVisit: (ms: number) => {
+        if (this.visit) this.visit.since -= ms;
+      },
       /** As if the mouse moved (you're at the computer): see onUserActivity. */
       activity: () => this.onUserActivity(),
       /** Sets mood fields (affection, fullness, petWindow) as if time had passed. */
@@ -1316,6 +1352,8 @@ export class PetHost {
         y: this.pet.body.y,
         dpr: this.dpr,
         area: this.peekArea(),
+        /** The screens: which it lives on, a visit to another (src/features/screens). */
+        screens: { ids: this.screens.map((x) => x.id), home: this.home, allowed: this.pet.world.allowed ?? null, visit: this.visit, homing: this.homing },
         hidden: this.hidden,
         petVisible: this.petVisible,
         away: this.away,
@@ -2461,7 +2499,7 @@ export class PetHost {
     const areas = this.pet.world?.areas ?? [];
     if (area && this.away && this.slideshows.length) {
       // Its screen shows the slides: out on another one (the presenter's), from its floor.
-      const there = areas[outOfTheSlideShow(areas, areas.indexOf(area), this.slideshows)];
+      const there = areas[outOfTheSlideShow(areas, areas.indexOf(area), this.slideshows, this.home)];
       if (there !== area) {
         area = there;
         b.y = area.y + area.h;
@@ -2480,6 +2518,99 @@ export class PetHost {
       this.pet.target = { x: area.x + area.w / 2 };
       this.pet.fsm.set("goto", true);
     }
+  }
+
+  // --- The screens it lives on (src/features/screens) -----------------------
+
+  private pretendScreens(snap: DesktopSnapshot): DesktopSnapshot {
+    const fake = this.fakeAreas;
+    if (!fake) return snap;
+    return { ...snap, areas: fake, screens: fake.map((a, i) => ({ id: `fake${i}`, name: "", primary: i === 0, frame: a })) };
+  }
+
+  /** Which areas the pet goes into by itself: the ticked screens, and the one it visits. */
+  private applyScreens(): void {
+    const world = this.pet?.world;
+    if (!world) return;
+    this.home = allowedScreens(this.screens, this.settings.screens.off);
+    const visiting = this.visit ? this.screens.findIndex((x) => x.id === this.visit!.id) : -1;
+    if (this.visit && visiting < 0) this.visit = null;
+    world.allowed = this.home.map((on, i) => on || i === visiting);
+  }
+
+  private screenIndex(): number {
+    const world = this.pet.world;
+    if (!world?.areas.length) return -1;
+    const b = this.pet.body;
+    const i = areaIndexAt(world, b.x, b.y - 1);
+    return i >= 0 ? i : nearestAreaIndex(world, b.x, b.y);
+  }
+
+  /** Let go (carried, thrown): on a screen it doesn't live on, that's a visit. */
+  private droppedOn(): void {
+    const i = this.screenIndex();
+    if (i < 0 || this.home[i] !== false) {
+      this.visit = null;
+      this.homing = null;
+    } else if (this.visit?.id !== this.screens[i]?.id) {
+      this.visit = { id: this.screens[i].id, since: Date.now() };
+      this.homing = null;
+    }
+    this.applyScreens();
+  }
+
+  /**
+   * On a screen it doesn't live on: fine while visiting (10 minutes); then, or if it got
+   * there otherwise (the screen was just unticked), it goes home: on foot to a ticked screen
+   * next to it, or it vanishes and appears on the nearest one.
+   */
+  private watchScreens(): void {
+    const world = this.pet?.world;
+    if (!world?.areas.length || this.drag || this.peek || this.aside || this.hidden) return;
+    const i = this.screenIndex();
+    if (i < 0) return;
+    if (this.home[i] !== false) {
+      if (this.visit || this.homing !== null) {
+        this.visit = null;
+        this.homing = null;
+        this.applyScreens();
+      }
+      return;
+    }
+    const id = this.screens[i]?.id;
+    if (this.visit?.id === id && Date.now() - this.visit.since < VISIT_MS) return;
+    // Its way out stays open while it goes.
+    if (this.visit?.id !== id) {
+      this.visit = { id, since: Date.now() - VISIT_MS };
+      this.applyScreens();
+    }
+    if (!this.pet.grounded || this.activeRing || this.celebrating) return;
+    const b = this.pet.body;
+    const way = this.homing === null || Date.now() - this.homing < 30_000 ? walkHome(world.areas, this.home, i, b.x) : null;
+    if (way) {
+      if (this.homing === null) this.homing = Date.now();
+      if (this.pet.state !== "goto") {
+        this.pet.target = { x: way.edge + (way.side === "left" ? -1 : 1) * this.pet.spriteSize.w * 2 };
+        this.pet.fsm.set("goto", true);
+      }
+      return;
+    }
+    this.poofHome();
+  }
+
+  /** Gone from here, there on the nearest screen it lives on (from a little above its floor). */
+  private poofHome(): void {
+    const world = this.pet.world;
+    const b = this.pet.body;
+    const to = nearestAllowed(world.areas, this.home, b.x, b.y);
+    const a = world.areas[to];
+    if (!a) return;
+    const margin = this.pet.spriteSize.w * 2;
+    Object.assign(b, { x: Math.max(a.x + margin, Math.min(a.x + a.w - margin, b.x)), y: a.y + a.h - this.pet.spriteSize.h, vx: 0, vy: 0, support: null });
+    this.pet.fsm.set("fall", true);
+    this.visit = null;
+    this.homing = null;
+    this.applyScreens();
   }
 
   private peekArea() {

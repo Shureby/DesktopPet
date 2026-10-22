@@ -1,5 +1,6 @@
 import product from "../../product.config.json";
 import type { Rect, WindowRect } from "../engine/geometry";
+import type { ScreenInfo } from "../features/screens/screens";
 import type { RingtoneId } from "../pet/sound";
 import { DEFAULT_MODES, modeSettings, type ModeSettings } from "../features/modes/modes";
 import type { CalendarKind } from "../features/anniversary/templates";
@@ -119,6 +120,8 @@ export interface Settings {
   locale: { language: LanguageSetting; region: RegionSetting };
   /** Pet Post: files to and from devices on the network (src/features/post/post.ts). */
   post: PostSettings;
+  /** The screens the pet doesn't live on (their ids; new screens are ticked). */
+  screens: { off: string[] };
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -151,6 +154,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autostart: false,
   locale: { language: "auto", region: "auto" },
   post: DEFAULT_POST,
+  screens: { off: [] },
 };
 
 /** The 🔔 badge's look-ahead: whole minutes, 1–120 (60 if it isn't a number). */
@@ -221,6 +225,7 @@ export function mergeSettings(stored: Partial<Settings> | null | undefined): Set
       todo: { ...d.alerts.todo, ...s.alerts?.todo },
     },
     post: postSettings(s.post),
+    screens: { off: Array.isArray(s.screens?.off) ? s.screens.off.filter((id) => typeof id === "string") : [] },
   };
 }
 
@@ -323,6 +328,8 @@ export interface Score {
 
 export interface DesktopSnapshot {
   areas: Rect[];
+  /** The monitors, in the order of `areas` (src/features/screens/screens.ts). */
+  screens?: ScreenInfo[];
   windows: WindowRect[];
   /** Display scale factor of the monitor the pet is on. */
   scale: number;
@@ -723,6 +730,8 @@ export interface Backend {
   storefront(): Promise<string>;
 
   desktopSnapshot(): Promise<DesktopSnapshot>;
+  /** Each screen's number big on it for a moment (in the order of the snapshot's screens). */
+  identifyScreens(numbers: string[]): Promise<void>;
   /** Positions and sizes the pet window (physical px) and returns the cursor position. */
   petFrame(x: number, y: number, w: number, h: number, ignoreCursor: boolean): Promise<{ x: number; y: number } | null>;
   listUserCharacters(): Promise<UserCharacterFile[]>;

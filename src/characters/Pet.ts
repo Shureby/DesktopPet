@@ -2,7 +2,7 @@ import type { Brain, PetEvent, PetMode } from "../brain/Brain";
 import { defaultMood, type Mood } from "../brain/mood";
 import { AnimationPlayer } from "../engine/animation";
 import { StateMachine, type StateDef } from "../engine/fsm";
-import { createBody, step, type Body, type StepResult, type World } from "../engine/physics";
+import { createBody, step, type Body, type Ledge, type StepResult, type World } from "../engine/physics";
 import { pick, range, type Rng } from "../engine/random";
 import { resolveAbilities, type ResolvedAbility } from "./abilities";
 import { pendingVigil } from "./abilities/core";
@@ -145,6 +145,12 @@ export class Pet {
 
   /** Ask the brain what to do next (states return this from `update`). */
   next(): string {
+    // Stepped up onto another screen on its way somewhere: on it goes.
+    const resume = this.scratch.afterLedge as string | undefined;
+    if (resume) {
+      delete this.scratch.afterLedge;
+      if (this.grounded && this.target) return resume;
+    }
     // A remembrance's vigil that was interrupted (petted, the mouse, a hop, a ring, a
     // climb): once on its feet and free, it goes back to it.
     const v = pendingVigil(this);
@@ -235,7 +241,10 @@ export class Pet {
       } else if (!this.body.support && !this.fsm.def.airborne && !this.fsm.def.kinematic) {
         this.fsm.set("fall");
       }
-      if (this.body.support && r.hitWall) this.handleWall(r.hitWall);
+      // A neighbouring screen's floor is higher: up there (as the character can), when it
+      // means to go that way; else the edge is a wall as before.
+      if (this.body.support && r.ledge && this.wantsLedge()) this.stepUp(r.ledge);
+      else if (this.body.support && r.hitWall) this.handleWall(r.hitWall);
       if (this.body.support && r.crossedWindowSide) {
         for (const { module, params } of this.abilities) {
           const next = module.onCrossWindowSide?.(this, r.crossedWindowSide, params);
@@ -249,6 +258,33 @@ export class Pet {
 
     this.anim.play(this.animFor(this.state));
     this.anim.update(dt);
+  }
+
+  /** Going somewhere on purpose always; wandering, often. */
+  private wantsLedge(): boolean {
+    if (this.state === "goto" || this.state === "walkTo") return true;
+    return (this.state === "walk" || this.state === "run") && this.rng() < 0.6;
+  }
+
+  /** Up onto a neighbouring screen's higher floor: climbing, flying, or else a jump. */
+  private stepUp(ledge: Ledge): void {
+    this.facing = ledge.side === "left" ? -1 : 1;
+    if (this.state === "goto" || this.state === "walkTo") this.scratch.afterLedge = this.state;
+    for (const { module, params } of this.abilities) {
+      const next = module.onLedge?.(this, ledge, params);
+      if (next) {
+        this.fsm.set(next);
+        return;
+      }
+    }
+    // A jump just high enough, towards the other screen.
+    const g = this.u(GRAVITY) * this.def.stats.weight;
+    const height = this.body.y - ledge.top + this.u(14);
+    this.body.support = null;
+    // (Frame steps lose a little height: one frame of gravity more.)
+    this.body.vy = -Math.sqrt(2 * g * height) - g / 30;
+    this.body.vx = this.facing * this.walkSpeed() * 1.4;
+    this.fsm.set("hop");
   }
 
   private handleWall(side: "left" | "right"): void {

@@ -7,6 +7,15 @@ import { bottom, contains, right, type Rect, type WindowRect } from "./geometry"
 export interface World {
   areas: Rect[];
   windows: WindowRect[];
+  /**
+   * The areas the pet goes into by itself (the screens ticked in Settings, and one it was
+   * carried to); others are walls. Absent: all of them.
+   */
+  allowed?: boolean[];
+}
+
+export function allowedArea(world: World, i: number): boolean {
+  return !world.allowed || world.allowed[i] !== false;
 }
 
 export type Support =
@@ -41,10 +50,22 @@ export interface PhysicsOptions {
 
 export type Side = "left" | "right";
 
+/** A neighbouring screen's floor higher than this one's, met at the screen edge: a step up. */
+export interface Ledge {
+  side: Side;
+  /** The screen edge (where to go up). */
+  x: number;
+  /** Its floor (feet there). */
+  top: number;
+  area: number;
+}
+
 export interface StepResult {
   landed: boolean;
   lostSupport: boolean;
   hitWall: Side | null;
+  /** Walked into the edge below a neighbouring screen whose floor is higher. */
+  ledge: Ledge | null;
   /** Grounded body walked across the side edge of a window taller than itself. */
   crossedWindowSide: { id: string; side: Side; x: number; top: number } | null;
 }
@@ -101,8 +122,9 @@ function horizontalLimits(world: World, areaIdx: number, y: number): [number, nu
   const a = world.areas[areaIdx];
   let min = a.x;
   let max = right(a);
-  for (const other of world.areas) {
-    if (other === a || y <= other.y || y > bottom(other)) continue;
+  for (let i = 0; i < world.areas.length; i++) {
+    const other = world.areas[i];
+    if (other === a || !allowedArea(world, i) || y <= other.y || y > bottom(other)) continue;
     if (Math.abs(right(other) - a.x) <= 2) min = Math.min(min, other.x);
     if (Math.abs(other.x - right(a)) <= 2) max = Math.max(max, right(other));
   }
@@ -151,7 +173,7 @@ export function refreshSupport(body: Body, world: World): boolean {
 
 /** Advance the body by `dt` seconds. Horizontal walking speed is whatever `vx` the caller set. */
 export function step(body: Body, world: World, dt: number, opt: PhysicsOptions): StepResult {
-  const result: StepResult = { landed: false, lostSupport: false, hitWall: null, crossedWindowSide: null };
+  const result: StepResult = { landed: false, lostSupport: false, hitWall: null, ledge: null, crossedWindowSide: null };
   if (world.areas.length === 0) return result;
 
   if (body.support) {
@@ -182,6 +204,7 @@ function stepGrounded(body: Body, world: World, dt: number, result: StepResult) 
     result.hitWall = "right";
   }
   body.x = newX;
+  if (result.hitWall && s.kind === "floor") result.ledge = ledgeAt(world, result.hitWall, result.hitWall === "left" ? minX : maxX, body.y);
 
   if (s.kind === "window") {
     const idx = findWindow(world, s.id);
@@ -219,6 +242,21 @@ function stepGrounded(body: Body, world: World, dt: number, result: StepResult) 
   }
 }
 
+/** A neighbouring (allowed) screen past `edge` whose floor is above `y`: a step up there. */
+export function ledgeAt(world: World, side: Side, edge: number, y: number): Ledge | null {
+  let best: Ledge | null = null;
+  for (let i = 0; i < world.areas.length; i++) {
+    const o = world.areas[i];
+    if (!allowedArea(world, i)) continue;
+    const touches = side === "left" ? Math.abs(right(o) - edge) <= 2 : Math.abs(o.x - edge) <= 2;
+    const top = bottom(o);
+    if (!touches || top >= y - 1) continue;
+    // The nearest floor up (the highest step would be another screen further up).
+    if (!best || top > best.top) best = { side, x: edge, top, area: i };
+  }
+  return best;
+}
+
 function stepAirborne(body: Body, world: World, dt: number, opt: PhysicsOptions, result: StepResult) {
   body.vy = Math.min(body.vy + opt.gravity * opt.gravityScale * dt, opt.maxFallSpeed);
   body.vx *= Math.max(0, 1 - opt.airDrag * dt);
@@ -226,18 +264,22 @@ function stepAirborne(body: Body, world: World, dt: number, opt: PhysicsOptions,
   let newX = body.x + body.vx * dt;
   let newY = body.y + body.vy * dt;
 
+  const fromIdx = areaIndexAt(world, body.x, body.y - body.h / 2);
   let areaIdx = areaIndexAt(world, newX, newY - body.h / 2);
   if (areaIdx < 0) areaIdx = nearestAreaIndex(world, newX, newY);
+  // Not into a screen it doesn't go to by itself: that screen's edge is a wall.
+  if (fromIdx >= 0 && areaIdx !== fromIdx && !allowedArea(world, areaIdx)) areaIdx = fromIdx;
   const area = world.areas[areaIdx];
   const [minX, maxX] = horizontalLimits(world, areaIdx, Math.min(newY, bottom(area)));
   const half = body.w / 2;
   if (newX - half < minX) {
     newX = minX + half;
-    body.vx = Math.abs(body.vx) * 0.3;
+    // Under a higher screen's floor: keep going, to pass over it once high enough.
+    if (!ledgeAt(world, "left", minX, newY)) body.vx = Math.abs(body.vx) * 0.3;
     result.hitWall = "left";
   } else if (newX + half > maxX) {
     newX = maxX - half;
-    body.vx = -Math.abs(body.vx) * 0.3;
+    if (!ledgeAt(world, "right", maxX, newY)) body.vx = -Math.abs(body.vx) * 0.3;
     result.hitWall = "right";
   }
   if (newY - body.h < area.y && body.vy < 0) {

@@ -89,6 +89,7 @@ import {
 import { icon } from "../ui/icons";
 import { backupSection } from "./backup";
 import { postSection } from "./postSettings";
+import { screensSection } from "./screens";
 import { hmText, infoTip, modesSection } from "./modes";
 import { avoidSection } from "./avoid";
 import { dayPicker, week } from "./dayPicker";
@@ -1745,6 +1746,8 @@ async function renderSettings(): Promise<Node> {
         t(": quieter at night and at work, by a weekly schedule."),
       ),
     ),
+    h("h3", {}, t("Screens the pet lives on")),
+    screensSection(backend, () => settings, save),
     h("h3", {}, t("Alarms & timers")),
     alertBox("alarm"),
     h("h3", {}, t("To-do reminders")),

@@ -316,3 +316,57 @@ pub fn end_peek<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     }
     Ok(())
 }
+
+/// Identify: each screen's number, big in the middle of it, for a few seconds (as Windows'
+/// display settings do). `numbers` follows the order of `available_monitors` (the snapshot's).
+pub fn identify_screens<R: Runtime>(app: &AppHandle<R>, numbers: &[String]) -> tauri::Result<()> {
+    let monitors = app.available_monitors()?;
+    let mut labels = Vec::new();
+    for (i, m) in monitors.iter().enumerate() {
+        let Some(n) = numbers.get(i) else { break };
+        let label = format!("identify-{i}");
+        if let Some(w) = app.get_webview_window(&label) {
+            let _ = w.destroy();
+        }
+        let s = m.scale_factor();
+        let side = 240.0;
+        let (x, y) = (
+            m.position().x as f64 / s + (m.size().width as f64 / s - side) / 2.0,
+            m.position().y as f64 / s + (m.size().height as f64 / s - side) / 2.0,
+        );
+        let n: String = n.chars().filter(|c| c.is_alphanumeric()).take(4).collect();
+        let w = window(app, &label, format!("identify.html#{n}"))
+            .title(product_name(app))
+            .transparent(true)
+            .decorations(false)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .resizable(false)
+            .shadow(false)
+            .focused(false)
+            .visible(false)
+            .position(x, y)
+            .inner_size(side, side)
+            .build()?;
+        // Mixed scales: placed again in physical px, on its own monitor.
+        let px = m.size().width as i32 / 2 - (side * s) as i32 / 2;
+        let py = m.size().height as i32 / 2 - (side * s) as i32 / 2;
+        let _ = w.set_position(tauri::PhysicalPosition::new(m.position().x + px, m.position().y + py));
+        // Linux (development and the end-to-end tests) needs it on screen first (as above).
+        #[cfg(target_os = "linux")]
+        w.show()?;
+        let _ = w.set_ignore_cursor_events(true);
+        w.show()?;
+        labels.push(label);
+    }
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(2500));
+        for label in labels {
+            if let Some(w) = handle.get_webview_window(&label) {
+                let _ = w.destroy();
+            }
+        }
+    });
+    Ok(())
+}

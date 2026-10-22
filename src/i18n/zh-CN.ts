@@ -583,6 +583,7 @@ const zhCN: Dictionary = {
     "Quiet hours are now in ": "安静时段现在放在",
     ": quieter at night and at work, by a weekly schedule.":
       "里：按每周时间表，晚上和工作时更安静。",
+    "Screens the pet lives on": "宠物活动的屏幕",
     "Alarms & timers": "闹钟和计时器",
     "To-do reminders": "待办提醒",
     General: "通用",
@@ -763,6 +764,16 @@ const zhCN: Dictionary = {
     "List the devices of my Tailscale network":
       "列出我的 Tailscale 网络里的设备",
     "Open Pet Post…": "打开宠物驿站…",
+    main: "主屏",
+    "The pet needs at least one screen.": "宠物至少要有一块屏幕。",
+    Here: "在这里",
+    "The pet walks and comes out (alarms, anniversaries) only on the ticked screens. Carry it to another one and it plays there for a while, then comes back by itself.":
+      "宠物只在勾选的屏幕上走动、出场（闹钟、纪念日也在这里）。你把它拖到别的屏幕，它会在那里玩一会儿，然后自己回来。",
+    Identify: "识别",
+    "Detect again": "重新检测",
+    "1 screen found": "检测到 1 块屏幕",
+    "{n} screens found · new screens are ticked":
+      "检测到 {n} 块屏幕 · 新接上的屏幕默认勾选",
     PM: "下午",
     AM: "上午",
     "AM/PM": "上午/下午",

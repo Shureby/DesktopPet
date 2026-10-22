@@ -112,6 +112,7 @@ export const tauriBackend: Backend = {
   storefront: () => invoke("storefront_name"),
 
   desktopSnapshot: () => invoke("desktop_snapshot"),
+  identifyScreens: (numbers) => invoke("identify_screens", { numbers }),
   petFrame: (x, y, w, h, ignoreCursor) => invoke("pet_frame", { x, y, w, h, ignoreCursor }),
   listUserCharacters: () => invoke("list_user_characters"),
   loadMood: (character) => invoke("load_mood", { character }),

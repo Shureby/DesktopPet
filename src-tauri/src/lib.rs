@@ -105,6 +105,7 @@ pub fn run() {
             commands::unlock_achievement,
             commands::storefront_name,
             commands::desktop_snapshot,
+            commands::identify_screens,
             commands::pet_frame,
             commands::set_pet_visible,
             commands::list_user_characters,

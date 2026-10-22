@@ -80,6 +80,12 @@ export const core: AbilityModule<Record<string, never>> = {
       },
       update: (p) => (p.body.vy > 0 ? "fall" : undefined),
     },
+    /** Up onto a higher neighbouring screen's floor (velocity set by Pet.stepUp). */
+    hop: {
+      anim: "jump",
+      airborne: true,
+      update: (p) => (p.body.vy > 0 ? "fall" : undefined),
+    },
     fall: {
       anim: "fall",
       airborne: true,
