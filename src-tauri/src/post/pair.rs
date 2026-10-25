@@ -134,22 +134,23 @@ fn proven(inner: &Inner, info: &DeviceInfo, cert: &Option<String>) -> Option<Str
     (cert.eq_ignore_ascii_case(&info.fingerprint) && !inner.blocked(cert)).then(|| cert.to_ascii_uppercase())
 }
 
-/// Routes the pairing requests; None for other paths.
+/// Whether this is one of the pairing requests.
+pub(crate) fn handles(req: &Request<Incoming>) -> bool {
+    req.method() == hyper::Method::POST && matches!(req.uri().path(), ASK | FINISH | CONFIRM | CANCEL)
+}
+
+/// Answers a pairing request (`handles` said it is one).
 pub(crate) async fn route(
     inner: &Arc<Inner>,
     req: Request<Incoming>,
     ip: std::net::IpAddr,
     cert: Option<String>,
-) -> Result<Response<Body>, Request<Incoming>> {
-    if req.method() != hyper::Method::POST {
-        return Err(req);
-    }
+) -> Response<Body> {
     match req.uri().path() {
-        ASK => Ok(asked(inner, req, ip, cert).await),
-        FINISH => Ok(finish(inner, req, cert).await),
-        CONFIRM => Ok(confirm(inner, req, cert).await),
-        CANCEL => Ok(cancelled(inner, req, cert).await),
-        _ => Err(req),
+        ASK => asked(inner, req, ip, cert).await,
+        FINISH => finish(inner, req, cert).await,
+        CONFIRM => confirm(inner, req, cert).await,
+        _ => cancelled(inner, req, cert).await,
     }
 }
 

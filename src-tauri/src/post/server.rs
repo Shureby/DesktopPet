@@ -190,10 +190,9 @@ async fn read_json<T: DeserializeOwned>(req: Request<Incoming>, max: usize) -> O
 }
 
 async fn route(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, cert: Option<String>) -> Response<Body> {
-    let req = match super::pair::route(&inner, req, ip, cert.clone()).await {
-        Ok(res) => return res,
-        Err(req) => req,
-    };
+    if super::pair::handles(&req) {
+        return super::pair::route(&inner, req, ip, cert).await;
+    }
     let path = req.uri().path().to_string();
     if req.method() == Method::POST && path == VERIFY_ASK {
         return verify_asked(inner, req, ip, cert).await;
