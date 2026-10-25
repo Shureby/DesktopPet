@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { mergeSettings } from "../../platform/types";
 import {
+  withPaired,
+  withoutPaired,
+  pairedMark,
+  lookalikeOf,
   fileCount,
   formatSize,
   addError,
@@ -78,6 +82,7 @@ describe("Pet Post settings", () => {
       favoriteNoticeSeen: false,
       verified: [],
       blocked: [],
+      paired: [],
       door: true,
       doorPublic: false,
     });
@@ -115,6 +120,7 @@ describe("Pet Post settings", () => {
       networks: [],
       tailscale: true,
       blocked: [],
+      paired: [],
       door: true,
       doorPublic: false,
     });
@@ -415,5 +421,27 @@ describe("a large delivery", () => {
     expect(largeDelivery({ files: 101, bytes: 1000 })).toBe(true);
     expect(largeDelivery({ files: 1, bytes: 1024 ** 3 - 1 })).toBe(false);
     expect(largeDelivery({ files: 1, bytes: 1024 ** 3 })).toBe(true);
+  });
+});
+
+describe("pairing", () => {
+  it("paired is verified too; unpairing undoes both; blocking unpairs", () => {
+    let p = withPaired(mergeSettings({}).post, { fingerprint: "ab12", alias: "Mimi" }, 5);
+    expect(pairedMark(p, "AB12")).toEqual({ fingerprint: "AB12", alias: "Mimi", at: 5 });
+    expect(verifiedMark(p, "AB12")).not.toBeNull();
+    expect(markedName(p, "Mimi", "AB12")).toBe("Mimi 🔒");
+    expect(postConfig(p, "x").paired).toEqual(["AB12"]);
+    const un = withoutPaired(p, "ab12");
+    expect(pairedMark(un, "AB12")).toBeNull();
+    expect(verifiedMark(un, "AB12")).toBeNull();
+    p = withBlocked(p, { fingerprint: "AB12", alias: "Mimi" });
+    expect(pairedMark(p, "AB12")).toBeNull();
+  });
+
+  it("a device with a paired ePet's name but another identity is a lookalike", () => {
+    const p = withPaired(mergeSettings({}).post, { fingerprint: "AB12", alias: "Mimi" });
+    expect(lookalikeOf(p, { fingerprint: "AB12", alias: "Mimi" })).toBeNull();
+    expect(lookalikeOf(p, { fingerprint: "EE99", alias: " mimi " })?.fingerprint).toBe("AB12");
+    expect(lookalikeOf(p, { fingerprint: "EE99", alias: "Coco" })).toBeNull();
   });
 });

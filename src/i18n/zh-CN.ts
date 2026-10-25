@@ -744,6 +744,11 @@ const zhCN: Dictionary = {
     None: "无",
     "With a PIN, senders must type it before they can send you anything.":
       "设了 PIN 码后，对方必须先输入它，才能给你发东西。",
+    "Paired ePets": "已配对的 ePet",
+    "Paired {when} with a code": "{when} 用配对码配对",
+    Unpair: "取消配对",
+    "None yet. In Pet Post, choose Pair by an ePet and type the code it shows.":
+      "还没有。在宠物驿站里点 ePet 旁边的“配对”，输入它显示的码。",
     "Verified devices": "已核对的设备",
     "Verified {when}": "{when} 核对",
     "None yet. In Pet Post, Verify a device and choose “They match”.":
@@ -892,6 +897,13 @@ const zhCN: Dictionary = {
     "See them": "去看看",
     "{who} wants to verify with you.": "{who} 想和你核对。",
     Show: "查看",
+    "{who} wants to pair with this computer. Type this code there:":
+      "{who} 想和这台电脑配对。在那边输入这个码：",
+    "Don't know it, or not pairing? Decline.":
+      "不认识它，或你没在配对？点拒绝。",
+    "Pairing with {who} didn't work: the code didn't match.":
+      "和 {who} 配对没成功：配对码不对。",
+    "Paired with {who}.": "已和 {who} 配对。",
     "Add to-do…": "添加待办…",
     "Set alarm…": "设闹钟…",
     "Set timer": "设计时器",
@@ -931,16 +943,23 @@ const zhCN: Dictionary = {
     "Pick a device above first.": "先在上面选一台设备。",
     "Wait until this delivery is done.": "等这批发完再发。",
     "Added {name}.": "已添加 {name}。",
+    "Paired on {date} with a code: only this ePet gets what you send it.":
+      "{date} 用配对码配对：你发的东西只有这台 ePet 能收到。",
+    Paired: "已配对",
     "Verified on {date}: the icons matched on both screens.":
       "{date} 核对过：两边屏幕上的图标一致。",
     Verified: "已核对",
     "Choose a folder to send to {who}": "选择要发送给 {who} 的文件夹",
     "Choose files to send to {who}": "选择要发送给 {who} 的文件",
     "⚠ Another device answers there now.": "⚠ 这个地址上现在是另一台设备。",
+    "⚠ Not the {name} you paired with: its identity is different. Reinstalled? Pair again. Otherwise someone may be pretending.":
+      "⚠ 这不是你配对过的 {name}：它的身份不一样。重装过？重新配对。否则可能有人冒充。",
     "Not answering.": "没有回应。",
     "It's behind another router: what's sent to it waits until it collects it.":
       "它在另一个路由器后面：发给它的东西会等它自己来取。",
     "It collects": "由它来取",
+    "Pair again…": "重新配对…",
+    "Unpair the old one": "取消旧的配对",
     "A favorite is remembered (looked for even off this network), and what it sends you is accepted without asking.":
       "收藏的设备会被记住（不在本网络也会去找它），它发给你的文件和消息不再询问，直接接收。",
     "Add to favorites": "收藏",
@@ -948,6 +967,9 @@ const zhCN: Dictionary = {
     "Favorite: what it sends is accepted without asking. Click to remove.":
       "已收藏：它发来的东西不用问直接接收。点一下取消收藏。",
     Favorite: "收藏",
+    "Pair: type a code the other ePet shows, once":
+      "配对：输入对方 ePet 显示的码，只需一次",
+    "Pair…": "配对…",
     "Verify: compare with what the other device shows":
       "核对：和另一台设备上显示的对比",
     Verify: "核对",
@@ -1081,6 +1103,40 @@ const zhCN: Dictionary = {
     "Send {files} ({size}) to {who}?": "要把 {files}（{size}）发给 {who} 吗？",
     "That's a lot. Check it's what you meant to send.":
       "数量不少，确认一下是不是要发这些。",
+    "Expires in {time}": "{time} 后失效",
+    "Pair again": "重新配对",
+    "Asking {name} to show a code…": "正在请 {name} 显示配对码…",
+    "Pairing code": "配对码",
+    "{name} shows a 6-digit code now. Type it here:":
+      "{name} 的屏幕上现在有一个 6 位数字。把它输入这里：",
+    "Type the 6 digits.": "请输入 6 位数字。",
+    "Checking…": "正在核对…",
+    Pair: "配对",
+    "A friend's computer: ask them to read you the number (by phone or in a chat).":
+      "朋友的电脑：请对方在电话或聊天里把数字念给你。",
+    "Paired with {name}": "已和 {name} 配对",
+    "From now on, what you send to {name} reaches only this {name}. If its identity ever changes, Pet Post warns you and doesn't send.":
+      "以后发给 {name} 的东西，只有这台 {name} 能收到。它的身份一旦变了，宠物驿站会提醒你，不会发出去。",
+    "The code didn't match. This pairing is cancelled.":
+      "配对码不对，这次配对已取消。",
+    "Pair again for a new code. If you're sure you typed it right, someone may be pretending to be {name}: don't pair for now.":
+      "重新配对会换一个新码。如果你确定输对了，可能有人在冒充 {name}——先别配对。",
+    "The code expired.": "配对码已过期。",
+    "Pair again for a new one.": "重新配对，换一个新码。",
+    "{name} declined to pair.": "{name} 拒绝了配对。",
+    "{name} is pairing with another device. Try again in a minute.":
+      "{name} 正在和别的设备配对，过一分钟再试。",
+    "Too many wrong codes: {name} takes no pairing from this computer for 10 minutes.":
+      "错误次数太多：10 分钟内 {name} 不再接受这台电脑的配对。",
+    "{name} refused: it may have blocked this computer.":
+      "{name} 拒绝了：它可能拉黑了这台电脑。",
+    "{name} can't pair: it needs ePet 0.54 or newer.":
+      "{name} 不能配对：需要 ePet 0.54 或更新版本。",
+    "You can Verify it instead: compare the icons on both screens.":
+      "可以改用“核对”：对照两边屏幕上的图标。",
+    "Couldn't reach {name}.": "联系不上 {name}。",
+    "Pairing checks once that it really is {name}: the code never crosses the network. After that the two ePets remember each other and send only to each other's identity.":
+      "配对只需确认一次“它就是 {name}”：配对码不经过网络。之后两只 ePet 记住彼此，只发给对方的这个身份。",
   },
   lines: {
     "avoid.leaving.fullscreen": [

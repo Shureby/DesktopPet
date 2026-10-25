@@ -11,6 +11,7 @@ import http from "node:http";
 import https from "node:https";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { CONFIRM_A, CONFIRM_B, proof, spake2 } from "./spake2.mjs";
 
 const API = "/api/localsend/v2";
 /** Where an ePet asks another to show Verify too, then what was decided (src-tauri/src/post/server.rs). */
@@ -20,6 +21,11 @@ const VERIFY_RESULT = "/api/epet/v1/verify-result";
 const PICKUP = "/api/epet/v1/pickup";
 const PICKUP_ANSWER = "/api/epet/v1/pickup-answer";
 const PICKUP_FILE = "/api/epet/v1/pickup-file";
+/** Pairing with a code (src-tauri/src/post/pair.rs). */
+const PAIR = "/api/epet/v1/pair";
+const PAIR_FINISH = "/api/epet/v1/pair-finish";
+const PAIR_CONFIRM = "/api/epet/v1/pair-confirm";
+const PAIR_CANCEL = "/api/epet/v1/pair-cancel";
 export const GROUP = "224.0.0.167";
 export const LOCALSEND_PORT = 53317;
 
@@ -85,6 +91,16 @@ export class Peer {
   pickupAnswers = [];
   /** Asks for deliveries that came from the app. */
   pickupAsks = 0;
+  /**
+   * As an ePet asked to pair: the code it shows (null: none yet), whether its user
+   * declines, the pairing requests that came, and the apps (fingerprints) it paired with.
+   */
+  pairCode = null;
+  pairDecline = false;
+  pairAsks = [];
+  paired = [];
+  /** (Its side of a pairing in progress.) */
+  pairKey = null;
   /** How it answers prepare-upload: "accept" | "decline". */
   answer = "accept";
   /** A PIN it asks senders for (LocalSend's Require PIN); null: none. */
@@ -120,7 +136,7 @@ export class Peer {
     const handle = (req, res) => this.handle(req, res);
     this.server = this.http
       ? http.createServer(handle)
-      : https.createServer({ key: this.tls.key, cert: this.tls.cert }, handle);
+      : https.createServer(this.tlsOptions(), handle);
     await new Promise((r) => this.server.listen(this.port, "0.0.0.0", r));
   }
 
@@ -132,8 +148,18 @@ export class Peer {
     const handle = (req, res) => this.handle(req, res);
     this.server = plain
       ? http.createServer(handle)
-      : https.createServer({ key: this.tls.key, cert: this.tls.cert }, handle);
+      : https.createServer(this.tlsOptions(), handle);
     await new Promise((r) => this.server.listen(this.port, "0.0.0.0", r));
+  }
+
+  /** HTTPS as LocalSend does, and asking for the other side's certificate (as an ePet does). */
+  tlsOptions() {
+    return {
+      key: this.tls.key,
+      cert: this.tls.cert,
+      requestCert: true,
+      rejectUnauthorized: false,
+    };
   }
 
   async stop() {
@@ -259,6 +285,44 @@ export class Peer {
         res.writeHead(200, { "content-type": "application/octet-stream" });
         return res.end(Buffer.from(entry));
       }
+      case PAIR: {
+        if (!this.epet) return json(404);
+        this.pairAsks.push(JSON.parse(body.toString()));
+        this.pairCode = String(Math.floor(Math.random() * 1e6)).padStart(
+          6,
+          "0",
+        );
+        this.pairKey = null;
+        return json(200, { answer: "shown", until: Date.now() + 120_000 });
+      }
+      case PAIR_FINISH: {
+        if (!this.epet) return json(404);
+        if (this.pairDecline) return json(403, { answer: "declined" });
+        if (!this.pairCode || this.pairKey)
+          return json(403, { answer: "expired" });
+        const { msg } = JSON.parse(body.toString());
+        const app = clientFingerprint(req);
+        const b = spake2("B", this.pairCode, app, this.fingerprint);
+        const key = b.finish(Buffer.from(msg, "hex"));
+        this.pairKey = { key, app };
+        return json(200, {
+          msg: b.msg.toString("hex"),
+          confirm: proof(key, CONFIRM_B).toString("hex"),
+        });
+      }
+      case PAIR_CONFIRM: {
+        const k = this.pairKey;
+        this.pairKey = null;
+        this.pairCode = null;
+        const { confirm } = JSON.parse(body.toString());
+        if (!k || confirm !== proof(k.key, CONFIRM_A).toString("hex"))
+          return json(403, { answer: "wrong" });
+        this.paired.push(k.app);
+        return json(204);
+      }
+      case PAIR_CANCEL:
+        this.pairCode = null;
+        return json(204);
       case VERIFY_ASK:
         if (!this.epet) return json(404);
         this.verifyAsks.push(JSON.parse(body.toString()));
@@ -321,6 +385,38 @@ export class Peer {
       req.on("error", reject);
       req.end(data);
     });
+  }
+
+  /** Asks the app to pair (as another ePet does): the app's pet shows a code. */
+  askPair(port = LOCALSEND_PORT) {
+    return this.request(port, PAIR, this.info());
+  }
+
+  /**
+   * The code the app's pet shows, typed here: "paired" | "wrong" | the app's answer.
+   * `app`: the app's fingerprint (SPAKE2's other identity).
+   */
+  async finishPair(code, app, port = LOCALSEND_PORT) {
+    const a = spake2("A", code, this.fingerprint, app);
+    const r = await this.request(
+      port,
+      PAIR_FINISH,
+      { info: this.info(), msg: a.msg.toString("hex") },
+      app,
+    );
+    if (r.status !== 200) return r.body?.answer ?? `HTTP ${r.status}`;
+    const key = a.finish(Buffer.from(r.body.msg, "hex"));
+    const ok = proof(key, CONFIRM_B).toString("hex") === r.body.confirm;
+    const c = await this.request(
+      port,
+      PAIR_CONFIRM,
+      {
+        info: this.info(),
+        confirm: ok ? proof(key, CONFIRM_A).toString("hex") : "",
+      },
+      app,
+    );
+    return ok && c.status === 204 ? "paired" : "wrong";
   }
 
   /** Asks the app to show Verify too (as another ePet does): resolves when it's answered. */
@@ -408,4 +504,12 @@ export class Peer {
       this.udp.send(msg, LOCALSEND_PORT, GROUP);
     }
   }
+}
+
+/** The fingerprint of the certificate the other side showed (SHA-256 of the DER), or "". */
+function clientFingerprint(req) {
+  const cert = req.socket.getPeerCertificate?.();
+  return cert?.raw
+    ? createHash("sha256").update(cert.raw).digest("hex").toUpperCase()
+    : "";
 }

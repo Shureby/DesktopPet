@@ -1,7 +1,7 @@
 {
   "name": "desktoppet",
   "private": true,
-  "version": "0.53.1",
+  "version": "0.54.0",
   "type": "module",
   "scripts": {
     "product": "node scripts/apply-product-config.mjs",
@@ -24,6 +24,7 @@
     "zod": "^4.1.0"
   },
   "devDependencies": {
+    "@noble/curves": "^2.0.1",
     "@tauri-apps/cli": "^2.11.5",
     "@types/node": "^22.0.0",
     "pngjs": "^7.0.0",

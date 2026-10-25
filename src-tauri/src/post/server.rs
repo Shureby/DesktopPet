@@ -190,6 +190,10 @@ async fn read_json<T: DeserializeOwned>(req: Request<Incoming>, max: usize) -> O
 }
 
 async fn route(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, cert: Option<String>) -> Response<Body> {
+    let req = match super::pair::route(&inner, req, ip, cert.clone()).await {
+        Ok(res) => return res,
+        Err(req) => req,
+    };
     let path = req.uri().path().to_string();
     if req.method() == Method::POST && path == VERIFY_ASK {
         return verify_asked(inner, req, ip, cert).await;
@@ -223,6 +227,10 @@ async fn register(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, cert: O
         return status(400);
     };
     if inner.blocked(&info.fingerprint) || cert.as_ref().is_some_and(|c| inner.blocked(c)) {
+        return status(403);
+    }
+    // Claiming to be a paired ePet without its certificate: not it.
+    if inner.unproven_paired(&info.fingerprint, &cert) {
         return status(403);
     }
     // Over TLS with a certificate, the fingerprint it claims must be its certificate's.
@@ -369,8 +377,12 @@ async fn prepare_upload(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, c
     if files.is_empty() {
         return status(400);
     }
-    // Blocked (Verify: the icons didn't match): refused, and not remembered.
-    if inner.blocked(&info.fingerprint) || cert.as_ref().is_some_and(|c| inner.blocked(c)) {
+    // Blocked (Verify: the icons didn't match): refused, and not remembered. So is a claim
+    // to be a paired ePet without its certificate.
+    if inner.blocked(&info.fingerprint)
+        || cert.as_ref().is_some_and(|c| inner.blocked(c))
+        || inner.unproven_paired(&info.fingerprint, &cert)
+    {
         return status(PostError::Rejected.status());
     }
     let verified = cert.as_ref().is_some_and(|c| c.eq_ignore_ascii_case(&info.fingerprint));

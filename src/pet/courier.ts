@@ -15,6 +15,7 @@ import {
   sendable,
   sendError,
   withFavorite,
+  withPaired,
   missedOfferTitle,
   offerLines,
   percent,
@@ -101,6 +102,9 @@ export class Courier {
     await b.on("post-text", (m) => void this.onText(m));
     await b.on("post-verify-asked", (a) => void this.onVerifyAsked(a.fingerprint, a.alias));
     await b.on("post-verify-ask-closed", (a) => this.onVerifyAskClosed(a.fingerprint));
+    await b.on("post-pair-asked", (a) => void this.onPairAsked(a.fingerprint, a.alias, a.code, a.until));
+    await b.on("post-pair-closed", (c) => this.onPairClosed(c.fingerprint, c.reason));
+    await b.on("post-paired", (p) => void this.onPaired(p.fingerprint, p.alias));
     await b.on("post-transfer", (tr) => this.onTransfer(tr));
     this.status = await b.postStatus().catch(() => null);
     await this.configure();
@@ -361,6 +365,63 @@ export class Courier {
     if (first === undefined) return;
     this.verifyAsks.delete(fingerprint);
     this.host.unsay(first);
+  }
+
+  // --- Pairing (docs/INTERACTIONS.md, "Pairing ePets") -------------------------------
+
+  /** The bubble with a pairing code (its first line), by the asker's fingerprint. */
+  private pairAsks = new Map<string, string>();
+
+  /**
+   * Another ePet asks to pair: the pet says the code to type there (the hidden pet comes
+   * out). Stepped aside, or hidden in Quiet mode: declined.
+   */
+  private async onPairAsked(fingerprint: string, alias: string, code: string, until: number): Promise<void> {
+    const b = this.host.backend;
+    if (this.host.away() || (this.host.hidden() && this.host.quiet())) {
+      void b.postPairDecline(fingerprint);
+      return;
+    }
+    if (this.host.hidden()) await this.host.comeOut();
+    const old = this.pairAsks.get(fingerprint);
+    if (old) this.host.unsay(old);
+    const first = `🔗 ${t("{who} wants to pair with this computer. Type this code there:", { who: alias })}`;
+    this.pairAsks.set(fingerprint, first);
+    this.host.say(
+      [first, `${code.slice(0, 3)} ${code.slice(3)}`, t("Don't know it, or not pairing? Decline.")],
+      Math.max(5000, until - Date.now()),
+      [
+        {
+          label: t("Decline"),
+          run: () => {
+            this.pairAsks.delete(fingerprint);
+            void b.postPairDecline(fingerprint);
+          },
+        },
+      ],
+      () => this.pairAsks.delete(fingerprint),
+      true,
+    );
+    this.host.chime();
+  }
+
+  /** The code's bubble goes; a wrong code is said. */
+  private onPairClosed(fingerprint: string, reason: string): void {
+    const first = this.pairAsks.get(fingerprint);
+    this.pairAsks.delete(fingerprint);
+    if (first !== undefined) this.host.unsay(first);
+    if (reason === "wrong" && first !== undefined) {
+      const who = this.devices.find((d) => d.fingerprint === fingerprint)?.alias ?? "";
+      this.host.say(t("Pairing with {who} didn't work: the code didn't match.", { who }), 8000);
+    }
+  }
+
+  /** Paired: remembered (paired and verified), and said. */
+  private async onPaired(fingerprint: string, alias: string): Promise<void> {
+    const b = this.host.backend;
+    const cur = await b.getSettings();
+    await b.setSettings({ post: withPaired(cur.post, { fingerprint, alias }) });
+    this.host.say(`✓ ${t("Paired with {who}.", { who: alias })}`, 6000);
   }
 
   private onTransfer(tr: PostTransfer): void {

@@ -1703,6 +1703,224 @@ check(
   },
 );
 
+/** The pretend ePet's row in Pet Post → Send, after looking again (it's an ePet now). */
+async function epetRow() {
+  const app = ctx.app;
+  await postTab("send");
+  await app.click(".post-refresh");
+  await app.until(() =>
+    [...document.querySelectorAll(".post-device")].some(
+      (e) =>
+        e.textContent.includes("Mock Phone") && e.querySelector(".post-pair"),
+    ),
+  );
+}
+
+/** Not paired with the pretend ePet (either side), and it's an ePet. */
+async function unpaired() {
+  const app = ctx.app;
+  Object.assign(peer, {
+    epet: true,
+    pairCode: null,
+    pairDecline: false,
+    pairAsks: [],
+    paired: [],
+    pairKey: null,
+  });
+  await app.setSettings((s) => ({
+    ...s,
+    post: { ...s.post, paired: [], verified: [] },
+  }));
+}
+
+check(
+  "post.pair",
+  "Pair with another ePet: it shows a code, typed here → paired on both sides (🔒 Paired, counts as verified)",
+  async () => {
+    const app = ctx.app;
+    await unpaired();
+    try {
+      await app.closeWindow("post");
+      await app.invoke("open_post_window", { verify: null, tab: "send" });
+      await epetRow();
+      await app.b.execute(() =>
+        [...document.querySelectorAll(".post-device")]
+          .find((e) => e.textContent.includes("Mock Phone"))
+          .querySelector(".post-pair")
+          .click(),
+      );
+      await app.until(() => document.querySelector(".post-pair-code"));
+      assert.equal(peer.pairAsks.length, 1);
+      assert.equal(peer.pairAsks[0].fingerprint, fingerprint);
+      // Typed as shown, with a space.
+      const code = peer.pairCode;
+      await app.type(".post-pair-code", `${code.slice(0, 3)} ${code.slice(3)}`);
+      await app.click(".post-pair-go");
+      await app.waitText(".post-pair-done", "Paired with Mock Phone");
+      assert.deepEqual(peer.paired, [fingerprint]);
+      const post = await postSettings();
+      assert.ok(post.paired.some((d) => d.fingerprint === peer.fingerprint));
+      assert.ok(post.verified.some((d) => d.fingerprint === peer.fingerprint));
+      await app.click(".post-pair-close");
+      await app.until(() =>
+        [...document.querySelectorAll(".post-device")].some(
+          (e) =>
+            e.textContent.includes("Mock Phone") &&
+            e.querySelector(".post-paired"),
+        ),
+      );
+    } finally {
+      peer.epet = false;
+    }
+  },
+);
+
+check(
+  "post.pair-wrong",
+  "a wrong code ends the pairing (one go per code): said so, nothing paired; Pair again gets a new code",
+  async () => {
+    const app = ctx.app;
+    await unpaired();
+    try {
+      await epetRow();
+      await app.b.execute(() =>
+        [...document.querySelectorAll(".post-device")]
+          .find((e) => e.textContent.includes("Mock Phone"))
+          .querySelector(".post-pair")
+          .click(),
+      );
+      await app.until(() => document.querySelector(".post-pair-code"));
+      const first = peer.pairCode;
+      const wrong = String((Number(first) + 1) % 1e6).padStart(6, "0");
+      await app.type(".post-pair-code", wrong);
+      await app.click(".post-pair-go");
+      await app.waitText(".post-pair-wrong", "The code didn't match");
+      assert.deepEqual(peer.paired, []);
+      assert.equal((await postSettings()).paired.length, 0);
+      await app.click(".post-pair-again");
+      await app.until(() => document.querySelector(".post-pair-code"));
+      assert.equal(peer.pairAsks.length, 2);
+      // Gave up: the code there goes.
+      await app.click(".post-pair-cancel");
+      await until("cancelled there", async () => peer.pairCode === null);
+    } finally {
+      peer.epet = false;
+    }
+  },
+);
+
+check(
+  "post.pair-asked",
+  "another ePet asks to pair: the pet shows the code (Decline); right code → paired here too; wrong → said; declined → told",
+  async () => {
+    const app = ctx.app;
+    await unpaired();
+    try {
+      await app.closeWindow("post");
+      await app.toPet();
+      const shownCode = async () => {
+        const text = await until("the code in the bubble", async () => {
+          const b = await app.bubble();
+          return b?.includes("wants to pair") && b;
+        });
+        assert.ok(
+          text.includes("Mock Phone wants to pair with this computer"),
+          text,
+        );
+        const m = /(\d{3}) (\d{3})/.exec(text);
+        return m[1] + m[2];
+      };
+      // Right code: paired, and said.
+      assert.equal((await peer.askPair()).body?.answer, "shown");
+      const code = await shownCode();
+      assert.equal(await peer.finishPair(code, fingerprint), "paired");
+      await app.waitBubble("Paired with Mock Phone.");
+      await until("kept", async () =>
+        (await postSettings()).paired.some(
+          (d) => d.fingerprint === peer.fingerprint,
+        ),
+      );
+      // Wrong code: said.
+      await peer.askPair();
+      const again = await shownCode();
+      const wrong = String((Number(again) + 1) % 1e6).padStart(6, "0");
+      assert.equal(await peer.finishPair(wrong, fingerprint), "wrong");
+      await app.waitBubble("didn't work: the code didn't match");
+      // Declined: told when it types the code.
+      await peer.askPair();
+      const third = await shownCode();
+      await app.answer("Decline");
+      assert.equal(await peer.finishPair(third, fingerprint), "declined");
+    } finally {
+      peer.epet = false;
+    }
+  },
+);
+
+check(
+  "post.pair-strict",
+  "strict with a paired ePet: another device with its name is warned about and not sent to; a claim to be it without its certificate is refused",
+  async () => {
+    const app = ctx.app;
+    await unpaired();
+    await app.setSettings((s) => ({
+      ...s,
+      post: {
+        ...s.post,
+        paired: [
+          {
+            fingerprint: peer.fingerprint,
+            alias: "Mock Phone",
+            at: Date.now(),
+          },
+        ],
+      },
+    }));
+    const other = new Peer("Mock Phone", 53319);
+    await other.start();
+    try {
+      // Pretending to be it (its fingerprint, another certificate): refused.
+      const files = {
+        f: { id: "f", fileName: "x.txt", size: 1, fileType: "text/plain" },
+      };
+      const claim = { ...other.info(), fingerprint: peer.fingerprint };
+      const r = await other.request(
+        LOCALSEND_PORT,
+        "/api/localsend/v2/prepare-upload",
+        { info: claim, files },
+      );
+      assert.equal(r.status, 403);
+      // Its own identity, the same name: listed with a warning, and can't be chosen.
+      await app.invoke("post_add_device", {
+        address: "127.0.0.1",
+        port: 53319,
+      });
+      await postTab("send");
+      const row = await app.until(() => {
+        const rows = [...document.querySelectorAll(".post-device")].filter(
+          (e) => e.textContent.includes("Not the Mock Phone you paired with"),
+        );
+        return (
+          rows.length === 1 &&
+          rows[0].classList.contains("unavailable") &&
+          rows[0].textContent
+        );
+      });
+      assert.ok(row.includes("Pair again"));
+    } finally {
+      await other.stop();
+      await app.setSettings((s) => ({
+        ...s,
+        post: {
+          ...s.post,
+          paired: [],
+          devices: s.post.devices.filter((d) => d.port !== 53319),
+        },
+      }));
+    }
+  },
+);
+
 check("post.off-again", "turned off: it stops listening", async () => {
   const app = ctx.app;
   await app.closeWindow("post");

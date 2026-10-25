@@ -1845,6 +1845,40 @@
           "expect": "B 的宠物气泡 “A wants to verify with you.”（Show / Decline）；点 Show 打开 Pet Post 的 Verify，图标和 A 上一样，写着 “A asked to compare.”，也有 They match / They don't match；A 那边不会再收到反过来的请求。宠物藏起来时先探出来再问；1 分钟不理，气泡收起，A 显示 declined"
         },
         {
+          "id": "post.pair",
+          "rev": "0.54.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你用两台装了 ePet 的电脑真配一次（CI 用模拟的 ePet 测码对、码错、拒绝）",
+          "do": "两台电脑都开 ePet 和宠物驿站：在 A 的宠物驿站 → 发送里，点 B 旁边的 🔗 配对…，在 B 上看宠物说出的 6 位码，输进 A",
+          "expect": "B 的宠物出来说出码（2 分钟有效，可拒绝）；A 输对后两边都显示 🔒 已配对，设置 → 宠物驿站 → 已配对的 ePet 里有对方，可取消配对"
+        },
+        {
+          "id": "post.pair-wrong",
+          "rev": "0.54.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "配对时故意输错一个数字",
+          "expect": "A 显示“配对码不对，这次配对已取消”，B 的宠物说“和 … 配对没成功”；重新配对会换新码；同一台电脑连错 3 次后 10 分钟内不能再配"
+        },
+        {
+          "id": "post.pair-decline",
+          "rev": "0.54.0",
+          "mac": true,
+          "ci": "auto",
+          "do": "B 的宠物显示配对码时点 拒绝，再在 A 输码；另试一次在 A 点 取消",
+          "expect": "A 显示“… 拒绝了配对”；在 A 取消时 B 的码气泡马上消失"
+        },
+        {
+          "id": "post.pair-strict",
+          "rev": "0.54.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你在 B 上重装 ePet（或换一台同名电脑）后看 A 的提示（冒充请求被拒由 CI 测）",
+          "do": "A 和 B 配对后，B 重装 ePet（身份会变），再在 A 的宠物驿站里看 B",
+          "expect": "B 那行写着“⚠ 这不是你配对过的 B…”，不能选它发送；点 重新配对… 配好后恢复正常，或点 取消旧的配对"
+        },
+        {
           "id": "post.verify-declined",
           "rev": "0.48.0",
           "ci": "auto",

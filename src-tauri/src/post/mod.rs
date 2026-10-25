@@ -11,6 +11,7 @@ mod client;
 mod discovery;
 mod door;
 pub(crate) mod items;
+pub(crate) mod pair;
 mod pickup;
 mod server;
 pub(crate) mod share;
@@ -65,6 +66,9 @@ pub struct Config {
     /// Fingerprints of blocked devices (Verify: the icons didn't match): not listed, nothing
     /// sent to them, and whatever they ask is refused.
     pub blocked: Vec<String>,
+    /// Fingerprints of paired ePets (pair.rs): strict with them. Only their certificate
+    /// proves them (a claim without it is refused), and only over HTTPS.
+    pub paired: Vec<String>,
     /// Asks the router in front of this computer to pass Pet Post's port on to it (door.rs).
     pub door: bool,
     /// ...also when the router's outside is the internet (the user said so).
@@ -368,6 +372,8 @@ pub struct Inner {
     /// The router door (door.rs), and a nudge to ask the router again.
     pub(crate) door: Mutex<door::Door>,
     pub(crate) door_wake: tokio::sync::Notify,
+    /// Pairing with a code (pair.rs).
+    pub(crate) pair: pair::State,
 }
 
 /// A device asked to compare Verify.
@@ -475,6 +481,16 @@ impl Inner {
     /// Whether the device (by fingerprint) is blocked.
     pub(crate) fn blocked(&self, fingerprint: &str) -> bool {
         lock(&self.config).blocked.iter().any(|b| b.eq_ignore_ascii_case(fingerprint))
+    }
+
+    /// Whether the device (by fingerprint) is a paired ePet.
+    pub(crate) fn paired(&self, fingerprint: &str) -> bool {
+        lock(&self.config).paired.iter().any(|b| b.eq_ignore_ascii_case(fingerprint))
+    }
+
+    /// Claims to be a paired ePet without its certificate to prove it: refused.
+    pub(crate) fn unproven_paired(&self, claimed: &str, cert: &Option<String>) -> bool {
+        self.paired(claimed) && !cert.as_ref().is_some_and(|c| c.eq_ignore_ascii_case(claimed))
     }
 
     /// Where the user's Verify decision on a device is told (and waited for).
@@ -671,6 +687,7 @@ impl Post {
             pickup: pickup::State::default(),
             door: Mutex::new(door::Door::default()),
             door_wake: tokio::sync::Notify::new(),
+            pair: pair::State::default(),
         }))
     }
 }
@@ -907,7 +924,8 @@ pub fn post_send(
 ) -> CmdResult<()> {
     let inner = post.0.clone();
     let device = lock(&inner.devices).get(&to.to_ascii_uppercase()).cloned().ok_or("That device is gone.")?;
-    if device.changed_to.is_some() {
+    // A paired ePet only over HTTPS, where its certificate proves it.
+    if device.changed_to.is_some() || (inner.paired(&device.fingerprint) && !device.https) {
         return Err("identity".into());
     }
     if !device.online || device.ip.is_unspecified() {

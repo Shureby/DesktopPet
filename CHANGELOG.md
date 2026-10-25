@@ -16,6 +16,21 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.54.0] - 2026-10-25
+
+### Added
+- **Pair ePets with a code** (Pet Post → 🔗 Pair… by an ePet): the other ePet's pet shows 6
+  digits, you type them here, and both remember each other as 🔒 Paired. The code never
+  crosses the network (SPAKE2 with both certificates), so someone in between can't pair in
+  your place; one go per code, and three wrong codes lock that computer out for 10 minutes.
+  Settings → Pet Post lists paired ePets, with Unpair.
+- **Strict with paired ePets:** a request claiming to be one without its certificate is
+  refused, nothing goes to it over plain HTTP, and another device going by its name is
+  warned about and can't be chosen (Pair again… if it was reinstalled).
+
+### Changed
+- By an ePet, Verify is now the shield button beside Pair (LocalSend devices keep Verify).
+
 ## [0.53.1] - 2026-10-25
 
 ### Fixed

@@ -54,7 +54,11 @@ import {
   shownItems,
   tallyLine,
   unlisted,
+  pairedMark,
+  lookalikeOf,
+  withoutPaired,
 } from "../features/post/post";
+import { closePair, pairing, pairView, startPair, tickPair, type PairContext } from "./pair";
 import "../styles/panel.css";
 
 const root = document.getElementById("post")!;
@@ -305,6 +309,7 @@ async function forget(d: PostDevice): Promise<void> {
 }
 
 function verify(fingerprint: string, alias = ""): void {
+  if (pairing) closePair(pairContext);
   const fp = fingerprint.toUpperCase();
   const v: NonNullable<typeof verifying> = { fingerprint: fp, alias, code: null, mode: "icons", error: "", asked: "", mismatch: false, confirm: false };
   verifying = v;
@@ -366,6 +371,11 @@ async function recheck(v: NonNullable<typeof verifying>, name: string): Promise<
 
 /** A green "Verified" (the shield alone when `small`) by a verified device's name. */
 function verifiedBadge(fingerprint: string | null | undefined, small = false): Node | null {
+  const paired = pairedMark(settings.post, fingerprint);
+  if (paired) {
+    const title = t("Paired on {date} with a code: only this ePet gets what you send it.", { date: formatWhen(paired.at) });
+    return h("span", { class: `post-paired${small ? " small" : ""}`, title, "aria-label": t("Paired") }, "🔒", small ? null : ` ${t("Paired")}`);
+  }
   const mark = verifiedMark(settings.post, fingerprint);
   if (!mark) return null;
   const title = t("Verified on {date}: the icons matched on both screens.", { date: formatWhen(mark.at) });
@@ -411,9 +421,17 @@ function lookAgain(): void {
 }
 
 function deviceRow(d: PostDevice): Node {
-  const can = sendable(d);
+  // Goes by a paired ePet's name with another identity: not sent to (someone may pretend).
+  const lookalike = lookalikeOf(settings.post, d);
+  const can = sendable(d) && !lookalike;
   const where = [sourceLabel(d, settings.post), d.deviceModel, d.address ?? d.ip].filter(Boolean).join(" · ");
-  const state = d.changedTo ? t("⚠ Another device answers there now.") : !d.online ? t("Not answering.") : "";
+  const state = d.changedTo
+    ? t("⚠ Another device answers there now.")
+    : lookalike
+      ? t("⚠ Not the {name} you paired with: its identity is different. Reinstalled? Pair again. Otherwise someone may be pretending.", { name: lookalike.alias })
+      : !d.online
+        ? t("Not answering.")
+        : "";
   const row = h(
     "li",
     {
@@ -435,7 +453,15 @@ function deviceRow(d: PostDevice): Node {
       h("strong", {}, d.alias, verifiedBadge(d.fingerprint)),
       h("span", { class: "hint" }, where),
       collects(d) ? h("span", { class: "post-collects", title: t("It's behind another router: what's sent to it waits until it collects it.") }, `↩ ${t("It collects")}`) : null,
-      state ? h("span", { class: `post-device-state${d.changedTo ? " warning" : ""}` }, state) : null,
+      state ? h("span", { class: `post-device-state${d.changedTo || lookalike ? " warning" : ""}` }, state) : null,
+      lookalike
+        ? h(
+            "span",
+            { class: "row" },
+            h("button", { class: "small primary post-pair-again-row", onclick: (e: Event) => (e.stopPropagation(), pair(d)) }, `🔗 ${t("Pair again…")}`),
+            h("button", { class: "small post-unpair-old", onclick: (e: Event) => (e.stopPropagation(), void unpair(lookalike.fingerprint)) }, t("Unpair the old one")),
+          )
+        : null,
       favoriteAsk === d.fingerprint
         ? h(
             "span",
@@ -470,8 +496,18 @@ function deviceRow(d: PostDevice): Node {
           icon(isFavorite(settings.post, d.fingerprint) ? FAVORITE : FAVORITE_BORDER),
         )
       : null,
-    d.https && can
-      ? h("button", { class: "small post-verify", title: t("Verify: compare with what the other device shows"), onclick: (e: Event) => (e.stopPropagation(), verify(d.fingerprint)) }, icon(VERIFIED_USER), t("Verify"))
+    // An ePet pairs (a code); LocalSend Verifies (icons). Paired: nothing more to check.
+    d.https && can && d.epet && !pairedMark(settings.post, d.fingerprint)
+      ? h("button", { class: "small post-pair", title: t("Pair: type a code the other ePet shows, once"), onclick: (e: Event) => (e.stopPropagation(), pair(d)) }, `🔗 ${t("Pair…")}`)
+      : null,
+    // (An ePet can still be Verified, an older one too: the shield alone, beside Pair.)
+    d.https && can && !pairedMark(settings.post, d.fingerprint)
+      ? h(
+          "button",
+          { class: "small post-verify", title: t("Verify: compare with what the other device shows"), "aria-label": t("Verify"), onclick: (e: Event) => (e.stopPropagation(), verify(d.fingerprint)) },
+          icon(VERIFIED_USER),
+          d.epet ? null : t("Verify"),
+        )
       : null,
     settings.post.devices.some((x) => x.fingerprint === d.fingerprint && x.via === "address")
       ? h("button", { class: "small post-forget", title: t("Remove"), "aria-label": t("Remove"), onclick: (e: Event) => (e.stopPropagation(), void forget(d)) }, "✕")
@@ -522,6 +558,32 @@ let tab: Tab = (["receive", "send", "history"] as const).find((x) => x === store
 function show(next: Tab): void {
   tab = next;
   store("post.tab", next);
+  render();
+}
+
+/** What the pairing view (./pair.ts) needs of this window. */
+const pairContext: PairContext = {
+  backend,
+  render: () => render(),
+  saved: (s) => (settings = s),
+  sendTo: (fp) => {
+    selected = fp;
+    setSendMode("files");
+    show("send");
+  },
+  verify: (fp, alias) => verify(fp, alias),
+};
+
+/** Pairs with a device (an ePet): Pet Post → Pair. */
+function pair(d: { fingerprint: string; alias: string }): void {
+  verifying = null;
+  startPair(pairContext, d.fingerprint, d.alias);
+}
+
+/** No longer paired with the ePet this one looks like (the old one, reinstalled maybe). */
+async function unpair(fingerprint: string): Promise<void> {
+  const cur = await backend.getSettings();
+  settings = await backend.setSettings({ post: withoutPaired(cur.post, fingerprint) });
   render();
 }
 
@@ -1266,6 +1328,10 @@ function windowTitle(title: string): void {
 function render(): void {
   document.title = t("Pet Post");
   windowTitle(t("Pet Post"));
+  if (pairing) {
+    root.replaceChildren(pairView(pairContext));
+    return;
+  }
   if (verifying) {
     root.replaceChildren(verifyView());
     return;
@@ -1537,6 +1603,7 @@ async function main(): Promise<void> {
     render();
   });
   await backend.on("post-verify", (fp) => verify(fp));
+  await backend.on("post-pair", (fp) => pair({ fingerprint: fp, alias: devices.find((d) => d.fingerprint === fp)?.alias ?? "" }));
   await backend.on("post-history", (list) => {
     history = list;
     render();
@@ -1586,12 +1653,17 @@ async function main(): Promise<void> {
   setInterval(() => {
     const line = root.querySelector(".post-offer-countdown");
     if (offer && line) line.textContent = countdown(offer);
+    const p = pairing;
+    tickPair(root);
+    if (p && p.stage === "expired") render();
   }, 1000);
   render();
   if (settings.post.enabled && !devices.length) lookAgain();
   // Opened for Verify (the pet's "Verify…" on a delivery), or on a tab ("#send").
   const asked = /^#verify=([0-9A-Fa-f]+)$/.exec(location.hash)?.[1];
   if (asked) verify(asked);
+  const pairWith = /^#pair=([0-9A-Fa-f]+)$/.exec(location.hash)?.[1];
+  if (pairWith) pair({ fingerprint: pairWith, alias: devices.find((d) => d.fingerprint === pairWith.toUpperCase())?.alias ?? "" });
   const opened = /^#(receive|send|history)$/.exec(location.hash)?.[1] as Tab | undefined;
   if (opened) show(opened);
 }

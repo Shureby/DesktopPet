@@ -140,7 +140,7 @@ const MOCK_DEVICES: PostDevice[] = [
   // ?sharing: the phone shares files by link.
   { ...found, fingerprint: "A1", alias: "Pixel 8", deviceModel: "Google", deviceType: "mobile", ip: "192.168.1.20", sharing: new URLSearchParams(location.search).has("sharing") },
   { ...found, fingerprint: "B2", alias: "Mum's MacBook", deviceModel: "macOS", deviceType: "desktop", ip: "192.168.1.31", cameIn: false },
-  { ...found, fingerprint: "C3", alias: "Work laptop", deviceModel: "Windows", deviceType: "desktop", ip: "100.101.2.3", source: "tailnet" },
+  { ...found, fingerprint: "C3", alias: "Work laptop", deviceModel: "Windows", deviceType: "desktop", ip: "100.101.2.3", source: "tailnet", epet: true },
 ];
 
 const mockHistory: PostReceived[] = [
@@ -787,6 +787,27 @@ export const mockBackend: Backend = {
     return q.has("verify-declined") ? "declined" : "shown";
   },
   async postVerifyAnswer() {},
+  async postPairAsk(fingerprint) {
+    // The pretend ePet (Work laptop, C3) shows a code; ?pair-busy / ?pair-later: why not.
+    const q = new URLSearchParams(location.search);
+    if (fingerprint !== "C3") return { answer: "unsupported" };
+    await new Promise((r) => setTimeout(r, 800));
+    if (q.has("pair-busy")) return { answer: "busy" };
+    if (q.has("pair-later")) return { answer: "later" };
+    // ?pair-asked: it asks back (to see the pet's bubble with the code).
+    if (q.has("pair-asked")) setTimeout(() => fire("post-pair-asked", { fingerprint: "C3", alias: "Work laptop", code: "482913", until: Date.now() + 120_000 }), 500);
+    return { answer: "shown", until: Date.now() + 120_000 };
+  },
+  async postPairFinish(_fingerprint, code) {
+    // The pretend code is 482913; ?pair-declined: declined there.
+    await new Promise((r) => setTimeout(r, 900));
+    if (new URLSearchParams(location.search).has("pair-declined")) return "declined";
+    return code.replace(/\D/g, "") === "482913" ? "paired" : "wrong";
+  },
+  async postPairCancel() {},
+  async postPairDecline(fingerprint) {
+    fire("post-pair-closed", { fingerprint, reason: "declined" });
+  },
   async postShareOpen(target, pin) {
     const q = new URLSearchParams(location.search);
     await new Promise((r) => setTimeout(r, 1200));

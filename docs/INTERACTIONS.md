@@ -1008,6 +1008,37 @@ src-tauri/src/post/, crates/desktoppet-core/src/post.rs).
 - **Not in this version:** LocalSend's "share via link" (browsers download over plain
   HTTP).
 
+## Pairing ePets (since 0.54.0)
+
+Pet Post → a device that is an ePet → **🔗 Pair…**: checks once that it really is that ePet,
+with a code instead of comparing icons (Verify stays, for LocalSend, and as the shield
+button by an ePet).
+
+- **The other ePet shows the code, you type it here.** Asked, its pet comes out (also when
+  hidden; declined by itself when stepped aside, or hidden in Quiet mode) and says
+  "🔗 {this computer} wants to pair with this computer. Type this code there:" with 6
+  digits and **Decline**. The code lasts 2 minutes ("Expires in 1:42" here). Showing it is
+  consenting: whoever is at that computer reads it to you, or you walk over.
+- **One go per code.** A wrong code ends the pairing on both sides ("The code didn't
+  match. This pairing is cancelled.", and "Pairing with … didn't work" there); Pair again
+  gets a new code. Three wrong codes from one computer and that ePet takes no pairing
+  from it for 10 minutes. One pairing at a time on each ePet ("busy").
+- **Paired:** both sides mark the other 🔒 Paired (it counts as verified too), listed in
+  Settings → Pet Post → Paired ePets with **Unpair**. Blocking a device unpairs it.
+- **Strict with a paired ePet:** only its certificate proves it — a request claiming its
+  identity without that certificate is refused — and nothing goes to it over plain HTTP.
+  Another device going by a paired ePet's name with a different identity is listed with
+  "⚠ Not the … you paired with" and can't be chosen; **Pair again…** (it was reinstalled)
+  or **Unpair the old one**.
+- **How it works:** SPAKE2 (RustCrypto `spake2`, Ed25519) with the code as the password and
+  both certificates' fingerprints as the identities, over the HTTPS connection; each side
+  then proves it got the same key (HMAC), B first. The code never crosses the network: a
+  man in the middle gets one guess, and since his certificates differ, even the right code
+  gives him different keys. An ePet older than 0.54.0 can't pair ("needs ePet 0.54 or
+  newer", with Verify offered instead).
+- **Paired is not "my computer":** it proves who, not whose. Syncing schedules (later)
+  needs its own confirmation on both computers (docs/ROADMAP.md).
+
 ## Language and region (since 0.43.0)
 
 - **Three languages:** English, 简体中文 (Simplified Chinese, as written in mainland China)

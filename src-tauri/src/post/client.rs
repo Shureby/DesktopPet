@@ -58,7 +58,7 @@ pub(crate) struct Reply {
     pub cert: Option<String>,
 }
 
-fn json_body(value: &impl serde::Serialize) -> ReqBody {
+pub(crate) fn json_body(value: &impl serde::Serialize) -> ReqBody {
     let bytes = serde_json::to_vec(value).unwrap_or_default();
     Full::new(Bytes::from(bytes)).map_err(|never| match never {}).boxed()
 }

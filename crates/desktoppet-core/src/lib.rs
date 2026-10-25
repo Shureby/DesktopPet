@@ -6,6 +6,7 @@
 pub mod backup;
 pub mod lunar;
 pub mod model;
+pub mod pair;
 pub mod pomodoro;
 pub mod post;
 pub mod schedule;

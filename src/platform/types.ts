@@ -480,7 +480,33 @@ export interface BackendEvents {
   "post-verify-ask-closed": { fingerprint: string };
   /** The Pet Post window, already open, is to show this tab. */
   "post-tab": "receive" | "send" | "history";
+  /** The Pet Post window, already open, is to pair with this device (fingerprint). */
+  "post-pair": string;
+  /** Another ePet asks to pair: the pet shows this code until `until` (or Decline). */
+  "post-pair-asked": PostPairAsked;
+  /** That pairing is over here: paired, a wrong code, declined, the asker gave up, too late. */
+  "post-pair-closed": { fingerprint: string; reason: "paired" | "wrong" | "declined" | "cancelled" | "expired" };
+  /** Paired with that ePet (on the side that showed the code). */
+  "post-paired": { fingerprint: string; alias: string };
 }
+
+/** Another ePet asks to pair: the code to tell it. */
+export interface PostPairAsked {
+  fingerprint: string;
+  alias: string;
+  code: string;
+  /** Until when it can be typed there (ms). */
+  until: number;
+}
+
+/** Asking an ePet to pair: whether it shows a code (and until when). */
+export interface PostPairAsk {
+  answer: "shown" | "busy" | "later" | "refused" | "unsupported" | "unreachable";
+  until?: number;
+}
+
+/** The code typed: how it went. */
+export type PostPairResult = "paired" | "wrong" | "declined" | "expired" | "invalid" | "unsupported" | "unreachable";
 
 /** Stepping aside, as the app sees it now. */
 export interface AvoidStatus {
@@ -670,6 +696,18 @@ export interface Backend {
   postVerifyDecided(fingerprint: string, matched: boolean): Promise<void>;
   /** After the device showed Verify: what its user decides ("match" | "mismatch"), or null. */
   postVerifyResult(fingerprint: string): Promise<string | null>;
+  /**
+   * Pairing (docs/INTERACTIONS.md, "Pairing ePets"): asks an ePet to show a 6-digit code
+   * ("shown"), or why not: "busy" (pairing with another), "later" (too many wrong codes),
+   * "refused" (blocked there), "unsupported" (LocalSend, an older ePet), "unreachable".
+   */
+  postPairAsk(fingerprint: string): Promise<PostPairAsk>;
+  /** The code shown there, typed here: paired, or why not. One go per code. */
+  postPairFinish(fingerprint: string, code: string): Promise<PostPairResult>;
+  /** Stopped before typing it: the code there goes. */
+  postPairCancel(fingerprint: string): Promise<void>;
+  /** Declined here (the pet's bubble): the code goes. */
+  postPairDecline(fingerprint: string): Promise<void>;
   /** The clipboard's text (read by the app: the Mac asks "Paste" first when a page does). */
   postClipboardText(): Promise<string>;
   /** Puts text on the clipboard (Copy); rejects if it didn't work. */

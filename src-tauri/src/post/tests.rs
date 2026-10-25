@@ -575,3 +575,126 @@ fn epet_sends_to_localsend_cli() {
     client::send(a.inner.clone(), cli, vec![], Some("hi LocalSend, from ePet".into()), None).unwrap();
     a.transfer("done");
 }
+
+/// Pairing (pair.rs) from `from` to `to`: asks, and returns the code `to` shows.
+fn pair_ask(from: &Peer, to: &Peer) -> (super::pair::PairAsk, Option<String>) {
+    let asked = tauri::async_runtime::block_on(super::pair::ask(&from.inner, &to.fingerprint()));
+    if asked.answer != "shown" {
+        return (asked, None);
+    }
+    let shown = to.wait("post-pair-asked", |v| v["fingerprint"] == Value::String(from.fingerprint()));
+    (asked, shown["code"].as_str().map(str::to_string))
+}
+
+fn pair_finish(from: &Peer, to: &Peer, code: &str) -> String {
+    tauri::async_runtime::block_on(super::pair::finish_with(&from.inner, &to.fingerprint(), code))
+}
+
+#[test]
+fn pairing_with_the_right_code_pairs_both() {
+    let (a, b) = (peer("Alice", |_| {}), peer("Bob", |_| {}));
+    a.find(&b);
+    let (asked, code) = pair_ask(&a, &b);
+    assert_eq!(asked.answer, "shown");
+    assert!(asked.until.unwrap() > crate::state::now_ms());
+    let code = code.unwrap();
+    // Typed with a space, as shown ("482 913").
+    let typed = format!("{} {}", &code[..3], &code[3..]);
+    assert_eq!(pair_finish(&a, &b, &typed), "paired");
+    let paired = b.wait("post-paired", |_| true);
+    assert_eq!(
+        (paired["fingerprint"].as_str(), paired["alias"].as_str()),
+        (Some(a.fingerprint().as_str()), Some("Alice"))
+    );
+    b.wait("post-pair-closed", |v| v["reason"] == "paired");
+    // Used up: the same code again is too late.
+    assert_eq!(pair_finish(&a, &b, &code), "expired");
+}
+
+#[test]
+fn a_wrong_code_ends_the_pairing_and_three_lock_the_device_out() {
+    let (a, b) = (peer("Alice", |_| {}), peer("Bob", |_| {}));
+    a.find(&b);
+    for round in 0..3 {
+        let (_, code) = pair_ask(&a, &b);
+        let wrong = format!("{:06}", (code.unwrap().parse::<u32>().unwrap() + 1) % 1_000_000);
+        assert_eq!(pair_finish(&a, &b, &wrong), "wrong", "round {round}");
+        b.wait("post-pair-closed", |v| v["reason"] == "wrong");
+    }
+    assert_eq!(pair_ask(&a, &b).0.answer, "later");
+    // Others still may.
+    let c = peer("Carol", |_| {});
+    c.find(&b);
+    assert_eq!(pair_ask(&c, &b).0.answer, "shown");
+    // ...but one code at a time: Alice's turn would be "busy" even if she weren't locked.
+    let d = peer("Dave", |_| {});
+    d.find(&b);
+    assert_eq!(pair_ask(&d, &b).0.answer, "busy");
+}
+
+#[test]
+fn declined_and_cancelled_pairing() {
+    let (a, b) = (peer("Alice", |_| {}), peer("Bob", |_| {}));
+    a.find(&b);
+    let (_, code) = pair_ask(&a, &b);
+    super::pair::decline(&b.inner, &a.fingerprint());
+    b.wait("post-pair-closed", |v| v["reason"] == "declined");
+    assert_eq!(pair_finish(&a, &b, &code.unwrap()), "declined");
+    // Alice gives up: Bob's code goes.
+    pair_ask(&a, &b);
+    let peer_b =
+        super::client::Peer::of(&a.inner.devices().into_iter().find(|d| d.fingerprint == b.fingerprint()).unwrap());
+    let body = super::client::json_body(&a.inner.info(true));
+    tauri::async_runtime::block_on(super::client::request(
+        &a.inner,
+        &peer_b,
+        super::pair::CANCEL,
+        body,
+        None,
+        Duration::from_secs(3),
+    ))
+    .unwrap();
+    b.wait("post-pair-closed", |v| v["reason"] == "cancelled");
+    // Not an ePet that pairs (LocalSend, an older ePet): said so.
+    assert_eq!(pair_finish(&a, &b, "12345"), "invalid");
+}
+
+#[test]
+fn a_paired_epet_must_prove_itself() {
+    let (a, b, m) = (peer("Alice", |_| {}), peer("Bob", |_| {}), peer("Mallory", |_| {}));
+    let mut config = a.inner.config();
+    config.paired = vec![b.fingerprint()];
+    tauri::async_runtime::block_on(configure(&a.inner, config));
+    // Mallory claims to be Bob (his fingerprint, her certificate): refused, not listed.
+    let mut info = m.inner.info(true);
+    info.fingerprint = b.fingerprint();
+    m.find(&a);
+    let to_a = super::client::Peer { ip: LOCALHOST, port: a.port, https: true, expected: Some(a.fingerprint()) };
+    let files = serde_json::json!({ "f": { "id": "f", "fileName": "x.txt", "size": 1, "fileType": "text/plain" } });
+    let body = super::client::json_body(&serde_json::json!({ "info": info, "files": files }));
+    let path = "/api/localsend/v2/prepare-upload";
+    let reply = tauri::async_runtime::block_on(super::client::request(
+        &m.inner,
+        &to_a,
+        path,
+        body,
+        None,
+        Duration::from_secs(3),
+    ))
+    .unwrap();
+    assert_eq!(reply.status, 403);
+    let body = super::client::json_body(&info);
+    let reply = tauri::async_runtime::block_on(super::client::request(
+        &m.inner,
+        &to_a,
+        "/api/localsend/v2/register",
+        body,
+        None,
+        Duration::from_secs(3),
+    ))
+    .unwrap();
+    assert_eq!(reply.status, 403);
+    // Bob himself is fine.
+    b.find(&a);
+    assert!(a.inner.devices().iter().any(|d| d.fingerprint == b.fingerprint()));
+}

@@ -50,6 +50,12 @@ export interface PostSettings {
   verified: MarkedDevice[];
   /** Verify: the icons didn't match. Not listed, nothing sent to it, all it asks refused. */
   blocked: MarkedDevice[];
+  /**
+   * ePets paired with a code (they count as verified too). Strict with them: only their
+   * certificate proves them, only over HTTPS; one with the same name but another
+   * certificate is not them.
+   */
+  paired: MarkedDevice[];
   /** Asks the router in front of this computer to let devices outside it in (UPnP, NAT-PMP, PCP). */
   door: boolean;
   /** ...also when the router's outside is the internet (only once the user said so). */
@@ -77,6 +83,7 @@ export const DEFAULT_POST: PostSettings = {
   favoriteNoticeSeen: false,
   verified: [],
   blocked: [],
+  paired: [],
   door: true,
   doorPublic: false,
 };
@@ -132,6 +139,7 @@ export function postSettings(s: Partial<PostSettings> | undefined): PostSettings
     favoriteNoticeSeen: s?.favoriteNoticeSeen === true,
     verified: marked(s?.verified),
     blocked: marked(s?.blocked),
+    paired: marked(s?.paired),
     door: s?.door !== false,
     doorPublic: s?.doorPublic === true,
   };
@@ -166,10 +174,39 @@ export function withoutVerified(s: PostSettings, fingerprint: string): PostSetti
   return { ...s, verified: s.verified.filter((x) => x.fingerprint !== fp) };
 }
 
+/** The record of an ePet paired with a code, if it is. */
+export function pairedMark(s: PostSettings, fingerprint: string | null | undefined): MarkedDevice | null {
+  const fp = fingerprint?.toUpperCase();
+  return (fp && s.paired.find((d) => d.fingerprint === fp)) || null;
+}
+
+/** Paired with a code: paired and verified (and no longer blocked). */
+export function withPaired(s: PostSettings, d: { fingerprint: string; alias: string }, at = Date.now()): PostSettings {
+  const fp = d.fingerprint.toUpperCase();
+  const v = withVerified(s, d, at);
+  return { ...v, paired: [...v.paired.filter((x) => x.fingerprint !== fp), { fingerprint: fp, alias: d.alias, at }] };
+}
+
+/** Unpaired: no longer paired nor verified (pair again, or Verify, to trust it again). */
+export function withoutPaired(s: PostSettings, fingerprint: string): PostSettings {
+  const fp = fingerprint.toUpperCase();
+  return { ...withoutVerified(s, fp), paired: s.paired.filter((x) => x.fingerprint !== fp) };
+}
+
+/**
+ * A device that isn't a paired ePet but goes by a paired one's name: someone may be
+ * pretending to be it (or it was reinstalled: pair again). The paired one it looks like.
+ */
+export function lookalikeOf(s: PostSettings, d: { fingerprint: string; alias: string }): MarkedDevice | null {
+  if (pairedMark(s, d.fingerprint)) return null;
+  const name = d.alias.trim().toLowerCase();
+  return (name && s.paired.find((p) => p.alias.trim().toLowerCase() === name)) || null;
+}
+
 /** They don't match: blocked, and no longer verified, a favorite or kept at an address. */
 export function withBlocked(s: PostSettings, d: { fingerprint: string; alias: string }, at = Date.now()): PostSettings {
   const fp = d.fingerprint.toUpperCase();
-  const rest = withoutFavorite(withoutVerified(s, fp), fp);
+  const rest = withoutFavorite(withoutPaired(s, fp), fp);
   return { ...rest, devices: rest.devices.filter((x) => x.fingerprint !== fp), blocked: [...rest.blocked.filter((x) => x.fingerprint !== fp), { fingerprint: fp, alias: d.alias, at }] };
 }
 
@@ -178,8 +215,9 @@ export function withoutBlocked(s: PostSettings, fingerprint: string): PostSettin
   return { ...s, blocked: s.blocked.filter((x) => x.fingerprint !== fp) };
 }
 
-/** A name in the pet's bubble, with a shield when the device is verified. */
+/** A name in the pet's bubble, with a lock when paired, a shield when verified. */
 export function markedName(s: PostSettings, name: string, fingerprint: string | null | undefined): string {
+  if (pairedMark(s, fingerprint)) return `${name} 🔒`;
   return verifiedMark(s, fingerprint) ? `${name} 🛡` : name;
 }
 
@@ -234,6 +272,7 @@ export interface PostConfig {
   networks: string[];
   tailscale: boolean;
   blocked: string[];
+  paired: string[];
   door: boolean;
   doorPublic: boolean;
 }
@@ -251,6 +290,7 @@ export function postConfig(s: PostSettings, alias: string, port = 0): PostConfig
     networks: s.networks,
     tailscale: s.tailscale,
     blocked: s.blocked.map((d) => d.fingerprint),
+    paired: s.paired.map((d) => d.fingerprint),
     door: s.door,
     doorPublic: s.doorPublic,
   };

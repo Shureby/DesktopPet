@@ -2237,3 +2237,72 @@ nav.post-tabs button {
 .screens .screen.small .n {
   font-size: 15px;
 }
+
+/* ----- Pet Post → Pair: a code the other ePet shows, typed here ----- */
+.post-paired {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 6px;
+  padding: 0 7px 0 5px;
+  border: 1px solid #9fd3ae;
+  border-radius: 10px;
+  background: #dff2e4;
+  color: #1f6b38;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+.post-paired.small {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.post-pair-view .post-pair-card {
+  margin: 12px 0;
+}
+.post-pair-card .title {
+  font-weight: 700;
+  margin: 0;
+}
+.post-pair-card .row {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.post-pair-card button {
+  white-space: nowrap;
+}
+.post-pair-card.warning {
+  background: #fff6e5;
+  border-color: #e2b04a;
+}
+.post-pair-done .title {
+  color: #1f6b38;
+}
+.post-pair-code {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 28px;
+  letter-spacing: 0.35em;
+  text-align: center;
+  width: 9.5em;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 6px 4px 6px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--fg);
+}
+.post-pair-code:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.post-pair-left {
+  text-align: right;
+}
+.post-pair-invalid {
+  margin: 0;
+  font-size: 12px;
+}

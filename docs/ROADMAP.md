@@ -263,7 +263,7 @@ installer too (look for the `ePet` uninstall entry), or tell testers to.
 **Outside the code:** a page at ezyappco.com/ChimePet (redirect /ePet there), and the
 store listings under the new name.
 
-## Pairing ePets with a code (later)
+## Pairing ePets with a code (shipped in 0.54.0)
 
 Discussed 2026-10-20; not scheduled. Verify (icons compared by eye) stays: it's the only
 check that works with LocalSend. Between two ePets, a one-time code can replace the 16
@@ -287,10 +287,10 @@ extensions we already have (`epet: 1` in the device info, LocalSend ignores it;
 `/api/epet/v1/...`, as Verify requests and pickup use).
 - **Encryption stays TLS** (rustls, both sides show certificates): no home-made crypto.
   What's weak is the first meeting (who is it?), which pairing fixes.
-- **Pairing** (see "Pairing ePets with a code"): a one-time code, then the certificates
-  are pinned.
-- **Strict mode between paired ePets:** HTTPS only (no LocalSend-style plain HTTP), and a
-  certificate that doesn't match is refused and warned about.
+- **Pairing** (see "Pairing ePets with a code", shipped in 0.54.0): a one-time code, then
+  the certificates are pinned.
+- **Strict mode between paired ePets** (shipped in 0.54.0): HTTPS only (no LocalSend-style
+  plain HTTP), and a certificate that doesn't match is refused and warned about.
 - **Chat:** a conversation with history, read or not, and messages left for an ePet that
   can't be reached now (collected as pickup does).
 - **Schedule sync** between your own computers (to-dos, alarms, anniversaries): uid,
