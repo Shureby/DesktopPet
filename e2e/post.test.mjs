@@ -1703,17 +1703,27 @@ check(
   },
 );
 
-/** The pretend ePet's row in Pet Post → Send, after looking again (it's an ePet now). */
+/** The pretend ePet's row in Pet Post → Send, with Pair (it introduces itself as an ePet). */
 async function epetRow() {
   const app = ctx.app;
+  await peer.request(LOCALSEND_PORT, "/api/localsend/v2/register", peer.info());
   await postTab("send");
-  await app.click(".post-refresh");
-  await app.until(() =>
-    [...document.querySelectorAll(".post-device")].some(
-      (e) =>
-        e.textContent.includes("Mock Phone") && e.querySelector(".post-pair"),
-    ),
-  );
+  try {
+    await app.until(() =>
+      [...document.querySelectorAll(".post-device")].some(
+        (e) =>
+          e.textContent.includes("Mock Phone") && e.querySelector(".post-pair"),
+      ),
+    );
+  } catch (e) {
+    const rows = await app.b.execute(() =>
+      [...document.querySelectorAll(".post-device")].map((r) => r.outerHTML),
+    );
+    const list = await app.invoke("post_devices");
+    throw new Error(
+      `no Pair by Mock Phone: ${JSON.stringify(rows)} ${JSON.stringify(list)}`,
+    );
+  }
 }
 
 /** Not paired with the pretend ePet (either side), and it's an ePet. */
@@ -1749,7 +1759,9 @@ check(
           .querySelector(".post-pair")
           .click(),
       );
-      await app.until(() => document.querySelector(".post-pair-code"));
+      await app.until(() => document.querySelector(".post-pair-code")).catch(async (e) => {
+        throw new Error(`${e.message}: ${await app.text(".post-pair-view")}`);
+      });
       assert.equal(peer.pairAsks.length, 1);
       assert.equal(peer.pairAsks[0].fingerprint, fingerprint);
       // Typed as shown, with a space.
