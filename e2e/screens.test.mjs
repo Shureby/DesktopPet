@@ -65,6 +65,7 @@ check(
     if (ticks.length === 1)
       assert.equal(ticks[0].off, true, "the only screen can't be unticked");
     await app.click(".box.screens button.identify");
+    await app.waitText(".box.screens .found", "shows its number");
     await app.toPet();
     await app.b.waitUntil(() => app.hasWindow("identify.html"), {
       timeout: 5000,
@@ -72,6 +73,9 @@ check(
     await app.b.waitUntil(async () => !(await app.hasWindow("identify.html")), {
       timeout: 8000,
     });
+    await app.toWindow("panel.html");
+    await app.click(".box.screens button.detect");
+    await app.waitText(".box.screens .found", "Looked again");
     await app.closeWindow("panel");
   },
 );

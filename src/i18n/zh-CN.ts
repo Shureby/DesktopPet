@@ -769,11 +769,19 @@ const zhCN: Dictionary = {
     Here: "在这里",
     "The pet walks and comes out (alarms, anniversaries) only on the ticked screens. Carry it to another one and it plays there for a while, then comes back by itself.":
       "宠物只在勾选的屏幕上走动、出场（闹钟、纪念日也在这里）。你把它拖到别的屏幕，它会在那里玩一会儿，然后自己回来。",
+    "Shows each screen's number on it, to tell which is which":
+      "在每块屏幕上显示它的编号，分清哪块是哪块",
+    "Each screen shows its number for 2 seconds.": "每块屏幕上显示编号 2 秒。",
+    "Couldn't show the numbers.": "无法显示编号。",
     Identify: "识别",
+    "Looks for screens again, after you plug one in or move them":
+      "接上新屏幕或调整排列后，重新查找屏幕",
     "Detect again": "重新检测",
     "1 screen found": "检测到 1 块屏幕",
     "{n} screens found · new screens are ticked":
       "检测到 {n} 块屏幕 · 新接上的屏幕默认勾选",
+    "✓ Looked again: 1 screen.": "✓ 已重新检测：1 块屏幕。",
+    "✓ Looked again: {n} screens.": "✓ 已重新检测：{n} 块屏幕。",
     PM: "下午",
     AM: "上午",
     "AM/PM": "上午/下午",

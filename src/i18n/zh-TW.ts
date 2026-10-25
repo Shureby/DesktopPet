@@ -769,11 +769,19 @@ const zhTW: Dictionary = {
     Here: "在這裡",
     "The pet walks and comes out (alarms, anniversaries) only on the ticked screens. Carry it to another one and it plays there for a while, then comes back by itself.":
       "寵物只在勾選的螢幕上走動、出場（鬧鐘、紀念日也在這裡）。你把它拖到別的螢幕，它會在那裡玩一會兒，然後自己回來。",
+    "Shows each screen's number on it, to tell which is which":
+      "在每塊螢幕上顯示它的編號，分清哪塊是哪塊",
+    "Each screen shows its number for 2 seconds.": "每塊螢幕上顯示編號 2 秒。",
+    "Couldn't show the numbers.": "無法顯示編號。",
     Identify: "識別",
+    "Looks for screens again, after you plug one in or move them":
+      "接上新螢幕或調整排列後，重新尋找螢幕",
     "Detect again": "重新偵測",
     "1 screen found": "偵測到 1 塊螢幕",
     "{n} screens found · new screens are ticked":
       "偵測到 {n} 塊螢幕 · 新接上的螢幕預設勾選",
+    "✓ Looked again: 1 screen.": "✓ 已重新偵測：1 塊螢幕。",
+    "✓ Looked again: {n} screens.": "✓ 已重新偵測：{n} 塊螢幕。",
     PM: "下午",
     AM: "上午",
     "AM/PM": "上午/下午",

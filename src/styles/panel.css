@@ -2178,7 +2178,6 @@ nav.post-tabs button {
 /* ----- Settings → Screens the pet lives on: the screens as arranged, a tick on each ----- */
 .screens .screen-map {
   position: relative;
-  max-width: 460px;
   width: 100%;
   margin: 0 auto;
   border-radius: 8px;
@@ -2227,4 +2226,14 @@ nav.post-tabs button {
 }
 .screens .buttons button {
   white-space: nowrap;
+}
+
+.screens .found.status {
+  color: var(--accent);
+}
+.screens .screen.small .size {
+  display: none;
+}
+.screens .screen.small .n {
+  font-size: 15px;
 }

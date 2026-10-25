@@ -16,6 +16,16 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.53.1] - 2026-10-25
+
+### Fixed
+- **ePet froze after Identify** (Settings → Screens the pet lives on) on Windows: the pet
+  stopped answering clicks, the tray menu too, and Windows said "Not Responding".
+- **The screens diagram fits the card:** no longer cut off on the right; screens stacked
+  top to bottom, or many of them, still show their number and tick.
+- **Identify and Detect again say what they did** ("Each screen shows its number for 2
+  seconds.", "✓ Looked again: 3 screens."), and say what they're for when you point at them.
+
 ## [0.53.0] - 2026-10-22
 
 ### Added

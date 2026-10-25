@@ -107,12 +107,12 @@
         },
         {
           "id": "screens.settings",
-          "rev": "0.53.0",
+          "rev": "0.53.1",
           "mac": true,
           "ci": "partial",
           "human": "你只看排列图和你的显示器设置是否一样、识别的数字是否对得上（勾选、最后一块不能取消、识别窗口出现又消失由 CI 测）",
           "do": "设置 → Screens the pet lives on：看排列图，点 Identify，再点 Detect again",
-          "expect": "每块屏幕按实际位置排列、写着编号和分辨率，主屏标 main，默认都勾着 Here；只剩一块勾着时它不能取消；Identify 时每块屏中间出现大号编号约 2 秒，和图上一致"
+          "expect": "每块屏幕按实际位置排列、写着编号和分辨率，主屏标 main，默认都勾着 Here；只剩一块勾着时它不能取消；Identify 时每块屏中间出现大号编号约 2 秒，和图上一致；点 Identify / Detect again 后按钮旁有一行提示；屏幕上下排列或很多块时排列图也不超出卡片；点完 Identify 宠物和托盘照常响应"
         },
         {
           "id": "screens.wall",

@@ -382,9 +382,10 @@ pub fn desktop_snapshot(app: AppHandle) -> CmdResult<DesktopSnapshot> {
     desktop::snapshot(&pet).map_err(err)
 }
 
-/// Each screen's number on it for a moment (Settings → Screens the pet lives on).
+/// Each screen's number on it for a moment (Settings → Screens the pet lives on). Async:
+/// opening windows from a synchronous command deadlocks on Windows (it froze the app in 0.53.0).
 #[tauri::command]
-pub fn identify_screens(app: AppHandle, numbers: Vec<String>) -> CmdResult<()> {
+pub async fn identify_screens(app: AppHandle, numbers: Vec<String>) -> CmdResult<()> {
     app_windows::identify_screens(&app, &numbers).map_err(err)
 }
 
