@@ -295,6 +295,17 @@ extensions we already have (`epet: 1` in the device info, LocalSend ignores it;
   can't be reached now (collected as pickup does).
 - **Schedule sync** between your own computers (to-dos, alarms, anniversaries): uid,
   updated_at and tombstones are there since 0.35; conflicts and deletions to work out.
+  - **Paired ≠ the same person** (decided 2026-10-25). Pairing proves "it really is that
+    ePet", not "it's mine". Two relations: **Friend** (the default after pairing: files,
+    chat) and **My computer** (also syncs the schedule).
+  - **"My computer" is always confirmed by hand, on both computers:** it says what it
+    means ("it can see and change your whole schedule"), and each computer confirms with
+    a new code typed there (being at both proves both are yours right now).
+  - **The same Steam account never turns sync on by itself:** a family shares one Steam
+    account across a parent's, a child's and a partner's computers. With the same account
+    the pet may only suggest "This looks like your other computer" — sync starts after
+    the confirmation above, as without Steam. The same goes for any account of ours later.
+  - Undoing "My computer" stops sync at once; what was already synced stays where it is.
 - Order if started: pairing and strict mode first (security, smallest), then chat, then
   sync (the biggest).
 
