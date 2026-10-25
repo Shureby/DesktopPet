@@ -1759,9 +1759,11 @@ check(
           .querySelector(".post-pair")
           .click(),
       );
-      await app.until(() => document.querySelector(".post-pair-code")).catch(async (e) => {
-        throw new Error(`${e.message}: ${await app.text(".post-pair-view")}`);
-      });
+      await app
+        .until(() => document.querySelector(".post-pair-code"))
+        .catch(async (e) => {
+          throw new Error(`${e.message}: ${await app.text(".post-pair-view")}`);
+        });
       assert.equal(peer.pairAsks.length, 1);
       assert.equal(peer.pairAsks[0].fingerprint, fingerprint);
       // Typed as shown, with a space.
@@ -1907,6 +1909,7 @@ check(
         address: "127.0.0.1",
         port: 53319,
       });
+      await app.invoke("open_post_window", { verify: null, tab: "send" });
       await postTab("send");
       const row = await app.until(() => {
         const rows = [...document.querySelectorAll(".post-device")].filter(
