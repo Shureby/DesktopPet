@@ -104,7 +104,7 @@ const TABS: { id: PanelTab; label: string }[] = [
   { id: "todos", label: msg("To-dos") },
   { id: "alarms", label: msg("Alarms") },
   { id: "focus", label: msg("Focus") },
-  { id: "post", label: msg("Pet Post") },
+  { id: "post", label: msg("Pet Post|tab") },
   { id: "modes", label: msg("Modes") },
   { id: "characters", label: msg("Characters") },
   { id: "games", label: msg("Games") },
