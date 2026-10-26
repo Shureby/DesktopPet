@@ -903,6 +903,7 @@ export const mockBackend: Backend = {
     return false;
   },
   async postAttention() {},
+  async panelTabShown() {},
   async postMeasure(paths) {
     return { files: paths.length, bytes: paths.length * 1024 };
   },
@@ -917,7 +918,8 @@ export const mockBackend: Backend = {
     return false;
   },
   async openPostWindow(verify, tab) {
-    window.open(verify ? `post.html#verify=${verify}` : tab ? `post.html#${tab}` : "post.html", "_blank");
+    // Pet Post is the panel's tab.
+    window.open(verify ? `panel.html#post:verify=${verify}` : tab ? `panel.html#post:${tab}` : "panel.html#post", "desktoppet-panel", "width=440,height=620");
   },
   async markAlarmMissed(id) {
     mutate((s) => {

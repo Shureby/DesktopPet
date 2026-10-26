@@ -96,6 +96,7 @@ export const tauriBackend: Backend = {
   postClearHistory: () => invoke("post_clear_history"),
   postOpenReceived: (id, reveal) => invoke("post_open_received", { id, reveal }),
   postWindowShown: () => invoke<boolean>("post_window_shown"),
+  panelTabShown: (tab) => invoke("panel_tab_shown", { tab }),
   postAttention: () => invoke("post_attention"),
   postPick: (folder, title) => invoke("post_pick", { folder, title: title ?? null }),
   postMeasure: (paths) => invoke("post_measure", { paths }),

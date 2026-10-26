@@ -1,14 +1,11 @@
 /**
- * The Pet Post window (docs/INTERACTIONS.md, "Pet Post"): devices found nearby (and added
+ * Pet Post, the main window's Pet Post tab (docs/INTERACTIONS.md, "Pet Post"): devices found nearby (and added
  * by address), sending them files, a folder or a text, how it goes, what arrived while
  * it's open, and Verify (the same icons on both screens). The pet asks about deliveries to
  * you (src/pet/courier.ts); the settings are in the panel.
  */
 import { backend, type Settings } from "../platform";
 import { t, onLanguage } from "../i18n";
-import { followLocale } from "../i18n/apply";
-import { followTestClock } from "../platform/testClock";
-import product from "../../product.config.json";
 import { formatWhen, h } from "../panel/dom";
 import { copyText } from "../pet/courier";
 import { VERIFY_ICONS } from "../features/post/verifyIcons";
@@ -59,9 +56,11 @@ import {
   withoutPaired,
 } from "../features/post/post";
 import { closePair, pairing, pairView, startPair, tickPair, type PairContext } from "./pair";
-import "../styles/panel.css";
 
-const root = document.getElementById("post")!;
+/** Where Pet Post is drawn: the main window's Pet Post tab (`mountPost`). */
+let root: HTMLElement = document.createElement("div");
+/** Brings its tab to the front (a drop, "Open Pet Post…", Verify asked for). */
+let showTab: () => void = () => {};
 
 /** Material Icons' "verified_user" (a shield with a check), as LocalSend's Verify shows it. */
 const VERIFIED_USER = "M10 17 18 9 16.6 7.6 10 14.2 7.4 11.6 6 13ZM12 1 21 5V11Q21 15.2 18.4 18.6Q15.8 22.1 12 23Q8.2 22.1 5.6 18.6Q3 15.2 3 11V5Z";
@@ -301,9 +300,14 @@ async function trustNew(d: PostDevice): Promise<void> {
   render();
 }
 
+/**
+ * No longer remembered (✕): not kept at its address, and no longer a favorite. Verified or
+ * paired, it stays so (Settings → Pet Post undoes that).
+ */
 async function forget(d: PostDevice): Promise<void> {
   const cur = await backend.getSettings();
-  settings = await backend.setSettings({ post: { ...cur.post, devices: cur.post.devices.filter((x) => x.fingerprint !== d.fingerprint) } });
+  const post = withoutFavorite(cur.post, d.fingerprint);
+  settings = await backend.setSettings({ post: { ...post, devices: post.devices.filter((x) => x.fingerprint !== d.fingerprint) } });
   if (selected === d.fingerprint) selected = null;
   render();
 }
@@ -509,8 +513,13 @@ function deviceRow(d: PostDevice): Node {
           d.epet ? null : t("Verify"),
         )
       : null,
-    settings.post.devices.some((x) => x.fingerprint === d.fingerprint && x.via === "address")
-      ? h("button", { class: "small post-forget", title: t("Remove"), "aria-label": t("Remove"), onclick: (e: Event) => (e.stopPropagation(), void forget(d)) }, "✕")
+    // Remembered (added by address; or a favorite not answering): ✕ forgets it.
+    settings.post.devices.some((x) => x.fingerprint === d.fingerprint && (x.via === "address" || !d.online))
+      ? h(
+          "button",
+          { class: "small post-forget", title: t("Forget it (verified or paired, it stays so)"), "aria-label": t("Remove"), onclick: (e: Event) => (e.stopPropagation(), void forget(d)) },
+          "✕",
+        )
       : null,
   );
   return row;
@@ -1317,17 +1326,7 @@ function progress(): Node | null {
   return h("div", { class: "box post-progress" }, ...rows);
 }
 
-/** The window's own title bar (not just the page's title): Pet Post, in the app's language. */
-let titled = "";
-function windowTitle(title: string): void {
-  if (title === titled || backend.kind !== "tauri") return;
-  titled = title;
-  void import("@tauri-apps/api/window").then(({ getCurrentWindow }) => getCurrentWindow().setTitle(title)).catch(() => {});
-}
-
 function render(): void {
-  document.title = t("Pet Post");
-  windowTitle(t("Pet Post"));
   if (pairing) {
     root.replaceChildren(pairView(pairContext));
     return;
@@ -1337,12 +1336,12 @@ function render(): void {
     return;
   }
   const on = settings.post.enabled;
-  const head = h(
-    "header",
-    { class: "post-head row" },
-    h("h2", { class: "grow" }, `📦 ${t("Pet Post")}`),
-    h("a", { href: "#", class: "post-settings-link", onclick: (e: Event) => (e.preventDefault(), void backend.openPanel("settings")) }, `⚙ ${t("Settings…")}`),
+  const settingsLink = h(
+    "a",
+    { href: "#", class: "post-settings-link", onclick: (e: Event) => (e.preventDefault(), void backend.openPanel("settings")) },
+    `⚙ ${t("Pet Post settings")}`,
   );
+  const head = h("header", { class: "post-head row" }, h("span", { class: "grow" }), settingsLink);
   if (!on) {
     root.replaceChildren(
       head,
@@ -1359,7 +1358,7 @@ function render(): void {
   }
   const tabs = h(
     "nav",
-    { class: "post-tabs", role: "tablist" },
+    { class: "post-tabs row", role: "tablist" },
     ...TABS.map((x) =>
       h(
         "button",
@@ -1368,12 +1367,14 @@ function render(): void {
         x.id === "receive" && offer && tab !== "receive" ? h("span", { class: "post-tab-badge" }, "1") : null,
       ),
     ),
+    h("span", { class: "grow" }),
+    settingsLink,
   );
   const state =
     status?.running || !status?.error ? null : h("p", { class: "warning" }, t("Couldn't start: {error}", { error: status.error }));
   const body = tab === "receive" ? receiveTab() : tab === "send" ? sendTab() : historyTab();
   const focus = remember();
-  root.replaceChildren(head, tabs, ...(state ? [state] : []), h("div", { class: "post-tab-body" }, ...body));
+  root.replaceChildren(tabs, ...(state ? [state] : []), h("div", { class: "post-tab-body" }, ...body));
   focus();
 }
 
@@ -1543,7 +1544,20 @@ function remember(): () => void {
   };
 }
 
-async function main(): Promise<void> {
+let mounted: Promise<void> | null = null;
+
+/**
+ * Draws Pet Post into `el` (the main window's Pet Post tab), once. `show` brings that tab
+ * to the front; `opened` is what it was opened for: "send", "verify=<fingerprint>"…
+ */
+export function mountPost(el: HTMLElement, show: () => void, opened = ""): Promise<void> {
+  root = el;
+  showTab = show;
+  mounted ??= main(opened);
+  return mounted;
+}
+
+async function main(opened: string): Promise<void> {
   // A click elsewhere closes Send files…'s menu.
   document.addEventListener("click", (e) => {
     if (filesMenu && !(e.target as Element | null)?.closest?.(".post-send-menu, .post-files-more")) {
@@ -1573,6 +1587,8 @@ async function main(): Promise<void> {
       const p = e.payload;
       if (p.type === "enter") {
         dragging = p.paths.length;
+        // Files dragged over the window, whichever tab: Pet Post → Send.
+        if (dragging) showTab();
         if (dragging && tab !== "send") tab = "send";
         render();
       } else if (p.type === "leave") {
@@ -1581,11 +1597,8 @@ async function main(): Promise<void> {
       } else if (p.type === "drop") dropFiles(p.paths);
     });
   }
-  await followTestClock(backend, () => render());
   settings = await backend.getSettings();
-  await followLocale(backend, settings);
   onLanguage(() => render());
-  document.title = product.productName;
   status = await backend.postStatus().catch(() => null);
   devices = await backend.postDevices().catch(() => []);
   await backend.on("settings", (s) => {
@@ -1602,8 +1615,8 @@ async function main(): Promise<void> {
     // (Typing meanwhile: the cursor is put back, see remember().)
     render();
   });
-  await backend.on("post-verify", (fp) => verify(fp));
-  await backend.on("post-pair", (fp) => pair({ fingerprint: fp, alias: devices.find((d) => d.fingerprint === fp)?.alias ?? "" }));
+  await backend.on("post-verify", (fp) => (showTab(), verify(fp)));
+  await backend.on("post-pair", (fp) => (showTab(), pair({ fingerprint: fp, alias: devices.find((d) => d.fingerprint === fp)?.alias ?? "" })));
   await backend.on("post-history", (list) => {
     history = list;
     render();
@@ -1614,7 +1627,7 @@ async function main(): Promise<void> {
     tab = "receive";
     render();
   });
-  await backend.on("post-tab", (x) => show(x));
+  await backend.on("post-tab", (x) => (showTab(), show(x)));
   await backend.on("post-offer-closed", (c) => {
     if (offer?.id !== c.id) return;
     offer = null;
@@ -1659,13 +1672,9 @@ async function main(): Promise<void> {
   }, 1000);
   render();
   if (settings.post.enabled && !devices.length) lookAgain();
-  // Opened for Verify (the pet's "Verify…" on a delivery), or on a tab ("#send").
-  const asked = /^#verify=([0-9A-Fa-f]+)$/.exec(location.hash)?.[1];
+  // Opened for Verify (the pet's "Verify…" on a delivery), or on a tab ("send").
+  const asked = /^verify=([0-9A-Fa-f]+)$/.exec(opened)?.[1];
   if (asked) verify(asked);
-  const pairWith = /^#pair=([0-9A-Fa-f]+)$/.exec(location.hash)?.[1];
-  if (pairWith) pair({ fingerprint: pairWith, alias: devices.find((d) => d.fingerprint === pairWith.toUpperCase())?.alias ?? "" });
-  const opened = /^#(receive|send|history)$/.exec(location.hash)?.[1] as Tab | undefined;
-  if (opened) show(opened);
+  const on = /^(receive|send|history)$/.exec(opened)?.[1] as Tab | undefined;
+  if (on) show(on);
 }
-
-void main();

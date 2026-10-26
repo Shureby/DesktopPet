@@ -423,7 +423,7 @@ export interface HiddenAlerts {
   anniversaries: boolean;
 }
 
-export type PanelTab = "todos" | "alarms" | "focus" | "modes" | "characters" | "games" | "settings";
+export type PanelTab = "todos" | "alarms" | "focus" | "post" | "modes" | "characters" | "games" | "settings";
 
 export interface BackendEvents {
   reminder: ReminderEvent;
@@ -737,6 +737,8 @@ export interface Backend {
   postOpenReceived(id: string, reveal: boolean): Promise<void>;
   /** Whether the Pet Post window is open (and not minimized). */
   postWindowShown(): Promise<boolean>;
+  /** The main window shows this tab now (so the app knows whether Pet Post is in sight). */
+  panelTabShown(tab: PanelTab): Promise<void>;
   /** The Pet Post window behind others: its taskbar button flashes. */
   postAttention(): Promise<void>;
   /** Asks for files (or folders) to send; null if cancelled. */

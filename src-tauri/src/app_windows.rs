@@ -11,7 +11,6 @@ pub const PET: &str = "pet";
 pub const PANEL: &str = "panel";
 pub const GAME: &str = "game";
 pub const CELEBRATE: &str = "celebrate";
-pub const POST: &str = "post";
 
 /// Extra WebView2 arguments asked for through `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS`, as
 /// Edge WebDriver does for the end-to-end tests (it needs `--remote-debugging-port`).
@@ -86,45 +85,50 @@ pub fn open_panel<R: Runtime>(app: &AppHandle<R>, tab: Option<&str>) -> tauri::R
     Ok(())
 }
 
-/// Opens the Pet Post window (receiving, sending, what was received); with `verify`,
-/// showing Verify for that device (by fingerprint); with `tab`, on that tab.
+/// Pet Post, the main window's Pet Post tab (since 0.55.0; it was a window of its own):
+/// with `verify`, showing Verify for that device (by fingerprint); with `tab`, on that tab.
 pub fn open_post<R: Runtime>(app: &AppHandle<R>, verify: Option<&str>, tab: Option<&str>) -> tauri::Result<()> {
     let tab = tab.filter(|t| matches!(*t, "receive" | "send" | "history"));
-    if let Some(w) = app.get_webview_window(POST) {
+    let verify: Option<String> = verify.map(|fp| fp.chars().filter(char::is_ascii_alphanumeric).collect());
+    if let Some(w) = app.get_webview_window(PANEL) {
         w.show()?;
         w.unminimize()?;
         w.set_focus()?;
-        if let Some(fp) = verify {
-            app.emit_to(POST, "post-verify", fp)?;
+        app.emit_to(PANEL, "panel-tab", "post")?;
+        if let Some(fp) = &verify {
+            app.emit_to(PANEL, "post-verify", fp)?;
         } else if let Some(t) = tab {
-            app.emit_to(POST, "post-tab", t)?;
+            app.emit_to(PANEL, "post-tab", t)?;
         }
         return Ok(());
     }
-    let url = match (verify, tab) {
-        (Some(fp), _) => {
-            format!("post.html#verify={}", fp.chars().filter(char::is_ascii_alphanumeric).collect::<String>())
-        }
-        (None, Some(t)) => format!("post.html#{t}"),
-        (None, None) => "post.html".into(),
+    let sub = match (&verify, tab) {
+        (Some(fp), _) => format!("post:verify={fp}"),
+        (None, Some(t)) => format!("post:{t}"),
+        (None, None) => "post".into(),
     };
-    window(app, POST, url)
-        .title(product_name(app))
-        .inner_size(420.0, 560.0)
-        .min_inner_size(360.0, 420.0)
-        .center()
-        .build()?;
-    Ok(())
+    open_panel(app, Some(&sub))
 }
 
-/// Whether the Pet Post window is open, shown and not minimized.
+/// The main window's tab in sight (the panel says so when it changes).
+static PANEL_TAB: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
+
+pub fn set_panel_tab(tab: &str) {
+    *PANEL_TAB.lock().unwrap_or_else(|e| e.into_inner()) = tab.chars().take(20).collect();
+}
+
+/// Whether Pet Post is in sight: the main window open, not minimized, on its Pet Post tab.
 pub fn post_shown<R: Runtime>(app: &AppHandle<R>) -> bool {
-    app.get_webview_window(POST).is_some_and(|w| w.is_visible().unwrap_or(false) && !w.is_minimized().unwrap_or(false))
+    let on_post = *PANEL_TAB.lock().unwrap_or_else(|e| e.into_inner()) == "post";
+    on_post
+        && app
+            .get_webview_window(PANEL)
+            .is_some_and(|w| w.is_visible().unwrap_or(false) && !w.is_minimized().unwrap_or(false))
 }
 
-/// Draws attention to the Pet Post window if it isn't the one in front.
+/// Draws attention to the main window (Pet Post) if it isn't the one in front.
 pub fn post_attention<R: Runtime>(app: &AppHandle<R>) {
-    if let Some(w) = app.get_webview_window(POST) {
+    if let Some(w) = app.get_webview_window(PANEL) {
         if !w.is_focused().unwrap_or(true) {
             let _ = w.request_user_attention(Some(tauri::UserAttentionType::Informational));
         }

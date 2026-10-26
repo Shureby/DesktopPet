@@ -46,7 +46,9 @@ nav {
   top: 0;
   background: var(--bg);
   z-index: 1;
+  /* One line; scrolled sideways if a language's names don't fit. */
   overflow-x: auto;
+  scrollbar-width: none;
 }
 nav button {
   border: 0;
@@ -1416,9 +1418,8 @@ button,
   flex-wrap: wrap;
 }
 
-/* --- Pet Post window (post.html) --------------------------------------------- */
+/* --- Pet Post (the main window's Pet Post tab) ------------------------------- */
 #post {
-  padding: 4px 14px 16px;
   max-width: 560px;
   margin: 0 auto;
 }
@@ -2304,5 +2305,17 @@ nav.post-tabs button {
 }
 .post-pair-invalid {
   margin: 0;
+  font-size: 12px;
+}
+
+/* Pet Post's own tabs scroll with the page (only the main window's tabs stay on top). */
+#post nav.post-tabs {
+  position: static;
+  padding: 0;
+  margin-top: 2px;
+}
+#post .post-tabs .post-settings-link {
+  align-self: center;
+  white-space: nowrap;
   font-size: 12px;
 }

@@ -1042,6 +1042,12 @@ pub fn post_window_shown(app: AppHandle) -> bool {
     crate::app_windows::post_shown(&app)
 }
 
+/// The main window shows this tab now (Pet Post in sight or not: `post_window_shown`).
+#[tauri::command]
+pub fn panel_tab_shown(tab: String) {
+    crate::app_windows::set_panel_tab(&tab);
+}
+
 /// The Pet Post window, open behind others: its taskbar button flashes (Dock icon bounces).
 #[tauri::command]
 pub fn post_attention(app: AppHandle) {

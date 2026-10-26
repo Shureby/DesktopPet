@@ -409,6 +409,7 @@ const zhCN: Dictionary = {
     "To-dos": "待办",
     Alarms: "闹钟",
     Focus: "专注",
+    "Pet Post": "宠物驿站",
     Modes: "模式",
     Characters: "角色",
     Games: "游戏",
@@ -589,7 +590,6 @@ const zhCN: Dictionary = {
     General: "通用",
     "Start with my computer": "开机时启动",
     "Other sounds (petting)": "其他声音（摸宠物时）",
-    "Pet Post": "宠物驿站",
     Backup: "备份",
     "{store} build": "{store} 版",
     Language: "语言",
@@ -973,6 +973,8 @@ const zhCN: Dictionary = {
     "Verify: compare with what the other device shows":
       "核对：和另一台设备上显示的对比",
     Verify: "核对",
+    "Forget it (verified or paired, it stays so)":
+      "不再记住它（已核对或已配对的标记保留）",
     "Looking for devices…": "正在查找设备…",
     "No one found yet.": "还没找到设备。",
     "The other device needs LocalSend or ePet open, on the same network (Wi-Fi).":
@@ -1077,7 +1079,7 @@ const zhCN: Dictionary = {
     "Couldn't reach it: it may be behind another router, or a firewall stops it. Putting both on the same Wi-Fi, or Tailscale on both, helps.":
       "连不上它：它可能在另一个路由器后面，或被防火墙挡住。让两边连同一个 Wi-Fi，或者都装 Tailscale，就能解决。",
     "Send the rest again": "重发剩下的",
-    "Settings…": "设置…",
+    "Pet Post settings": "驿站设置",
     "Send files and text to phones and computers nearby, and get theirs.":
       "给附近的手机和电脑发文件和文字，也能收下它们发来的。",
     "Works with LocalSend on phones and computers, and with ePet on other computers.":

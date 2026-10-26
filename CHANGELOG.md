@@ -16,6 +16,18 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.55.0] - 2026-10-26
+
+### Changed
+- **Pet Post is a tab of the main window** (after Focus), no longer a window of its own.
+  "Open Pet Post…", Verify…, Pair… and the 📦 badge open the main window on it; files
+  dragged over the main window go to Pet Post → Send. Its settings are a click away
+  ("⚙ Pet Post settings").
+
+### Added
+- **✕ for a favorite that isn't answering** (Pet Post → Send): forgets it (no longer kept,
+  no longer a favorite). Verified or paired, it stays so.
+
 ## [0.54.0] - 2026-10-25
 
 ### Added

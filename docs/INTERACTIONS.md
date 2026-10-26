@@ -821,6 +821,12 @@ mood, game scores, achievements, focus history) and the user's own characters.
 ## Pet Post (since 0.44.0)
 
 宠物驿站 / 寵物驛站. Files and text between ePet and phones or computers on the same network:
+(since 0.55.0 it's the main window's **Pet Post** tab, after Focus; before, a window of its
+own. Everything that opened that window — the menus' "Open Pet Post…", the pet's Verify…,
+Pair…, the 📦 badge — opens the main window on that tab; files dragged over the main
+window, on any tab, switch to Pet Post → Send. The tab is "in sight" for deliveries — it
+asks there, and the hidden pet stays hidden — only while it's the tab shown and the window
+isn't minimized.)
 it works with the LocalSend apps (Android, iOS, Windows, macOS, Linux) and with ePet on
 another computer. It speaks the public LocalSend protocol v2 (our own implementation:
 src-tauri/src/post/, crates/desktoppet-core/src/post.rs).
@@ -1030,6 +1036,9 @@ button by an ePet).
   Another device going by a paired ePet's name with a different identity is listed with
   "⚠ Not the … you paired with" and can't be chosen; **Pair again…** (it was reinstalled)
   or **Unpair the old one**.
+- **✕ forgets a remembered device** (since 0.55.0): one added by address, always; a favorite
+  (♥), when it isn't answering. It's no longer kept nor a favorite; verified or paired, it
+  stays so (Settings → Pet Post undoes that).
 - **How it works:** SPAKE2 (RustCrypto `spake2`, Ed25519) with the code as the password and
   both certificates' fingerprints as the identities, over the HTTPS connection; each side
   then proves it got the same key (HMAC), B first. The code never crosses the network: a

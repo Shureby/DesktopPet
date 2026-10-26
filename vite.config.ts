@@ -14,7 +14,6 @@ export default defineConfig({
         panel: resolve(import.meta.dirname, "panel.html"),
         game: resolve(import.meta.dirname, "game.html"),
         celebrate: resolve(import.meta.dirname, "celebrate.html"),
-        post: resolve(import.meta.dirname, "post.html"),
         identify: resolve(import.meta.dirname, "identify.html"),
       },
     },

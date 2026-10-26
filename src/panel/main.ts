@@ -90,6 +90,7 @@ import { icon } from "../ui/icons";
 import { backupSection } from "./backup";
 import { postSection } from "./postSettings";
 import { screensSection } from "./screens";
+import { mountPost } from "../post/main";
 import { hmText, infoTip, modesSection } from "./modes";
 import { avoidSection } from "./avoid";
 import { dayPicker, week } from "./dayPicker";
@@ -103,6 +104,7 @@ const TABS: { id: PanelTab; label: string }[] = [
   { id: "todos", label: msg("To-dos") },
   { id: "alarms", label: msg("Alarms") },
   { id: "focus", label: msg("Focus") },
+  { id: "post", label: msg("Pet Post") },
   { id: "modes", label: msg("Modes") },
   { id: "characters", label: msg("Characters") },
   { id: "games", label: msg("Games") },
@@ -156,6 +158,7 @@ function select(tab: PanelTab) {
   }
   current = tab;
   tabJustOpened = true;
+  void backend.panelTabShown(tab).catch(() => {});
   for (const b of nav.querySelectorAll("button")) b.classList.toggle("active", b.dataset.tab === tab);
   cleanup.forEach((f) => f());
   cleanup = [];
@@ -171,10 +174,23 @@ async function render() {
     characters: renderCharacters,
     games: renderGames,
     settings: renderSettings,
+    post: renderPost,
   };
   const tab = current;
   const node = await renderers[tab]();
   if (tab === current) view.replaceChildren(node);
+}
+
+// --- Pet Post ---------------------------------------------------------------
+
+/** Pet Post (src/post/main.ts) draws itself here; kept across tab switches. */
+const postView = h("div", { id: "post", class: "post-in-panel" });
+/** What the window was opened for ("send", "verify=<fingerprint>"…), read once. */
+let postOpened = "";
+
+async function renderPost(): Promise<Node> {
+  await mountPost(postView, () => current !== "post" && select("post"), postOpened);
+  return postView;
 }
 
 // --- To-dos -----------------------------------------------------------------
@@ -2104,7 +2120,9 @@ async function main() {
   await backend.on("panel-tab", (tab) => select(tab));
   await backend.on("mood", () => current === "characters" && void render());
 
-  const initial = location.hash.slice(1) as PanelTab;
+  // "#alarms", or "#post:send" / "#post:verify=<fingerprint>" (Pet Post, opened for that).
+  const [initial, sub = ""] = location.hash.slice(1).split(":") as [PanelTab, string?];
+  postOpened = sub;
   select(TABS.some((it) => it.id === initial) ? initial : "todos");
 }
 

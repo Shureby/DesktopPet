@@ -1618,9 +1618,9 @@
           "rev": "0.44.0",
           "ci": "partial",
           "mac": true,
-          "human": "手机上的 LocalSend 列表里出现 ePet（名字对）；ePet 的 Pet Post 窗口里列出手机",
+          "human": "手机上的 LocalSend 列表里出现 ePet（名字对）；ePet 的 主窗口的 Pet Post 标签里列出手机",
           "do": "手机装 LocalSend，和电脑连同一个 Wi-Fi，打开 LocalSend 的“发送”页；电脑上右键宠物 → Open Pet Post…",
-          "expect": "双方互相看到对方：LocalSend 里有 ePet 的名字，Pet Post 窗口 Send to 下面列出手机（📱 图标、型号和 IP）；点 ↻ Look again 能重新找"
+          "expect": "双方互相看到对方：LocalSend 里有 ePet 的名字，主窗口的 Pet Post 标签 Send to 下面列出手机（📱 图标、型号和 IP）；点 ↻ Look again 能重新找"
         },
         {
           "id": "post.receive",
@@ -1650,14 +1650,14 @@
           "ci": "partial",
           "human": "用真手机发一段文字（LocalSend 的“文字”），含一个很长的链接",
           "do": "手机 LocalSend 选 文字，发一句话给 ePet；点 Copy",
-          "expect": "宠物气泡显示 💬 <手机名> says: 和那句话，长链接在气泡里换行不溢出；点 Copy 后宠物说 “📋 Copied to the clipboard.”（约 2 秒），能粘贴出来；拷贝失败时气泡留着并写 “Couldn't copy it. Try again?”；Pet Post 窗口开着时 Received 下也有这条，带 Copy"
+          "expect": "宠物气泡显示 💬 <手机名> says: 和那句话，长链接在气泡里换行不溢出；点 Copy 后宠物说 “📋 Copied to the clipboard.”（约 2 秒），能粘贴出来；拷贝失败时气泡留着并写 “Couldn't copy it. Try again?”；主窗口的 Pet Post 标签开着时 Received 下也有这条，带 Copy"
         },
         {
           "id": "post.copy",
           "rev": "0.51.2",
           "ci": "auto",
           "mac": true,
-          "do": "Pet Post 窗口：接收 页点地址旁的 Copy；“最新”里收到的文字旁点 Copy",
+          "do": "主窗口的 Pet Post 标签：接收 页点地址旁的 Copy；“最新”里收到的文字旁点 Copy",
           "expect": "按钮原地变成绿色的 “✓ Copied”，约 1.5 秒后变回 Copy，内容在剪贴板里；拷贝失败时变成红色的 “✗ Couldn't copy”"
         },
         {
@@ -1696,8 +1696,8 @@
           "ci": "partial",
           "mac": true,
           "human": "文件选择对话框；手机上收到的文件和文件夹",
-          "do": "Pet Post 窗口：选手机，点 📄 Send files… 选几个文件；再点它旁边的 ▾ → 📁 A folder…；再点 💬 Send a message，写一句话点 Send text",
-          "expect": "选中的那个（Send files… 或 Send a message）是深色，另一个是白底；选文件窗口的标题写着“选择要发送给 <手机> 的文件”，挂在驿站窗口上（选完之前驿站窗口点不动），从上次发送的文件夹开始（第一次从“文档”）；Send files… 和 ▾ 连在一起，▾ 里有 Files… / A folder…，点别处菜单收起；手机上先问是否接收，接收后窗口显示进度条和 Delivering to <手机>… %，完成显示 Delivered to <手机>!；Send a message 是开关：点了才出现文本框（按钮变成按下的样子，下次打开驿站保持），文本框空着时 Send text 是灰的，打了字才变成橙色可点；点 Paste 时剪贴板里的文字直接进文本框（Mac 上不会再弹出“粘贴”气泡要你再点一次）；文字在手机上显示为消息，送到后文本框清空（对方拒收时文字保留，可以再发）；发送中点 Stop 能取消"
+          "do": "主窗口的 Pet Post 标签：选手机，点 📄 Send files… 选几个文件；再点它旁边的 ▾ → 📁 A folder…；再点 💬 Send a message，写一句话点 Send text",
+          "expect": "选中的那个（Send files… 或 Send a message）是深色，另一个是白底；选文件窗口的标题写着“选择要发送给 <手机> 的文件”，挂在主窗口上（选完之前主窗口的 Pet Post 标签点不动），从上次发送的文件夹开始（第一次从“文档”）；Send files… 和 ▾ 连在一起，▾ 里有 Files… / A folder…，点别处菜单收起；手机上先问是否接收，接收后窗口显示进度条和 Delivering to <手机>… %，完成显示 Delivered to <手机>!；Send a message 是开关：点了才出现文本框（按钮变成按下的样子，下次打开驿站保持），文本框空着时 Send text 是灰的，打了字才变成橙色可点；点 Paste 时剪贴板里的文字直接进文本框（Mac 上不会再弹出“粘贴”气泡要你再点一次）；文字在手机上显示为消息，送到后文本框清空（对方拒收时文字保留，可以再发）；发送中点 Stop 能取消"
         },
         {
           "id": "post.drop-window",
@@ -1705,7 +1705,7 @@
           "ci": "partial",
           "mac": true,
           "human": "真的从资源管理器 / 访达拖文件、文件夹和一段文字进窗口（自动测试只能模拟松手那一下）",
-          "do": "Pet Post 窗口 → 发送：先在 Send a message 里打几个字，再点 Send files… 的 ▾ 收起；从资源管理器（Mac：访达）把几个文件、一个文件夹拖进窗口；再从浏览器或文档里选一段文字拖进窗口；窗口标题栏",
+          "do": "主窗口的 Pet Post 标签 → 发送：先在 Send a message 里打几个字，再点 Send files… 的 ▾ 收起；从资源管理器（Mac：访达）把几个文件、一个文件夹拖进窗口；再从浏览器或文档里选一段文字拖进窗口；窗口标题栏",
           "expect": "切到文件模式后文字框收起，Send a message 上有一个小圆点（草稿还在）；下面是虚线框“Drop files or folders here to send to <设备>”；拖着文件经过窗口时框变亮写“Let go to send to <设备>”和文件数，松手就开始发送，进度框里每个文件一行；没选设备时写“Pick a device above first.”，正在发另一批时写“Wait until this delivery is done.”；拖进文字：切到消息模式，文字接在草稿后面另起一行，写“The text you dropped is in…”，不自动发送（Windows / Mac 上如果拖文字没反应，记下来）；窗口标题栏写 Pet Post"
         },
         {
@@ -1713,7 +1713,7 @@
           "rev": "0.52.1",
           "ci": "auto",
           "mac": true,
-          "do": "对方（LocalSend 设置 → 接收 → Require PIN）设了 PIN；从 Pet Post 窗口发文件给它，先点 Cancel，再发一次输入正确的 PIN",
+          "do": "对方（LocalSend 设置 → 接收 → Require PIN）设了 PIN；从 主窗口的 Pet Post 标签发文件给它，先点 Cancel，再发一次输入正确的 PIN",
           "expect": "进度框写 “<设备> asks for a PIN.”，不列文件，只写一共几个文件、多大；有 PIN 输入框、Send 和 Cancel，下面说明 PIN 在对方哪里设置；点 Cancel（或按 Esc）进度框收起、回到拖放框，什么都没发出去；输对 PIN 后正常发送"
         },
         {
@@ -1721,7 +1721,7 @@
           "rev": "0.52.1",
           "ci": "auto",
           "mac": true,
-          "do": "把一个超过 100 个文件（或合计超过 1 GB）的文件夹拖进 Pet Post 窗口；点 Cancel；再拖一次点 Send；再把它拖到宠物身上",
+          "do": "把一个超过 100 个文件（或合计超过 1 GB）的文件夹拖进 主窗口的 Pet Post 标签；点 Cancel；再拖一次点 Send；再把它拖到宠物身上",
           "expect": "窗口里先问 “Send 101 files (…) to <设备>?” 并提醒确认一下；Cancel 什么都不发，Send 才开始发送；拖到宠物身上时，问发给谁的气泡里多一行 ⚠ 一共几个文件、多大"
         },
         {
@@ -1729,7 +1729,7 @@
           "rev": "0.51.0",
           "ci": "auto",
           "mac": true,
-          "do": "Pet Post 窗口给手机发 3 个以上文件，再发一个有很多文件的文件夹；中途让手机那边断开一次（例如关掉 LocalSend）",
+          "do": "主窗口的 Pet Post 标签给手机发 3 个以上文件，再发一个有很多文件的文件夹；中途让手机那边断开一次（例如关掉 LocalSend）",
           "expect": "进度框里每个文件一行：文件名 · 进度条 · 百分比，完成的写 ✓ Finished，还没轮到的写 Waiting；文件很多时只列几行，上面一行写 ✓ N finished · N sending · N waiting，下面写 … and N more；全部送达后显示 Delivered to <手机>! 约 5 秒后进度框自动收起；有失败时不自动收起，写 Delivered 3 of 4 files to <手机>.，失败那行 ✗ Failed，有 Send the rest again（只重发没送到的）和 Close"
         },
         {
@@ -1737,14 +1737,14 @@
           "rev": "0.51.0",
           "ci": "auto",
           "mac": true,
-          "do": "手机给电脑发几个文件（打开 Pet Post 窗口 → 接收 页看着）",
+          "do": "手机给电脑发几个文件（打开 主窗口的 Pet Post 标签 → 接收 页看着）",
           "expect": "接收卡片里每个文件一行，和发送时一样（百分比 / ✓ Finished / Waiting）；全部收到后约 6 秒卡片收起；有没收到的文件时卡片不收起，写 Got N of M files from <手机>.，可以点 Close"
         },
         {
           "id": "post.progress",
           "rev": "0.46.0",
           "mac": true,
-          "do": "用 Pet Post 窗口给手机（或另一台电脑）发一个 1 GB 以上的文件，再让对方发一个大文件过来",
+          "do": "用 主窗口的 Pet Post 标签给手机（或另一台电脑）发一个 1 GB 以上的文件，再让对方发一个大文件过来",
           "expect": "进度写成 37.42%（100 MB–1 GB 是一位小数，更小是整数），下面一行有已传 / 总大小、文件数、速度（如 85 MB/s）和剩余时间（还要约 2 分钟），数字随传输在动；多个文件时两个文件同时传。顺便记一下速度：和 LocalSend 互传同一个文件的速度差不多"
         },
         {
@@ -1761,12 +1761,28 @@
           "expect": "互相能找到并收发；信任一次后 Always accept 生效"
         },
         {
+          "id": "post.panel-tab",
+          "rev": "0.55.0",
+          "mac": true,
+          "ci": "partial",
+          "human": "你看各语言下标签栏是否放得下、驿站里的排版（标签在主窗口、入口打开主窗口由 CI 测）",
+          "do": "右键宠物 → Open Pet Post…；托盘 → Open Pet Post…；宠物问来件时点 Verify…；把文件拖到主窗口的 待办 标签上；在中文、英文下各看一次标签栏",
+          "expect": "不再有单独的宠物驿站窗口：都是打开主窗口并切到 宠物驿站 标签（Verify… 直接显示核对页；拖文件时自动切到 发送）；标签栏一行放得下，驿站右上角“驿站设置”跳到 设置 → 宠物驿站"
+        },
+        {
+          "id": "post.forget",
+          "rev": "0.55.0",
+          "mac": true,
+          "do": "收藏（♥）一台设备，让它离线（关掉对方的 LocalSend / ePet），在 Pet Post → 发送 里点它那行的 ✕",
+          "expect": "收藏的设备离线时也有 ✕（在线时没有）；点了它从列表消失、不再是收藏；已核对 / 已配对的标记还在（它再出现时仍带着），要取消在 设置 → 宠物驿站 里"
+        },
+        {
           "id": "post.tabs",
-          "rev": "0.45.0",
+          "rev": "0.55.0",
           "ci": "partial",
           "mac": true,
           "human": "三个 tab 的排版、中文显示",
-          "do": "打开 Pet Post 窗口，切换 📥 接收 / 📤 发送 / 🕘 记录；关掉再开；把文件拖到宠物身上点 更多…；在 发送 页时让手机发文件",
+          "do": "打开 主窗口的 Pet Post 标签，切换 📥 接收 / 📤 发送 / 🕘 记录；关掉再开；把文件拖到宠物身上点 更多…；在 发送 页时让手机发文件",
           "expect": "接收：等待接收的大图标和这台电脑的名字、本机地址、保存到、最近收到一条（多于一条时有“查看全部”）；发送：设备、按地址添加、发文件 / 文件夹 / 文字；记录：全部收到的，带清除。关掉再开回到上次的 tab；从宠物的 更多… / 宠物驿站… 打开在 发送；有人发文件时自动切到 接收"
         },
         {
@@ -1775,15 +1791,15 @@
           "ci": "partial",
           "mac": true,
           "human": "真手机发文件时，窗口在后台：任务栏按钮闪（Mac：Dock 图标跳一下）；收完的提示音",
-          "do": "打开 Pet Post 窗口，用手机 LocalSend 发文件给 ePet",
+          "do": "打开 主窗口的 Pet Post 标签，用手机 LocalSend 发文件给 ePet",
           "expect": "窗口顶部出现来件卡片：📦 <手机> wants to send you N files (… MB)、文件名、Declined in N s if you don't answer. 倒计时，按钮 Accept / Decline / Always accept / 🛡 Verify；宠物气泡也同时问。在窗口点 Accept 后宠物的气泡消失（反过来在宠物那里答，窗口的卡片也消失）；窗口显示接收进度，收完说 Got N files from <手机>!，并轻响一声（比提问时的 Chime 短；静音类模式不响）"
         },
         {
           "id": "post.window-hidden",
-          "rev": "0.45.0",
+          "rev": "0.55.0",
           "ci": "auto",
-          "do": "藏起宠物，打开 Pet Post 窗口，让手机发文件",
-          "expect": "宠物不跳出来（仍是藏着），由窗口问；关掉窗口再发一次，宠物照旧跳出来问"
+          "do": "藏起宠物，打开主窗口的 Pet Post 标签，让手机发文件；再切到别的标签（或最小化主窗口）发一次",
+          "expect": "Pet Post 标签在眼前时宠物不跳出来（仍是藏着），由标签里问；切到别的标签或最小化后再发，宠物照旧跳出来问"
         },
         {
           "id": "post.stop-receiving",
@@ -1798,7 +1814,7 @@
           "id": "post.history",
           "rev": "0.45.0",
           "ci": "auto",
-          "do": "收几次文件和文字后，关掉 Pet Post 窗口和 ePet，再打开",
+          "do": "收几次文件和文字后，关掉 主窗口的 Pet Post 标签和 ePet，再打开",
           "expect": "Received 下仍列着最近收到的（最多 50 条）：文件写 N files from <谁> · 大小、时间、文件名，一个文件有 Open 和 Show in folder，多个只有 Show in folder；文字有 Copy；文件被删了点 Open 时说 Not there any more (moved or deleted).；点 Clear 清空"
         },
         {
@@ -1807,7 +1823,7 @@
           "ci": "partial",
           "mac": true,
           "human": "在手机 LocalSend 里照着窗口显示的地址手动添加这台电脑",
-          "do": "打开 Pet Post 窗口的 📥 接收页，看“在其他设备上按地址添加这台电脑时，填：”",
+          "do": "打开 主窗口的 Pet Post 标签的 📥 接收页，看“在其他设备上按地址添加这台电脑时，填：”",
           "expect": "只显示一个地址（最可能用到的：有线优先，其次 Wi-Fi，再 Tailscale，虚拟网卡最后），旁边是网卡名；点它展开列表，按 局域网（有线 / 无线）/ Tailscale / 其他虚拟网卡（一般用不到，灰色）分组；选一个后 复制 复制它，下次打开还是它；“保存到：”显示收件文件夹，点 更改… 能直接换；手机 LocalSend 按这个地址手动添加能连上"
         },
         {
@@ -1816,7 +1832,7 @@
           "ci": "partial",
           "mac": true,
           "human": "和真手机 LocalSend 的 Verify 对照：图标、顺序和文字完全一样",
-          "do": "Pet Post 窗口里在手机那行点 🛡 Verify；手机 LocalSend 里点这台电脑（或它发来的消息），再点 Verify",
+          "do": "主窗口的 Pet Post 标签里在手机那行点 🛡 Verify；手机 LocalSend 里点这台电脑（或它发来的消息），再点 Verify",
           "expect": "两边都是 16 个图标（4×4），一样、顺序一样；切到 Text 是同一串字符；点 Done 回到列表"
         },
         {
@@ -1824,7 +1840,7 @@
           "rev": "0.45.0",
           "ci": "auto",
           "do": "手机发文件，宠物问你时点 Verify…",
-          "expect": "Pet Post 窗口打开并显示对这台手机的 Verify；宠物的问题还在（Accept / Decline 仍可点）"
+          "expect": "主窗口的 Pet Post 标签打开并显示对这台手机的 Verify；宠物的问题还在（Accept / Decline 仍可点）"
         },
         {
           "id": "post.verify-ask",
@@ -1916,7 +1932,7 @@
           "ci": "partial",
           "mac": true,
           "human": "真手机：收藏后它发来的直接收；DHCP 换了 IP（或重连 Wi-Fi）后还认得它",
-          "do": "Pet Post 窗口 发送 页，点手机那行的 ♡；以后再点一次 ♥",
+          "do": "主窗口的 Pet Post 标签 发送 页，点手机那行的 ♡；以后再点一次 ♥",
           "expect": "第一次点 ♡ 先在那一行下面说明“收藏的设备会被记住……直接接收”，点 收藏 才生效（以后再收藏不再提示）；♡ 变成红色 ♥；手机再发文件不问直接收下；设置 → 宠物驿站 → 收藏的设备 里列出它；离开本网络（如切到 Tailscale）也会按地址去找它；再点 ♥ 取消，之后发来又会问。收到文件时点 总是接收 也会变成收藏"
         },
         {
@@ -1925,7 +1941,7 @@
           "ci": "partial",
           "mac": true,
           "human": "二级路由下的设备（如 192.168.8.x）或 Tailscale 地址（100.x 或 MagicDNS 名）",
-          "do": "Pet Post 窗口点 ＋ Add by address…，填对方的 IP（或名字）和端口（默认 53317），点 Add",
+          "do": "主窗口的 Pet Post 标签点 ＋ Add by address…，填对方的 IP（或名字）和端口（默认 53317），点 Add",
           "expect": "显示 Connecting… 然后 Added <名字>.；设备出现在列表里，标 added by address；重启 ePet 后还在；能向它发文件和文字；设置 → Pet Post → Beyond this network 里列出它，可 Remove"
         },
         {
@@ -2058,7 +2074,7 @@
           "ci": "partial",
           "mac": true,
           "human": "同一台电脑先开 LocalSend 再开 ePet 的宠物驿站",
-          "do": "先在这台电脑上打开 LocalSend，再在 ePet 里勾上 Send and receive files on this network；打开 Pet Post 窗口",
+          "do": "先在这台电脑上打开 LocalSend，再在 ePet 里勾上 Send and receive files on this network；打开 主窗口的 Pet Post 标签",
           "expect": "设置里写 On: … (port 53318: 53317 is taken by another app).；窗口的地址都是 …:53318，下面红字说明 53317 被占用、别的设备按地址添加时要填 53318；关掉重开 ePet 端口不变（还是 53318）；手机照这个地址手动添加能连上"
         }
       ]

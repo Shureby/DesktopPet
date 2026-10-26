@@ -156,6 +156,7 @@ pub fn run() {
             post::post_open_received,
             post::post_window_shown,
             post::post_attention,
+            post::panel_tab_shown,
             post::post_send,
             post::post_cancel_send,
             post::post_answer,

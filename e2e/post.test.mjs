@@ -57,10 +57,21 @@ const listening = (port) =>
     s.on("timeout", () => (s.destroy(), resolve(false)));
   });
 
-/** The Pet Post window, on one of its tabs ("receive" | "send" | "history"). */
+/** Pet Post: the main window, on its Pet Post tab (since 0.55.0; it was a window of its own). */
+async function toPost() {
+  const app = ctx.app;
+  await app.toWindow("panel.html");
+  await app.until(() => {
+    const tab = document.querySelector('nav button[data-tab="post"]');
+    if (tab && !tab.classList.contains("active")) tab.click();
+    return !!document.querySelector("#post > *");
+  });
+}
+
+/** The Pet Post tab, on one of its tabs ("receive" | "send" | "history"). */
 async function postTab(name) {
   const app = ctx.app;
-  await app.toWindow("post.html");
+  await toPost();
   await app.until(() => document.querySelector(".post-tab"));
   await app.click(`.post-tab[data-tab="${name}"]`);
   await app.until(
@@ -250,7 +261,7 @@ check(
 
 check(
   "post.copy",
-  "Copy in the Pet Post window says it worked (✓ Copied), then goes back",
+  "Copy in the Pet Post tab says it worked (✓ Copied), then goes back",
   async () => {
     const app = ctx.app;
     await app.invoke("open_post_window");
@@ -269,7 +280,7 @@ check(
       5000,
     );
     // (Open, the hidden pet would stay hidden: the next checks need it closed.)
-    await app.closeWindow("post");
+    await app.closeWindow("panel");
   },
 );
 
@@ -378,7 +389,7 @@ check(
 
 check(
   "post.send",
-  "the Pet Post window lists the device; a file and a text reach it",
+  "the Pet Post tab lists the device; a file and a text reach it",
   async () => {
     const app = ctx.app;
     const file = join(mkdtempSync(join(tmpdir(), "epet-out-")), "report.pdf");
@@ -447,7 +458,7 @@ check(
   },
 );
 
-/** Opens "Send a message" (its box) in the Pet Post window, if it isn't. */
+/** Opens "Send a message" (its box) in the Pet Post tab, if it isn't. */
 async function openMessage() {
   await ctx.app.b.execute(() => {
     if (!document.querySelector(".post-text"))
@@ -657,7 +668,7 @@ check(
 
 check(
   "post.receive-files",
-  "receiving several files: the Pet Post window lists each with how far it is",
+  "receiving several files: the Pet Post tab lists each with how far it is",
   async () => {
     const app = ctx.app;
     await postTab("receive");
@@ -683,25 +694,25 @@ check(
 
 check(
   "post.tabs",
-  "the Pet Post window's tabs: opened on the one asked for (Send from the pet), else the one left last",
+  "the Pet Post tab's tabs: opened on the one asked for (Send from the pet), else the one left last",
   async () => {
     const app = ctx.app;
     const active = () =>
       app.until(() => document.querySelector(".post-tab.active")?.dataset.tab);
     await app.toPet();
     await app.invoke("open_post_window", { verify: null, tab: "history" });
-    await app.toWindow("post.html");
+    await toPost();
     assert.equal(await active(), "history");
     await app.toPet();
     await app.invoke("open_post_window", { verify: null, tab: "send" });
-    await app.toWindow("post.html");
+    await toPost();
     await app.until(
       () => document.querySelector(".post-tab.active")?.dataset.tab === "send",
     );
     // Closed and opened again: where it was left.
-    await app.closeWindow("post");
+    await app.closeWindow("panel");
     await app.invoke("open_post_window", { verify: null, tab: null });
-    await app.toWindow("post.html");
+    await toPost();
     assert.equal(await active(), "send");
     await app.click('.post-tab[data-tab="receive"]');
     assert.equal(await active(), "receive");
@@ -710,7 +721,7 @@ check(
 
 check(
   "post.own-address",
-  "the Pet Post window shows this computer's addresses and port, to add it by address elsewhere",
+  "the Pet Post tab shows this computer's addresses and port, to add it by address elsewhere",
   async () => {
     const app = ctx.app;
     const status = await app.invoke("post_status");
@@ -748,14 +759,14 @@ check(
 
 check(
   "post.window-receive",
-  "with the Pet Post window open, it asks too: answered there, the pet's question goes; then a sound, and it's in Received",
+  "with the Pet Post tab open, it asks too: answered there, the pet's question goes; then a sound, and it's in Received",
   async () => {
     const app = ctx.app;
     await app.toPet();
     const since = await app.b.execute(() => Date.now());
     const reply = peer.prepare({ "from-window.txt": "w" });
     await app.waitBubble("Mock Phone wants to send you 1 file");
-    await app.toWindow("post.html");
+    await toPost();
     await app.waitText(".post-offer", "Mock Phone wants to send you 1 file");
     await app.waitText(".post-offer-countdown", "if you don't answer");
     await app.click(".post-accept");
@@ -768,7 +779,7 @@ check(
       { timeout: 5000 },
     );
     assert.deepEqual(await peer.upload(r.body), [200]);
-    await app.toWindow("post.html");
+    await toPost();
     await app.waitText(".post-incoming", "Got 1 file from Mock Phone!");
     await app.waitText(".post-received-item", "1 file from Mock Phone");
     await app.toPet();
@@ -785,7 +796,7 @@ check(
 
 check(
   "post.window-hidden",
-  "the hidden pet stays hidden while the Pet Post window is open: the window asks",
+  "the hidden pet stays hidden while the Pet Post tab is open: the window asks",
   async () => {
     const app = ctx.app;
     await app.run("tray", "Hide pet");
@@ -794,7 +805,7 @@ check(
     });
     await app.invoke("open_post_window");
     const reply = peer.prepare({ "while-hidden-2.txt": "h" });
-    await app.toWindow("post.html");
+    await toPost();
     await app.waitText(".post-offer", "Mock Phone wants to send you 1 file");
     await new Promise((res) => setTimeout(res, 1500));
     assert.equal(await app.visible("pet"), false);
@@ -812,7 +823,7 @@ check(
   "Stop receiving: what's coming stops, and the sender is told no",
   async () => {
     const app = ctx.app;
-    await app.toWindow("post.html");
+    await toPost();
     const reply = peer.prepare({ "stopped.bin": Buffer.alloc(1000, 1) });
     await app.waitText(".post-offer", "Mock Phone wants to send you 1 file");
     await app.click(".post-accept");
@@ -830,7 +841,7 @@ check(
   "Received keeps what came (files and texts) across restarts of the window; Clear empties it",
   async () => {
     const app = ctx.app;
-    await app.closeWindow("post");
+    await app.closeWindow("panel");
     await app.invoke("open_post_window");
     await postTab("history");
     await app.waitText(".post-received-item", "1 file from Mock Phone");
@@ -898,7 +909,7 @@ check(
     const reply = peer.prepare({ "v.txt": "v" });
     await app.waitBubble("Mock Phone wants to send you 1 file");
     await app.answer("Verify…");
-    await app.toWindow("post.html");
+    await toPost();
     const shown = await app.until(() => {
       const icons = [...document.querySelectorAll(".post-verify-grid svg")].map(
         (e) => e.dataset.icon,
@@ -1081,7 +1092,7 @@ check(
       verifyResult: null,
     });
     try {
-      await app.closeWindow("post");
+      await app.closeWindow("panel");
       await app.toPet();
       const asking = peer.askVerify();
       await app.waitBubble("Mock Phone wants to verify with you.");
@@ -1090,7 +1101,7 @@ check(
       assert.deepEqual([reply.status, reply.body?.answer], [200, "shown"]);
       // Not again straight away.
       assert.equal((await peer.askVerify()).status, 429);
-      await app.toWindow("post.html");
+      await toPost();
       const shown = await app.until(() => {
         const icons = [
           ...document.querySelectorAll(".post-verify-grid svg"),
@@ -1162,12 +1173,12 @@ check(
       answer: "accept",
     };
     try {
-      await app.closeWindow("post");
+      await app.closeWindow("panel");
       await app.toPet();
       await sharingSeen(true);
       await app.waitBubble("📤 Mock Phone is sharing files with you.");
       await app.answer("See them");
-      await app.toWindow("post.html");
+      await toPost();
       await app.waitText(".post-share", "Mock Phone is sharing files with you");
       // Nothing asked of the phone until "See what's shared".
       assert.equal(peer.shareAsks, 0);
@@ -1460,7 +1471,7 @@ check(
     // The first time: what it means, before it's done.
     await app.waitText(".post-favorite-notice", "accepted without asking");
     assert.equal((await app.fullSettings()).post.trusted.length, 0);
-    await app.toWindow("post.html");
+    await toPost();
     await row(".post-favorite-yes");
     const s = await until("a favorite", async () => {
       const st = await app.fullSettings();
@@ -1472,7 +1483,7 @@ check(
       s.post.devices.map((d) => [d.fingerprint, d.via]),
       [[peer.fingerprint, "favorite"]],
     );
-    await app.toWindow("post.html");
+    await toPost();
     await app.until(() => !!document.querySelector(".post-favorite.on"));
     // Accepted without asking.
     const r = await peer.prepare({ "from-favorite.txt": "♥" });
@@ -1533,7 +1544,7 @@ check(
   "an address where nothing answers: said so, with a word about the firewall",
   async () => {
     const app = ctx.app;
-    await app.toWindow("post.html");
+    await toPost();
     await app.type(".post-add-address", "127.0.0.1");
     await app.type(".post-add-port", String(await freePort()));
     await app.click(".post-add-go");
@@ -1609,7 +1620,7 @@ check(
         return st.post.devices[0]?.fingerprint === other.fingerprint && st;
       });
       assert.equal(s.post.devices.length, 1);
-      await app.toWindow("post.html");
+      await toPost();
       await app.until(() => !document.querySelector(".post-trust-new"));
     } finally {
       await other.stop();
@@ -1750,7 +1761,7 @@ check(
     const app = ctx.app;
     await unpaired();
     try {
-      await app.closeWindow("post");
+      await app.closeWindow("panel");
       await app.invoke("open_post_window", { verify: null, tab: "send" });
       await epetRow();
       await app.b.execute(() =>
@@ -1830,7 +1841,7 @@ check(
     const app = ctx.app;
     await unpaired();
     try {
-      await app.closeWindow("post");
+      await app.closeWindow("panel");
       await app.toPet();
       const shownCode = async () => {
         const text = await until("the code in the bubble", async () => {
@@ -1938,7 +1949,7 @@ check(
 
 check("post.off-again", "turned off: it stops listening", async () => {
   const app = ctx.app;
-  await app.closeWindow("post");
+  await app.closeWindow("panel");
   await app.panel("settings");
   await app.click(".post-settings .post-enabled");
   await until(
@@ -1985,7 +1996,7 @@ check(
           ),
         [status.port],
       );
-      await app.closeWindow("post");
+      await app.closeWindow("panel");
       await app.panel("settings");
       await app.click(".post-settings .post-enabled");
       await until(
