@@ -1102,12 +1102,20 @@ check(
       // Not again straight away.
       assert.equal((await peer.askVerify()).status, 429);
       await toPost();
-      const shown = await app.until(() => {
-        const icons = [
-          ...document.querySelectorAll(".post-verify-grid svg"),
-        ].map((e) => e.dataset.icon);
-        return icons.length === 16 && icons;
-      });
+      const shown = await app
+        .until(() => {
+          const icons = [
+            ...document.querySelectorAll(".post-verify-grid svg"),
+          ].map((e) => e.dataset.icon);
+          return icons.length === 16 && icons;
+        })
+        .catch(async (e) => {
+          const seen = await app.b.execute(
+            () =>
+              `${location.hash} | ${document.querySelector("#post")?.innerText.slice(0, 300)}`,
+          );
+          throw new Error(`${e.message}: ${seen}`);
+        });
       assert.deepEqual(shown, verifyCode(fingerprint, peer.fingerprint).icons);
       await app.waitText(
         ".post-verify-asked-by",
@@ -1766,7 +1774,11 @@ check(
       await epetRow();
       await app.b.execute(() =>
         [...document.querySelectorAll(".post-device")]
-          .find((e) => e.textContent.includes("Mock Phone"))
+          .find(
+            (e) =>
+              e.textContent.includes("Mock Phone") &&
+              e.querySelector(".post-pair"),
+          )
           .querySelector(".post-pair")
           .click(),
       );
@@ -1810,7 +1822,11 @@ check(
       await epetRow();
       await app.b.execute(() =>
         [...document.querySelectorAll(".post-device")]
-          .find((e) => e.textContent.includes("Mock Phone"))
+          .find(
+            (e) =>
+              e.textContent.includes("Mock Phone") &&
+              e.querySelector(".post-pair"),
+          )
           .querySelector(".post-pair")
           .click(),
       );

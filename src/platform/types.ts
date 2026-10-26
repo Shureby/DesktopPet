@@ -437,7 +437,8 @@ export interface BackendEvents {
   /** Today is an anniversary (once a day, the first time you're at the computer). */
   celebrate: Celebration;
   game: { state: "started" | "ended"; game: string };
-  "panel-tab": PanelTab;
+  /** A tab to show; Pet Post also as "post:send" / "post:verify=<fingerprint>". */
+  "panel-tab": string;
   "pet-command": "show" | "hide" | "greet";
   /** The pet was shown or hidden (from its menu, the tray, …). */
   "pet-visibility": boolean;

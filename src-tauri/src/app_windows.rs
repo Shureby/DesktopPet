@@ -90,18 +90,7 @@ pub fn open_panel<R: Runtime>(app: &AppHandle<R>, tab: Option<&str>) -> tauri::R
 pub fn open_post<R: Runtime>(app: &AppHandle<R>, verify: Option<&str>, tab: Option<&str>) -> tauri::Result<()> {
     let tab = tab.filter(|t| matches!(*t, "receive" | "send" | "history"));
     let verify: Option<String> = verify.map(|fp| fp.chars().filter(char::is_ascii_alphanumeric).collect());
-    if let Some(w) = app.get_webview_window(PANEL) {
-        w.show()?;
-        w.unminimize()?;
-        w.set_focus()?;
-        app.emit_to(PANEL, "panel-tab", "post")?;
-        if let Some(fp) = &verify {
-            app.emit_to(PANEL, "post-verify", fp)?;
-        } else if let Some(t) = tab {
-            app.emit_to(PANEL, "post-tab", t)?;
-        }
-        return Ok(());
-    }
+    // The panel shows its Pet Post tab, opened for this (also if it hasn't loaded Pet Post yet).
     let sub = match (&verify, tab) {
         (Some(fp), _) => format!("post:verify={fp}"),
         (None, Some(t)) => format!("post:{t}"),

@@ -1545,6 +1545,26 @@ function remember(): () => void {
 }
 
 let mounted: Promise<void> | null = null;
+/** Ready (its events heard): what it's opened for is shown at once; before, after loading. */
+let ready = false;
+let pendingOpen = "";
+
+/** Opened for something: "send" (a tab), "verify=<fingerprint>"; "" for nothing in particular. */
+export function openPost(opened: string): void {
+  if (!opened) return;
+  if (ready) applyOpened(opened);
+  else pendingOpen = opened;
+}
+
+function applyOpened(opened: string): void {
+  const asked = /^verify=([0-9A-Fa-f]+)$/.exec(opened)?.[1];
+  if (asked) return verify(asked);
+  const on = /^(receive|send|history)$/.exec(opened)?.[1] as Tab | undefined;
+  if (on) {
+    verifying = null;
+    show(on);
+  }
+}
 
 /**
  * Draws Pet Post into `el` (the main window's Pet Post tab), once. `show` brings that tab
@@ -1673,8 +1693,8 @@ async function main(opened: string): Promise<void> {
   render();
   if (settings.post.enabled && !devices.length) lookAgain();
   // Opened for Verify (the pet's "Verify…" on a delivery), or on a tab ("send").
-  const asked = /^verify=([0-9A-Fa-f]+)$/.exec(opened)?.[1];
-  if (asked) verify(asked);
-  const on = /^(receive|send|history)$/.exec(opened)?.[1] as Tab | undefined;
-  if (on) show(on);
+  ready = true;
+  const first = pendingOpen || opened;
+  pendingOpen = "";
+  if (first) applyOpened(first);
 }

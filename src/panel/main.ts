@@ -90,7 +90,7 @@ import { icon } from "../ui/icons";
 import { backupSection } from "./backup";
 import { postSection } from "./postSettings";
 import { screensSection } from "./screens";
-import { mountPost } from "../post/main";
+import { mountPost, openPost } from "../post/main";
 import { hmText, infoTip, modesSection } from "./modes";
 import { avoidSection } from "./avoid";
 import { dayPicker, week } from "./dayPicker";
@@ -2117,7 +2117,13 @@ async function main() {
     if (document.activeElement?.closest(".time-field, .day-picker") && Date.now() - fieldUsedAt < 1500) return;
     if (["characters", "focus", "modes", "settings", "alarms"].includes(current)) void render();
   });
-  await backend.on("panel-tab", (tab) => select(tab));
+  // A tab, or Pet Post opened for something ("post:send", "post:verify=<fingerprint>").
+  await backend.on("panel-tab", (asked) => {
+    const [tab, sub = ""] = asked.split(":") as [PanelTab, string?];
+    if (!TABS.some((it) => it.id === tab)) return;
+    if (tab === "post") openPost(sub);
+    if (tab !== current) select(tab);
+  });
   await backend.on("mood", () => current === "characters" && void render());
 
   // "#alarms", or "#post:send" / "#post:verify=<fingerprint>" (Pet Post, opened for that).
