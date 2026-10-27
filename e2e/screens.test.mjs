@@ -184,3 +184,28 @@ check(
     await app.setSettings((s) => ({ ...s, screens: { off: [] } }));
   },
 );
+
+check(
+  "pet.top-of-screen",
+  "lifted to the top of the screen, the pet's window stays on the screen (macOS keeps windows below the menu bar) and the pet rises inside it",
+  async () => {
+    const app = ctx.app;
+    await app.toPet();
+    await hook("fakeScreens", null);
+    const area = (await app.pet()).area;
+    // Put down just under the top edge: read where the window goes at once (before it falls).
+    const seen = await app.b.execute((y) => {
+      const s0 = window.__epet.state();
+      window.__epet.dropAt(s0.x, y);
+      const s = window.__epet.state();
+      return { origin: s.origin, y: s.y, dpr: s.dpr };
+    }, area.y + 40);
+    assert.equal(
+      Math.round(seen.origin.y),
+      area.y,
+      "the window's top at the screen's top, not above it",
+    );
+    assert.equal(seen.y, area.y + 40, "the pet itself is up there");
+    await app.until(() => window.__epet.state().grounded, [], 10_000);
+  },
+);

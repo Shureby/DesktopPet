@@ -732,9 +732,25 @@ export class PetHost {
     };
   }
 
+  /**
+   * Where the pet window goes (physical px), and how far above its bottom the pet's feet
+   * are (CSS px). The window never goes above the top of the screen: macOS keeps windows
+   * below the menu bar, so lifted higher, the pet rises inside the window instead.
+   */
+  private windowFrame(): { x: number; y: number; lift: number } {
+    const b = this.pet.body;
+    const x = b.x - (PET_WINDOW.w / 2) * this.dpr;
+    const y = b.y - (PET_WINDOW.h - 2) * this.dpr;
+    let top = Infinity;
+    for (const a of this.pet.world?.areas ?? []) if (b.x >= a.x && b.x < a.x + a.w) top = Math.min(top, a.y);
+    if (!(y < top)) return { x, y, lift: 0 };
+    const lift = Math.min((top - y) / this.dpr, PET_WINDOW.h - 2);
+    return { x, y: y + lift * this.dpr, lift };
+  }
+
   /** Where the pet's feet are drawn, in canvas CSS px. */
   private feet(): { x: number; y: number } {
-    if (this.windowed) return { x: PET_WINDOW.w / 2, y: PET_WINDOW.h - 2 };
+    if (this.windowed) return { x: PET_WINDOW.w / 2, y: PET_WINDOW.h - 2 - this.windowFrame().lift };
     return { x: this.pet.body.x / this.dpr, y: this.pet.body.y / this.dpr };
   }
 
@@ -784,7 +800,10 @@ export class PetHost {
     const bw = this.bubble.offsetWidth;
     const bx = Math.max(vis.left + 2 + bw / 2, Math.min(f.x, vis.right - 2 - bw / 2));
     this.bubble.style.left = `${bw ? bx : f.x}px`;
-    this.bubble.style.top = `${f.y - spriteH - 8}px`;
+    // No room above (lifted to the top of the screen): under its feet, pointing up.
+    const below = f.y - spriteH - 8 - this.bubble.offsetHeight < 0;
+    this.bubble.classList.toggle("below", below);
+    this.bubble.style.top = `${below ? f.y + 8 : f.y - spriteH - 8}px`;
     this.bubble.style.setProperty("--tail", `${Math.max(-(bw / 2 - 12), Math.min(bw / 2 - 12, f.x - bx))}px`);
 
     // Badges go right of the pet, or left when they don't fit on screen there. They flip back
@@ -979,10 +998,10 @@ export class PetHost {
   /** Moves the Tauri window to the pet and toggles click-through based on what's under the cursor. */
   /** Moves the window to the pet now (before showing it, so it doesn't appear where it was). */
   private async placeWindow(): Promise<void> {
-    const b = this.pet.body;
+    const f = this.windowFrame();
     await this.backend.petFrame(
-      Math.round(b.x - (PET_WINDOW.w / 2) * this.dpr),
-      Math.round(b.y - (PET_WINDOW.h - 2) * this.dpr),
+      Math.round(f.x),
+      Math.round(f.y),
       Math.round(PET_WINDOW.w * this.dpr),
       Math.round(PET_WINDOW.h * this.dpr),
       this.ignoringCursor,
@@ -993,9 +1012,7 @@ export class PetHost {
     if (this.framePending) return;
     this.framePending = true;
     try {
-      const b = this.pet.body;
-      const winX = b.x - (PET_WINDOW.w / 2) * this.dpr;
-      const winY = b.y - (PET_WINDOW.h - 2) * this.dpr;
+      const { x: winX, y: winY } = this.windowFrame();
       const cursor = await this.backend.petFrame(
         Math.round(winX),
         Math.round(winY),
@@ -1375,10 +1392,7 @@ export class PetHost {
         /** What it stands on: the floor of an area, or a window's top (its id). */
         support: this.pet.body.support,
         /** Where the pet window is (physical px): page px × dpr from here are screen px. */
-        origin: {
-          x: this.pet.body.x - (PET_WINDOW.w / 2) * this.dpr,
-          y: this.pet.body.y - (PET_WINDOW.h - 2) * this.dpr,
-        },
+        origin: (({ x, y }) => ({ x, y }))(this.windowFrame()),
         /** The windows it can stand on, as the app sees them (physical px). */
         windows: this.pet.world.windows,
       }),

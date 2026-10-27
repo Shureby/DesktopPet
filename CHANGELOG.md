@@ -16,6 +16,14 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.55.1] - 2026-10-27
+
+### Fixed
+- **macOS: the pet couldn't be lifted near the top of the screen** — it stopped at an
+  invisible ceiling (its window can't go above the menu bar), so it couldn't be put on a
+  window whose top is up there. Its window now stays on the screen and the pet rises inside
+  it, up to the top; its bubble shows under it when there's no room above.
+
 ## [0.55.0] - 2026-10-26
 
 ### Changed
