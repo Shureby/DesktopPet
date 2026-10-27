@@ -1048,6 +1048,57 @@ button by an ePet).
 - **Paired is not "my computer":** it proves who, not whose. Syncing schedules (later)
   needs its own confirmation on both computers (docs/ROADMAP.md).
 
+## Sending reminders and anniversaries (since 0.56.0)
+
+An alarm, a to-do or an anniversary can be sent to a paired ePet ("Dad's reminder on my
+son's computer", "our anniversary on my wife's"), or saved as a calendar file for phones
+and anyone else. What's sent is a copy: the other side sees it first and adds it or not;
+once added it's theirs to change or delete.
+
+- **Send:** 📤 on its row (Alarms, To-dos, Anniversaries; not timers) → **Send to…**: the
+  paired ePets (by their nickname), ticked, **Send**. Each line then says how it went:
+  "Delivered · waiting for an answer", "✓ Added", "✓ Already has it", "Declined", "Not
+  online" (nothing is kept to send later yet), "Needs ePet 0.56 or newer". The answer the
+  other side gives later comes back on its own (a receipt) and shows there.
+- **Only between paired ePets,** over HTTPS with both certificates known (see
+  "Pairing ePets"); anything else is refused ("Not paired there").
+- **Save as .ics…** (in the same sheet): a calendar file (iCalendar). Phones and calendar
+  apps read it: an alarm is an event with a reminder at its time, a to-do a to-do, an
+  anniversary a yearly all-day event; a lunar (or listed) one as its dates for the next 20
+  years, as calendars can't count lunar years. ePet's own part (`X-EPET-DATA`) brings back
+  what they can't hold: the lunar date, the reminders before it, an important alarm.
+- **Received:** the pet says "📨 Dad sent you a reminder: “Get up”" (**Show** · Later) and it
+  waits in Pet Post → **Receive** (a count on the tab) with what it is (time, repeat,
+  settings; an anniversary's day and next date, its reminders before, what happens on the
+  day) and who it's from: **Add** or **Don't add**, each told to the sender. "From now on,
+  add Dad's reminders without asking" sets the rule below. A one-off whose time has passed
+  can't be added. Hidden, the pet doesn't come out for it: it's in "While I was hidden".
+- **Sent again** (the sender's id for it): the same as before → "You already have it", not
+  added twice, nothing asked. Changed there → "🔄 Dad updated “Get up”" with only what
+  changed (Now · Updated): **Update** · Don't. Changed here too since it was added →
+  "· you changed it too", side by side (Yours · Their new one): **Keep mine** (the default)
+  · Use the new one; asked even when Dad's are added without asking. Deleted here, it's new
+  again. Something you typed in yourself that's the same counts as already there.
+- **What a paired ePet sends** (Settings → Pet Post → Paired ePets → **Name, what it
+  sends…**): for reminders, to-dos and anniversaries each: **Ask me** (the default),
+  **Add** (without asking: the pet still says "✓ Dad added a reminder: …" with **Undo**,
+  which deletes it and tells Dad it was declined) or **Don't take** (declined at once).
+  Relations (family, colleagues) may later fill this in; they grant nothing by themselves.
+- **Nickname:** a name for a paired ePet that only you see ("Dad"), asked right after
+  pairing ("Give it a name?") and set there too. Used everywhere: the sheet, the inbox,
+  "👤 Dad" by what it sent (its row), and the ring: "👤 Dad reminds you". Without one, its
+  device name.
+- **Time zones:** a moment (a one-off alarm, a to-do with a time) is shown in this
+  computer's time, with "Their time: 9:00 PM (Shanghai)" when the zones differ. A repeating
+  alarm keeps its clock time ("every day 8:00" is 8:00 here) unless you choose theirs:
+  "Theirs: 8:00 = 9:00 here". Anniversaries and days are dates: not moved.
+- **Import a calendar file (.ics)…** (Pet Post → Receive), or **📅 Add to ePet…** on a
+  received .ics (from a phone, say): each entry waits there to add. From another app's
+  file: a yearly all-day event becomes an anniversary (a birthday's year of birth kept:
+  "36th"; "2nd Sunday of May" kept), a timed event an alarm (daily or on weekdays: a
+  repeating one), a to-do a to-do, an all-day event a day's to-do; what's already past or
+  done is left out.
+
 ## Language and region (since 0.43.0)
 
 - **Three languages:** English, 简体中文 (Simplified Chinese, as written in mainland China)

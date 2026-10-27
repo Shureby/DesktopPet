@@ -2319,3 +2319,197 @@ nav.post-tabs button {
   white-space: nowrap;
   font-size: 12px;
 }
+
+/* ----- Alarms, to-dos and anniversaries sent between ePets (src/post/schedule.ts) ----- */
+button.icon.send {
+  font-size: 13px;
+  padding: 2px 4px;
+}
+.chip.from {
+  margin-left: 6px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+.post-send-sheet {
+  width: min(400px, 100%);
+}
+.post-send-sheet .row {
+  flex-wrap: wrap;
+}
+.post-send-sheet .sub {
+  text-align: left;
+}
+.post-send-devs {
+  display: flex;
+  flex-direction: column;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+.post-send-dev {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 2px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.post-send-dev:last-child {
+  border-bottom: 0;
+}
+.post-send-answer {
+  font-size: 12px;
+  white-space: nowrap;
+}
+.post-send-answer.ok {
+  color: #1f7a45;
+  font-weight: 700;
+}
+.post-send-answer.wait {
+  color: var(--muted);
+}
+.post-send-answer.no {
+  color: #c0392b;
+}
+.post-inv {
+  margin-bottom: 10px;
+}
+.post-inv .title {
+  font-weight: 700;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.post-inv-from {
+  margin: -4px 0 0;
+}
+.post-inv-kv {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  font-size: 13px;
+}
+.post-inv-kv .k {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.post-inv-kv .v {
+  overflow-wrap: anywhere;
+}
+.post-inv-zone {
+  background: #fff7e0;
+  border: 1px solid #f0dca0;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+  margin: 0;
+}
+.post-inv-zone p {
+  margin: 0 0 6px;
+}
+.seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.seg button.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 700;
+}
+.post-inv-diff {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.post-inv-diff th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--muted);
+  padding: 3px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.post-inv-diff td {
+  padding: 5px 4px;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.post-inv-diff td.old {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.post-inv-diff td.new {
+  color: #1f7a45;
+  font-weight: 700;
+}
+.post-inv-diff td.mine {
+  background: rgba(70, 130, 220, 0.12);
+}
+.post-inv-always {
+  margin: 0;
+}
+.post-inv-said {
+  background: var(--fg);
+  color: var(--bg);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin: 0 0 10px;
+  font-size: 13px;
+}
+.post-paired-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.post-paired-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 0 8px 10px;
+  border-left: 2px solid var(--accent-soft);
+}
+.post-paired-detail input[type="text"] {
+  flex: 1;
+  min-width: 0;
+}
+.post-rules {
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.post-rules th {
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--muted);
+  padding: 2px 8px;
+}
+.post-rules td {
+  padding: 3px 8px;
+  text-align: center;
+  border-top: 1px solid var(--border);
+}
+.post-rules td:first-child {
+  text-align: left;
+  white-space: nowrap;
+}
+.post-pair-nick {
+  margin: 12px 0;
+}
+.post-pair-nick .title {
+  font-weight: 700;
+  margin: 0;
+}
+.post-pair-nick input {
+  flex: 1;
+  min-width: 0;
+}
+@media (prefers-color-scheme: dark) {
+  .post-inv-zone {
+    background: #3a3322;
+    border-color: #6b5a2a;
+  }
+  .post-inv-diff td.new,
+  .post-send-answer.ok {
+    color: #6fd39a;
+  }
+}

@@ -25,7 +25,11 @@ import {
   type PostStatus,
   type PostTailnet,
 } from "../features/post/post";
+import { nickOf, rulesOf, SHARE_KINDS, withNick, withRule, type ShareKind, type ShareRule } from "../features/post/schedule";
 import { formatWhen, h } from "./dom";
+
+/** Paired ePets whose details (nickname, what they send) are open. */
+const openPaired = new Set<string>();
 
 /** Lines of "Also look in these networks" that aren't one (shown until fixed; the page is redrawn on saving). */
 let badNetworks: string[] = [];
@@ -165,6 +169,96 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
           )
         : h("p", { class: "hint" }, none);
 
+    const kindLabel: Record<ShareKind, string> = { alarm: `⏰ ${t("Reminders")}`, todo: `☑️ ${t("To-dos")}`, anniversary: `🎂 ${t("Anniversaries")}` };
+    const ruleLabel: [ShareRule, string][] = [
+      ["ask", t("Ask me")],
+      ["auto", t("Add|rule")],
+      ["refuse", t("Don't take")],
+    ];
+    /** Paired ePets: a nickname (only seen here) and what happens to what each sends. */
+    const pairedList = () =>
+      s.paired.length
+        ? h(
+            "ul",
+            { class: "trusted post-paired-list" },
+            ...s.paired.map((d) => {
+              const fp = d.fingerprint;
+              const nick = nickOf(s, fp);
+              const open = openPaired.has(fp);
+              const rules = rulesOf(s, fp);
+              const toggle = () => {
+                if (open) openPaired.delete(fp);
+                else openPaired.add(fp);
+                draw();
+              };
+              return h(
+                "li",
+                { class: "post-paired-item", "data-fingerprint": fp },
+                h(
+                  "div",
+                  { class: "row" },
+                  h(
+                    "span",
+                    { class: "grow", title: fp },
+                    h("span", {}, nick || d.alias || shortFingerprint(fp)),
+                    h("span", { class: "hint" }, `${nick ? ` ${d.alias}` : ""} · ${t("Paired {when} with a code", { when: formatWhen(d.at) })} · ${shortFingerprint(fp)}`),
+                  ),
+                  h("button", { class: "small post-paired-more", "aria-expanded": String(open), onclick: toggle }, open ? t("Done") : t("Name, what it sends…")),
+                  h("button", { class: "small", onclick: () => void save({ post: withoutPaired(get().post, fp) }).then(() => poll()) }, t("Unpair")),
+                ),
+                open
+                  ? h(
+                      "div",
+                      { class: "post-paired-detail" },
+                      h(
+                        "label",
+                        { class: "row" },
+                        h("span", { class: "lbl" }, t("Nickname")),
+                        h("input", {
+                          type: "text",
+                          class: "post-paired-nick",
+                          maxLength: 40,
+                          value: nick,
+                          placeholder: t("e.g. Dad"),
+                          onchange: (e: Event) => void save({ post: withNick(get().post, fp, (e.target as HTMLInputElement).value) }).then(() => poll()),
+                        }),
+                        h("span", { class: "hint" }, t("Only you see it")),
+                      ),
+                      h("div", { class: "lbl" }, t("What it sends you")),
+                      h(
+                        "table",
+                        { class: "post-rules" },
+                        h("tr", {}, h("th", {}), ...ruleLabel.map(([, l]) => h("th", {}, l))),
+                        ...SHARE_KINDS.map((kind) =>
+                          h(
+                            "tr",
+                            { "data-kind": kind },
+                            h("td", {}, kindLabel[kind]),
+                            ...ruleLabel.map(([rule, l]) =>
+                              h(
+                                "td",
+                                {},
+                                h("input", {
+                                  type: "radio",
+                                  name: `rule-${fp}-${kind}`,
+                                  value: rule,
+                                  "aria-label": `${kindLabel[kind]}: ${l}`,
+                                  checked: rules[kind] === rule,
+                                  onchange: () => void save({ post: withRule(get().post, fp, kind, rule) }).then(() => poll()),
+                                }),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      h("p", { class: "hint" }, t("Added without asking, your pet still says so, with Undo. One you changed here is always asked about when it's updated.")),
+                    )
+                  : null,
+              );
+            }),
+          )
+        : h("p", { class: "hint" }, t("None yet. In Pet Post, choose Pair by an ePet and type the code it shows."));
+
     root.replaceChildren(
       h(
         "label",
@@ -255,7 +349,7 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
             ),
             h("p", { class: "hint" }, t("With a PIN, senders must type it before they can send you anything.")),
             h("div", { class: "subhead" }, t("Paired ePets")),
-            marks(s.paired, "post-paired-list", (d) => t("Paired {when} with a code", { when: formatWhen(d.at) }), t("Unpair"), (fp) => withoutPaired(get().post, fp), t("None yet. In Pet Post, choose Pair by an ePet and type the code it shows.")),
+            pairedList(),
             h("div", { class: "subhead" }, t("Verified devices")),
             marks(s.verified, "post-verified-list", (d) => t("Verified {when}", { when: formatWhen(d.at) }), t("Remove"), (fp) => withoutVerified(get().post, fp), t("None yet. In Pet Post, Verify a device and choose “They match”.")),
             h("div", { class: "subhead" }, t("Blocked devices")),

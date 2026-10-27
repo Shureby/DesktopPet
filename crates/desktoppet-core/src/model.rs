@@ -96,9 +96,10 @@ where
     Deserialize::deserialize(de).map(Some)
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Repeat {
+    #[default]
     None,
     Daily,
     Weekdays,
@@ -496,8 +497,8 @@ pub struct AnniversaryPrep {
     pub label: String,
 }
 
-/// An anniversary from the panel's form (new or edited).
-#[derive(Debug, Clone, Default, Deserialize)]
+/// An anniversary from the panel's form (new or edited), or sent (share.rs).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NewAnniversary {
     pub kind: String,

@@ -5,6 +5,7 @@ import { endOfDay, nextAfterTick, todoRemindsAt } from "../features/todo/repeat"
 import { nextAnniversary, prepDay } from "../features/anniversary/templates";
 import { NOT_BUSY, othersPresent, type AvoidReason, type Busy } from "../features/avoid/avoid";
 import type { PostDevice, PostReceived, PostStatus } from "../features/post/post";
+import type { InboxItem, SentItem } from "../features/post/schedule";
 import {
   DEFAULT_SETTINGS,
   EVERY_DAY,
@@ -190,6 +191,41 @@ function mockPostStatus(alias: string): PostStatus {
   const port = Number(new URLSearchParams(location.search).get("port")) || 53317;
   return { running: on, port, alias, fingerprint: "MOCK", error: null, saveDir: "Downloads/ePet", computer: "This browser", addresses };
 }
+
+/** What the browser preview "sent" (Send to…). */
+const mockSent: SentItem[] = [];
+
+/** ?schedule: invitations from the pretend ePet (Pet Post → Receive), to see them. */
+let mockInbox: InboxItem[] = new URLSearchParams(typeof location === "undefined" ? "" : location.search).has("schedule")
+  ? [
+      {
+        id: 1,
+        from: "C3",
+        name: "Work laptop",
+        shared: { uid: "u1", item: { type: "alarm", label: "Get up", repeat: "weekdays", days: 0, time: "07:30", at: null, important: true, autoSnooze: true } },
+        tz: "Asia/Shanghai",
+        offset: 480,
+        at: Date.now(),
+        match: { state: "new" },
+        next: null,
+        past: false,
+        hereOffset: 540,
+      },
+      {
+        id: 2,
+        from: "C3",
+        name: "Work laptop",
+        shared: { uid: "u2", item: { type: "alarm", label: "Get up", repeat: "weekdays", days: 0, time: "07:30", at: null, important: false, autoSnooze: true } },
+        tz: "",
+        offset: null,
+        at: Date.now(),
+        match: { state: "changed", id: 1, edited: true, local: { type: "alarm", label: "Get up!!", repeat: "daily", days: 0, time: "07:15", at: null, important: false, autoSnooze: true } },
+        next: null,
+        past: false,
+        hereOffset: 540,
+      },
+    ]
+  : [];
 
 function fire<K extends keyof BackendEvents>(event: K, payload: BackendEvents[K]) {
   local.dispatchEvent(new CustomEvent(event, { detail: payload }));
@@ -807,6 +843,36 @@ export const mockBackend: Backend = {
   async postPairCancel() {},
   async postPairDecline(fingerprint) {
     fire("post-pair-closed", { fingerprint, reason: "declined" });
+  },
+  async postScheduleSend(fingerprints, kind, id) {
+    // The pretend ePet (Work laptop, C3) asks its user; the others can't take it.
+    await new Promise((r) => setTimeout(r, 600));
+    const out = fingerprints.map((fingerprint) => ({ fingerprint, answer: fingerprint === "C3" ? "asked" : "unsupported" }));
+    for (const o of out) mockSent.push({ ...o, kind, id, uid: `${kind}-${id}`, at: Date.now() });
+    return out;
+  },
+  async postScheduleSent() {
+    return mockSent;
+  },
+  async postScheduleSave() {
+    return "Documents/ePet.ics";
+  },
+  async postScheduleImport() {
+    return { status: "ok", items: 0, skipped: 0 };
+  },
+  async postScheduleInbox() {
+    return mockInbox;
+  },
+  async postScheduleAnswer(id, take) {
+    const e = mockInbox.find((x) => x.id === id);
+    mockInbox = mockInbox.filter((x) => x.id !== id);
+    fire("post-schedule-inbox", null);
+    if (!e || !take) return e?.match.state === "changed" ? "kept" : "declined";
+    return e.match.state === "changed" ? "updated" : "added";
+  },
+  async postScheduleUndo() {},
+  async postScheduleOrigins() {
+    return [];
   },
   async postShareOpen(target, pin) {
     const q = new URLSearchParams(location.search);

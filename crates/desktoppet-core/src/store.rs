@@ -135,6 +135,28 @@ pub(crate) const MIGRATIONS: &[&str] = &[
     // now). Alarms from before keep doing so; timers never do.
     "ALTER TABLE alarms ADD COLUMN auto_snooze INTEGER NOT NULL DEFAULT 0;
      UPDATE alarms SET auto_snooze = 1 WHERE label NOT LIKE 'Timer: %';",
+    // v18: what was sent from another ePet (or a file) and taken here: where it came from,
+    // what was sent and what it was here then (share.rs); and what waits for an answer.
+    "CREATE TABLE share_origins (
+       kind TEXT NOT NULL,
+       uid TEXT NOT NULL,
+       from_fp TEXT NOT NULL,
+       from_uid TEXT NOT NULL,
+       sent TEXT NOT NULL,
+       taken TEXT NOT NULL,
+       their_time INTEGER NOT NULL DEFAULT 0,
+       at INTEGER NOT NULL,
+       PRIMARY KEY (kind, uid));
+     CREATE INDEX share_origins_from ON share_origins(from_fp, from_uid);
+     CREATE TABLE share_inbox (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       from_fp TEXT NOT NULL,
+       from_name TEXT NOT NULL,
+       uid TEXT NOT NULL,
+       item TEXT NOT NULL,
+       tz TEXT NOT NULL DEFAULT '',
+       offset_min INTEGER,
+       at INTEGER NOT NULL);",
 ];
 
 /// Tables whose rows carry a uid, updated_at and a tombstone when deleted (see v14), with
@@ -289,7 +311,7 @@ impl Store {
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
 
-    fn todo(&self, id: i64) -> Result<Option<Todo>> {
+    pub(crate) fn todo(&self, id: i64) -> Result<Option<Todo>> {
         Ok(self
             .conn
             .query_row(&format!("SELECT {TODO_COLUMNS} FROM todos WHERE id = ?1"), [id], Self::todo_row)
@@ -465,7 +487,7 @@ impl Store {
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
 
-    fn anniversary(&self, id: i64) -> Result<Option<Anniversary>> {
+    pub(crate) fn anniversary(&self, id: i64) -> Result<Option<Anniversary>> {
         Ok(self
             .conn
             .query_row(
@@ -527,7 +549,7 @@ impl Store {
                 now,
                 a.calendar.as_str(),
                 a.leap && a.calendar == Calendar::Lunar,
-                a.nth.filter(|_| a.calendar == Calendar::Weekday),
+                a.nth.filter(|_| matches!(a.calendar, Calendar::Weekday | Calendar::Easter)),
                 a.weekday.filter(|_| a.calendar == Calendar::Weekday)
             ],
         )?;
@@ -556,7 +578,7 @@ impl Store {
                 now,
                 a.calendar.as_str(),
                 a.leap && a.calendar == Calendar::Lunar,
-                a.nth.filter(|_| a.calendar == Calendar::Weekday),
+                a.nth.filter(|_| matches!(a.calendar, Calendar::Weekday | Calendar::Easter)),
                 a.weekday.filter(|_| a.calendar == Calendar::Weekday)
             ],
         )?;
@@ -725,7 +747,7 @@ impl Store {
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
 
-    fn alarm(&self, id: i64) -> Result<Option<Alarm>> {
+    pub(crate) fn alarm(&self, id: i64) -> Result<Option<Alarm>> {
         Ok(self
             .conn
             .query_row(&format!("SELECT {ALARM_COLUMNS} FROM alarms WHERE id = ?1"), [id], Self::alarm_row)

@@ -35,7 +35,7 @@ const CONFIRM_MS: i64 = 30_000;
 /// A "declined" is told to A for this long.
 const DECLINED_MS: i64 = 5 * 60_000;
 
-type Body = BoxBody<Bytes, std::io::Error>;
+pub(crate) type Body = BoxBody<Bytes, std::io::Error>;
 
 /// Pairing's state on the showing side (B): one code at a time.
 #[derive(Default)]
@@ -94,13 +94,13 @@ struct Confirm {
     confirm: String,
 }
 
-fn status(code: u16) -> Response<Body> {
+pub(crate) fn status(code: u16) -> Response<Body> {
     let mut res = Response::new(Full::new(Bytes::new()).map_err(|never| match never {}).boxed());
     *res.status_mut() = StatusCode::from_u16(code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
     res
 }
 
-fn json(code: u16, value: &impl Serialize) -> Response<Body> {
+pub(crate) fn json(code: u16, value: &impl Serialize) -> Response<Body> {
     let body = serde_json::to_vec(value).unwrap_or_default();
     let mut res = Response::new(Full::new(Bytes::from(body)).map_err(|never| match never {}).boxed());
     *res.status_mut() = StatusCode::from_u16(code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
@@ -108,12 +108,17 @@ fn json(code: u16, value: &impl Serialize) -> Response<Body> {
     res
 }
 
-fn answer(code: u16, word: &str) -> Response<Body> {
+pub(crate) fn answer(code: u16, word: &str) -> Response<Body> {
     json(code, &serde_json::json!({ "answer": word }))
 }
 
 async fn read<T: serde::de::DeserializeOwned>(req: Request<Incoming>) -> Option<T> {
-    let bytes = Limited::new(req.into_body(), 64 * 1024).collect().await.ok()?.to_bytes();
+    read_up_to(req, 64 * 1024).await
+}
+
+/// A JSON body of at most `max` bytes.
+pub(crate) async fn read_up_to<T: serde::de::DeserializeOwned>(req: Request<Incoming>, max: usize) -> Option<T> {
+    let bytes = Limited::new(req.into_body(), max).collect().await.ok()?.to_bytes();
     serde_json::from_slice(&bytes).ok()
 }
 
@@ -129,7 +134,7 @@ fn unhex(s: &str) -> Option<Vec<u8>> {
 }
 
 /// The fingerprint its certificate proves (and the one it claims), or None.
-fn proven(inner: &Inner, info: &DeviceInfo, cert: &Option<String>) -> Option<String> {
+pub(crate) fn proven(inner: &Inner, info: &DeviceInfo, cert: &Option<String>) -> Option<String> {
     let cert = cert.as_ref()?;
     (cert.eq_ignore_ascii_case(&info.fingerprint) && !inner.blocked(cert)).then(|| cert.to_ascii_uppercase())
 }
@@ -301,7 +306,7 @@ async fn cancelled(inner: &Arc<Inner>, req: Request<Incoming>, cert: Option<Stri
 
 // --- The asking side (A) --------------------------------------------------------------
 
-fn peer_of(inner: &Inner, fingerprint: &str) -> Result<Peer, &'static str> {
+pub(crate) fn peer_of(inner: &Inner, fingerprint: &str) -> Result<Peer, &'static str> {
     let d = lock(&inner.devices).get(&fingerprint.to_ascii_uppercase()).cloned().ok_or("unreachable")?;
     if !d.https || !d.epet {
         return Err("unsupported");
@@ -312,7 +317,7 @@ fn peer_of(inner: &Inner, fingerprint: &str) -> Result<Peer, &'static str> {
     Ok(Peer::of(&d))
 }
 
-fn word(body: &[u8]) -> String {
+pub(crate) fn word(body: &[u8]) -> String {
     serde_json::from_slice::<serde_json::Value>(body)
         .ok()
         .and_then(|v| v["answer"].as_str().map(str::to_string))

@@ -29,6 +29,7 @@ import {
   type PostText,
   type PostTransfer,
 } from "../features/post/post";
+import { deviceName, kindWord, type ScheduleTaken } from "../features/post/schedule";
 
 export interface CourierAction {
   label: string;
@@ -105,6 +106,7 @@ export class Courier {
     await b.on("post-pair-asked", (a) => void this.onPairAsked(a.fingerprint, a.alias, a.code, a.until));
     await b.on("post-pair-closed", (c) => this.onPairClosed(c.fingerprint, c.reason));
     await b.on("post-paired", (p) => void this.onPaired(p.fingerprint, p.alias));
+    await b.on("post-schedule", (x) => void this.onSchedule(x));
     await b.on("post-transfer", (tr) => this.onTransfer(tr));
     this.status = await b.postStatus().catch(() => null);
     await this.configure();
@@ -421,7 +423,52 @@ export class Courier {
     const b = this.host.backend;
     const cur = await b.getSettings();
     await b.setSettings({ post: withPaired(cur.post, { fingerprint, alias }) });
-    this.host.say(`✓ ${t("Paired with {who}.", { who: alias })}`, 6000);
+    this.host.say([`✓ ${t("Paired with {who}.", { who: alias })}`, t("You can give it a name in Settings → Pet Post.")], 10_000, [
+      { label: t("Name it…"), run: () => void b.openPanel("settings") },
+      { label: t("OK"), run: () => {} },
+    ]);
+  }
+
+  // --- Alarms, to-dos and anniversaries sent here (docs/INTERACTIONS.md, "Sending reminders and anniversaries")
+
+  /**
+   * A paired ePet sent something: waiting for an answer (Show: Pet Post → Receive), added
+   * without asking (Undo), or already here. Hidden, the pet doesn't come out for it: it
+   * waits in "While I was hidden you missed…" (an invitation also waits in Pet Post).
+   */
+  private async onSchedule(x: ScheduleTaken): Promise<void> {
+    const b = this.host.backend;
+    const who = deviceName(this.host.settings().post, x.fingerprint, x.name);
+    const what = kindWord(x.kind);
+    const title = `“${x.title}”`;
+    const first =
+      x.what === "asked"
+        ? `📨 ${t("{who} sent you {what}: {title}", { who, what, title })}`
+        : x.what === "have"
+          ? t("{who} sent {title} again: you already have it.", { who, title })
+          : x.what === "updated"
+            ? `✓ ${t("{who} updated {title}.", { who, title })}`
+            : `✓ ${t("{who} added {what}: {title}", { who, what, title })}`;
+    if (this.host.away() || this.host.hidden()) {
+      if (x.what !== "have") await this.host.recordMissed(first);
+      return;
+    }
+    if (x.what === "asked") {
+      this.host.say([first, t("Add it?")], 30_000, [
+        { label: t("Show"), run: () => void b.openPostWindow(null, "receive") },
+        { label: t("Later"), run: () => {} },
+      ]);
+      this.host.chime();
+    } else if (x.what === "have") {
+      this.host.say(first, 6000);
+    } else {
+      const id = x.id;
+      this.host.say(first, 15_000, [
+        ...(x.what === "added" && id !== null ? [{ label: t("Undo"), run: () => void b.postScheduleUndo(x.kind, id) }] : []),
+        { label: t("OK"), run: () => {} },
+      ]);
+      this.host.chime(true);
+    }
   }
 
   private onTransfer(tr: PostTransfer): void {

@@ -10,6 +10,7 @@
 mod client;
 mod discovery;
 mod door;
+pub(crate) mod invite;
 pub(crate) mod items;
 pub(crate) mod pair;
 mod pickup;
@@ -73,6 +74,36 @@ pub struct Config {
     pub door: bool,
     /// ...also when the router's outside is the internet (the user said so).
     pub door_public: bool,
+    /// What each paired ePet's alarms, to-dos and anniversaries do here (invite.rs).
+    pub share_rules: Vec<ShareRule>,
+}
+
+/// A paired ePet's alarms, to-dos and anniversaries: "ask" (the default), "auto" (added
+/// without asking) or "refuse".
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct ShareRule {
+    pub fingerprint: String,
+    pub alarm: String,
+    pub todo: String,
+    pub anniversary: String,
+}
+
+impl Config {
+    /// What `fingerprint`'s items of `kind` do here.
+    pub(crate) fn rule(&self, fingerprint: &str, kind: &str) -> &str {
+        let r = self.share_rules.iter().find(|r| r.fingerprint.eq_ignore_ascii_case(fingerprint));
+        let v = r.map_or("", |r| match kind {
+            "alarm" => r.alarm.as_str(),
+            "todo" => r.todo.as_str(),
+            _ => r.anniversary.as_str(),
+        });
+        if matches!(v, "auto" | "refuse") {
+            v
+        } else {
+            "ask"
+        }
+    }
 }
 
 /// A device added by address, as remembered in the settings.
@@ -374,6 +405,10 @@ pub struct Inner {
     pub(crate) door_wake: tokio::sync::Notify,
     /// Pairing with a code (pair.rs).
     pub(crate) pair: pair::State,
+    /// Takes in alarms, to-dos and anniversaries a paired ePet sends (invite.rs; set by the app).
+    pub(crate) invites: Mutex<Option<invite::InviteFn>>,
+    /// What was sent from here, and how it went.
+    pub(crate) sent: Mutex<Vec<invite::SentItem>>,
 }
 
 /// A device asked to compare Verify.
@@ -661,7 +696,11 @@ impl Post {
         let emit = move |event: &str, payload: serde_json::Value| {
             let _ = emitter.emit(event, payload);
         };
-        Post::with(Box::new(emit), data_dir, downloads)
+        let post = Post::with(Box::new(emit), data_dir, downloads);
+        let handle = app.clone();
+        *lock(&post.0.invites) =
+            Some(Arc::new(move |from: &str, name: &str, parsed| invite::take_in(&handle, from, name, parsed)));
+        post
     }
 
     pub(crate) fn with(emit: EmitFn, data_dir: PathBuf, downloads: PathBuf) -> Self {
@@ -688,6 +727,8 @@ impl Post {
             door: Mutex::new(door::Door::default()),
             door_wake: tokio::sync::Notify::new(),
             pair: pair::State::default(),
+            invites: Mutex::new(None),
+            sent: Mutex::new(vec![]),
         }))
     }
 }

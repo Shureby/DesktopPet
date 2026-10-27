@@ -1,5 +1,6 @@
 import { longWeekday, shortDate, weekdayShort, weekdayTime } from "../i18n/format";
 import { isChinese, onLanguage, t } from "../i18n";
+import { deviceName } from "../features/post/schedule";
 import { characterLines, characterName } from "../characters/text";
 import { HoverTracker, RunStopper } from "../brain/hover";
 import { todoRemindsAt } from "../features/todo/repeat";
@@ -388,6 +389,8 @@ export class PetHost {
       if (c === "greet") this.pet.react({ type: "greet" });
     });
     await this.backend.on("alarms-changed", () => void this.refreshTimers());
+    // (A to-do sent by another ePet: who it's from, when it reminds.)
+    await this.backend.on("todos-changed", () => void this.refreshTimers());
     await this.backend.on("characters-changed", () => void this.reloadCharacters());
     await this.backend.on("pet-event", (e) => this.onActivity(e));
     await this.courier.start();
@@ -1532,10 +1535,22 @@ export class PetHost {
   private async refreshTimers(): Promise<void> {
     try {
       this.timers = await this.backend.listAlarms();
+      const origins = await this.backend.postScheduleOrigins();
+      this.origins = new Map(origins.map((o) => [`${o.kind}:${o.id}`, o.from]));
     } catch {
       // Keep the last list.
     }
     this.scheduleTray();
+  }
+
+  /** Where alarms and to-dos came from ("kind:id" → the sending ePet), for "Dad reminds you". */
+  private origins = new Map<string, string>();
+
+  /** "Dad reminds you" for one sent by another ePet (by its nickname, else its name). */
+  private fromLine(kind: "alarm" | "todo", id: number): string | null {
+    const from = this.origins.get(`${kind}:${id}`);
+    const who = from ? deviceName(this.settings.post, from) : "";
+    return who ? `👤 ${t("{who} reminds you", { who })}` : null;
   }
 
   /** Snoozes and confirms, so the snoozed alarm never silently disappears. */
@@ -1973,7 +1988,7 @@ export class PetHost {
         const tries = left > 1 ? t("{n} more tries", { n: left }) : left === 1 ? t("1 more try") : t("last try before it's marked missed");
         return [head, `${lateNote(l)} · ${tries}`];
       }
-      const notes = [a ? snoozeNote(a) : null, l ? lateNote(l) : null].filter((n): n is string => !!n);
+      const notes = [this.fromLine("alarm", this.ringing[0]), a ? snoozeNote(a) : null, l ? lateNote(l) : null].filter((n): n is string => !!n);
       return [head, ...notes];
     }
     const allTimers = items.every((a) => a && isTimer(a));
@@ -2087,7 +2102,9 @@ export class PetHost {
     // Out of hiding for it, an unanswered reminder is recorded for when you show the pet.
     // Rung late: when it was meant for, and why (a day's to-do: just its time).
     const l = lateness(r.allDay ? "day" : "todo", r.dueAt, Date.now(), r.late);
-    this.say(l ? [text, lateNote(l)] : text, 60_000, actions, this.peek ? () => void this.unansweredWhileHidden(r) : undefined);
+    const from = this.fromLine("todo", r.id);
+    const lines = [text, ...(from ? [from] : []), ...(l ? [lateNote(l)] : [])];
+    this.say(lines.length > 1 ? lines : text, 60_000, actions, this.peek ? () => void this.unansweredWhileHidden(r) : undefined);
     if (alert.ring && mode.todoRing) playRingtone(alert.ringtone, alert.volume * mode.volume);
   }
 

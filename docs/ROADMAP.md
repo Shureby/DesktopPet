@@ -293,6 +293,17 @@ extensions we already have (`epet: 1` in the device info, LocalSend ignores it;
   plain HTTP), and a certificate that doesn't match is refused and warned about.
 - **Chat:** a conversation with history, read or not, and messages left for an ePet that
   can't be reached now (collected as pickup does).
+- **Sending reminders and anniversaries** to a paired ePet (shipped in 0.56.0, first part;
+  docs/INTERACTIONS.md): a copy the other side previews and adds or not, by the sender's
+  uid (the same / changed / changed here too), per-device rules (ask, add, don't take),
+  nicknames, time zones, and calendar files (.ics) both ways. Decided 2026-10-27:
+  - **Next:** receipts that it rang or was ticked off (the receiver chooses, per device,
+    off by default); what's sent to an ePet that isn't online kept and delivered when it
+    is (as pickup does); the sender deleting one → "Dad deleted this reminder. Delete it
+    too?" (always asked); on a shared anniversary's day the two pets greet each other.
+  - **Later:** a poke / one line to the other pet ("Dinner's ready"); a remote timer for a
+    child ("30 more minutes": a reminder only, never locking anything, and only where that
+    computer allowed it); relations (family, colleagues) as presets of the rules table.
 - **Schedule sync** between your own computers (to-dos, alarms, anniversaries): uid,
   updated_at and tombstones are there since 0.35; conflicts and deletions to work out.
   - **Paired ≠ the same person** (decided 2026-10-25). Pairing proves "it really is that

@@ -16,6 +16,28 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.56.0] - 2026-10-27
+
+### Added
+- **Send an alarm, to-do or anniversary to a paired ePet** — 📤 on its row → Send to…:
+  the other side's pet says so, and it waits in Pet Post → Receive to add or not (each
+  answer comes back to you). Sent again: the same is "already there", a change shows what
+  changed (Update?), and one you changed too is shown side by side (Keep mine?).
+- **What each paired ePet sends** (Settings → Pet Post → Paired ePets): ask me, add without
+  asking (the pet says so, with Undo), or don't take — for reminders, to-dos and
+  anniversaries each.
+- **Nicknames for paired ePets** ("Dad"), asked right after pairing: shown by what it sent
+  ("👤 Dad") and when it rings ("Dad reminds you").
+- **Time zones:** a moment is shown in your time (and theirs); a repeating alarm rings at
+  your clock time or, if you choose, theirs.
+- **Calendar files (.ics):** "Save as .ics…" for phones (a lunar anniversary as its dates
+  for 20 years), and "Import a calendar file…" / "Add to ePet…" on a received one: a
+  phone's birthdays become anniversaries, its appointments alarms.
+
+### Fixed
+- **Easter holidays kept the wrong day** (Good Friday, Easter Monday…): saved, they lost
+  how far from Easter they are and came on the day after Easter.
+
 ## [0.55.1] - 2026-10-27
 
 ### Fixed

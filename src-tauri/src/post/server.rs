@@ -193,6 +193,9 @@ async fn route(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, cert: Opti
     if super::pair::handles(&req) {
         return super::pair::route(&inner, req, ip, cert).await;
     }
+    if super::invite::handles(&req) {
+        return super::invite::route(&inner, req, ip, cert).await;
+    }
     let path = req.uri().path().to_string();
     if req.method() == Method::POST && path == VERIFY_ASK {
         return verify_asked(inner, req, ip, cert).await;

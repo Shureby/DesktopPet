@@ -4,6 +4,7 @@
  * what the app reports, and the words for it.
  */
 import { t } from "../../i18n";
+import { pairedExtras, shareRulesConfig, type PairedDevice } from "./schedule";
 
 export interface TrustedDevice {
   fingerprint: string;
@@ -55,7 +56,7 @@ export interface PostSettings {
    * certificate proves them, only over HTTPS; one with the same name but another
    * certificate is not them.
    */
-  paired: MarkedDevice[];
+  paired: PairedDevice[];
   /** Asks the router in front of this computer to let devices outside it in (UPnP, NAT-PMP, PCP). */
   door: boolean;
   /** ...also when the router's outside is the internet (only once the user said so). */
@@ -139,17 +140,18 @@ export function postSettings(s: Partial<PostSettings> | undefined): PostSettings
     favoriteNoticeSeen: s?.favoriteNoticeSeen === true,
     verified: marked(s?.verified),
     blocked: marked(s?.blocked),
-    paired: marked(s?.paired),
+    paired: marked(s?.paired, pairedExtras),
     door: s?.door !== false,
     doorPublic: s?.doorPublic === true,
   };
 }
 
-function marked(list: unknown): MarkedDevice[] {
+/** `extras`: what else is kept of each (a paired ePet's nickname and rules). */
+function marked(list: unknown, extras: (x: unknown) => object = () => ({})): MarkedDevice[] {
   if (!Array.isArray(list)) return [];
   return list
     .filter((x) => x && typeof x.fingerprint === "string" && x.fingerprint)
-    .map((x) => ({ fingerprint: x.fingerprint.toUpperCase(), alias: typeof x.alias === "string" ? x.alias.slice(0, 64) : "", at: Number.isFinite(x.at) ? x.at : 0 }));
+    .map((x) => ({ fingerprint: x.fingerprint.toUpperCase(), alias: typeof x.alias === "string" ? x.alias.slice(0, 64) : "", at: Number.isFinite(x.at) ? x.at : 0, ...extras(x) }));
 }
 
 /** The record of a device verified (They match), if it is. */
@@ -184,7 +186,9 @@ export function pairedMark(s: PostSettings, fingerprint: string | null | undefin
 export function withPaired(s: PostSettings, d: { fingerprint: string; alias: string }, at = Date.now()): PostSettings {
   const fp = d.fingerprint.toUpperCase();
   const v = withVerified(s, d, at);
-  return { ...v, paired: [...v.paired.filter((x) => x.fingerprint !== fp), { fingerprint: fp, alias: d.alias, at }] };
+  // Paired again: its nickname and rules stay.
+  const old = v.paired.find((x) => x.fingerprint === fp);
+  return { ...v, paired: [...v.paired.filter((x) => x.fingerprint !== fp), { ...old, fingerprint: fp, alias: d.alias, at }] };
 }
 
 /** Unpaired: no longer paired nor verified (pair again, or Verify, to trust it again). */
@@ -275,6 +279,8 @@ export interface PostConfig {
   paired: string[];
   door: boolean;
   doorPublic: boolean;
+  /** What each paired ePet's alarms, to-dos and anniversaries do here (only those not all "ask"). */
+  shareRules: ReturnType<typeof shareRulesConfig>;
 }
 
 export function postConfig(s: PostSettings, alias: string, port = 0): PostConfig {
@@ -293,6 +299,7 @@ export function postConfig(s: PostSettings, alias: string, port = 0): PostConfig
     paired: s.paired.map((d) => d.fingerprint),
     door: s.door,
     doorPublic: s.doorPublic,
+    shareRules: shareRulesConfig(s),
   };
 }
 

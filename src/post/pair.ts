@@ -5,6 +5,7 @@
  */
 import { t } from "../i18n";
 import { withPaired } from "../features/post/post";
+import { withNick } from "../features/post/schedule";
 import type { Backend, PostPairAsk, PostPairResult, Settings } from "../platform/types";
 import { h } from "../panel/dom";
 
@@ -29,13 +30,16 @@ export interface Pairing {
   code: string;
   /** Typed something that isn't 6 digits. */
   invalid: boolean;
+  /** Paired: the nickname typed (and whether it's saved). */
+  nick: string;
+  nickSaved: boolean;
 }
 
 export let pairing: Pairing | null = null;
 
 /** Starts pairing with a device: asks it to show a code. */
 export function startPair(ctx: PairContext, fingerprint: string, alias: string): void {
-  const p: Pairing = { fingerprint: fingerprint.toUpperCase(), alias, stage: "asking", until: 0, code: "", invalid: false };
+  const p: Pairing = { fingerprint: fingerprint.toUpperCase(), alias, stage: "asking", until: 0, code: "", invalid: false, nick: "", nickSaved: false };
   pairing = p;
   ctx.render();
   void ctx.backend
@@ -155,15 +159,47 @@ export function pairView(ctx: PairContext): Node {
       );
       break;
     }
-    case "paired":
-      body = card(
-        "post-pair-done",
-        `✓ ${t("Paired with {name}", { name })}`,
-        [t("From now on, what you send to {name} reaches only this {name}. If its identity ever changes, Pet Post warns you and doesn't send.", { name })],
-        h("button", { class: "primary post-pair-send", onclick: () => ((pairing = null), ctx.sendTo(p.fingerprint)) }, t("Send files…")),
-        h("button", { class: "post-pair-close", onclick: () => closePair(ctx, false) }, t("Done")),
+    case "paired": {
+      const saveNick = async () => {
+        const cur = await ctx.backend.getSettings();
+        ctx.saved(await ctx.backend.setSettings({ post: withNick(cur.post, p.fingerprint, p.nick) }));
+        p.nickSaved = true;
+        ctx.render();
+      };
+      body = h(
+        "div",
+        {},
+        card(
+          "post-pair-done",
+          `✓ ${t("Paired with {name}", { name })}`,
+          [t("From now on, what you send to {name} reaches only this {name}. If its identity ever changes, Pet Post warns you and doesn't send.", { name })],
+          h("button", { class: "primary post-pair-send", onclick: () => ((pairing = null), ctx.sendTo(p.fingerprint)) }, t("Send files…")),
+          h("button", { class: "post-pair-close", onclick: () => closePair(ctx, false) }, t("Done")),
+        ),
+        // A name for it that only you see (Dad, Work laptop): reminders it sends say it.
+        h(
+          "div",
+          { class: "box post-pair-nick" },
+          h("p", { class: "title" }, t("Give it a name?")),
+          h(
+            "div",
+            { class: "row" },
+            h("input", {
+              type: "text",
+              class: "post-pair-nick-input",
+              maxlength: 40,
+              placeholder: t("e.g. Dad"),
+              value: p.nick,
+              oninput: (e: Event) => ((p.nick = (e.target as HTMLInputElement).value), (p.nickSaved = false)),
+              onkeydown: (e: KeyboardEvent) => e.key === "Enter" && void saveNick(),
+            }),
+            h("button", { class: "post-pair-nick-save", onclick: () => void saveNick() }, p.nickSaved ? `✓ ${t("Saved")}` : t("Save")),
+          ),
+          h("p", { class: "hint" }, t("Only you see it. Reminders and anniversaries it sends you show this name.")),
+        ),
       );
       break;
+    }
     case "wrong":
       body = card(
         "warning post-pair-wrong",

@@ -1963,6 +1963,392 @@ check(
   },
 );
 
+// --- Alarms, to-dos and anniversaries between paired ePets (src-tauri/src/post/invite.rs) ---
+
+/** A calendar file as another ePet writes it (desktoppet-core ics.rs): each item with its ePet data. */
+function icsOf(items, offset = -new Date().getTimezoneOffset()) {
+  const esc = (s) =>
+    s
+      .replace(/\\/g, "\\\\")
+      .replace(/;/g, "\;")
+      .replace(/,/g, "\\,")
+      .replace(/\n/g, "\\n");
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//ePet//ePet//EN",
+    `X-EPET-OFFSET:${offset}`,
+  ];
+  for (const { uid, item } of items) {
+    const kind = item.type === "todo" ? "VTODO" : "VEVENT";
+    lines.push(
+      `BEGIN:${kind}`,
+      `UID:${esc(uid)}`,
+      `SUMMARY:${esc(item.label ?? item.title ?? item.name)}`,
+      `X-EPET-DATA:${esc(JSON.stringify(item))}`,
+      `END:${kind}`,
+    );
+  }
+  lines.push("END:VCALENDAR");
+  return lines.join("\r\n");
+}
+
+const plants = (time, label = "Water plants") => ({
+  uid: "e2e-plants",
+  item: {
+    type: "alarm",
+    label,
+    repeat: "weekdays",
+    days: 0,
+    time,
+    at: null,
+    important: true,
+    autoSnooze: false,
+  },
+});
+
+/** Paired with the pretend ePet (as if by a code), known to be one, and its nickname. */
+async function pairedWithDad(rules) {
+  const app = ctx.app;
+  Object.assign(peer, {
+    epet: true,
+    schedules: [],
+    receipts: [],
+    scheduleAnswer: "asked",
+  });
+  await app.setSettings((s) => ({
+    ...s,
+    post: {
+      ...s.post,
+      paired: [
+        {
+          fingerprint: peer.fingerprint,
+          alias: "Mock Phone",
+          at: Date.now(),
+          nick: "Dad",
+          ...(rules ? { rules } : {}),
+        },
+      ],
+    },
+  }));
+  await peer.register();
+  await until("an ePet, online", async () =>
+    (await app.invoke("post_devices")).some(
+      (d) => d.fingerprint === peer.fingerprint && d.epet,
+    ),
+  );
+}
+
+const alarmsNamed = async (label) =>
+  (await ctx.app.invoke("list_alarms")).filter((a) => a.label === label);
+
+check(
+  "post.schedule-send",
+  "📤 on an alarm → Send to… the paired ePet (by its nickname): it gets the calendar file, its answer shows, a receipt from it updates it; Save as .ics…",
+  async () => {
+    const app = ctx.app;
+    await pairedWithDad();
+    const at = new Date();
+    at.setHours(7, 30, 0, 0);
+    const alarm = await app.invoke("add_alarm", {
+      label: "Get up, sleepyhead",
+      at: at.getTime() + 86_400_000,
+      repeat: "weekdays",
+      days: null,
+      important: true,
+    });
+    try {
+      await app.closeWindow("panel");
+      await app.panel("alarms");
+      await app.until(
+        (id) =>
+          [...document.querySelectorAll(".clock-row")].some(
+            (r) =>
+              r.textContent.includes("Get up, sleepyhead") &&
+              r.querySelector(".icon.send"),
+          ),
+        [alarm.id],
+      );
+      await app.click(".clock-row .icon.send", "📤");
+      // (The row's button: the first one, ours is the only alarm with that name.)
+      await app.waitText(".post-send-sheet", "Send “Get up, sleepyhead” to");
+      await app.waitText(".post-send-dev", "Dad");
+      await app.click(
+        `.post-send-dev[data-fingerprint="${peer.fingerprint}"] input`,
+      );
+      await app.click(".post-send-go");
+      await app.waitText(
+        ".post-send-answer",
+        "Delivered · waiting for an answer",
+      );
+      assert.equal(peer.schedules.length, 1);
+      const sent = peer.schedules[0];
+      assert.match(sent, /SUMMARY:Get up\\, sleepyhead/);
+      assert.match(sent, /RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR/);
+      assert.match(sent, /X-EPET-DATA:/);
+      const uid = /^UID:(.*?)\r?$/m.exec(sent)[1];
+      // Its user added it: said here.
+      assert.equal((await peer.sendReceipt(uid, "added")).status, 204);
+      await app.waitText(".post-send-answer", "✓ Added");
+      await app.click(".post-send-close");
+      // As a file, for phones.
+      const file = join(inbox, "alarm.ics");
+      await app.invoke("post_schedule_save", {
+        kind: "alarm",
+        id: alarm.id,
+        tz: "Europe/London",
+        title: "",
+        path: file,
+      });
+      const text = readFileSync(file, "utf8");
+      assert.match(text, /^BEGIN:VCALENDAR/);
+      assert.match(text, /BEGIN:VALARM/);
+    } finally {
+      await app.invoke("delete_alarm", { id: alarm.id });
+    }
+  },
+);
+
+check(
+  "post.schedule-receive",
+  "a paired ePet sends a reminder: the pet says so; Pet Post → Receive previews it; Add → in Alarms with 👤 its nickname; sent again → already there; changed there → what changed, Update; changed here too → Keep mine",
+  async () => {
+    const app = ctx.app;
+    await pairedWithDad();
+    for (const a of await alarmsNamed("Water plants"))
+      await app.invoke("delete_alarm", { id: a.id });
+    try {
+      await app.closeWindow("panel");
+      const r = await peer.sendSchedule(icsOf([plants("07:30")]));
+      assert.equal(r.status, 200);
+      assert.deepEqual(r.body.answers, [
+        { uid: "e2e-plants", answer: "asked" },
+      ]);
+      await app.waitBubble("Dad sent you a reminder: “Water plants”");
+      await app.answer("Show");
+      await app.toWindow("panel.html");
+      await app.waitText(".post-inv-new", "Water plants");
+      assert.match(await app.text(".post-inv-new"), /from Dad · Mock Phone/);
+      assert.match(await app.text(".post-inv-new"), /Weekdays/);
+      await app.click(".post-inv-new .post-inv-take");
+      await app.waitText(".post-inv-said", "Added “Water plants”");
+      await until("told", async () => peer.receipts.length === 1);
+      assert.equal(peer.receipts[0].answer, "added");
+      assert.equal(peer.receipts[0].uid, "e2e-plants");
+      const [mine] = await alarmsNamed("Water plants");
+      assert.equal(mine.timeHm, "07:30");
+      assert.equal(mine.repeat, "weekdays");
+      assert.equal(mine.important, true);
+      // Who it's from, by its row.
+      await app.tab("alarms");
+      await app.waitText(".clock-row", "👤 Dad");
+
+      // Sent again as it was: nothing to ask.
+      const again = await peer.sendSchedule(icsOf([plants("07:30")]));
+      assert.equal(again.body.answers[0].answer, "have");
+      assert.equal((await alarmsNamed("Water plants")).length, 1);
+
+      // Changed there: what changed, Update.
+      const later = await peer.sendSchedule(icsOf([plants("08:00")]));
+      assert.equal(later.body.answers[0].answer, "asked");
+      await app.tab("post");
+      await app.waitText(".post-inv-changed", "Dad updated “Water plants”");
+      const eight = await app.clock(new Date().setHours(8, 0, 0, 0));
+      assert.ok((await app.text(".post-inv-changed")).includes(eight));
+      await app.click(".post-inv-changed .post-inv-take");
+      await until(
+        "updated",
+        async () => (await alarmsNamed("Water plants"))[0]?.timeHm === "08:00",
+      );
+
+      // Changed here, then there again: asked which, Keep mine.
+      await app.invoke("update_alarm", {
+        id: mine.id,
+        label: "Water plants!!",
+        at: new Date().setHours(8, 5, 0, 0) + 86_400_000,
+        repeat: "weekdays",
+        days: null,
+      });
+      await peer.sendSchedule(icsOf([plants("08:15")]));
+      await app.waitText(".post-inv-changed.edited", "you changed it too");
+      await app.click(".post-inv-changed.edited .post-inv-keep");
+      await until("told kept", async () =>
+        peer.receipts.some((x) => x.answer === "kept"),
+      );
+      assert.equal((await alarmsNamed("Water plants!!")).length, 1);
+    } finally {
+      for (const a of [
+        ...(await alarmsNamed("Water plants")),
+        ...(await alarmsNamed("Water plants!!")),
+      ])
+        await app.invoke("delete_alarm", { id: a.id });
+    }
+  },
+);
+
+check(
+  "post.schedule-rules",
+  "Settings → Pet Post → a paired ePet: its nickname, and what it sends: Add → added at once (the pet says so; Undo deletes it and tells the sender); Don't take → declined",
+  async () => {
+    const app = ctx.app;
+    await pairedWithDad();
+    await app.setSettings((s) => ({
+      ...s,
+      post: { ...s.post, paired: s.post.paired.map(({ nick, ...d }) => d) },
+    }));
+    await app.closeWindow("panel");
+    await app.panel("settings");
+    const item = `.post-paired-item[data-fingerprint="${peer.fingerprint}"]`;
+    await app.click(`${item} .post-paired-more`);
+    await app.type(`${item} .post-paired-nick`, "Dad");
+    await app.b.execute(
+      (s) => document.querySelector(s).dispatchEvent(new Event("change")),
+      `${item} .post-paired-nick`,
+    );
+    await until(
+      "nickname kept",
+      async () => (await postSettings()).paired[0]?.nick === "Dad",
+    );
+    await app.click(`${item} tr[data-kind="todo"] input[value="auto"]`);
+    await until(
+      "rule kept",
+      async () => (await postSettings()).paired[0]?.rules?.todo === "auto",
+    );
+    await app.click(
+      `${item} tr[data-kind="anniversary"] input[value="refuse"]`,
+    );
+    await until(
+      "rule kept",
+      async () =>
+        (await postSettings()).paired[0]?.rules?.anniversary === "refuse",
+    );
+
+    // A to-do: added without asking; Undo.
+    const tomorrow = new Date(Date.now() + 86_400_000);
+    const day = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+    const todo = {
+      uid: "e2e-milk",
+      item: { type: "todo", title: "Buy milk", at: null, day, repeat: "none" },
+    };
+    const r = await peer.sendSchedule(icsOf([todo]));
+    assert.equal(r.body.answers[0].answer, "added");
+    const todos = async () =>
+      (await app.invoke("list_todos")).filter((x) => x.title === "Buy milk");
+    assert.equal((await todos()).length, 1);
+    await app.waitBubble("Dad added a to-do: “Buy milk”");
+    await app.answer("Undo");
+    await until("undone", async () => (await todos()).length === 0);
+    await until("told", async () =>
+      peer.receipts.some(
+        (x) => x.uid === "e2e-milk" && x.answer === "declined",
+      ),
+    );
+
+    // An anniversary: not taken.
+    const ann = {
+      uid: "e2e-ann",
+      item: {
+        type: "anniversary",
+        kind: "birthday",
+        icon: "🎂",
+        name: "Grandma",
+        month: 3,
+        day: 12,
+        since: 1950,
+        preps: [],
+        effect: true,
+        music: null,
+        calendar: "solar",
+        leap: false,
+        nth: null,
+        weekday: null,
+      },
+    };
+    const no = await peer.sendSchedule(icsOf([ann]));
+    assert.equal(no.body.answers[0].answer, "declined");
+    assert.ok(
+      !(await app.invoke("list_anniversaries")).some(
+        (a) => a.name === "Grandma",
+      ),
+    );
+  },
+);
+
+check(
+  "post.schedule-import",
+  "a calendar file (.ics, from a phone): Pet Post → Receive → Import… shows each to add: a birthday becomes an anniversary, an appointment an alarm",
+  async () => {
+    const app = ctx.app;
+    const when = new Date(Date.now() + 2 * 86_400_000);
+    when.setHours(14, 30, 0, 0);
+    const local = (d) =>
+      `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}T${String(d.getHours()).padStart(2, "0")}${String(d.getMinutes()).padStart(2, "0")}00`;
+    const file = join(inbox, "phone.ics");
+    writeFileSync(
+      file,
+      [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Phone//EN",
+        "BEGIN:VEVENT",
+        "UID:bday-aunt",
+        "SUMMARY:Aunt May's birthday",
+        "DTSTART;VALUE=DATE:19700704",
+        "RRULE:FREQ=YEARLY",
+        "END:VEVENT",
+        "BEGIN:VEVENT",
+        "UID:dentist",
+        "SUMMARY:Dentist",
+        `DTSTART:${local(when)}`,
+        "END:VEVENT",
+        "END:VCALENDAR",
+      ].join("\r\n"),
+    );
+    await app.closeWindow("panel");
+    await app.invoke("open_post_window", { verify: null, tab: "receive" });
+    await postTab("receive");
+    const r = await app.invoke("post_schedule_import", {
+      path: file,
+      title: "",
+    });
+    assert.deepEqual(r, { status: "ok", items: 2, skipped: 0 });
+    await app.waitText(".post-inv-new", "Aunt May's birthday");
+    await app.waitText(".post-inv-new", "Dentist");
+    assert.match(await app.text(".post-inv-new"), /phone\.ics/);
+    await app.click(".post-inv-new .post-inv-take");
+    await until("an anniversary", async () =>
+      (await app.invoke("list_anniversaries")).find(
+        (a) => a.name === "Aunt May's birthday",
+      ),
+    );
+    const aunt = (await app.invoke("list_anniversaries")).find(
+      (a) => a.name === "Aunt May's birthday",
+    );
+    assert.deepEqual(
+      [aunt.kind, aunt.month, aunt.day, aunt.since],
+      ["birthday", 7, 4, 1970],
+    );
+    await app.click(".post-inv-new .post-inv-keep");
+    await app.waitNoText(".post-tab-body", "Dentist");
+    await app.invoke("delete_anniversary", { id: aunt.id });
+  },
+);
+
+check(
+  "post.schedule-unpaired",
+  "not paired: what another ePet sends is refused (and nothing is sent to it)",
+  async () => {
+    const app = ctx.app;
+    await unpaired();
+    peer.schedules = [];
+    const r = await peer.sendSchedule(icsOf([plants("07:30")]));
+    assert.equal(r.status, 403);
+    assert.equal(r.body.answer, "unpaired");
+    assert.equal((await alarmsNamed("Water plants")).length, 0);
+    peer.epet = false;
+  },
+);
+
 check("post.off-again", "turned off: it stops listening", async () => {
   const app = ctx.app;
   await app.closeWindow("panel");

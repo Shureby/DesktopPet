@@ -91,6 +91,8 @@ import { backupSection } from "./backup";
 import { postSection } from "./postSettings";
 import { screensSection } from "./screens";
 import { mountPost, openPost } from "../post/main";
+import { fromChip, openSendSheet } from "../post/schedule";
+import type { ShareKind } from "../features/post/schedule";
 import { hmText, infoTip, modesSection } from "./modes";
 import { avoidSection } from "./avoid";
 import { dayPicker, week } from "./dayPicker";
@@ -242,8 +244,25 @@ function todoSubtabs(anniversaries: Anniversary[]): Node {
   return h("div", { class: "subtabs" }, tab("todos", t("To-dos")), tab("anniversaries", t("🎂 Anniversaries"), soon));
 }
 
+/** Where what's here came from ("kind:id" → the sending ePet's fingerprint), for "👤 Dad". */
+let origins = new Map<string, string>();
+async function loadOrigins(): Promise<void> {
+  const list = await backend.postScheduleOrigins().catch(() => []);
+  origins = new Map(list.map((o) => [`${o.kind}:${o.id}`, o.from]));
+}
+
+/** 📤: send it to paired ePets (or save it as a calendar file). */
+function sendButton(kind: ShareKind, id: number, title: string): Node {
+  return h(
+    "button",
+    { class: "icon send", title: t("Send to…"), onclick: () => void openSendSheet({ backend, settings, kind, id, title, openPost: () => select("post") }) },
+    "📤",
+  );
+}
+
 async function renderTodos(): Promise<Node> {
   const anniversaries = await backend.listAnniversaries();
+  await loadOrigins();
   if (todoSub === "anniversaries") return renderAnniversaries(anniversaries);
   const todos = await backend.listTodos();
   // The to-do being edited was deleted or ticked off elsewhere: back to a new one.
@@ -379,7 +398,7 @@ async function renderTodos(): Promise<Node> {
           if (!it.done) void backend.emit("pet-event", { type: "todoDone" });
         },
       }),
-      h("span", { class: "title" }, it.title),
+      h("span", { class: "title" }, it.title, fromChip(settings, origins, "todo", it.id)),
       // Its reminder time (or day) has passed, answered or not, or while ePet wasn't running.
       when || badge
         ? h(
@@ -390,6 +409,7 @@ async function renderTodos(): Promise<Node> {
           )
         : null,
       it.done && it.doneAt ? h("span", { class: "when" }, t("Done · {when}", { when: formatWhen(it.doneAt) })) : null,
+      it.done ? null : sendButton("todo", it.id, it.title),
       it.done ? null : h("button", { class: "icon edit", title: t("Edit"), onclick: () => startEdit(it) }, "✎"),
       h("button", { class: "icon delete", title: t("Delete"), onclick: () => void backend.deleteTodo(it.id) }, icon("close")),
     );
@@ -869,13 +889,14 @@ function renderAnniversaries(list: Anniversary[]): Node {
       h(
         "span",
         { class: "main" },
-        h("span", { class: "title" }, a.name),
+        h("span", { class: "title" }, a.name, fromChip(settings, origins, "anniversary", a.id)),
         h("span", { class: "sub" }, h("span", { class: days <= 7 ? "soon" : "" }, ...dotted(when)), ...(years ? [" · ", h("span", { class: "nobr" }, yearsText(a.kind, years))] : [])),
         a.preps.length
           ? h("span", { class: "preps" }, a.preps.map((p) => t("{lead} before: {label}", { lead: leadLabel(p.lead), label: p.label })).join(" · "))
           : null,
       ),
       previewButton(`ann-${a.id}`, "icon edit", t("See how it will be celebrated on the day"), "", () => void backend.previewCelebration(a)),
+      sendButton("anniversary", a.id, a.name),
       h("button", { class: "icon edit", title: t("Edit"), onclick: () => startEdit(a) }, "✎"),
       h("button", { class: "icon delete", title: t("Delete (its to-dos stay)"), onclick: () => void backend.deleteAnniversary(a.id) }, icon("close")),
     );
@@ -942,6 +963,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
 // --- Alarms -----------------------------------------------------------------
 
 async function renderAlarms(): Promise<Node> {
+  await loadOrigins();
   const alarms = await backend.listAlarms();
   // The alarm being edited was deleted (here or by the pet): back to a new one.
   if (alarmDraft?.editing != null && !alarms.some((a) => a.id === alarmDraft?.editing)) alarmDraft = null;
@@ -1185,6 +1207,7 @@ async function renderAlarms(): Promise<Node> {
           a.autoSnooze !== false ? { class: "title retry", title: t("💤 Tries again if you don't answer") } : { class: "title" },
           a.label === DEFAULT_ALARM_LABEL ? t(DEFAULT_ALARM_LABEL) : a.label,
           a.important ? h("span", { class: "chip important", title: t("Rings even during calls and slide shows") }, t("Important")) : null,
+          fromChip(settings, origins, "alarm", a.id),
         ),
         h("span", { class: "sub" }, ...dotted(alarmSubtitle(a))),
         a.enabled && a.snoozes > 0 && a.nextFire
@@ -1203,6 +1226,7 @@ async function renderAlarms(): Promise<Node> {
             )
           : null,
       ),
+      sendButton("alarm", a.id, a.label === DEFAULT_ALARM_LABEL ? t(DEFAULT_ALARM_LABEL) : a.label),
       h("button", { class: "icon edit", title: t("Edit"), onclick: () => startEdit(a) }, "✎"),
       h("button", { class: "icon delete", title: t("Delete"), onclick: () => void backend.deleteAlarm(a.id) }, icon("close")),
       toggle(a.enabled, a.label, (input) => {

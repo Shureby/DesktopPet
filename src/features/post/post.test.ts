@@ -123,6 +123,7 @@ describe("Pet Post settings", () => {
       paired: [],
       door: true,
       doorPublic: false,
+      shareRules: [],
     });
   });
 

@@ -26,6 +26,9 @@ const PAIR = "/api/epet/v1/pair";
 const PAIR_FINISH = "/api/epet/v1/pair-finish";
 const PAIR_CONFIRM = "/api/epet/v1/pair-confirm";
 const PAIR_CANCEL = "/api/epet/v1/pair-cancel";
+/** Alarms, to-dos and anniversaries sent between paired ePets, and the answers (invite.rs). */
+const SCHEDULE = "/api/epet/v1/schedule";
+const SCHEDULE_RECEIPT = "/api/epet/v1/schedule-receipt";
 export const GROUP = "224.0.0.167";
 export const LOCALSEND_PORT = 53317;
 
@@ -101,6 +104,10 @@ export class Peer {
   paired = [];
   /** (Its side of a pairing in progress.) */
   pairKey = null;
+  /** As an ePet: the calendar files sent to it, how it answers them, and receipts that came. */
+  schedules = [];
+  scheduleAnswer = "asked";
+  receipts = [];
   /** How it answers prepare-upload: "accept" | "decline". */
   answer = "accept";
   /** A PIN it asks senders for (LocalSend's Require PIN); null: none. */
@@ -323,6 +330,19 @@ export class Peer {
       case PAIR_CANCEL:
         this.pairCode = null;
         return json(204);
+      case SCHEDULE: {
+        if (!this.epet) return json(404);
+        const { ics } = JSON.parse(body.toString());
+        this.schedules.push(ics);
+        const uids = [...ics.matchAll(/^UID:(.*?)\r?$/gm)].map((m) => m[1]);
+        return json(200, {
+          answers: uids.map((uid) => ({ uid, answer: this.scheduleAnswer })),
+        });
+      }
+      case SCHEDULE_RECEIPT:
+        if (!this.epet) return json(404);
+        this.receipts.push(JSON.parse(body.toString()));
+        return json(204);
       case VERIFY_ASK:
         if (!this.epet) return json(404);
         this.verifyAsks.push(JSON.parse(body.toString()));
@@ -417,6 +437,20 @@ export class Peer {
       app,
     );
     return ok && c.status === 204 ? "paired" : "wrong";
+  }
+
+  /** Sends the app a calendar file (as a paired ePet sends alarms, to-dos and anniversaries). */
+  sendSchedule(ics, port = LOCALSEND_PORT) {
+    return this.request(port, SCHEDULE, { info: this.info(), ics });
+  }
+
+  /** Tells the app what its user decided about something it sent. */
+  sendReceipt(uid, answer, port = LOCALSEND_PORT) {
+    return this.request(port, SCHEDULE_RECEIPT, {
+      info: this.info(),
+      uid,
+      answer,
+    });
   }
 
   /** Asks the app to show Verify too (as another ePet does): resolves when it's answered. */

@@ -25,6 +25,7 @@ import {
   type PostVerifyAnswer,
   type PostShareList,
 } from "../features/post/post";
+import type { InboxItem, ScheduleTaken, SentItem, ShareKind, ShareOrigin } from "../features/post/schedule";
 
 export interface PomodoroConfig {
   focusMin: number;
@@ -489,6 +490,12 @@ export interface BackendEvents {
   "post-pair-closed": { fingerprint: string; reason: "paired" | "wrong" | "declined" | "cancelled" | "expired" };
   /** Paired with that ePet (on the side that showed the code). */
   "post-paired": { fingerprint: string; alias: string };
+  /** A paired ePet sent an alarm, to-do or anniversary: taken in (or waiting for an answer). */
+  "post-schedule": ScheduleTaken;
+  /** What was sent from here, and how it went (a receipt came, or it was just sent). */
+  "post-schedule-sent": SentItem[];
+  /** The invitations waiting for an answer changed. */
+  "post-schedule-inbox": null;
 }
 
 /** Another ePet asks to pair: the code to tell it. */
@@ -709,6 +716,30 @@ export interface Backend {
   postPairCancel(fingerprint: string): Promise<void>;
   /** Declined here (the pet's bubble): the code goes. */
   postPairDecline(fingerprint: string): Promise<void>;
+  /**
+   * Sends an alarm, to-do or anniversary to paired ePets (docs/INTERACTIONS.md, "Sending
+   * reminders and anniversaries"); `tz`: this computer's time zone. How it went for each
+   * (see answerText).
+   */
+  postScheduleSend(fingerprints: string[], kind: ShareKind, id: number, tz: string): Promise<{ fingerprint: string; answer: string }[]>;
+  /** What was sent from here, and how it went. */
+  postScheduleSent(): Promise<SentItem[]>;
+  /** "Save as .ics…": where it was saved, or null if cancelled. */
+  postScheduleSave(kind: ShareKind, id: number, tz: string, title: string): Promise<string | null>;
+  /** Reads a calendar file (asks which unless `path`) into the invitations to answer. */
+  postScheduleImport(path: string | null, title: string): Promise<{ status: "ok" | "cancelled" | "notCalendar"; items: number; skipped: number }>;
+  /** The invitations waiting for an answer, the oldest first. */
+  postScheduleInbox(): Promise<InboxItem[]>;
+  /**
+   * Answers one: take it (add, or update) or not. `theirTime`: a repeating alarm at the
+   * sender's clock time. The answer as told to the sender ("added", "updated", "have",
+   * "kept", "declined"); rejects if it can't be added (a time already past).
+   */
+  postScheduleAnswer(id: number, take: boolean, theirTime: boolean | null): Promise<string>;
+  /** Undo after one was added without asking (the sender hears it was declined). */
+  postScheduleUndo(kind: ShareKind, id: number): Promise<void>;
+  /** Where what's here came from. */
+  postScheduleOrigins(): Promise<ShareOrigin[]>;
   /** The clipboard's text (read by the app: the Mac asks "Paste" first when a page does). */
   postClipboardText(): Promise<string>;
   /** Puts text on the clipboard (Copy); rejects if it didn't work. */

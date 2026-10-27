@@ -698,3 +698,61 @@ fn a_paired_epet_must_prove_itself() {
     b.find(&a);
     assert!(a.inner.devices().iter().any(|d| d.fingerprint == b.fingerprint()));
 }
+
+#[test]
+fn reminders_go_only_between_paired_epets_and_answers_come_back() {
+    use desktoppet_core::ics;
+    use desktoppet_core::share::{Item, Shared, SharedAlarm};
+    use desktoppet_core::Repeat;
+
+    let (a, b) = (peer("Alice", |_| {}), peer("Bob", |_| {}));
+    a.find(&b);
+    b.find(&a);
+    // Bob takes in what comes: noted, and "asked".
+    let got = Arc::new(Mutex::new(vec![]));
+    let noted = got.clone();
+    *super::lock(&b.inner.invites) = Some(Arc::new(move |from: &str, name: &str, parsed: ics::Parsed| {
+        noted.lock().unwrap().push((from.to_string(), name.to_string(), parsed.items.clone()));
+        parsed.items.iter().map(|s| super::invite::Answer { uid: s.uid.clone(), answer: "asked".into() }).collect()
+    }));
+    let item = Shared {
+        uid: "u1".into(),
+        item: Item::Alarm(SharedAlarm {
+            label: "Get up".into(),
+            repeat: Repeat::Weekdays,
+            time: Some("07:30".into()),
+            ..SharedAlarm::default()
+        }),
+    };
+    let text = ics::write(&chrono::Local, "Europe/London", std::slice::from_ref(&item), crate::state::now_ms());
+    let send = || tauri::async_runtime::block_on(super::invite::send_to(&a.inner, &b.fingerprint(), &text));
+    // Not paired here: not sent.
+    assert_eq!(send().unwrap_err(), "unpaired");
+    let pair = |p: &Peer, with: &Peer| {
+        let mut config = p.inner.config();
+        config.paired = vec![with.fingerprint()];
+        tauri::async_runtime::block_on(configure(&p.inner, config));
+    };
+    // Paired here but not there: refused there.
+    pair(&a, &b);
+    assert_eq!(send().unwrap_err(), "unpaired");
+    assert!(got.lock().unwrap().is_empty());
+    pair(&b, &a);
+    let answers = send().unwrap();
+    assert_eq!((answers[0].uid.as_str(), answers[0].answer.as_str()), ("u1", "asked"));
+    let (from, name, items) = got.lock().unwrap()[0].clone();
+    assert_eq!((from, name, items), (a.fingerprint(), "Alice".to_string(), vec![item]));
+    // Bob's user adds it later: Alice hears.
+    a.inner.record_sent(|l| {
+        l.push(super::invite::SentItem {
+            fingerprint: b.fingerprint(),
+            kind: "alarm".into(),
+            id: 1,
+            uid: "u1".into(),
+            answer: "asked".into(),
+            at: 0,
+        })
+    });
+    super::invite::send_receipt(b.inner.clone(), a.fingerprint(), "u1".into(), "added");
+    a.wait("post-schedule-sent", |v| v[0]["answer"] == "added");
+}

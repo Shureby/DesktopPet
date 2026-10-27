@@ -56,6 +56,7 @@ import {
   withoutPaired,
 } from "../features/post/post";
 import { closePair, pairing, pairView, startPair, tickPair, type PairContext } from "./pair";
+import { importCalendar, inboxCards, inboxCount, loadInbox, type InboxContext } from "./schedule";
 
 /** Where Pet Post is drawn: the main window's Pet Post tab (`mountPost`). */
 let root: HTMLElement = document.createElement("div");
@@ -583,6 +584,14 @@ const pairContext: PairContext = {
   verify: (fp, alias) => verify(fp, alias),
 };
 
+/** What the invitations (alarms, to-dos, anniversaries sent here: ./schedule.ts) need. */
+const inboxContext: InboxContext = {
+  backend,
+  settings: () => settings,
+  saved: (s) => (settings = s),
+  render: () => render(),
+};
+
 /** Pairs with a device (an ePet): Pet Post → Pair. */
 function pair(d: { fingerprint: string; alias: string }): void {
   verifying = null;
@@ -716,12 +725,19 @@ function receiveTab(): Node[] {
     h("p", { class: "hint" }, t("Ready to receive: nearby devices can see this computer.")),
   );
   const latest = history[0];
+  const invites = inboxCards(inboxContext);
   return ([
-    ...(cards.length ? cards : [ready]),
+    ...invites,
+    ...(cards.length ? cards : invites.length ? [] : [ready]),
     ...shareCards(),
     oneWayCard(),
     ...[addressPicker()].filter((n): n is Node => n !== null),
     saveDirLine(),
+    h(
+      "p",
+      { class: "hint" },
+      h("button", { class: "link post-import-ics", onclick: () => void importCalendar(inboxContext) }, `📅 ${t("Import a calendar file (.ics)…")}`),
+    ),
     h("h3", {}, t("Latest")),
     latest ? h("ul", { class: "post-received" }, receivedRow(latest)) : h("p", { class: "hint" }, t("Nothing received yet.")),
     history.length > 1 ? h("p", { class: "hint" }, h("a", { href: "#", class: "post-to-history", onclick: (e: Event) => (e.preventDefault(), show("history")) }, t("All of it: 🕘 History"))) : null,
@@ -1259,6 +1275,10 @@ function receivedRow(r: PostReceived): Node {
           "div",
           { class: "row" },
           r.files === 1 ? h("button", { class: "small post-open-file", onclick: () => void open(false) }, t("Open")) : null,
+          // A calendar file (from a phone, say): its alarms, to-dos and anniversaries to add.
+          r.files === 1 && /\.(ics|ical|icalendar)$/i.test(r.paths[0] ?? "")
+            ? h("button", { class: "small post-import-received", onclick: () => (show("receive"), void importCalendar(inboxContext, r.paths[0])) }, `📅 ${t("Add to ePet…")}`)
+            : null,
           h("button", { class: "small post-show-file", onclick: () => void open(true) }, t("Show in folder")),
         ),
   );
@@ -1364,7 +1384,7 @@ function render(): void {
         "button",
         { class: `post-tab${tab === x.id ? " active" : ""}`, "data-tab": x.id, role: "tab", "aria-selected": String(tab === x.id), onclick: () => show(x.id) },
         `${x.icon} ${x.label()}`,
-        x.id === "receive" && offer && tab !== "receive" ? h("span", { class: "post-tab-badge" }, "1") : null,
+        x.id === "receive" && (offer || inboxCount()) && tab !== "receive" ? h("span", { class: "post-tab-badge" }, String((offer ? 1 : 0) + inboxCount())) : null,
       ),
     ),
     h("span", { class: "grow" }),
@@ -1682,6 +1702,9 @@ async function main(opened: string): Promise<void> {
   offer = await backend.postPendingOffer().catch(() => null);
   if (offer) tab = "receive";
   history = await backend.postHistory().catch(() => []);
+  await loadInbox(inboxContext);
+  await backend.on("post-schedule", () => void loadInbox(inboxContext));
+  await backend.on("post-schedule-inbox", () => void loadInbox(inboxContext));
   // The offer's countdown (only its line).
   setInterval(() => {
     const line = root.querySelector(".post-offer-countdown");
