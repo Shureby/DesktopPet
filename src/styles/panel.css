@@ -2577,3 +2577,18 @@ button.icon.send {
 .post-inv-skipped {
   margin: 0;
 }
+.post-device button.icon.post-rename-start {
+  padding: 0 4px;
+  margin-left: 2px;
+  font-size: 13px;
+  font-weight: 400;
+  vertical-align: 1px;
+}
+.post-rename {
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.post-rename input {
+  flex: 1;
+  min-width: 8em;
+}

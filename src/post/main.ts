@@ -57,6 +57,7 @@ import {
 } from "../features/post/post";
 import { closePair, pairing, pairView, startPair, tickPair, type PairContext } from "./pair";
 import { importCalendar, inboxCards, inboxCount, loadInbox, type InboxContext } from "./schedule";
+import { nickOf, withNick } from "../features/post/schedule";
 
 /** Where Pet Post is drawn: the main window's Pet Post tab (`mountPost`). */
 let root: HTMLElement = document.createElement("div");
@@ -425,11 +426,78 @@ function lookAgain(): void {
   }, 4000);
 }
 
+/** The paired ePet being renamed here (✎), and what's typed. */
+let renaming: { fingerprint: string; text: string } | null = null;
+
+async function saveNick(fingerprint: string, text: string): Promise<void> {
+  renaming = null;
+  const cur = await backend.getSettings();
+  settings = await backend.setSettings({ post: withNick(cur.post, fingerprint, text) });
+  render();
+}
+
+/** A paired ePet's name here: its nickname (✎ to give or change it), or its own name. */
+function nameLine(d: PostDevice): Node[] {
+  const paired = !!pairedMark(settings.post, d.fingerprint);
+  const nick = paired ? nickOf(settings.post, d.fingerprint) : "";
+  if (paired && renaming?.fingerprint === d.fingerprint) {
+    const r = renaming;
+    const input = h("input", {
+      type: "text",
+      class: "post-rename-input",
+      maxLength: 40,
+      value: r.text,
+      placeholder: d.alias,
+      "aria-label": t("Nickname"),
+      onclick: (e: Event) => e.stopPropagation(),
+      oninput: (e: Event) => (r.text = (e.target as HTMLInputElement).value),
+      onkeydown: (e: KeyboardEvent) => {
+        e.stopPropagation();
+        if (e.key === "Enter") void saveNick(d.fingerprint, r.text);
+        if (e.key === "Escape") ((renaming = null), render());
+      },
+    });
+    requestAnimationFrame(() => input.isConnected && document.activeElement !== input && (input.focus(), input.select()));
+    return [
+      h(
+        "span",
+        { class: "row post-rename" },
+        input,
+        h("button", { class: "small primary post-rename-save", onclick: (e: Event) => (e.stopPropagation(), void saveNick(d.fingerprint, r.text)) }, t("Save")),
+        h("button", { class: "small post-rename-cancel", onclick: (e: Event) => (e.stopPropagation(), (renaming = null), render()) }, t("Cancel")),
+      ),
+      h("span", { class: "hint" }, t("Only you see it. Empty: its own name, {name}.", { name: d.alias })),
+    ];
+  }
+  return [
+    h(
+      "strong",
+      {},
+      nick || d.alias,
+      verifiedBadge(d.fingerprint),
+      paired
+        ? h(
+            "button",
+            {
+              class: "icon post-rename-start",
+              title: nick ? t("Rename") : t("Give it a name"),
+              "aria-label": nick ? t("Rename") : t("Give it a name"),
+              onclick: (e: Event) => (e.stopPropagation(), (renaming = { fingerprint: d.fingerprint, text: nick }), render()),
+            },
+            "✎",
+          )
+        : null,
+    ),
+  ];
+}
+
 function deviceRow(d: PostDevice): Node {
   // Goes by a paired ePet's name with another identity: not sent to (someone may pretend).
   const lookalike = lookalikeOf(settings.post, d);
   const can = sendable(d) && !lookalike;
-  const where = [sourceLabel(d, settings.post), d.deviceModel, d.address ?? d.ip].filter(Boolean).join(" · ");
+  // Named here: its own name goes to the line under it (to tell it apart).
+  const own = nickOf(settings.post, d.fingerprint) && pairedMark(settings.post, d.fingerprint) ? d.alias : null;
+  const where = [own, sourceLabel(d, settings.post), d.deviceModel, d.address ?? d.ip].filter(Boolean).join(" · ");
   const state = d.changedTo
     ? t("⚠ Another device answers there now.")
     : lookalike
@@ -455,7 +523,7 @@ function deviceRow(d: PostDevice): Node {
     h(
       "span",
       { class: "grow" },
-      h("strong", {}, d.alias, verifiedBadge(d.fingerprint)),
+      ...nameLine(d),
       h("span", { class: "hint" }, where),
       collects(d) ? h("span", { class: "post-collects", title: t("It's behind another router: what's sent to it waits until it collects it.") }, `↩ ${t("It collects")}`) : null,
       state ? h("span", { class: `post-device-state${d.changedTo || lookalike ? " warning" : ""}` }, state) : null,

@@ -1260,6 +1260,10 @@ const zhCN: Dictionary = {
       "勾掉的部分就当没设：不放烟花、不建提前准备的待办、音乐用这个类型的默认曲。加上后随时可以改。",
     Yes: "是",
     "{n} of the {m} that can be left out": "可选的 {m} 项里选了 {n} 项",
+    "Give it a name": "起个名字",
+    "Only you see it. Empty: its own name, {name}.":
+      "只有你看得到。留空就用它自己的名字：{name}。",
+    Rename: "改名",
   },
   lines: {
     "avoid.leaving.fullscreen": [

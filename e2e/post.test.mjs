@@ -2275,6 +2275,38 @@ check(
 );
 
 check(
+  "post.rename",
+  "✎ by a paired ePet in Pet Post → Send: a nickname typed there names it (its own name under it); emptied, its own name again",
+  async () => {
+    const app = ctx.app;
+    await pairedWithDad();
+    await app.setSettings((s) => ({
+      ...s,
+      post: { ...s.post, paired: s.post.paired.map(({ nick, ...d }) => d) },
+    }));
+    await app.closeWindow("panel");
+    await app.invoke("open_post_window", { verify: null, tab: "send" });
+    await postTab("send");
+    await app.until(() =>
+      document.querySelector(".post-device .post-rename-start"),
+    );
+    await app.click(".post-device .post-rename-start");
+    await app.type(".post-rename-input", "Dad", { enter: true });
+    await until(
+      "named",
+      async () => (await postSettings()).paired[0]?.nick === "Dad",
+    );
+    await app.waitText(".post-device strong", "Dad");
+    assert.match(await app.text(".post-device .hint"), /Mock Phone/);
+    await app.click(".post-device .post-rename-start");
+    await app.type(".post-rename-input", "");
+    await app.click(".post-rename-save");
+    await until("unnamed", async () => !(await postSettings()).paired[0]?.nick);
+    await app.waitText(".post-device strong", "Mock Phone");
+  },
+);
+
+check(
   "post.schedule-rules",
   "Settings → Pet Post → a paired ePet: its nickname, and what it sends: Add → added at once (the pet says so; Undo deletes it and tells the sender); Don't take → declined",
   async () => {

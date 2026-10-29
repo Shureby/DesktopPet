@@ -1260,6 +1260,10 @@ const zhTW: Dictionary = {
       "勾掉的部分就當沒設：不放煙火、不建提前準備的待辦、音樂用這個類型的預設曲。加上後隨時可以改。",
     Yes: "是",
     "{n} of the {m} that can be left out": "可選的 {m} 項裡選了 {n} 項",
+    "Give it a name": "取個名字",
+    "Only you see it. Empty: its own name, {name}.":
+      "只有你看得到。留空就用它自己的名字：{name}。",
+    Rename: "改名",
   },
   lines: {
     "avoid.leaving.fullscreen": [
