@@ -16,6 +16,12 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.58.0] - 2026-10-29
+
+### Added
+- **✎ by a paired ePet in Pet Post → Send:** give it a name (or change it) right there.
+  Named, its nickname is what's shown, with its own name on the line under it.
+
 ## [0.57.1] - 2026-10-29
 
 ### Fixed
