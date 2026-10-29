@@ -210,6 +210,7 @@ let mockInbox: InboxItem[] = new URLSearchParams(typeof location === "undefined"
         next: null,
         past: false,
         hereOffset: 540,
+        optional: ["important", "autoSnooze"],
       },
       {
         id: 2,
@@ -219,10 +220,28 @@ let mockInbox: InboxItem[] = new URLSearchParams(typeof location === "undefined"
         tz: "",
         offset: null,
         at: Date.now(),
-        match: { state: "changed", id: 1, edited: true, local: { type: "alarm", label: "Get up!!", repeat: "daily", days: 0, time: "07:15", at: null, important: false, autoSnooze: true } },
+        match: { state: "changed", id: 1, edited: true, local: { type: "alarm", label: "Get up!!", repeat: "daily", days: 0, time: "07:15", at: null, important: false, autoSnooze: true }, changed: ["label", "when"], skipped: ["important"] },
         next: null,
         past: false,
         hereOffset: 540,
+        optional: [],
+      },
+      {
+        id: 3,
+        from: "C3",
+        name: "Work laptop",
+        shared: {
+          uid: "u3",
+          item: { type: "anniversary", kind: "birthday", icon: "🎂", name: "Sabrina", month: 9, day: 17, since: 1986, preps: [{ lead: "1w", label: "Buy a gift" }, { lead: "1d", label: "Order a cake" }], effect: true, music: "birthday", calendar: "solar", leap: false, nth: null, weekday: null },
+        },
+        tz: "",
+        offset: null,
+        at: Date.now(),
+        match: { state: "new" },
+        next: null,
+        past: false,
+        hereOffset: 540,
+        optional: ["since", "prep:0", "prep:1", "effect", "music"],
       },
     ]
   : [];

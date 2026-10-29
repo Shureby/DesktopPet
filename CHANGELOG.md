@@ -16,6 +16,18 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.57.0] - 2026-10-29
+
+### Added
+- **Take what's sent part by part** (Pet Post → Receive): untick what you don't want of a
+  new one (an anniversary's starting year, each reminder before it, the fireworks, the
+  music; an alarm's Important and "tries again") and **Add selected**; the name and day are
+  the thing itself. An update lists only what the sender changed, each with a tick
+  (**Update selected**).
+- **What you didn't take isn't asked about again:** when the sender changes only that
+  part, nothing is asked; with other changes it says "Not listed: … it stays as yours"
+  (Show it too).
+
 ## [0.56.0] - 2026-10-27
 
 ### Added

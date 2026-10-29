@@ -1243,6 +1243,23 @@ const zhCN: Dictionary = {
     "✓ Already has it": "✓ 对方已有",
     "✓ Updated": "✓ 已更新",
     "✓ Updated “{title}”.": "✓ 已更新「{title}」。",
+    "(needed)": "（必需）",
+    "Add selected": "加上所选",
+    All: "全部",
+    "Important (rings during calls and slide shows)":
+      "重要（通话、演示时也响）",
+    "Music: {name}": "音乐：{name}",
+    No: "否",
+    "Not listed: {parts}. You didn't take it before, so it stays as yours.":
+      "没有列出：{parts}。你上次没要，仍按你的。",
+    Nothing: "不放",
+    "Show it too": "也看看",
+    "Starting year": "起始年份",
+    "Update selected ({n})": "更新所选（{n}）",
+    "What you leave out is as if it weren't set (no fireworks, no to-dos before it, its type's own music). You can change it after.":
+      "勾掉的部分就当没设：不放烟花、不建提前准备的待办、音乐用这个类型的默认曲。加上后随时可以改。",
+    Yes: "是",
+    "{n} of the {m} that can be left out": "可选的 {m} 项里选了 {n} 项",
   },
   lines: {
     "avoid.leaving.fullscreen": [

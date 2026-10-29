@@ -732,10 +732,11 @@ export interface Backend {
   postScheduleInbox(): Promise<InboxItem[]>;
   /**
    * Answers one: take it (add, or update) or not. `theirTime`: a repeating alarm at the
-   * sender's clock time. The answer as told to the sender ("added", "updated", "have",
+   * sender's clock time. `parts`: what of it is taken (of a new one, the optional parts
+   * kept; of an update, the parts taken); none: all. The answer as told to the sender ("added", "updated", "have",
    * "kept", "declined"); rejects if it can't be added (a time already past).
    */
-  postScheduleAnswer(id: number, take: boolean, theirTime: boolean | null): Promise<string>;
+  postScheduleAnswer(id: number, take: boolean, theirTime: boolean | null, parts?: string[] | null): Promise<string>;
   /** Undo after one was added without asking (the sender hears it was declined). */
   postScheduleUndo(kind: ShareKind, id: number): Promise<void>;
   /** Where what's here came from. */

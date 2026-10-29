@@ -157,6 +157,8 @@ pub(crate) const MIGRATIONS: &[&str] = &[
        tz TEXT NOT NULL DEFAULT '',
        offset_min INTEGER,
        at INTEGER NOT NULL);",
+    // v19: the parts of something sent that weren't taken (share.rs), not asked about again.
+    "ALTER TABLE share_origins ADD COLUMN skipped TEXT NOT NULL DEFAULT '[]';",
 ];
 
 /// Tables whose rows carry a uid, updated_at and a tombstone when deleted (see v14), with

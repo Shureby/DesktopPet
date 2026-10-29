@@ -165,8 +165,154 @@ pub enum Match {
     /// Here, the same (or sent again unchanged).
     Same { id: i64 },
     /// Here, and the sender changed it. `edited`: it was changed here too since it was taken.
-    /// `local`: what's here now.
-    Changed { id: i64, edited: bool, local: Item },
+    /// `local`: what's here now. `changed`: the parts the sender changed (see `parts`);
+    /// `skipped`: ones it changed that weren't taken here before (not asked about again).
+    #[serde(rename_all = "camelCase")]
+    Changed { id: i64, edited: bool, local: Box<Item>, changed: Vec<String>, skipped: Vec<String> },
+}
+
+// --- Parts: what's taken can be chosen part by part -----------------------------------
+
+/// The parts of an item of `kind`, as an update lists them, and the fields of each.
+fn part_fields(kind: &str) -> &'static [(&'static str, &'static [&'static str])] {
+    match kind {
+        "alarm" => &[
+            ("label", &["label"]),
+            ("when", &["time", "at", "repeat", "days"]),
+            ("important", &["important"]),
+            ("autoSnooze", &["autoSnooze"]),
+        ],
+        "todo" => &[("title", &["title"]), ("when", &["at", "day", "repeat"])],
+        _ => &[
+            ("name", &["name", "icon", "kind"]),
+            ("date", &["calendar", "month", "day", "leap", "nth", "weekday"]),
+            ("since", &["since"]),
+            ("preps", &["preps"]),
+            ("effect", &["effect"]),
+            ("music", &["music"]),
+        ],
+    }
+}
+
+/// An update's parts, in order: "label", "when"… (an alarm); "name", "date", "since",
+/// "preps", "effect", "music" (an anniversary).
+pub fn parts(kind: &str) -> Vec<&'static str> {
+    part_fields(kind).iter().map(|(p, _)| *p).collect()
+}
+
+fn as_object(item: &Item) -> serde_json::Map<String, serde_json::Value> {
+    match serde_json::to_value(item) {
+        Ok(serde_json::Value::Object(m)) => m,
+        _ => serde_json::Map::new(),
+    }
+}
+
+fn from_object(m: serde_json::Map<String, serde_json::Value>, fallback: &Item) -> Item {
+    serde_json::from_value::<Item>(serde_json::Value::Object(m)).map_or_else(|_| fallback.clone(), |i| i.normalized())
+}
+
+/// The parts in which `a` and `b` differ.
+pub fn parts_changed(a: &Item, b: &Item) -> Vec<String> {
+    let (x, y) = (as_object(a), as_object(b));
+    part_fields(b.kind())
+        .iter()
+        .filter(|(_, fields)| fields.iter().any(|f| x.get(*f) != y.get(*f)))
+        .map(|(p, _)| p.to_string())
+        .collect()
+}
+
+/// `base` with `from`'s `parts`.
+pub fn with_parts(base: &Item, from: &Item, parts: &[String]) -> Item {
+    let mut m = as_object(base);
+    let src = as_object(from);
+    for (p, fields) in part_fields(from.kind()) {
+        if parts.iter().any(|x| x == p) {
+            for f in *fields {
+                match src.get(*f) {
+                    Some(v) => m.insert(f.to_string(), v.clone()),
+                    None => m.remove(*f),
+                };
+            }
+        }
+    }
+    from_object(m, base)
+}
+
+/// What a new one has that can be left out: "since", each reminder before ("prep:0"…),
+/// "effect" and "music" (an anniversary); "important" and "autoSnooze" (an alarm). The
+/// rest is the item itself.
+pub fn optional_parts(item: &Item) -> Vec<String> {
+    match item {
+        Item::Alarm(a) => [("important", a.important), ("autoSnooze", a.auto_snooze)]
+            .into_iter()
+            .filter(|(_, on)| *on)
+            .map(|(p, _)| p.to_string())
+            .collect(),
+        Item::Todo(_) => vec![],
+        Item::Anniversary(a) => {
+            let mut out = vec![];
+            if a.since.is_some() {
+                out.push("since".to_string());
+            }
+            out.extend((0..a.preps.len()).map(|i| format!("prep:{i}")));
+            if a.effect {
+                out.push("effect".into());
+            }
+            if a.music.is_some() {
+                out.push("music".into());
+            }
+            out
+        }
+    }
+}
+
+/// A new one without the optional parts in `leave` (as if they were never set).
+pub fn without(item: &Item, leave: &[String]) -> Item {
+    let left = |p: &str| leave.iter().any(|x| x == p);
+    match item {
+        Item::Alarm(a) => Item::Alarm(SharedAlarm {
+            important: a.important && !left("important"),
+            auto_snooze: a.auto_snooze && !left("autoSnooze"),
+            ..a.clone()
+        }),
+        Item::Todo(_) => item.clone(),
+        Item::Anniversary(a) => Item::Anniversary(NewAnniversary {
+            since: a.since.filter(|_| !left("since")),
+            preps: a
+                .preps
+                .iter()
+                .enumerate()
+                .filter(|(i, _)| !left(&format!("prep:{i}")))
+                .map(|(_, p)| p.clone())
+                .collect(),
+            effect: a.effect && !left("effect"),
+            music: a.music.clone().filter(|_| !left("music")),
+            ..a.clone()
+        }),
+    }
+}
+
+/// The update's part an optional part belongs to ("prep:1" → "preps").
+fn part_of(optional: &str) -> String {
+    if optional.starts_with("prep:") {
+        "preps".into()
+    } else {
+        optional.to_string()
+    }
+}
+
+/// A repeating alarm moved to the sender's clock time (`shift` minutes).
+fn shifted(item: &Item, shift: i32) -> Item {
+    match item {
+        Item::Alarm(a) if shift != 0 && a.repeat != Repeat::None => {
+            let time = a.time.as_deref().and_then(parse_hm).map(|t| {
+                let t = t.overflowing_add_signed(Duration::minutes(shift as i64)).0;
+                format!("{:02}:{:02}", t.hour(), t.minute())
+            });
+            Item::Alarm(SharedAlarm { time: time.or_else(|| a.time.clone()), ..a.clone() })
+        }
+        _ => item.clone(),
+    }
 }
 
 /// What the receiver decided.
@@ -304,6 +450,19 @@ impl Store {
             .optional()?)
     }
 
+    /// The parts of `from`'s item that weren't taken here (not asked about again).
+    fn skipped_parts(&self, kind: &str, from: &str, uid: &str) -> Result<Vec<String>> {
+        let raw: Option<String> = self
+            .conn
+            .query_row(
+                "SELECT skipped FROM share_origins WHERE kind = ?1 AND from_fp = ?2 AND from_uid = ?3",
+                params![kind, from, uid],
+                |r| r.get(0),
+            )
+            .optional()?;
+        Ok(raw.and_then(|r| serde_json::from_str(&r).ok()).unwrap_or_default())
+    }
+
     /// What `from`'s item is to what's here.
     pub fn share_match<Tz: TimeZone>(&self, tz: &Tz, from: &str, s: &Shared) -> Result<Match> {
         let kind = s.item.kind();
@@ -312,11 +471,24 @@ impl Store {
             match self.local_id(kind, &local_uid)? {
                 Some(id) => {
                     if let Some(local) = self.shared(tz, kind, id)?.map(|x| x.item) {
-                        if serde_json::from_str::<Item>(&sent).ok().as_ref() == Some(&incoming) || local == incoming {
+                        let sent = serde_json::from_str::<Item>(&sent).ok();
+                        if sent.as_ref() == Some(&incoming) || local == incoming {
+                            return Ok(Match::Same { id });
+                        }
+                        // What the sender changed (against what it sent before): those
+                        // not taken here before aren't asked about again.
+                        let all = parts_changed(sent.as_ref().unwrap_or(&local), &incoming);
+                        let before = self.skipped_parts(kind, from, &s.uid)?;
+                        let (skipped, changed): (Vec<String>, Vec<String>) =
+                            all.into_iter().partition(|p| before.contains(p));
+                        // (Only a part it doesn't want changed, or what's here already is it.)
+                        let changed: Vec<String> =
+                            changed.into_iter().filter(|p| parts_changed(&local, &incoming).contains(p)).collect();
+                        if changed.is_empty() {
                             return Ok(Match::Same { id });
                         }
                         let edited = serde_json::from_str::<Item>(&taken).map_or(true, |t| !unchanged(tz, &t, &local));
-                        return Ok(Match::Changed { id, edited, local });
+                        return Ok(Match::Changed { id, edited, local: Box::new(local), changed, skipped });
                     }
                 }
                 // Deleted here since: as if new.
@@ -354,19 +526,56 @@ impl Store {
         sender_offset: Option<i32>,
         now: Millis,
     ) -> Result<Taken> {
+        self.share_take_parts(tz, from, s, how, their_time, sender_offset, None, now)
+    }
+
+    /// As `share_take`, choosing what's taken: of a new one, the optional parts kept (see
+    /// `optional_parts`; the others are left out); of an update, the parts taken (see
+    /// `parts`; the others stay as they are here). None: all of a new one, and of an update
+    /// what the sender changed (but what wasn't taken before).
+    #[allow(clippy::too_many_arguments)]
+    pub fn share_take_parts<Tz: TimeZone>(
+        &self,
+        tz: &Tz,
+        from: &str,
+        s: &Shared,
+        how: Take,
+        their_time: Option<bool>,
+        sender_offset: Option<i32>,
+        chosen: Option<&[String]>,
+        now: Millis,
+    ) -> Result<Taken> {
         let kind = s.item.kind();
         let incoming = s.item.normalized();
         let before = self.origin(kind, from, &s.uid)?;
+        let mut skipped = self.skipped_parts(kind, from, &s.uid)?;
         let their = their_time.unwrap_or_else(|| before.as_ref().is_some_and(|b| b.3));
         let shift = match (their, sender_offset) {
             (true, Some(o)) => offset_minutes(tz, now) - o,
             _ => 0,
         };
+        let theirs = shifted(&incoming, shift);
         let (answer, id) = match (self.share_match(tz, from, s)?, how) {
             (Match::Same { id }, _) => ("have", id),
             (Match::New, Take::Keep) => return Ok(Taken { answer: "declined", id: None }),
-            (Match::New, Take::Add) => ("added", self.apply(tz, None, &incoming, shift, now)?),
-            (Match::Changed { id, .. }, Take::Add) => ("updated", self.apply(tz, Some(id), &incoming, shift, now)?),
+            (Match::New, Take::Add) => {
+                let leave: Vec<String> = match chosen {
+                    Some(keep) => optional_parts(&incoming).into_iter().filter(|p| !keep.contains(p)).collect(),
+                    None => vec![],
+                };
+                skipped = leave.iter().map(|p| part_of(p)).collect();
+                skipped.dedup();
+                ("added", self.apply(tz, None, &without(&theirs, &leave), now)?)
+            }
+            (Match::Changed { id, local, changed, skipped: was, .. }, Take::Add) => {
+                let take: Vec<String> = chosen.map_or_else(|| changed.clone(), <[String]>::to_vec);
+                // Not taken now (of those shown, and those not taken before): remembered.
+                skipped.retain(|p| !take.contains(p));
+                let more: Vec<String> =
+                    changed.iter().chain(&was).filter(|p| !take.contains(p) && !skipped.contains(p)).cloned().collect();
+                skipped.extend(more);
+                ("updated", self.apply(tz, Some(id), &with_parts(&local, &theirs, &take), now)?)
+            }
             (Match::Changed { id, .. }, Take::Keep) => ("kept", id),
         };
         let Some(local_uid) = self.local_uid(kind, id)? else { return Ok(Taken { answer, id: Some(id) }) };
@@ -378,15 +587,25 @@ impl Store {
             (_, Some(b)) => b.2.clone(),
         };
         self.conn.execute(
-            "INSERT OR REPLACE INTO share_origins (kind, uid, from_fp, from_uid, sent, taken, their_time, at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-            params![kind, local_uid, from, s.uid, serde_json::to_string(&incoming)?, taken, their, now],
+            "INSERT OR REPLACE INTO share_origins (kind, uid, from_fp, from_uid, sent, taken, their_time, at, skipped)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            params![
+                kind,
+                local_uid,
+                from,
+                s.uid,
+                serde_json::to_string(&incoming)?,
+                taken,
+                their,
+                now,
+                serde_json::to_string(&skipped)?
+            ],
         )?;
         Ok(Taken { answer, id: Some(id) })
     }
 
     /// Writes an item here: a new one, or over `id`.
-    fn apply<Tz: TimeZone>(&self, tz: &Tz, id: Option<i64>, item: &Item, shift: i32, now: Millis) -> Result<i64> {
+    fn apply<Tz: TimeZone>(&self, tz: &Tz, id: Option<i64>, item: &Item, now: Millis) -> Result<i64> {
         match item {
             Item::Alarm(a) => {
                 let (at, repeat, days) = if a.repeat == Repeat::None {
@@ -398,7 +617,6 @@ impl Store {
                 } else {
                     let t =
                         a.time.as_deref().and_then(parse_hm).ok_or_else(|| StoreError::Invalid("no time".into()))?;
-                    let t = t.overflowing_add_signed(Duration::minutes(shift as i64)).0;
                     let at = next_occurrence(tz, now, t, a.repeat.mask(a.days))
                         .ok_or_else(|| StoreError::Invalid("pick at least one day".into()))?;
                     (at, a.repeat, a.days)
@@ -626,7 +844,7 @@ mod tests {
         let Match::Changed { edited: false, local, .. } = s.share_match(&London, "DAD", &later).unwrap() else {
             panic!()
         };
-        assert_eq!(local, sent.item);
+        assert_eq!(*local, sent.item);
         assert_eq!(s.share_take(&London, "DAD", &later, Take::Add, None, None, now).unwrap().answer, "updated");
         assert_eq!(s.list_alarms().unwrap()[0].time_hm.as_deref(), Some("07:45"));
 
@@ -787,5 +1005,100 @@ mod tests {
         s.share_forget("alarm", id).unwrap();
         assert!(s.list_alarms().unwrap().is_empty());
         assert!(s.share_origins().unwrap().is_empty());
+    }
+
+    fn sabrina(day: u32, preps: &[(&str, &str)], effect: bool) -> Shared {
+        Shared {
+            uid: "sab".into(),
+            item: Item::Anniversary(NewAnniversary {
+                kind: "birthday".into(),
+                icon: "🎂".into(),
+                name: "Sabrina".into(),
+                month: 9,
+                day,
+                since: Some(1986),
+                preps: preps.iter().map(|(l, x)| AnniversaryPrep { lead: (*l).into(), label: (*x).into() }).collect(),
+                effect,
+                music: Some("birthday".into()),
+                ..NewAnniversary::default()
+            }),
+        }
+    }
+
+    fn ann(s: &Store, id: i64) -> NewAnniversary {
+        match s.shared(&London, "anniversary", id).unwrap().unwrap().item {
+            Item::Anniversary(a) => a,
+            _ => unreachable!(),
+        }
+    }
+
+    #[test]
+    fn a_new_one_is_taken_part_by_part_and_what_was_left_isnt_asked_again() {
+        let s = Store::open_in_memory().unwrap();
+        let now = at(9, 0);
+        let sent = sabrina(17, &[("1w", "Buy a gift"), ("1d", "Order a cake")], true);
+        assert_eq!(optional_parts(&sent.item), ["since", "prep:0", "prep:1", "effect", "music"]);
+        // The date and the fireworks, not the gift.
+        let keep: Vec<String> = ["since", "prep:1", "effect", "music"].map(String::from).to_vec();
+        let id =
+            s.share_take_parts(&London, "DAD", &sent, Take::Add, None, None, Some(&keep), now).unwrap().id.unwrap();
+        let a = ann(&s, id);
+        assert_eq!(
+            (a.preps.len(), a.preps[0].label.as_str(), a.effect, a.since),
+            (1, "Order a cake", true, Some(1986))
+        );
+        // Sent again unchanged: nothing to ask, though it differs here.
+        assert_eq!(s.share_match(&London, "DAD", &sent).unwrap(), Match::Same { id });
+        // Its reminders changed there: not asked (they weren't taken); its day: asked.
+        let preps_only = sabrina(17, &[("3d", "Order a cake")], true);
+        assert_eq!(s.share_match(&London, "DAD", &preps_only).unwrap(), Match::Same { id });
+        let moved = sabrina(18, &[("3d", "Order a cake")], true);
+        let Match::Changed { changed, skipped, edited: false, .. } = s.share_match(&London, "DAD", &moved).unwrap()
+        else {
+            panic!()
+        };
+        assert_eq!((changed, skipped), (vec!["date".to_string()], vec!["preps".to_string()]));
+        s.share_take(&London, "DAD", &moved, Take::Add, None, None, now).unwrap();
+        let a = ann(&s, id);
+        assert_eq!((a.day, a.preps[0].lead.as_str()), (18, "1d"), "the day moved, my reminders stayed");
+    }
+
+    #[test]
+    fn an_update_is_taken_part_by_part() {
+        let s = Store::open_in_memory().unwrap();
+        let now = at(9, 0);
+        let id = s
+            .share_take(&London, "DAD", &sabrina(17, &[("1d", "Order a cake")], true), Take::Add, None, None, now)
+            .unwrap()
+            .id
+            .unwrap();
+        let update = sabrina(18, &[("3d", "Order a cake")], false);
+        let Match::Changed { changed, .. } = s.share_match(&London, "DAD", &update).unwrap() else { panic!() };
+        assert_eq!(changed, ["date", "preps", "effect"]);
+        let take = vec!["date".to_string(), "effect".to_string()];
+        let t = s.share_take_parts(&London, "DAD", &update, Take::Add, None, None, Some(&take), now).unwrap();
+        assert_eq!(t.answer, "updated");
+        let a = ann(&s, id);
+        assert_eq!((a.day, a.effect, a.preps[0].lead.as_str()), (18, false, "1d"));
+        // The reminders, left: a later change to them alone isn't asked about.
+        assert_eq!(s.share_match(&London, "DAD", &sabrina(18, &[("1w", "Cake")], false)).unwrap(), Match::Same { id });
+    }
+
+    #[test]
+    fn an_alarm_can_leave_out_important() {
+        let s = Store::open_in_memory().unwrap();
+        let mut sent = alarm("Get up", "07:30");
+        if let Item::Alarm(a) = &mut sent.item {
+            a.auto_snooze = true;
+        }
+        assert_eq!(optional_parts(&sent.item), ["important", "autoSnooze"]);
+        let keep = vec!["autoSnooze".to_string()];
+        let id = s
+            .share_take_parts(&London, "DAD", &sent, Take::Add, None, None, Some(&keep), at(9, 0))
+            .unwrap()
+            .id
+            .unwrap();
+        let a = s.list_alarms().unwrap().into_iter().find(|a| a.id == id).unwrap();
+        assert_eq!((a.important, a.auto_snooze), (false, true));
     }
 }

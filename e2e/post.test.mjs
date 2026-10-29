@@ -2187,6 +2187,94 @@ check(
 );
 
 check(
+  "post.schedule-parts",
+  "part by part: a new anniversary without one of its reminders (fireworks kept); an update of its date only; a part left out isn't asked about again",
+  async () => {
+    const app = ctx.app;
+    await pairedWithDad();
+    const sabrina = (day, preps, effect) => ({
+      uid: "e2e-sabrina",
+      item: {
+        type: "anniversary",
+        kind: "birthday",
+        icon: "🎂",
+        name: "Sabrina",
+        month: 9,
+        day,
+        since: 1986,
+        preps,
+        effect,
+        music: "birthday",
+        calendar: "solar",
+        leap: false,
+        nth: null,
+        weekday: null,
+      },
+    });
+    const gift = { lead: "1w", label: "Buy a gift" };
+    const cake = { lead: "1d", label: "Order a cake" };
+    const mine = async () =>
+      (await app.invoke("list_anniversaries")).find(
+        (a) => a.name === "Sabrina",
+      );
+    try {
+      await app.closeWindow("panel");
+      await app.invoke("open_post_window", { verify: null, tab: "receive" });
+      await postTab("receive");
+      await peer.sendSchedule(icsOf([sabrina(17, [gift, cake], true)]));
+      await app.waitText(".post-inv-new", "Sabrina");
+      await app.waitText(".post-inv-allrow", "5 of the 5");
+      await app.click('.post-inv-part[data-part="prep:0"] input');
+      await app.waitText(".post-inv-allrow", "4 of the 5");
+      await app.waitText(".post-inv-new .post-inv-take", "Add selected");
+      await app.click(".post-inv-new .post-inv-take");
+      await until("added", async () => !!(await mine()));
+      let a = await mine();
+      assert.deepEqual(a.preps, [cake]);
+      assert.equal(a.effect, true);
+      assert.equal(a.since, 1986);
+
+      // Its day and reminders changed there: only the day is asked about (the reminders
+      // weren't taken), said so.
+      await peer.sendSchedule(
+        icsOf([sabrina(18, [{ ...cake, lead: "3d" }], true)]),
+      );
+      await app.waitText(".post-inv-changed", "Sabrina");
+      assert.deepEqual(
+        await app.b.execute(() =>
+          [...document.querySelectorAll(".post-inv-changed tr[data-part]")].map(
+            (r) => r.dataset.part,
+          ),
+        ),
+        ["date"],
+      );
+      await app.waitText(".post-inv-skipped", "Not listed: Before");
+      await app.click(".post-inv-changed .post-inv-take");
+      await until("moved", async () => (await mine())?.day === 18);
+      assert.deepEqual((await mine()).preps, [cake]);
+
+      // Its day and fireworks: only the day taken.
+      await peer.sendSchedule(
+        icsOf([sabrina(19, [{ ...cake, lead: "3d" }], false)]),
+      );
+      await app.waitText(".post-inv-changed", "Sabrina");
+      await app.click('.post-inv-changed tr[data-part="effect"] input');
+      await app.waitText(
+        ".post-inv-changed .post-inv-take",
+        "Update selected (1)",
+      );
+      await app.click(".post-inv-changed .post-inv-take");
+      await until("moved again", async () => (await mine())?.day === 19);
+      a = await mine();
+      assert.equal(a.effect, true);
+    } finally {
+      const a = await mine();
+      if (a) await app.invoke("delete_anniversary", { id: a.id });
+    }
+  },
+);
+
+check(
   "post.schedule-rules",
   "Settings → Pet Post → a paired ePet: its nickname, and what it sends: Add → added at once (the pet says so; Undo deletes it and tells the sender); Don't take → declined",
   async () => {

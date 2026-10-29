@@ -47,7 +47,11 @@ export type ShareMatch =
   | { state: "new" }
   | { state: "same"; id: number }
   /** The sender changed it; `edited`: changed here too since it was taken; `local`: what's here. */
-  | { state: "changed"; id: number; edited: boolean; local: SharedItem };
+  /**
+   * `changed`: the parts the sender changed (see SHARE_PARTS); `skipped`: ones it changed
+   * that weren't taken here before (not asked about again).
+   */
+  | { state: "changed"; id: number; edited: boolean; local: SharedItem; changed: string[]; skipped: string[] };
 
 /** Something sent that waits for an answer (Pet Post → Receive). */
 export interface InboxItem {
@@ -68,6 +72,8 @@ export interface InboxItem {
   past: boolean;
   /** This computer's offset from UTC (minutes). */
   hereOffset: number;
+  /** What a new one has that can be left out: "since", "prep:0"…, "effect", "music"; "important", "autoSnooze". */
+  optional: string[];
 }
 
 /** Something a paired ePet sent, taken in ("post-schedule"). */

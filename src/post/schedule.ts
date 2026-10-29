@@ -4,7 +4,7 @@
  * Post → Receive, what was sent here to answer: Add or not, an update (what changed), or an
  * update of one changed here too (which one to keep).
  */
-import { t } from "../i18n";
+import { msg, t } from "../i18n";
 import { clock, joinDot, shortDate } from "../i18n/format";
 import { formatDay, formatWhen, h } from "../panel/dom";
 import { repeatText } from "../panel/alarmText";
@@ -71,13 +71,82 @@ export function itemRows(item: SharedItem, now = Date.now()): [string, string][]
   return rows;
 }
 
-/** What differs between what's here and what was sent: [label, here, sent]. */
-export function diffRows(here: SharedItem, sent: SharedItem, now = Date.now()): [string, string, string][] {
-  const a = [[t("Name"), itemTitle(here)] as [string, string], ...itemRows(here, now)];
-  const b = [[t("Name"), itemTitle(sent)] as [string, string], ...itemRows(sent, now)];
-  const labels = [...new Set([...a.map((r) => r[0]), ...b.map((r) => r[0])])];
-  const value = (rows: [string, string][], label: string) => rows.find((r) => r[0] === label)?.[1] ?? "—";
-  return labels.map((l) => [l, value(a, l), value(b, l)] as [string, string, string]).filter(([, x, y]) => x !== y);
+const PART_LABELS: Record<string, string> = {
+  label: msg("Name"),
+  title: msg("Name"),
+  name: msg("Name"),
+  when: msg("Time"),
+  date: msg("Date"),
+  since: msg("Starting year"),
+  preps: msg("Before"),
+  effect: msg("On the day"),
+  music: msg("Music"),
+  important: msg("Important"),
+  autoSnooze: msg("Tries again if you don't answer"),
+};
+
+const yesNo = (on: boolean) => (on ? t("Yes") : t("No"));
+
+/** One part of an item (desktoppet-core share.rs, `parts`), as [label, value]. */
+export function partRow(item: SharedItem, part: string, now = Date.now()): [string, string] {
+  const label = t(PART_LABELS[part] ?? part);
+  if (item.type === "alarm") {
+    if (part === "label") return [label, item.label];
+    if (part === "when") {
+      const time = item.time ? clock(hmMs(item.time)) : item.at !== null ? formatWhen(item.at, now) : "--:--";
+      return [label, joinDot(time, repeatText({ repeat: item.repeat, repeatDays: item.days }))];
+    }
+    return [label, yesNo(part === "important" ? item.important : item.autoSnooze)];
+  }
+  if (item.type === "todo") {
+    if (part === "title") return [label, item.title];
+    const when = item.at !== null ? formatWhen(item.at, now) : item.day ? formatDay(dayMs(item.day), now) : t("No date");
+    return [label, joinDot(when, item.repeat === "none" ? null : repeatLabel(item.repeat))];
+  }
+  if (part === "name") return [label, `${item.icon} ${item.name}`.trim()];
+  if (part === "date") {
+    const on = nextAnniversary(item, now);
+    return [label, joinDot(ruleText(item), on ? shortDate(on.getTime()) : `${item.month}/${item.day}`)];
+  }
+  if (part === "since") return [label, item.since ? t("since {year}", { year: item.since }) : "—"];
+  if (part === "preps") return [label, item.preps.length ? item.preps.map((p) => t("{lead} before: {label}", { lead: leadLabel(p.lead), label: p.label })).join(" · ") : t("None")];
+  if (part === "effect") return [label, item.effect ? (item.kind === "remembrance" ? t("Candle and flowers") : t("Fireworks")) : t("Nothing")];
+  return [label, t(musicFor(item).name)];
+}
+
+/**
+ * A new one, part by part: what it is (can't be left out) and what can (`optional`, as the
+ * app lists them: "since", "prep:0"…, "effect", "music"; "important", "autoSnooze").
+ */
+export function newParts(item: SharedItem, optional: string[], now = Date.now()): { part: string | null; label: string; value: string }[] {
+  const fixed: { part: string | null; label: string; value: string }[] = [];
+  if (item.type === "anniversary") {
+    const on = nextAnniversary(item, now);
+    const day = on ? `${shortDate(on.getTime())} · ${untilText(daysUntil(on, now)).replace(" 🎉", "")}` : `${item.month}/${item.day}`;
+    fixed.push({ part: null, label: t("Name"), value: `${item.icon} ${item.name}`.trim() }, { part: null, label: t("Date"), value: joinDot(ruleText(item), day) });
+  } else if (item.type === "alarm") {
+    const [time, repeat] = itemRows(item, now);
+    fixed.push({ part: null, label: time[0], value: time[1] }, { part: null, label: repeat[0], value: repeat[1] });
+  } else fixed.push(...itemRows(item, now).map(([label, value]) => ({ part: null, label, value })));
+  let lastLabel = "";
+  const parts = optional.map((part) => {
+    let label = "";
+    let value = "";
+    if (item.type === "anniversary") {
+      if (part === "since") [label, value] = [t("Starting year"), t("since {year}", { year: item.since ?? 0 })];
+      else if (part.startsWith("prep:")) {
+        const p = item.preps[Number(part.slice(5))];
+        [label, value] = [t("Before"), p ? t("{lead} before: {label}", { lead: leadLabel(p.lead), label: p.label }) : ""];
+      } else if (part === "effect") [label, value] = [t("On the day"), item.kind === "remembrance" ? t("Candle and flowers") : t("Fireworks")];
+      else if (part === "music") [label, value] = [t("On the day"), t("Music: {name}", { name: t(musicFor(item).name) })];
+    } else if (part === "important") [label, value] = [t("Settings"), t("Important (rings during calls and slide shows)")];
+    else if (part === "autoSnooze") [label, value] = [t("Settings"), t("Tries again if you don't answer")];
+    // The same label as the row above: said once.
+    const shown = label === lastLabel ? "" : label;
+    lastLabel = label;
+    return { part, label: shown, value };
+  });
+  return [...fixed, ...parts];
 }
 
 function kv(rows: [string, string][]): Node {
@@ -100,6 +169,29 @@ const busy = new Set<number>();
 const failed = new Map<number, string>();
 /** "From now on, add … without asking", ticked (by invitation). */
 const always = new Set<number>();
+/** The parts unticked (by invitation): a new one's optional parts, an update's parts. */
+const unticked = new Map<number, Set<string>>();
+/** An update whose parts not taken before are shown too. */
+const showSkipped = new Set<number>();
+const off = (id: number) => unticked.get(id) ?? (unticked.set(id, new Set()), unticked.get(id)!);
+
+/** What of it is taken: of a new one, the optional parts kept; of an update, the parts taken (null: all of it). */
+function chosenParts(e: InboxItem): string[] | null {
+  const no = unticked.get(e.id) ?? new Set<string>();
+  if (e.match.state === "changed") {
+    const m = e.match;
+    const shown = [...m.changed, ...(showSkipped.has(e.id) ? m.skipped : [])];
+    return shown.filter((p) => (m.changed.includes(p) ? !no.has(p) : !skippedOff(e, p)));
+  }
+  return no.size ? e.optional.filter((p) => !no.has(p)) : null;
+}
+
+/** A part not taken before, shown again: unticked until ticked. */
+function skippedOff(e: InboxItem, p: string): boolean {
+  return !(ticked.get(e.id)?.has(p) ?? false);
+}
+/** Parts not taken before that were ticked this time. */
+const ticked = new Map<number, Set<string>>();
 /** What the last answer did, said for a moment. */
 let said = "";
 let saidTimer: ReturnType<typeof setTimeout> | undefined;
@@ -131,7 +223,12 @@ async function answer(ctx: InboxContext, e: InboxItem, take: boolean): Promise<v
       const cur = await ctx.backend.getSettings();
       ctx.saved(await ctx.backend.setSettings({ post: withRule(cur.post, e.from, e.shared.item.type, "auto") }));
     }
-    const result = await ctx.backend.postScheduleAnswer(e.id, take, e.match.state === "new" || e.match.state === "changed" ? (theirTime.get(e.id) ?? null) : null);
+    const result = await ctx.backend.postScheduleAnswer(
+      e.id,
+      take,
+      e.match.state === "new" || e.match.state === "changed" ? (theirTime.get(e.id) ?? null) : null,
+      take ? chosenParts(e) : null,
+    );
     inbox = inbox.filter((x) => x.id !== e.id);
     const title = itemTitle(e.shared.item);
     const words: Record<string, string> = {
@@ -202,7 +299,39 @@ function card(ctx: InboxContext, e: InboxItem): Node {
     h("button", { class: cls, disabled: working || disabled, onclick: () => void answer(ctx, e, take) }, text);
   if (m.state === "changed") {
     const head = m.edited ? t("{who} updated “{title}” · you changed it too", { who, title }) : t("{who} updated “{title}”", { who, title });
-    const rows = diffRows(m.local, item);
+    const shown = [...m.changed, ...(showSkipped.has(e.id) ? m.skipped : [])];
+    const isOn = (p: string) => (m.changed.includes(p) ? !off(e.id).has(p) : !skippedOff(e, p));
+    const toggle = (p: string, on: boolean) => {
+      if (m.changed.includes(p)) {
+        if (on) off(e.id).delete(p);
+        else off(e.id).add(p);
+      } else {
+        const set = ticked.get(e.id) ?? new Set<string>();
+        if (on) set.add(p);
+        else set.delete(p);
+        ticked.set(e.id, set);
+      }
+      redrawLater();
+    };
+    const count = shown.filter(isOn).length;
+    const all = count === shown.length;
+    const rows = shown.map((p) => {
+      const [label, here] = partRow(m.local, p);
+      const [, sent] = partRow(item, p);
+      return h(
+        "tr",
+        { class: isOn(p) ? "" : "off", "data-part": p },
+        h(
+          "td",
+          { class: "c" },
+          h("input", { type: "checkbox", checked: isOn(p), "aria-label": label, onchange: (ev: Event) => toggle(p, (ev.target as HTMLInputElement).checked) }),
+        ),
+        h("td", {}, label),
+        h("td", { class: m.edited ? "mine" : "old" }, here),
+        h("td", { class: "new" }, sent),
+      );
+    });
+    const takeLabel = all ? (m.edited ? t("Use the new one") : t("Update")) : t("Update selected ({n})", { n: count });
     return h(
       "div",
       { class: `box post-inv post-inv-changed${m.edited ? " edited" : ""}`, "data-id": String(e.id) },
@@ -211,31 +340,82 @@ function card(ctx: InboxContext, e: InboxItem): Node {
       h(
         "table",
         { class: "post-inv-diff" },
-        h("tr", {}, h("th", {}), h("th", {}, m.edited ? t("Yours") : t("Now")), h("th", {}, m.edited ? t("Their new one") : t("Updated"))),
-        ...rows.map(([l, here, sent]) => h("tr", {}, h("td", {}, l), h("td", { class: m.edited ? "mine" : "old" }, here), h("td", { class: "new" }, sent))),
+        h("tr", {}, h("th", { class: "c" }), h("th", {}), h("th", {}, m.edited ? t("Yours") : t("Now")), h("th", {}, m.edited ? t("Their new one") : t("Updated"))),
+        ...rows,
       ),
+      m.skipped.length && !showSkipped.has(e.id)
+        ? h(
+            "p",
+            { class: "hint post-inv-skipped" },
+            t("Not listed: {parts}. You didn't take it before, so it stays as yours.", { parts: m.skipped.map((p) => t(PART_LABELS[p] ?? p)).join(t(", ")) }),
+            " ",
+            h("a", { href: "#", class: "post-inv-show-skipped", onclick: (ev: Event) => (ev.preventDefault(), showSkipped.add(e.id), redrawLater()) }, t("Show it too")),
+          )
+        : null,
       zoneLine(e),
       error ? h("p", { class: "warning" }, error) : null,
       m.edited
-        ? h("div", { class: "row" }, button("post-inv-take", t("Use the new one"), true), button("primary post-inv-keep", t("Keep mine"), false))
-        : h("div", { class: "row" }, button("primary post-inv-take", t("Update"), true), button("post-inv-keep", t("Don't"), false)),
+        ? h("div", { class: "row" }, button("post-inv-take", takeLabel, true, count === 0), button("primary post-inv-keep", t("Keep mine"), false))
+        : h("div", { class: "row" }, button("primary post-inv-take", takeLabel, true, count === 0), button("post-inv-keep", t("Don't"), false)),
       m.edited ? h("p", { class: "hint" }, t("You changed this one: even when {who}'s are added without asking, you're asked.", { who })) : null,
     );
   }
   const same = m.state === "same";
+  // Part by part, when something of it can be left out.
+  const choosing = !same && !e.past && e.optional.length > 0;
+  const no = off(e.id);
+  const kept = e.optional.filter((p) => !no.has(p)).length;
+  const setAll = (on: boolean) => {
+    no.clear();
+    if (!on) for (const p of e.optional) no.add(p);
+    redrawLater();
+  };
+  const allBox = h("input", { type: "checkbox", class: "post-inv-all", checked: kept === e.optional.length, onchange: (ev: Event) => setAll((ev.target as HTMLInputElement).checked) });
+  allBox.indeterminate = kept > 0 && kept < e.optional.length;
+  const partList = choosing
+    ? h(
+        "div",
+        { class: "post-inv-parts" },
+        h("label", { class: "post-inv-allrow" }, allBox, t("All"), h("span", { class: "grow" }), t("{n} of the {m} that can be left out", { n: kept, m: e.optional.length })),
+        ...newParts(item, e.optional).map((r) =>
+          h(
+            "label",
+            { class: `post-inv-part${r.part === null ? " lock" : no.has(r.part) ? " off" : ""}`, ...(r.part ? { "data-part": r.part } : {}) },
+            h("input", {
+              type: "checkbox",
+              checked: r.part === null || !no.has(r.part),
+              disabled: r.part === null,
+              onchange: (ev: Event) => {
+                if ((ev.target as HTMLInputElement).checked) no.delete(r.part!);
+                else no.add(r.part!);
+                redrawLater();
+              },
+            }),
+            h("span", { class: "k" }, r.label),
+            h("span", { class: "v" }, r.value, r.part === null ? h("span", { class: "lockt" }, ` ${t("(needed)")}`) : null),
+          ),
+        ),
+      )
+    : kv(itemRows(item));
   return h(
     "div",
     { class: "box post-inv post-inv-new", "data-id": String(e.id) },
     h("div", { class: "row" }, h("p", { class: "title grow" }, `${itemIcon(item)} ${title}`)),
     fromLine(ctx, e),
-    kv(itemRows(item)),
+    partList,
+    choosing && kept < e.optional.length ? h("p", { class: "hint" }, t("What you leave out is as if it weren't set (no fireworks, no to-dos before it, its type's own music). You can change it after.")) : null,
     zoneLine(e),
     e.past ? h("p", { class: "warning" }, t("Its time has passed: it can't be added.")) : null,
     same ? h("p", { class: "hint" }, t("You already have it.")) : null,
     error ? h("p", { class: "warning" }, error) : null,
     same
       ? h("div", { class: "row" }, button("primary post-inv-take", t("OK"), true))
-      : h("div", { class: "row" }, button("primary post-inv-take", t("Add|invitation"), true, e.past), button("post-inv-keep", t("Don't add"), false)),
+      : h(
+          "div",
+          { class: "row" },
+          button("primary post-inv-take", choosing && kept < e.optional.length ? t("Add selected") : t("Add|invitation"), true, e.past),
+          button("post-inv-keep", t("Don't add"), false),
+        ),
     !same && e.from && !e.past
       ? h(
           "label",

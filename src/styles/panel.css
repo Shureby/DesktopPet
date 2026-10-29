@@ -2513,3 +2513,63 @@ button.icon.send {
     color: #6fd39a;
   }
 }
+
+/* ----- Taking what's sent part by part (0.57) ----- */
+.post-inv-parts {
+  display: flex;
+  flex-direction: column;
+}
+.post-inv-allrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  padding-bottom: 4px;
+}
+.post-inv-part {
+  display: grid;
+  grid-template-columns: 20px auto 1fr;
+  gap: 4px 8px;
+  align-items: start;
+  font-size: 13px;
+  padding: 4px 0;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+}
+.post-inv-part .k {
+  color: var(--muted);
+  font-size: 12px;
+  min-width: 56px;
+  padding-top: 1px;
+}
+.post-inv-part .v {
+  overflow-wrap: anywhere;
+}
+.post-inv-part.lock {
+  cursor: default;
+}
+.post-inv-part.off .v {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.post-inv-part .lockt {
+  color: var(--muted);
+  font-size: 11px;
+}
+.post-inv-diff td.c,
+.post-inv-diff th.c {
+  width: 22px;
+  padding-right: 0;
+}
+.post-inv-diff tr.off td {
+  color: var(--muted);
+}
+.post-inv-diff tr.off td.new {
+  color: var(--muted);
+  font-weight: 400;
+  text-decoration: line-through;
+}
+.post-inv-skipped {
+  margin: 0;
+}

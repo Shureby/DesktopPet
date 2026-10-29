@@ -1079,6 +1079,15 @@ once added it's theirs to change or delete.
   "· you changed it too", side by side (Yours · Their new one): **Keep mine** (the default)
   · Use the new one; asked even when Dad's are added without asking. Deleted here, it's new
   again. Something you typed in yourself that's the same counts as already there.
+- **Part by part** (since 0.57.0): what of a new one can be left out has a tick — an
+  anniversary's starting year, each reminder before it, the fireworks, the music; an
+  alarm's Important and "tries again" (the name and the day or time are the thing itself:
+  "(needed)"). All ticked, the button is **Add**; otherwise **Add selected**, and what's
+  left out is as if it weren't set. An update lists only the parts the sender changed,
+  each ticked (**Update selected (n)**); the others stay as they are here. A part not
+  taken (left out, or not updated) isn't asked about again: changed alone, nothing is
+  asked; with other changes, "Not listed: Before. You didn't take it before, so it stays
+  as yours." (**Show it too**). Added without asking (the rule below), all of it is taken.
 - **What a paired ePet sends** (Settings → Pet Post → Paired ePets → **Name, what it
   sends…**): for reminders, to-dos and anniversaries each: **Ask me** (the default),
   **Add** (without asking: the pet still says "✓ Dad added a reminder: …" with **Undo**,

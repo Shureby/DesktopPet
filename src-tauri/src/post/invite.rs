@@ -13,7 +13,7 @@ use std::time::Duration;
 use chrono::Local;
 use desktoppet_core::ics;
 use desktoppet_core::post::DeviceInfo;
-use desktoppet_core::share::{InboxEntry, Item, Match, Origin, Take};
+use desktoppet_core::share::{self, InboxEntry, Item, Match, Origin, Take};
 use hyper::body::Incoming;
 use hyper::{Request, Response};
 use serde::{Deserialize, Serialize};
@@ -413,6 +413,8 @@ pub struct InboxView {
     pub next: Option<String>,
     pub past: bool,
     pub here_offset: i32,
+    /// What a new one has that can be left out (desktoppet_core::share::optional_parts).
+    pub optional: Vec<String>,
 }
 
 #[tauri::command]
@@ -430,14 +432,16 @@ pub fn post_schedule_inbox(state: State<'_, AppState>) -> CmdResult<Vec<InboxVie
             };
             let past =
                 matches!(&entry.shared.item, Item::Alarm(a) if a.time.is_none() && a.at.is_none_or(|at| at <= now));
-            InboxView { entry, matched, next, past, here_offset: ics::offset_minutes(&Local, now) }
+            let optional = share::optional_parts(&entry.shared.item.normalized());
+            InboxView { entry, matched, next, past, here_offset: ics::offset_minutes(&Local, now), optional }
         })
         .collect())
 }
 
 /// The user's answer to an invitation: take it (add, or update) or not (decline, or keep
-/// mine). `their_time`: a repeating alarm at the sender's clock time. The answer, as told
-/// to the sender.
+/// mine). `their_time`: a repeating alarm at the sender's clock time. `parts`: what of it is
+/// taken (desktoppet_core::share::share_take_parts; none: all). The answer, as told to the
+/// sender.
 #[tauri::command]
 pub fn post_schedule_answer(
     app: AppHandle,
@@ -446,12 +450,14 @@ pub fn post_schedule_answer(
     id: i64,
     take: bool,
     their_time: Option<bool>,
+    parts: Option<Vec<String>>,
 ) -> CmdResult<String> {
     let store = state.store();
     let Some(e) = store.inbox_entry(id).map_err(|e| e.to_string())? else { return Err("gone".into()) };
     let how = if take { Take::Add } else { Take::Keep };
-    let t =
-        store.share_take(&Local, &e.from, &e.shared, how, their_time, e.offset, now_ms()).map_err(|e| e.to_string())?;
+    let t = store
+        .share_take_parts(&Local, &e.from, &e.shared, how, their_time, e.offset, parts.as_deref(), now_ms())
+        .map_err(|e| e.to_string())?;
     store.inbox_remove(id).map_err(|e| e.to_string())?;
     drop(store);
     if matches!(t.answer, "added" | "updated") {
