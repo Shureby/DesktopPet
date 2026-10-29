@@ -1414,7 +1414,17 @@ function progress(): Node | null {
   return h("div", { class: "box post-progress" }, ...rows);
 }
 
+/** What was shown last (a tab, Pair, Verify): another view starts at its top. */
+let shownView = "";
+
 function render(): void {
+  const view = pairing ? "pair" : verifying ? "verify" : `tab:${tab}`;
+  if (view !== shownView) {
+    const first = shownView === "";
+    shownView = view;
+    // (After drawing it: scrolled down a long list, Pair or Verify would open out of sight.)
+    if (!first) requestAnimationFrame(() => root.isConnected && root.getBoundingClientRect().top < 0 && root.scrollIntoView({ block: "start" }));
+  }
   if (pairing) {
     root.replaceChildren(pairView(pairContext));
     return;
@@ -1426,7 +1436,7 @@ function render(): void {
   const on = settings.post.enabled;
   const settingsLink = h(
     "a",
-    { href: "#", class: "post-settings-link", onclick: (e: Event) => (e.preventDefault(), void backend.openPanel("settings")) },
+    { href: "#", class: "post-settings-link", onclick: (e: Event) => (e.preventDefault(), void backend.openPanel("settings:post")) },
     `⚙ ${t("Pet Post settings")}`,
   );
   const head = h("header", { class: "post-head row" }, h("span", { class: "grow" }), settingsLink);

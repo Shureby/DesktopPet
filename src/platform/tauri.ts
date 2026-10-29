@@ -1,6 +1,6 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
-import { mergeSettings, type Backend, type BackendEvents, type PanelTab, type Settings, type TestClock, type AvoidStatus, type SystemLocale } from "./types";
+import { mergeSettings, type Backend, type BackendEvents, type Settings, type TestClock, type AvoidStatus, type SystemLocale } from "./types";
 
 /** Settings are owned by the UI: Rust stores the JSON blob and reads only what it needs. */
 async function getSettings(): Promise<Settings> {
@@ -135,7 +135,7 @@ export const tauriBackend: Backend = {
   reloadCharacters: () => invoke("reload_characters"),
   assetUrl: (path) => convertFileSrc(path),
 
-  openPanel: (tab?: PanelTab) => invoke("open_panel", { tab: tab ?? null }),
+  openPanel: (tab) => invoke("open_panel", { tab: tab ?? null }),
   openGame: (game) => invoke("open_game", { game }),
   closeGame: () => invoke("close_game"),
   setPetVisible: (visible) => invoke("set_pet_visible", { visible }),

@@ -88,7 +88,7 @@ import {
 } from "./alarmText";
 import { icon } from "../ui/icons";
 import { backupSection } from "./backup";
-import { postSection } from "./postSettings";
+import { openPairedDetails, postSection } from "./postSettings";
 import { screensSection } from "./screens";
 import { mountPost, openPost } from "../post/main";
 import { fromChip, openSendSheet } from "../post/schedule";
@@ -158,6 +158,8 @@ function select(tab: PanelTab) {
     annDraft = null;
     todoSub = "todos";
   }
+  // Another tab opens at its top, not where the last one was scrolled to.
+  if (tab !== current) toTop = true;
   current = tab;
   tabJustOpened = true;
   void backend.panelTabShown(tab).catch(() => {});
@@ -180,7 +182,44 @@ async function render() {
   };
   const tab = current;
   const node = await renderers[tab]();
-  if (tab === current) view.replaceChildren(node);
+  if (tab !== current) return;
+  view.replaceChildren(node);
+  if (toTop) {
+    toTop = false;
+    window.scrollTo({ top: 0 });
+  }
+  // Opened on a part of Settings ("settings:post"): there.
+  if (tab === "settings" && section) {
+    const target = view.querySelector<HTMLElement>(`[data-section="${section}"]`);
+    section = "";
+    // Not the tab's first field: focusing it would scroll back up.
+    tabJustOpened = false;
+    // (Once its parts that draw themselves have: the page's height settles.)
+    setTimeout(() => target?.isConnected && target.scrollIntoView({ block: "start" }), 150);
+  }
+  // ✎ on a row further down: up to its form, so it's plain what's being edited.
+  if (showEdit) {
+    showEdit = false;
+    const head = view.querySelector<HTMLElement>(".edit-head");
+    if (head && head.getBoundingClientRect().top < 0) head.scrollIntoView({ block: "start", behavior: "smooth" });
+    else head?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+}
+
+/** ✎ was just clicked: the next render scrolls to the edit form. */
+let showEdit = false;
+/** Another tab was chosen: the next render starts at the top. */
+let toTop = false;
+/** The part of Settings to show ("post"; "paired=<fingerprint>": a paired ePet's details). */
+let section = "";
+
+/** Opens Settings on one of its parts. */
+function showSection(sub: string): void {
+  const paired = /^paired=([0-9A-Fa-f]+)$/.exec(sub)?.[1];
+  if (paired) openPairedDetails(paired);
+  section = paired ? `paired-${paired.toUpperCase()}` : sub;
+  if (current === "settings") void render();
+  else select("settings");
 }
 
 // --- Pet Post ---------------------------------------------------------------
@@ -279,6 +318,7 @@ async function renderTodos(): Promise<Node> {
       touched: true,
       editing: it.id,
     };
+    showEdit = true;
     void render();
   };
   const stopEdit = () => {
@@ -867,6 +907,7 @@ function renderAnniversaries(list: Anniversary[]): Node {
       effectTouched: true,
       editing: a.id,
     };
+    showEdit = true;
     redraw();
   };
 
@@ -973,6 +1014,7 @@ async function renderAlarms(): Promise<Node> {
   // ✎ fills the form; Save sets the alarm again, Cancel goes back to a new alarm.
   const startEdit = (a: Alarm) => {
     alarmDraft = draftFor(a);
+    showEdit = true;
     void render();
   };
   const stopEdit = () => {
@@ -1768,9 +1810,9 @@ async function renderSettings(): Promise<Node> {
   return h(
     "section",
     { class: "settings" },
-    h("h3", {}, t("Language & region")),
+    h("h3", { "data-section": "language" }, t("Language & region")),
     localeBox(),
-    h("h3", {}, t("Pet")),
+    h("h3", { "data-section": "pet" }, t("Pet")),
     h(
       "div",
       { class: "box" },
@@ -1786,13 +1828,13 @@ async function renderSettings(): Promise<Node> {
         t(": quieter at night and at work, by a weekly schedule."),
       ),
     ),
-    h("h3", {}, t("Screens the pet lives on")),
+    h("h3", { "data-section": "screens" }, t("Screens the pet lives on")),
     screensSection(backend, () => settings, save),
-    h("h3", {}, t("Alarms & timers")),
+    h("h3", { "data-section": "alarms" }, t("Alarms & timers")),
     alertBox("alarm"),
-    h("h3", {}, t("To-do reminders")),
+    h("h3", { "data-section": "todos" }, t("To-do reminders")),
     alertBox("todo"),
-    h("h3", {}, t("General")),
+    h("h3", { "data-section": "general" }, t("General")),
     h(
       "div",
       { class: "box" },
@@ -1816,9 +1858,9 @@ async function renderSettings(): Promise<Node> {
         t("Other sounds (petting)"),
       ),
     ),
-    h("h3", {}, t("Pet Post")),
+    h("h3", { "data-section": "post" }, t("Pet Post")),
     postSection(backend, () => settings, save, () => characterName(registry.pick(settings.character, "cat").def)),
-    h("h3", {}, t("Backup")),
+    h("h3", { "data-section": "backup" }, t("Backup")),
     backupSection(backend),
     h(
       "footer",
@@ -2146,6 +2188,7 @@ async function main() {
     const [tab, sub = ""] = asked.split(":") as [PanelTab, string?];
     if (!TABS.some((it) => it.id === tab)) return;
     if (tab === "post") openPost(sub);
+    if (tab === "settings" && sub) return showSection(sub);
     if (tab !== current) select(tab);
   });
   await backend.on("mood", () => current === "characters" && void render());
@@ -2153,6 +2196,7 @@ async function main() {
   // "#alarms", or "#post:send" / "#post:verify=<fingerprint>" (Pet Post, opened for that).
   const [initial, sub = ""] = location.hash.slice(1).split(":") as [PanelTab, string?];
   postOpened = sub;
+  if (initial === "settings" && sub) return showSection(sub);
   select(TABS.some((it) => it.id === initial) ? initial : "todos");
 }
 

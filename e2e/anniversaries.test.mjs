@@ -171,3 +171,20 @@ check("anniv.music-form", "Music: Birthday fixed; Wedding three to pick; others 
   await app.until(() => !document.querySelector(".ann-form .off-for-all"));
   assert.equal((await form()).musicOff, false);
 });
+
+check("anniv.edit-scrolls", "✎ on an anniversary far down the list scrolls up to its form", async () => {
+  await clearAll();
+  for (let i = 0; i < 9; i++) await add({ name: `Far ${i}`, ...md(10 + i * 20) });
+  const app = await page();
+  await app.until(() => document.querySelectorAll(".ann .icon.edit[title='Edit']").length >= 9);
+  await app.b.execute(() => document.scrollingElement.scrollTo(0, document.scrollingElement.scrollHeight));
+  await app.sleep(200);
+  await app.b.execute(() => [...document.querySelectorAll(".ann .icon.edit[title='Edit']")].pop().click());
+  await app.waitText(".edit-head", "Edit anniversary · Far");
+  const top = await app.until(() => {
+    const r = document.querySelector(".edit-head").getBoundingClientRect();
+    return r.top >= 0 && r.top < innerHeight / 2 ? Math.round(r.top) + 1 : 0;
+  }, [], 5000);
+  assert.ok(top > 0, "the form is in sight");
+  await clearAll();
+});

@@ -424,7 +424,7 @@ export class Courier {
     const cur = await b.getSettings();
     await b.setSettings({ post: withPaired(cur.post, { fingerprint, alias }) });
     this.host.say([`✓ ${t("Paired with {who}.", { who: alias })}`, t("You can give it a name in Settings → Pet Post.")], 10_000, [
-      { label: t("Name it…"), run: () => void b.openPanel("settings") },
+      { label: t("Name it…"), run: () => void b.openPanel(`settings:paired=${fingerprint}`) },
       { label: t("OK"), run: () => {} },
     ]);
   }

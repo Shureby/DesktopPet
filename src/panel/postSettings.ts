@@ -31,6 +31,11 @@ import { formatWhen, h } from "./dom";
 /** Paired ePets whose details (nickname, what they send) are open. */
 const openPaired = new Set<string>();
 
+/** Opens a paired ePet's details (the pet's "Name it…" after pairing). */
+export function openPairedDetails(fingerprint: string): void {
+  openPaired.add(fingerprint.toUpperCase());
+}
+
 /** Lines of "Also look in these networks" that aren't one (shown until fixed; the page is redrawn on saving). */
 let badNetworks: string[] = [];
 
@@ -193,7 +198,7 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
               };
               return h(
                 "li",
-                { class: "post-paired-item", "data-fingerprint": fp },
+                { class: "post-paired-item", "data-fingerprint": fp, "data-section": `paired-${fp}` },
                 h(
                   "div",
                   { class: "row" },

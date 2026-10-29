@@ -2592,3 +2592,11 @@ button.icon.send {
   flex: 1;
   min-width: 8em;
 }
+
+/* Scrolled to (✎'s form, a part of Settings, Pet Post's view): clear of the tabs stuck at the top. */
+.edit-head,
+[data-section],
+#post,
+.post-inv-said {
+  scroll-margin-top: 56px;
+}

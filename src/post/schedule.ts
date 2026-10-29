@@ -237,7 +237,11 @@ async function answer(ctx: InboxContext, e: InboxItem, take: boolean): Promise<v
       have: t("You already have “{title}”.", { title }),
       kept: t("Kept your “{title}”.", { title }),
     };
-    if (words[result]) say(ctx, words[result]);
+    if (words[result]) {
+      say(ctx, words[result]);
+      // Said at the top: in sight, if the card was further down.
+      requestAnimationFrame(() => document.querySelector(".post-inv-said")?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
+    }
   } catch (err) {
     failed.set(e.id, String(err).includes("passed") ? t("Its time has passed: it can't be added.") : t("Couldn't add it: {error}", { error: String(err) }));
   }

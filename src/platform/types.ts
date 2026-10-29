@@ -822,7 +822,8 @@ export interface Backend {
   reloadCharacters(): Promise<void>;
   assetUrl(path: string): string;
 
-  openPanel(tab?: PanelTab): Promise<void>;
+  /** On a tab; Settings also on one of its parts ("settings:post", "settings:paired=<fingerprint>"). */
+  openPanel(tab?: PanelTab | `settings:${string}`): Promise<void>;
   openGame(game: string): Promise<void>;
   closeGame(): Promise<void>;
   /** Shows or hides the pet window and announces it ("pet-visibility"). */

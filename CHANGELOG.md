@@ -16,6 +16,17 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.58.1] - 2026-10-29
+
+### Fixed
+- **✎ far down a list didn't show its form** (anniversaries, alarms, to-dos): the row was
+  marked but the form stayed out of sight. It now scrolls up to it.
+- **"⚙ Pet Post settings" opened Settings at its top**: it now opens at its Pet Post part;
+  the pet's "Name it…" after pairing, at that ePet with its details open.
+- **A tab opened where the last one was scrolled to** (main window): it opens at its top.
+- **Pet Post:** Pair and Verify open at their top when the list was scrolled down; "✓ Added
+  …" after answering an invitation further down comes into sight.
+
 ## [0.58.0] - 2026-10-29
 
 ### Added

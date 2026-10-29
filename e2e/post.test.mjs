@@ -2307,6 +2307,42 @@ check(
 );
 
 check(
+  "post.settings-link",
+  "⚙ Pet Post settings (Pet Post) opens Settings at its Pet Post part, not at the top; the pet's “Name it…” at that paired ePet, opened",
+  async () => {
+    const app = ctx.app;
+    await pairedWithDad();
+    await app.closeWindow("panel");
+    await app.invoke("open_post_window", { verify: null, tab: "receive" });
+    await postTab("receive");
+    await app.click(".post-settings-link");
+    await app.until(() => {
+      const e = document.querySelector('[data-section="post"]');
+      if (
+        !e ||
+        !document.querySelector('nav button[data-tab="settings"].active')
+      )
+        return false;
+      const r = e.getBoundingClientRect();
+      return r.top >= 0 && r.top < 200;
+    });
+    // As the pet's "Name it…" after pairing opens it.
+    await app.invoke("open_panel", {
+      tab: `settings:paired=${peer.fingerprint}`,
+    });
+    await app.until(
+      (fp) => {
+        const e = document.querySelector(`[data-section="paired-${fp}"]`);
+        if (!e || !e.querySelector(".post-paired-detail")) return false;
+        const r = e.getBoundingClientRect();
+        return r.top >= 0 && r.top < 200;
+      },
+      [peer.fingerprint],
+    );
+  },
+);
+
+check(
   "post.schedule-rules",
   "Settings → Pet Post → a paired ePet: its nickname, and what it sends: Add → added at once (the pet says so; Undo deletes it and tells the sender); Don't take → declined",
   async () => {
