@@ -345,6 +345,17 @@ Discussed 2026-10-20; not scheduled.
 - **Rewritten:** reminders (alarms, timers, focus, to-dos) go through the system's exact
   alarms and notifications, because Android stops background apps. No tray, autostart,
   installer, Steam or multi-monitor; a notification and a home-screen widget instead.
+- **Alarms, to-dos and anniversaries live in ePet** (decided 2026-10-29), not in the
+  phone's clock or calendar app: the same Rust core keeps them (sent between ePets as on
+  the computer: preview, already there, what changed, part by part, rules, time zones).
+  ePet rings them itself with `AlarmManager.setAlarmClock` (exact, kept through Doze),
+  on **its own full-screen ring screen with the pet**. Needs the exact-alarm,
+  notification and full-screen permissions, setting them again after a restart, and a
+  hint to let ePet run in the background on phones that stop it.
+  - **The phone's calendar: offered, never by default** — "Add to the phone's calendar"
+    on an anniversary or a to-do (CalendarContract, by ePet's id, so later changes follow).
+  - **The phone's clock app: not by default either** — at most "Copy to the clock app"
+    on an alarm (once; later changes don't follow: it can't be read back or updated).
 - **The pet:** step 1 is a companion app (the pet lives in the app and a widget;
   schedule synced with the computer through backups or Pet Post, using the uid and
   updated_at added in 0.35). Step 2, maybe: a floating pet over other apps ("display over
