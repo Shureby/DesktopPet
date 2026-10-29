@@ -2318,6 +2318,10 @@ nav.post-tabs button {
   align-self: center;
   white-space: nowrap;
   font-size: 12px;
+  flex-shrink: 0;
+  margin-left: 8px;
+  /* Clear of the window's edge (padding: a scrolling row keeps it, a margin it may not). */
+  padding-right: 12px;
 }
 
 /* ----- Alarms, to-dos and anniversaries sent between ePets (src/post/schedule.ts) ----- */

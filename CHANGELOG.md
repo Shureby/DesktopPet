@@ -16,6 +16,12 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.57.1] - 2026-10-29
+
+### Fixed
+- **Pet Post: "⚙ Pet Post settings" touched the window's edge** — it now keeps the same
+  margin as the cards below.
+
 ## [0.57.0] - 2026-10-29
 
 ### Added
