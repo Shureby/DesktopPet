@@ -61,8 +61,8 @@ nav button {
   cursor: pointer;
   white-space: nowrap;
 }
-/* Seven tabs (Modes since 0.37.1): all fit down to the panel's narrowest (380 px), and at
-   its default 460 px in English too. */
+/* Eight tabs (Pet Post since 0.55.0): all fit down to the panel's narrowest (440 px since
+   0.58.3; English needs about 420). */
 @media (max-width: 480px) {
   nav {
     gap: 0;
@@ -171,7 +171,7 @@ button.icon {
 }
 .list .title {
   flex: 1;
-  min-width: 6em;
+  min-width: 4.5em;
   overflow-wrap: anywhere;
 }
 /* Whole pieces ("Overdue · Yesterday 4:41 AM"): when it's narrow they stack, the title keeps its room. */
@@ -179,6 +179,11 @@ button.icon {
   color: var(--accent);
   font-size: 12px;
   text-align: right;
+  /* Shrinks (its pieces stack) before the buttons after it are pushed out of the row. */
+  min-width: 0;
+}
+.list li > button {
+  flex-shrink: 0;
 }
 .list li.done .title {
   text-decoration: line-through;
@@ -1337,7 +1342,7 @@ button.preview .ic {
   margin: 0 0 0 1px;
 }
 
-/* ----- Narrow panels and longer words (380 px, Chinese): nothing breaks mid-word ----- */
+/* ----- Narrow panels and longer words (440 px since 0.58.3, Chinese): nothing breaks mid-word ----- */
 /* A button, a date, a time, a number and its unit stay whole; the row wraps instead. */
 button,
 .nobr,

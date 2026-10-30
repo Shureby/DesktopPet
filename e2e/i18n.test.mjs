@@ -112,6 +112,15 @@ check("region.holidays", "Settings → Region: the Holiday template offers that 
 function layoutProblems() {
   const found = [];
   if (document.documentElement.scrollWidth > innerWidth + 1) found.push(`page ${document.documentElement.scrollWidth}px wide`);
+  // The tabs in one row, none cut off (since 0.58.3).
+  const nav = document.getElementById("tabs");
+  if (nav && nav.scrollWidth > nav.clientWidth + 1) found.push(`tabs ${nav.scrollWidth - nav.clientWidth}px too wide`);
+  // Nothing pushed out of its row or past the window's edge (a to-do's ✕, a link).
+  for (const el of document.querySelectorAll(".list li > *, .post-tabs > *, .row > button")) {
+    const r = el.getBoundingClientRect();
+    const box = el.parentElement.getBoundingClientRect();
+    if (r.width && (r.right > box.right + 1 || r.right > innerWidth + 1)) found.push(`“${el.textContent.trim().slice(0, 30)}” sticks out`);
+  }
   // The modes table's row names may take two lines, never a word or a character per line.
   for (const td of document.querySelectorAll("table.presets td:first-child")) {
     if (td.getBoundingClientRect().width < 4 * parseFloat(getComputedStyle(td).fontSize)) found.push(`“${td.textContent.trim()}” squeezed`);
@@ -134,21 +143,23 @@ function layoutProblems() {
   return found;
 }
 
-check("panel.layout", "In each language, at the panel's default width and its narrowest: no button, date or time broken over two lines, the modes table readable, and nothing wider than the window", async () => {
+check("panel.layout", "In each language, at the panel's default width and its narrowest (440 px): no button, date or time broken over two lines, the tabs in one row, nothing pushed out of its row, the modes table readable, and nothing wider than the window", async () => {
   const app = ctx.app;
   const at = new Date();
   at.setDate(at.getDate() + 3);
   at.setHours(16, 30, 0, 0);
   await app.invoke("add_alarm", { label: "Layout", at: at.getTime(), repeat: "none", days: null });
   await app.invoke("add_todo", { todo: { title: "Layout check", dueAt: at.getTime(), allDay: false, repeat: "none" } });
+  // A short title with a long date (overdue, weekly, a time): its ✕ stays in the row.
+  await app.invoke("add_todo", { todo: { title: "Layout call", dueAt: Date.now() - 11 * 86_400_000, allDay: false, repeat: "weekly" } });
   await app.invoke("add_anniversary", { anniversary: { kind: "remembrance", icon: "🕯️", name: "Layout", month: at.getMonth() + 1, day: at.getDate(), since: 1926, preps: [], effect: true, music: null } });
   const problems = [];
   try {
     for (const language of ["en", "zh-CN", "zh-TW"]) {
       await locale(language);
       await app.closeWindow("panel");
-      for (const width of [460, 380]) {
-        for (const [tab, open] of [["todos", ".add-when"], ["todos", ".subtabs button:nth-child(2)"], ["alarms"], ["focus"], ["modes"], ["characters"], ["games"], ["settings"]]) {
+      for (const width of [460, 440]) {
+        for (const [tab, open] of [["todos", ".add-when"], ["todos", ".subtabs button:nth-child(2)"], ["alarms"], ["focus"], ["post"], ["modes"], ["characters"], ["games"], ["settings"]]) {
           await app.panel(tab);
           await app.invoke("e2e_resize", { label: "panel", width, height: 640 });
           await app.sleep(300);
@@ -162,7 +173,7 @@ check("panel.layout", "In each language, at the panel's default width and its na
     await locale("auto");
     await app.closeWindow("panel");
     for (const a of await app.invoke("list_alarms")) if (a.label === "Layout") await app.invoke("delete_alarm", { id: a.id });
-    for (const it of await app.invoke("list_todos")) if (it.title === "Layout check") await app.invoke("delete_todo", { id: it.id });
+    for (const it of await app.invoke("list_todos")) if (it.title.startsWith("Layout ")) await app.invoke("delete_todo", { id: it.id });
     for (const a of await app.invoke("list_anniversaries")) if (a.name === "Layout") await app.invoke("delete_anniversary", { id: a.id });
   }
   assert.deepEqual([...new Set(problems)], []);

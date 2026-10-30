@@ -79,7 +79,7 @@ pub fn open_panel<R: Runtime>(app: &AppHandle<R>, tab: Option<&str>) -> tauri::R
     window(app, PANEL, url)
         .title(product_name(app))
         .inner_size(460.0, 640.0)
-        .min_inner_size(380.0, 420.0)
+        .min_inner_size(440.0, 420.0)
         .center()
         .build()?;
     Ok(())

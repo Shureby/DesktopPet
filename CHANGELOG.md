@@ -16,6 +16,15 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.58.3] - 2026-10-30
+
+### Fixed
+- **The main window at its narrowest cut things off** — in English the last tab
+  ("Settings") and Pet Post's "⚙ Pet Post settings" went past the edge, and a to-do with a
+  short name and a long date pushed its ✕ out of line. The window is now at least 440 px
+  wide (was 380), where all of it fits in every language, and a to-do's date makes room for
+  its buttons.
+
 ## [0.58.2] - 2026-10-30
 
 ### Fixed
