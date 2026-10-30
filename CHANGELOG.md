@@ -16,6 +16,12 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.58.4] - 2026-10-30
+
+### Fixed
+- **A size could be split over two lines** ("7.4" / "MB" in Pet Post → History): a size's
+  number and unit now stay together everywhere Pet Post shows one.
+
 ## [0.58.3] - 2026-10-30
 
 ### Fixed

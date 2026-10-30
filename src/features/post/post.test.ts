@@ -199,7 +199,7 @@ describe("Pet Post progress: decimals for big deliveries, speed and time left", 
     r.push(100 * MB, 1000);
     r.push(200 * MB, 2000);
     expect(r.speed()).toBe(100 * MB);
-    expect(r.line({ ...big, done: 200 * MB })).toBe("100 MB/s · about 2 min left");
+    expect(r.line({ ...big, done: 200 * MB })).toBe("100\u00a0MB/s · about 2 min left");
     expect(timeLeft(20)).toBe("less than a minute left");
     expect(timeLeft(150)).toBe("about 3 min left");
     expect(timeLeft(4800)).toBe("about 1 h 20 min left");
@@ -256,11 +256,11 @@ describe("Pet Post beyond this network", () => {
 
 describe("Pet Post: what the pet and the window say", () => {
   it("sizes, counts and names", () => {
-    expect(formatSize(3)).toBe("3 bytes");
-    expect(formatSize(2048)).toBe("2 KB");
-    expect(formatSize(1536)).toBe("1.5 KB");
-    expect(formatSize(12 * 1024 * 1024)).toBe("12 MB");
-    expect(formatSize(5 * 1024 ** 3)).toBe("5 GB");
+    expect(formatSize(3)).toBe("3\u00a0bytes");
+    expect(formatSize(2048)).toBe("2\u00a0KB");
+    expect(formatSize(1536)).toBe("1.5\u00a0KB");
+    expect(formatSize(12 * 1024 * 1024)).toBe("12\u00a0MB");
+    expect(formatSize(5 * 1024 ** 3)).toBe("5\u00a0GB");
     expect(fileCount(1)).toBe("1 file");
     expect(fileCount(3)).toBe("3 files");
     expect(namesLine(["Trip/a.jpg", "b.jpg"], 2)).toBe("a.jpg, b.jpg");
@@ -269,7 +269,7 @@ describe("Pet Post: what the pet and the window say", () => {
 
   it("an offer", () => {
     const o = { id: "1", alias: "Pixel 8", deviceModel: null, fingerprint: "", files: 2, bytes: 2_500_000, names: ["a.jpg", "b.jpg"], until: 0 };
-    expect(offerLines(o)).toEqual(["📦 Pixel 8 wants to send you 2 files (2.4 MB)", "a.jpg, b.jpg"]);
+    expect(offerLines(o)).toEqual(["📦 Pixel 8 wants to send you 2 files (2.4\u00a0MB)", "a.jpg, b.jpg"]);
     expect(missedOfferTitle(o)).toBe("Pixel 8: 2 files");
   });
 

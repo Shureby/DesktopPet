@@ -688,7 +688,8 @@ export const DEVICE_ICONS: Record<DeviceType, string> = { mobile: "📱", deskto
 
 /** "12 MB", "860 KB", "3 bytes". */
 export function formatSize(bytes: number): string {
-  if (bytes < 1024) return t("{n} bytes", { n: bytes });
+  // (A no-break space: "7.4 MB" never split over two lines.)
+  if (bytes < 1024) return t("{n} bytes", { n: bytes }).replace(" ", "\u00a0");
   const units = ["KB", "MB", "GB", "TB"];
   let v = bytes / 1024;
   let i = 0;
@@ -696,7 +697,7 @@ export function formatSize(bytes: number): string {
     v /= 1024;
     i++;
   }
-  return `${v < 10 ? v.toFixed(1).replace(/\.0$/, "") : Math.round(v)} ${units[i]}`;
+  return `${v < 10 ? v.toFixed(1).replace(/\.0$/, "") : Math.round(v)}\u00a0${units[i]}`;
 }
 
 /** "3 files", "1 file". */
