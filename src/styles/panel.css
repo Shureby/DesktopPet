@@ -1375,6 +1375,14 @@ button,
     padding-inline: 6px;
   }
 }
+/* English tabs are long: what room is left goes between them (about as far apart as the
+   Chinese ones at the default 460 px; still in one row, and narrower they scroll). */
+@media (max-width: 480px) {
+  :root:not(:lang(zh)) nav {
+    justify-content: space-between;
+    padding-inline: 8px;
+  }
+}
 @media (max-width: 440px) {
   /* The modes table: each row's name above its four settings. */
   table.presets,

@@ -16,6 +16,13 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.58.2] - 2026-10-30
+
+### Fixed
+- **The main window's tabs were too close together in English** — at the default width
+  the room left now goes between them (about as far apart as the Chinese ones), still in
+  one row.
+
 ## [0.58.1] - 2026-10-29
 
 ### Fixed
