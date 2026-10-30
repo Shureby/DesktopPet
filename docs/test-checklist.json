@@ -2112,6 +2112,15 @@
           "expect": "电脑要求输入 PIN；输错写 “PIN 不对。”，输对后列出文件"
         },
         {
+          "id": "post.share-declined",
+          "rev": "0.49.0",
+          "mac": true,
+          "ci": "auto",
+          "human": "",
+          "do": "手机 Share via link 没勾自动接受；电脑上点 看看分享了什么，在手机上点 拒绝",
+          "expect": "电脑上说对方不允许，什么都不取"
+        },
+        {
           "id": "post.share-link",
           "rev": "0.49.0",
           "ci": "auto",

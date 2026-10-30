@@ -693,6 +693,27 @@ check(
 );
 
 check(
+  "post.panel-tab",
+  "Open Pet Post… opens the main window on its Pet Post tab (not a window of its own), on the tab asked for",
+  async () => {
+    const app = ctx.app;
+    await app.closeWindow("panel");
+    await app.invoke("open_post_window", { verify: null, tab: "send" });
+    await app.toWindow("panel.html");
+    await app.until(
+      () =>
+        document
+          .querySelector('nav button[data-tab="post"]')
+          ?.classList.contains("active") &&
+        document
+          .querySelector('.post-tab[data-tab="send"]')
+          ?.classList.contains("active"),
+    );
+    assert.equal(await app.hasWindow("post.html"), false);
+  },
+);
+
+check(
   "post.tabs",
   "the Pet Post tab's tabs: opened on the one asked for (Send from the pet), else the one left last",
   async () => {
@@ -1851,7 +1872,7 @@ check(
 );
 
 check(
-  "post.pair-asked",
+  "post.pair-decline",
   "another ePet asks to pair: the pet shows the code (Decline); right code → paired here too; wrong → said; declined → told",
   async () => {
     const app = ctx.app;
