@@ -16,6 +16,14 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.60.5] - 2026-11-04
+
+### Fixed
+- **Settings changed quickly one after another could keep an older value** (since 0.60.4:
+  the Focus lengths typed in at once, a screen unticked). A window's changes are saved one
+  at a time again, in the order they were made; Pet Post settings make each change from
+  what's saved just then.
+
 ## [0.60.4] - 2026-11-04
 
 ### Fixed

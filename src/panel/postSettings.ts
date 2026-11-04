@@ -41,16 +41,16 @@ let badNetworks: string[] = [];
 
 export function postSection(backend: Backend, get: () => Settings, save: (patch: Partial<Settings>) => Promise<void>, petName: () => string): Node {
   /**
-   * Saves a change to the Pet Post settings, one after another, each made from what the last
-   * one saved: a nickname saved as its box loses focus and a rule clicked at that moment
-   * don't overwrite each other (each would otherwise start from the same old settings).
+   * Saves a change to the Pet Post settings, one after another, each made from the settings as
+   * saved just then (not as this page last heard them): a nickname saved as its box loses
+   * focus and a rule clicked at that moment don't overwrite each other.
    */
   let queue: Promise<void> = Promise.resolve();
-  const savePost = (make: () => PostSettings): Promise<void> =>
-    (queue = queue
-      .then(() => save({ post: make() }))
-      .then(() => poll())
-      .catch((e) => console.warn("Pet Post settings not saved", e)));
+  const savePost = (make: (post: PostSettings) => PostSettings): Promise<void> => {
+    queue = queue.then(async () => save({ post: make((await backend.getSettings()).post) })).catch((e) => console.warn("Pet Post settings not saved", e));
+    void queue.then(() => poll());
+    return queue;
+  };
   const root = h("div", { class: "box post-settings" });
   let status: PostStatus | null = null;
   let tailnet: PostTailnet = { state: "", online: 0 };
@@ -59,7 +59,7 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
   const showTailnet = () => {
     tailnetText.textContent = get().post.tailscale ? tailnetLine(tailnet, devices.filter((d) => d.source === "tailnet").length) : "";
   };
-  const update = (patch: Partial<PostSettings>) => savePost(() => ({ ...get().post, ...patch }));
+  const update = (patch: Partial<PostSettings>) => savePost((post) => ({ ...post, ...patch }));
 
   // How others reach this computer, and the router door: redrawn on its own (devices,
   // the door and Tailscale change while the page is open).
@@ -159,7 +159,7 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
                 "button",
                 {
                   class: "small",
-                  onclick: () => void savePost(() => withoutFavorite(get().post, d.fingerprint)),
+                  onclick: () => void savePost((post) => withoutFavorite(post, d.fingerprint)),
                 },
                 t("Remove"),
               ),
@@ -169,7 +169,7 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
       : h("p", { class: "hint" }, t("None yet. Click ♡ by a device in Pet Post, or choose “Always accept” when it sends you something."));
 
     /** Verified or blocked devices, each with a button that takes it off the list. */
-    const marks = (list: MarkedDevice[], css: string, when: (d: MarkedDevice) => string, label: string, without: (fp: string) => PostSettings, none: string) =>
+    const marks = (list: MarkedDevice[], css: string, when: (d: MarkedDevice) => string, label: string, without: (post: PostSettings, fp: string) => PostSettings, none: string) =>
       list.length
         ? h(
             "ul",
@@ -179,7 +179,7 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
                 "li",
                 { class: "row" },
                 h("span", { class: "grow", title: d.fingerprint }, h("span", {}, d.alias || shortFingerprint(d.fingerprint)), h("span", { class: "hint" }, ` · ${when(d)} · ${shortFingerprint(d.fingerprint)}`)),
-                h("button", { class: "small", onclick: () => void savePost(() => without(d.fingerprint)) }, label),
+                h("button", { class: "small", onclick: () => void savePost((post) => without(post, d.fingerprint)) }, label),
               ),
             ),
           )
@@ -220,7 +220,7 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
                     h("span", { class: "hint" }, `${nick ? ` ${d.alias}` : ""} · ${t("Paired {when} with a code", { when: formatWhen(d.at) })} · ${shortFingerprint(fp)}`),
                   ),
                   h("button", { class: "small post-paired-more", "aria-expanded": String(open), onclick: toggle }, open ? t("Done") : t("Name, what it sends…")),
-                  h("button", { class: "small", onclick: () => void savePost(() => withoutPaired(get().post, fp)) }, t("Unpair")),
+                  h("button", { class: "small", onclick: () => void savePost((post) => withoutPaired(post, fp)) }, t("Unpair")),
                 ),
                 open
                   ? h(
@@ -238,7 +238,7 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
                           placeholder: t("e.g. Dad"),
                           onchange: (e: Event) => {
                             const nick = (e.target as HTMLInputElement).value;
-                            void savePost(() => withNick(get().post, fp, nick));
+                            void savePost((post) => withNick(post, fp, nick));
                           },
                         }),
                         h("span", { class: "hint" }, t("Only you see it")),
@@ -263,7 +263,7 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
                                   value: rule,
                                   "aria-label": `${kindLabel[kind]}: ${l}`,
                                   checked: rules[kind] === rule,
-                                  onchange: () => void savePost(() => withRule(get().post, fp, kind, rule)),
+                                  onchange: () => void savePost((post) => withRule(post, fp, kind, rule)),
                                 }),
                               ),
                             ),
@@ -370,9 +370,9 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
             h("div", { class: "subhead" }, t("Paired ePets")),
             pairedList(),
             h("div", { class: "subhead" }, t("Verified devices")),
-            marks(s.verified, "post-verified-list", (d) => t("Verified {when}", { when: formatWhen(d.at) }), t("Remove"), (fp) => withoutVerified(get().post, fp), t("None yet. In Pet Post, Verify a device and choose “They match”.")),
+            marks(s.verified, "post-verified-list", (d) => t("Verified {when}", { when: formatWhen(d.at) }), t("Remove"), (post, fp) => withoutVerified(post, fp), t("None yet. In Pet Post, Verify a device and choose “They match”.")),
             h("div", { class: "subhead" }, t("Blocked devices")),
-            marks(s.blocked, "post-blocked-list", (d) => t("Blocked {when} · the icons didn't match", { when: formatWhen(d.at) }), t("Unblock"), (fp) => withoutBlocked(get().post, fp), t("None.")),
+            marks(s.blocked, "post-blocked-list", (d) => t("Blocked {when} · the icons didn't match", { when: formatWhen(d.at) }), t("Unblock"), (post, fp) => withoutBlocked(post, fp), t("None.")),
             h("hr"),
             h("div", { class: "subhead" }, t("How others reach this computer")),
             reach,
@@ -388,7 +388,7 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
                         "li",
                         { class: "row" },
                         h("span", { class: "grow", title: d.fingerprint }, `${d.alias && d.alias !== d.address ? `${d.alias} (${d.address})` : d.address}${d.port === 53317 ? "" : `:${d.port}`}`),
-                        h("button", { class: "small", onclick: () => void update({ devices: get().post.devices.filter((x) => x.fingerprint !== d.fingerprint) }) }, t("Remove")),
+                        h("button", { class: "small", onclick: () => void savePost((post) => ({ ...post, devices: post.devices.filter((x) => x.fingerprint !== d.fingerprint) })) }, t("Remove")),
                       ),
                     ),
                   ),

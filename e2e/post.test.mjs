@@ -2397,7 +2397,15 @@ check(
     await until(
       "rule kept",
       async () => (await postSettings()).paired[0]?.rules?.todo === "auto",
-    );
+    ).catch(async (e) => {
+      // What was kept, and what the page shows.
+      const kept = JSON.stringify((await postSettings()).paired);
+      const shown = await app.b.execute(
+        (s) => document.querySelector(s)?.checked ?? "gone",
+        `${item} tr[data-kind="todo"] input[value="auto"]`,
+      );
+      throw new Error(`${e.message}: kept ${kept}; ticked here: ${shown}`);
+    });
     await app.click(
       `${item} tr[data-kind="anniversary"] input[value="refuse"]`,
     );

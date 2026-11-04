@@ -8,22 +8,32 @@ async function getSettings(): Promise<Settings> {
   return mergeSettings(stored);
 }
 
+/**
+ * Saves a change, made from what's saved: only if no other window saved meanwhile (else it's
+ * made again), so two windows saving at once don't undo each other's change.
+ */
+async function saveSettings(patch: Partial<Settings>): Promise<Settings> {
+  for (let tries = 1; ; tries++) {
+    const base = await invoke<Partial<Settings>>("get_settings");
+    const settings = { ...mergeSettings(base), ...patch };
+    if (tries >= 5) {
+      await invoke("set_settings", { settings });
+      return settings;
+    }
+    if (await invoke<boolean>("replace_settings", { settings, base })) return settings;
+  }
+}
+/** This window's changes, saved one at a time in the order they were made. */
+let saving: Promise<unknown> = Promise.resolve();
+
 /** Backend implemented by the Rust side (src-tauri). Command names mirror `commands.rs`. */
 export const tauriBackend: Backend = {
   kind: "tauri",
   getSettings,
-  // Made from what's saved, and saved only if no other window saved meanwhile (else made
-  // again): two windows saving at once don't undo each other's change.
-  setSettings: async (patch: Partial<Settings>) => {
-    for (let tries = 1; ; tries++) {
-      const base = await invoke<Partial<Settings>>("get_settings");
-      const settings = { ...mergeSettings(base), ...patch };
-      if (tries >= 5) {
-        await invoke("set_settings", { settings });
-        return settings;
-      }
-      if (await invoke<boolean>("replace_settings", { settings, base })) return settings;
-    }
+  setSettings: (patch: Partial<Settings>) => {
+    const done = saving.catch(() => {}).then(() => saveSettings(patch));
+    saving = done;
+    return done;
   },
 
   listTodos: () => invoke("list_todos"),
