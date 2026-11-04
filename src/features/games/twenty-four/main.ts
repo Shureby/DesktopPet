@@ -9,6 +9,7 @@ import "../../../styles/twenty-four.css";
 import { TwentyFour, type Mode } from "./game";
 import { levelFromMood } from "./logic";
 import { PetStage } from "./stage";
+import { playAnswerSound } from "../../../pet/sound";
 
 /** The 24 Points window: the board, with the current character standing on top of it. */
 async function main() {
@@ -51,12 +52,17 @@ async function main() {
       void backend.emit("pet-event", { type: "game", won });
     },
     close: () => void backend.closeGame(),
+    // Settings → "Other sounds" off keeps these quiet too.
+    sound: (kind) => {
+      if (settings.sound) playAnswerSound(kind, 0.6);
+    },
   });
   const first = location.hash.slice(1) as Mode;
   game.start(["race", "practice", "timed", "daily"].includes(first) ? first : "race");
   // End-to-end tests (e2e/, debug builds only): what the board shows, a given hand, the pet answering now.
   if (await backend.e2eEnabled()) {
     Object.assign(window, {
+      __epetSounds: [],
       __epet24: {
         get state() {
           return game.snapshot();

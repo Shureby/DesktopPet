@@ -730,8 +730,13 @@ board by its title bar. Code: `src/features/games/twenty-four/`.
 
 - **Playing a hand.** Click a card, a sign, then another card: the two make a new card
   (8 ÷ 3 makes 8/3, kept exact), and the new card stays picked so you can carry on with a
-  sign. Down to one card: 24 scores, anything else says "That makes 19, not 24". Undo takes
-  a move back. Keys: 1–4 pick a card, + − * / pick a sign, Backspace undoes, Enter goes on,
+  sign. The box under the cards shows one line per move ("7 − 4 = 3"), then the move in
+  progress ("3 ▍ Pick a sign"). Down to one card: 24 scores, its line green with ✓ and a
+  rising "ding-dong"; anything else is red with ✗, a low "boop" and "Makes 22, not 24. Undo
+  a step or start over." (↶ Undo a step and ⟲ Start over picked out). A right answer, or
+  an answer shown, waits for "Next hand →" (or Enter); timed rounds go on after 1.5 s.
+  The sounds: ⚙ → "Sounds for right and wrong answers" (on), and Settings → "Other
+  sounds". Keys: 1–4 pick a card, + − * / pick a sign, Backspace undoes, Enter goes on,
   Esc closes.
 - **Hands.** Any four cards (A = 1, J/Q/K = 11/12/13); a hand is its four numbers, so
   ♥1 2 3 4 and ♠1 2 3 4 are the same hand. A round never repeats a hand, and the last 80

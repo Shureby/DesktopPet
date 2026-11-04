@@ -1169,7 +1169,7 @@ export const mockBackend: Backend = {
     window.open(`panel.html${tab ? `#${tab}` : ""}`, "desktoppet-panel", "width=440,height=620");
   },
   async openGame(game) {
-    window.open(game === "twenty-four" ? "twenty-four.html" : `game.html#${game}`, "desktoppet-game", game === "twenty-four" ? "width=500,height=660" : undefined);
+    window.open(game === "twenty-four" ? "twenty-four.html" : `game.html#${game}`, "desktoppet-game", game === "twenty-four" ? "width=500,height=700" : undefined);
     fire("game", { state: "started", game });
   },
   async closeGame() {

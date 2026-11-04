@@ -125,7 +125,7 @@ pub fn post_attention<R: Runtime>(app: &AppHandle<R>) {
 }
 
 /// 24 Points' window (logical px): the board and the strip above it where the pet stands.
-const BOARD: (f64, f64) = (500.0, 660.0);
+const BOARD: (f64, f64) = (500.0, 700.0);
 
 /// Opens a mini-game as a transparent overlay over the work area the pet is on.
 pub fn open_game<R: Runtime>(app: &AppHandle<R>, game: &str) -> tauri::Result<()> {

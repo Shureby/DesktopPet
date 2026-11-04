@@ -31,9 +31,11 @@ export type Mode = "race" | "practice" | "timed" | "daily";
 
 export interface Options extends DealOptions {
   level: LevelChoice;
+  /** A "ding-dong" for a right answer and a "boop" for a wrong one. */
+  sounds: boolean;
 }
 
-export const DEFAULT_OPTIONS: Options = { hard: true, unsolvable: false, level: "mood" };
+export const DEFAULT_OPTIONS: Options = { hard: true, unsolvable: false, level: "mood", sounds: true };
 
 /** Hands in a round (race and practice). */
 export const ROUND = 13;
@@ -62,6 +64,8 @@ export interface Hooks {
   /** A round is over: `won` in a race (or any point elsewhere), the score to keep. */
   finished(won: boolean, score: number, raceWon: boolean): void;
   close(): void;
+  /** Plays the right or wrong sound (the app's "Other sounds" setting may keep it quiet). */
+  sound(kind: "right" | "wrong"): void;
   now?: () => number;
 }
 
@@ -101,6 +105,10 @@ export class TwentyFour {
   private wrongNone = false;
   message = "";
   private messageGood = false;
+  /** How the last move came out: 24, or one card that isn't 24. */
+  private outcome: "right" | "wrong" | null = null;
+  /** The answer shown (by the pet, or after "I can't get it"). */
+  private revealed = false;
   private plan: PetPlan | null = null;
   petState: "idle" | "thinking" | "ready" | "found" | "stuck" = "idle";
   private round = new Set<string>();
@@ -197,6 +205,8 @@ export class TwentyFour {
     this.history = [];
     this.moves = [];
     this.furthest = 0;
+    this.outcome = null;
+    this.revealed = false;
     this.pick = this.op = null;
     this.hint = 0;
     this.wrongNone = false;
@@ -276,6 +286,7 @@ export class TwentyFour {
     if (!r) {
       this.say(t("Can't divide by 0"), false);
       this.op = null;
+      this.sound("wrong");
       return;
     }
     this.history.push(this.cards.map((c) => ({ ...c })));
@@ -295,14 +306,34 @@ export class TwentyFour {
       return;
     }
     this.pick = null;
-    if (is24(r)) this.solvedByYou();
-    else this.say(t("That makes {n}, not 24. Undo and try again.", { n: label(r) }), false);
+    if (is24(r)) return this.solvedByYou();
+    this.outcome = "wrong";
+    this.say(t("Makes {n}, not 24. Undo a step or start over.", { n: label(r) }), false);
+    this.sound("wrong");
+    if (this.mode === "race") this.hooks.stage.say(t("Hehe, so close~"), 2500);
+  }
+
+  private sound(kind: "right" | "wrong") {
+    if (this.options.sounds) this.hooks.sound(kind);
+  }
+
+  /** Back to the four cards dealt. */
+  restart(): void {
+    if (this.phase !== "playing" || !this.history.length) return;
+    this.cards = this.history[0];
+    this.history = [];
+    this.moves = [];
+    this.pick = this.op = null;
+    this.outcome = null;
+    this.message = "";
+    this.render();
   }
 
   undo(): void {
     if (this.phase !== "playing" || !this.history.length) return;
     this.cards = this.history.pop()!;
     this.moves.pop();
+    this.outcome = null;
     this.pick = this.op = null;
     this.message = "";
     this.render();
@@ -317,12 +348,14 @@ export class TwentyFour {
     const ms = this.now() - this.dealtAt;
     this.solved++;
     const stage = this.hooks.stage;
+    this.outcome = "right";
+    this.sound("right");
     if (this.hint > 0) {
-      this.say(t("24! (no point after help)"), true);
+      this.say(t("Got it! (no point after help)"), true);
     } else {
       this.you++;
       this.fastest = this.fastest === null ? ms : Math.min(this.fastest, ms);
-      this.say(t("24! +1 ({s} s)", { s: seconds(ms) }), true);
+      this.say(t("Got it! +1 ({s} s)", { s: seconds(ms) }), true);
     }
     if (this.mode === "race") {
       stage.set("sulk");
@@ -331,7 +364,8 @@ export class TwentyFour {
       stage.set("cheer");
       stage.say(t("Nice one!"), 2000);
     }
-    this.endHand(this.mode === "timed" ? 700 : 1500);
+    // Timed rounds go on by themselves (after a moment to see it); the others wait for Next.
+    this.endHand(this.mode === "timed" ? 1500 : 0);
   }
 
   /** "No answer!" (with hands without an answer mixed in). */
@@ -342,13 +376,15 @@ export class TwentyFour {
       this.you++;
       this.solved++;
       this.say(t("Right, no answer! +1"), true);
+      this.sound("right");
       stage.set(this.mode === "race" ? "sulk" : "cheer");
       stage.say(this.mode === "race" ? t("You called it first!") : t("Nice one!"), 2000);
-      this.endHand(this.mode === "timed" ? 700 : 1500);
+      this.endHand(this.mode === "timed" ? 1500 : 0);
     } else {
       this.you--;
       this.wrongNone = true;
       this.say(t("There is an answer! −1"), false);
+      this.sound("wrong");
       stage.say(t("Hehe, there is one."), 2500);
       this.render();
     }
@@ -387,6 +423,7 @@ export class TwentyFour {
     if (this.history.length) this.cards = this.history[0];
     this.history = [];
     this.moves = [];
+    this.outcome = null;
     this.pick = this.op = null;
     this.hint++;
     stage.set("help");
@@ -405,6 +442,7 @@ export class TwentyFour {
 
   private reveal() {
     const sol = this.hand.solution;
+    this.revealed = true;
     this.say(sol ? t("Answer: {expr} = 24", { expr: sol.expr }) : t("No answer for this one."), false);
   }
 
@@ -496,6 +534,7 @@ export class TwentyFour {
     stage.set("cheer");
     const sol = this.hand.solution;
     stage.say(sol ? t("{expr} = 24!", { expr: sol.expr }) : t("No answer for this one!"));
+    this.revealed = true;
     this.say(sol ? t("{name}: {expr} = 24", { name: this.hooks.name, expr: sol.expr }) : t("{name}: no answer for this one", { name: this.hooks.name }), false);
     this.endHand(0);
   }
@@ -606,25 +645,44 @@ export class TwentyFour {
         h(
           "button",
           {
-            class: ["t24-card", c.used ? "used" : "", c.made ? "made" : "", this.pick === i ? "picked" : "", hinted(i) ? "hinted" : ""].filter(Boolean).join(" "),
+            class: ["t24-card", c.used ? "used" : "", c.made ? "made" : "", this.pick === i ? "picked" : "", hinted(i) ? "hinted" : "", !c.used && this.outcome ? this.outcome : ""].filter(Boolean).join(" "),
             disabled: c.used || this.phase !== "playing",
             "aria-label": c.used ? t("Used") : c.text,
             onclick: () => this.tapCard(i),
           },
           h("span", { class: "t24-rank" }, c.text),
-          c.suit ? h("span", { class: isRed(c.suit) ? "t24-suit red" : "t24-suit" }, c.suit) : h("span", { class: "t24-suit" }, " "),
+          c.suit
+            ? h("span", { class: isRed(c.suit) ? "t24-suit red" : "t24-suit" }, c.suit)
+            : h("span", { class: "t24-suit" }, !c.used && this.outcome ? (this.outcome === "right" ? "✓" : "✗") : " "),
         ),
       ),
     );
     const sol = this.hand.solution;
+    // One line per move; the last says how it came out. Shown answers are written the same way.
+    const shown = this.revealed && sol ? sol.steps.map((st) => stepText(st)) : null;
+    const done = shown ? "right" : this.outcome;
+    const lines = (shown ?? this.moves).map((text, k, all) =>
+      h("div", { class: k === all.length - 1 && done ? `t24-line ${done}` : "t24-line" }, k === all.length - 1 && done ? `${text}  ${done === "right" ? "✓" : "✗"}` : text),
+    );
+    const partial =
+      this.phase === "playing" && this.pick !== null
+        ? h(
+            "div",
+            { class: "t24-line t24-partial" },
+            `${this.cards[this.pick].text}${this.op ? ` ${OP_SIGN[this.op]}` : ""} `,
+            h("span", { class: "t24-caret" }, "▍"),
+            h("small", {}, `  ${this.op ? t("Pick another card") : t("Pick a sign")}`),
+          )
+        : null;
     const work = h(
       "div",
       { class: "t24-work" },
       this.hint > 0 && this.hint < 4 && sol
-        ? h("div", { class: "t24-hint" }, h("small", {}, t("{name}'s hint (step {n} of 3)", { name: this.hooks.name, n: this.hint })), h("div", {}, sol.steps.slice(0, this.hint).map((s) => stepText(s)).join("   ·   ")))
+        ? h("div", { class: "t24-hint" }, h("small", {}, t("{name}'s hint (step {n} of 3)", { name: this.hooks.name, n: this.hint })), h("div", {}, sol.steps.slice(0, this.hint).map((st) => stepText(st)).join("   ·   ")))
         : null,
-      this.moves.length ? h("small", { class: "t24-steps" }, this.moves.join("   ·   ")) : null,
-      h("div", { class: "t24-expr" }, this.pick !== null ? `${this.cards[this.pick].text}${this.op ? ` ${OP_SIGN[this.op]}` : ""}` : this.history.length ? "" : t("Pick a card, a sign, then another card")),
+      ...lines,
+      partial,
+      !lines.length && !partial && this.phase === "playing" ? h("div", { class: "t24-line t24-placeholder" }, t("Pick a card, a sign, then another card")) : null,
       this.message ? h("div", { class: this.messageGood ? "t24-msg good" : "t24-msg" }, this.message) : null,
     );
     const ops = h(
@@ -637,13 +695,15 @@ export class TwentyFour {
         ? h(
             "div",
             { class: "t24-actions" },
+            h("span", { class: "t24-fine" }, t("Enter works too")),
             h("span", { class: "grow" }),
-            h("button", { class: "primary", onclick: () => this.nextHand() }, this.lastHand ? t("See the result") : t("Next hand")),
+            h("button", { class: "primary", onclick: () => this.nextHand() }, this.lastHand ? t("See the result") : t("Next hand →")),
           )
         : h(
             "div",
             { class: "t24-actions" },
-            h("button", { disabled: !this.history.length || this.phase !== "playing", onclick: () => this.undo() }, t("Undo")),
+            h("button", { class: this.outcome === "wrong" ? "warn" : "", disabled: !this.history.length || this.phase !== "playing", onclick: () => this.undo() }, t("↶ Undo a step")),
+            h("button", { class: this.outcome === "wrong" ? "warn" : "", disabled: !this.history.length || this.phase !== "playing", onclick: () => this.restart() }, t("⟲ Start over")),
             h("span", { class: "grow" }),
             this.options.unsolvable && this.mode !== "daily"
               ? h("button", { class: "t24-none", disabled: this.wrongNone || this.phase !== "playing", onclick: () => this.noAnswer() }, t("No answer!"), h("small", {}, ` ${t("(wrong: −1)")}`))
@@ -730,6 +790,12 @@ export class TwentyFour {
         { class: "t24-radio" },
         h("input", { type: "checkbox", name: "unsolvable", checked: this.options.unsolvable, onchange: (e: Event) => set({ unsolvable: (e.target as HTMLInputElement).checked }) }),
         t("Mix in hands with no answer (a “No answer!” button: right +1, wrong −1)"),
+      ),
+      h(
+        "label",
+        { class: "t24-radio" },
+        h("input", { type: "checkbox", name: "sounds", checked: this.options.sounds, onchange: (e: Event) => set({ sounds: (e.target as HTMLInputElement).checked }) }),
+        t("Sounds for right and wrong answers"),
       ),
       h("h3", {}, t("{name}'s level", { name: this.hooks.name })),
       ...levels.map(([v, text]) => radio("level", v, this.options.level, text, (l) => set({ level: l }))),

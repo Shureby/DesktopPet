@@ -41,7 +41,7 @@ async function tap(...what) {
 }
 
 /** Sets the options from the ⚙ page and starts a new round in `mode`. */
-async function options({ hands, unsolvable, level }, mode) {
+async function options({ hands, unsolvable, level, sounds }, mode) {
   const app = ctx.app;
   await board();
   await app.click(".t24-icon", "⚙");
@@ -86,7 +86,7 @@ check(
       window.innerWidth,
       window.innerHeight,
     ]);
-    assert.ok(w <= 520 && h <= 700, `a board, not the whole screen: ${w}×${h}`);
+    assert.ok(w <= 520 && h <= 720, `a board, not the whole screen: ${w}×${h}`);
     // Its pet is drawn on the strip above the board.
     assert.ok(
       await app.b.execute(() => document.getElementById("t24-pet").width > 0),
@@ -125,7 +125,7 @@ check(
     await tap(1, "×", 2, "×", 3);
     s = await board();
     assert.equal(s.you, 1);
-    assert.match(s.message, /24! \+1/);
+    assert.match(s.message, /Got it! \+1/);
     // Fractions stay exact.
     await hook("deal", [3, 3, 8, 8]);
     await tap(2, "÷", 0);

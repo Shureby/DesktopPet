@@ -12,7 +12,10 @@
   --accent-strong: #8a3b14;
   --accent-soft: #fde9dc;
   --red: #c0392b;
-  --good: #2f7d4a;
+  --good: #1e6b3a;
+  --good-soft: #e6f4ea;
+  --bad: #b3261e;
+  --bad-soft: #fdecea;
   font-family: "Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
   font-size: 14px;
 }
@@ -29,6 +32,9 @@
     --accent-soft: #3b2a20;
     --red: #ff8a7a;
     --good: #7fd39b;
+    --good-soft: #1f3326;
+    --bad: #ff8a7a;
+    --bad-soft: #3a2320;
   }
 }
 :root:lang(zh-CN) {
@@ -248,7 +254,7 @@ button:disabled {
 }
 
 .t24-work {
-  min-height: 64px;
+  min-height: 104px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -265,20 +271,56 @@ button:disabled {
 .t24-hint div {
   font-weight: 700;
 }
-.t24-expr {
+.t24-line {
   font-size: 18px;
   font-weight: 700;
-  min-height: 24px;
+  line-height: 1.35;
 }
-.t24-expr:empty {
-  display: none;
+.t24-line.right {
+  color: var(--good);
+  font-weight: 800;
+}
+.t24-line.wrong {
+  color: var(--bad);
+  font-weight: 800;
+}
+.t24-partial {
+  color: var(--muted);
+}
+.t24-partial small {
+  font-size: 12px;
+  font-weight: 600;
+}
+.t24-caret {
+  color: var(--accent);
+}
+.t24-placeholder {
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 600;
 }
 .t24-msg {
   font-size: 13px;
-  color: var(--accent-strong);
+  font-weight: 700;
+  color: var(--bad);
 }
 .t24-msg.good {
   color: var(--good);
+}
+.t24-card.right {
+  background: var(--good-soft);
+  border: 2px solid var(--good);
+  color: var(--good);
+}
+.t24-card.wrong {
+  background: var(--bad-soft);
+  border: 2px solid var(--bad);
+  color: var(--bad);
+}
+.t24-actions button.warn {
+  border: 2px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
   font-weight: 700;
 }
 

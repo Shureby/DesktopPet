@@ -16,6 +16,22 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.59.2] - 2026-11-04
+
+### Changed
+- **24 Points shows your working clearly:** one line per move ("7 − 4 = 3"), the move in
+  progress after it ("3 ▍ Pick a sign"). The last line goes green with ✓ when it makes 24,
+  red with ✗ when it doesn't ("Makes 22, not 24"), and Undo a step and the new **Start
+  over** (back to the four cards) are picked out.
+- **A right answer waits for "Next hand →"** (or Enter) so you can see it; only timed
+  rounds go on by themselves (after 1.5 s). An answer the pet or a hint shows is written
+  the same way.
+
+### Added
+- **Sounds for right and wrong answers** in 24 Points: a short rising "ding-dong" and a low
+  "boop". On by default; ⚙ → "Sounds for right and wrong answers" turns them off (as does
+  Settings → "Other sounds").
+
 ## [0.59.1] - 2026-11-04
 
 ### Fixed

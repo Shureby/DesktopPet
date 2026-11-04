@@ -284,3 +284,22 @@ export function playMusic(piece: Piece, seconds: number, volume: number): () => 
     setTimeout(() => out.disconnect(), 500);
   };
 }
+
+/**
+ * A game's answer: "right" a quick rising two-note "ding-dong", "wrong" a short low falling
+ * "boop". About a third of a second each.
+ */
+export function playAnswerSound(kind: "right" | "wrong", volume: number): void {
+  logSound({ kind: "answer", id: kind, volume });
+  if (kind === "right") {
+    play(
+      [
+        { f: 784, at: 0, dur: 0.16, wave: "triangle", gain: 0.8 },
+        { f: 1175, at: 0.12, dur: 0.24, wave: "triangle", gain: 0.8 },
+      ],
+      volume,
+    );
+  } else {
+    play([{ f: 233, to: 165, at: 0, dur: 0.32, wave: "square", gain: 0.35 }], volume);
+  }
+}
