@@ -150,7 +150,7 @@ export function panelTabFor(c: MenuContext): PanelTab | undefined {
   return c.missed?.length ? "alarms" : undefined;
 }
 
-/** Shared too: the mini-game and switching characters. */
+/** Shared too: the mini-games and switching characters. */
 export function playItems(c: MenuContext): (Item | "sep")[] {
   return [
     {
@@ -158,6 +158,11 @@ export function playItems(c: MenuContext): (Item | "sep")[] {
       game: true,
       text: gameHeld(c.settings.pomodoro, c.pomodoro) ? t("Play Safe Landing (focusing)") : t("Play Safe Landing"),
       action: () => c.playGame("safe-landing"),
+    },
+    {
+      game: true,
+      text: gameHeld(c.settings.pomodoro, c.pomodoro) ? t("Play 24 Points (focusing)") : t("Play 24 Points"),
+      action: () => c.playGame("twenty-four"),
     },
     {
       text: t("Switch character"),

@@ -124,6 +124,9 @@ pub fn post_attention<R: Runtime>(app: &AppHandle<R>) {
     }
 }
 
+/// 24 Points' window (logical px): the board and the strip above it where the pet stands.
+const BOARD: (f64, f64) = (500.0, 660.0);
+
 /// Opens a mini-game as a transparent overlay over the work area the pet is on.
 pub fn open_game<R: Runtime>(app: &AppHandle<R>, game: &str) -> tauri::Result<()> {
     if let Some(w) = app.get_webview_window(GAME) {
@@ -135,7 +138,10 @@ pub fn open_game<R: Runtime>(app: &AppHandle<R>, game: &str) -> tauri::Result<()
         None => None,
     }
     .or(app.primary_monitor()?);
-    let mut builder = window(app, GAME, format!("game.html#{game}"))
+    // 24 Points is a board in a small window (the pet stands on it); the others cover the work area.
+    let board = game == "twenty-four";
+    let page = if board { "twenty-four.html".to_string() } else { format!("game.html#{game}") };
+    let mut builder = window(app, GAME, page)
         .title(product_name(app))
         .transparent(true)
         .decorations(false)
@@ -144,12 +150,31 @@ pub fn open_game<R: Runtime>(app: &AppHandle<R>, game: &str) -> tauri::Result<()
         .resizable(false)
         .shadow(false)
         .focused(true);
-    if let Some(m) = monitor {
+    if let (true, Some(m)) = (board, &monitor) {
+        // Where the pet was: the board's top right under it, kept inside the work area.
+        let wa = m.work_area();
+        let s = m.scale_factor();
+        let (left, top) = (wa.position.x as f64 / s, wa.position.y as f64 / s);
+        let (w, h) = (wa.size.width as f64 / s, wa.size.height as f64 / s);
+        let (px, py) = match &pet {
+            Some(p) => {
+                let pos = p.outer_position()?;
+                let size = p.outer_size()?;
+                ((pos.x as f64 + size.width as f64 / 2.0) / s, (pos.y as f64 + size.height as f64) / s)
+            }
+            None => (left + w / 2.0, top + h / 2.0),
+        };
+        let x = (px - BOARD.0 + 70.0).clamp(left, (left + w - BOARD.0).max(left));
+        let y = (py - 100.0).clamp(top, (top + h - BOARD.1).max(top));
+        builder = builder.position(x, y).inner_size(BOARD.0, BOARD.1);
+    } else if let Some(m) = monitor {
         let wa = m.work_area();
         let s = m.scale_factor();
         builder = builder
             .position(wa.position.x as f64 / s, wa.position.y as f64 / s)
             .inner_size(wa.size.width as f64 / s, wa.size.height as f64 / s);
+    } else if board {
+        builder = builder.inner_size(BOARD.0, BOARD.1).center();
     } else {
         builder = builder.inner_size(1280.0, 720.0).center();
     }

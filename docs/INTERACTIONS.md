@@ -60,7 +60,7 @@ Code: `src/pet/menu.ts`. Tests: `pet/menu.test.ts`.
   order and behaviour:
   - Add to-do… / Set alarm… / Set timer ▸ / Cancel timer / Cancel snooze / Start or
     Stop focus session;
-  - Play Safe Landing / Switch character ▸;
+  - Play Safe Landing / Play 24 Points / Switch character ▸;
   - Open panel….
 - **The only differences** (plus one exception: during a focus session with the pet hidden,
   the tray leaves out the game; see "Games during a focus session"):
@@ -722,6 +722,41 @@ pet can't be answered, so nothing rings while the pet is aside unless it comes o
 - **Testing:** ePet Test's tray has 🧪 Pretend (full screen, presenting, in a call); the
   end-to-end tests pretend the same way (`pretend_busy`) and never look at the real screen.
 
+## 24 Points (since 0.59.0)
+
+Four cards, + − × ÷, make 24. A small board window (not full screen) opens where the pet
+was; the pet steps off the desktop and stands on the board's top right instead. Drag the
+board by its title bar. Code: `src/features/games/twenty-four/`.
+
+- **Playing a hand.** Click a card, a sign, then another card: the two make a new card
+  (8 ÷ 3 makes 8/3, kept exact), and the new card stays picked so you can carry on with a
+  sign. Down to one card: 24 scores, anything else says "That makes 19, not 24". Undo takes
+  a move back. Keys: 1–4 pick a card, + − * / pick a sign, Backspace undoes, Enter goes on,
+  Esc closes.
+- **Hands.** Any four cards (A = 1, J/Q/K = 11/12/13); a hand is its four numbers, so
+  ♥1 2 3 4 and ♠1 2 3 4 are the same hand. A round never repeats a hand, and the last 80
+  hands are avoided too. Only hands with an answer, unless ⚙ → "Mix in hands with no
+  answer". A hand whose every answer goes through a fraction is **hard**: "Hard" by the
+  count, and "This one's tricky: it needs fractions." ⚙ → "Normal only" leaves them out.
+- **Vs the pet** (13 hands). It paces along the board's top edge while it thinks. When it
+  has the answer it settles down (the cat crouches, the rooster sits): "Got it~ Take your
+  time, I'll say it in 3 seconds." Then it says the answer and scores. You first: your
+  point ("You got it first!"). "I can't get it": the pet answers and scores if it knew,
+  otherwise nobody does. Its level (⚙): follows its mood (happy and fed: "Won't go easy";
+  content: Normal; grumpy or hungry: Easy), or fixed. Easier levels are slower and sometimes
+  stuck on hard hands ("I can't find it… your turn.").
+- **Practice** (13 hands). "I can't get it": the pet walks over and gives the first step,
+  its two cards marked ("Watch me: first 8 ÷ 3 = 8/3."); "Show the next step" gives the
+  next, then the whole answer. A hand solved after help scores 0.
+- **Timed.** 2 minutes, as many hands as you can; "I can't get it" shows the answer and
+  moves on.
+- **Daily.** One hand a day, the same everywhere; after it, "A new hand comes tomorrow."
+  (opening it again that day shows the result).
+- **No answer!** (only with hands without an answer mixed in): right +1, wrong −1 and the
+  button is off for that hand. In a race the pet calls it too.
+- **After a round** the result, and the pet is happier (as after any game); a won race
+  unlocks an achievement.
+
 ## Games during a focus session (since 0.20.0)
 
 Code: `gameHeld` in `src/features/pomodoro/logic.ts`, `PetHost.playGame`, `playGame` in the
@@ -729,7 +764,7 @@ panel.
 
 - **During a focus session games ask first** (Focus → "Ask before games during a focus
   session", on by default). Breaks don't ask.
-  - The menus say "Play Safe Landing (focusing)".
+  - The menus say "Play Safe Landing (focusing)" and "Play 24 Points (focusing)".
   - From the pet or tray menu, the pet asks: "We're focusing until 4:10 PM. Play anyway?"
     [Play anyway] [Cancel].
   - The panel's Games tab asks the same in a dialog when you press Play.

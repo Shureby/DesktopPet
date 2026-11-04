@@ -16,6 +16,20 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.59.0] - 2026-11-04
+
+### Added
+- **24 Points**, a new mini-game (pet menu, tray, main window → Games): make 24 from four
+  cards with + − × ÷. A small board opens where the pet was, and the pet stands on it.
+  - **Vs the pet:** it paces while it thinks, settles down when it has the answer ("I'll
+    say it in 3 seconds") and then says it. Its level follows its mood, or pick one.
+  - **Practice:** "I can't get it" and the pet comes over with the first step, then the
+    next, then the answer (that hand scores 0).
+  - **Timed** (2 minutes) and **Daily** (one hand a day, the same for everyone).
+  - Only hands with an answer, never the same four numbers twice in a round (suits don't
+    count). Hands that need fractions are marked hard ("Normal only" leaves them out).
+    Optionally mix in hands with no answer, with a "No answer!" button: right +1, wrong −1.
+
 ## [0.58.4] - 2026-10-30
 
 ### Fixed

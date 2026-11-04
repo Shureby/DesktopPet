@@ -1,0 +1,373 @@
+/* 24 Points (src/features/games/twenty-four): a board in a small transparent window,
+   with the pet standing on its top edge. Colours as the main window (panel.css). */
+:root {
+  color-scheme: light dark;
+  --bg: #fbf7f2;
+  --surface: #ffffff;
+  --fg: #2b2118;
+  --muted: #6b5f56;
+  --border: #e6ddd3;
+  --track: #efe6dc;
+  --accent: #e8743b;
+  --accent-strong: #8a3b14;
+  --accent-soft: #fde9dc;
+  --red: #c0392b;
+  --good: #2f7d4a;
+  font-family: "Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1d1a18;
+    --surface: #26221f;
+    --fg: #f2ebe4;
+    --muted: #b3a79d;
+    --border: #3a3430;
+    --track: #332d29;
+    --accent: #f08a54;
+    --accent-strong: #ffc6a3;
+    --accent-soft: #3b2a20;
+    --red: #ff8a7a;
+    --good: #7fd39b;
+  }
+}
+:root:lang(zh-CN) {
+  font-family: "Nunito", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
+}
+:root:lang(zh-TW) {
+  font-family: "Nunito", "Microsoft JhengHei UI", "Microsoft JhengHei", "PingFang TC", "Heiti TC", system-ui, sans-serif;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  color: var(--fg);
+  user-select: none;
+}
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+}
+
+.t24-stage {
+  position: relative;
+  height: 110px;
+  margin: 0 12px;
+}
+#t24-pet {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.t24-bubble {
+  position: absolute;
+  bottom: 30px;
+  max-width: 260px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 6px 16px rgba(31, 42, 54, 0.16);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.t24-board {
+  margin: 0 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 10px 28px rgba(31, 42, 54, 0.3);
+  overflow: hidden;
+}
+.t24-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 6px 0 14px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+}
+.t24-head strong {
+  font-weight: 800;
+  white-space: nowrap;
+}
+.t24-tabs {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.t24-tabs button {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.t24-tabs button.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+.t24-icon {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 18px;
+  border-radius: 8px;
+}
+.t24-icon:hover {
+  background: var(--track);
+}
+
+.t24-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 18px 16px;
+  min-height: 430px;
+  box-sizing: border-box;
+}
+.t24-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.t24-score {
+  font-size: 20px;
+  font-weight: 800;
+}
+.t24-count {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.t24-hard {
+  color: var(--accent-strong);
+}
+.t24-clock {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.t24-clock-text {
+  font-size: 12px;
+  color: var(--muted);
+  min-height: 16px;
+}
+.t24-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--track);
+  overflow: hidden;
+}
+.t24-bar > div {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width 0.1s linear;
+}
+.t24-note {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-size: 13px;
+}
+
+.t24-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.t24-card {
+  height: 108px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 2px 0 var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: transform 0.08s;
+}
+.t24-card:not(:disabled):hover {
+  transform: translateY(-2px);
+}
+.t24-rank {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+}
+.t24-suit {
+  font-size: 18px;
+}
+.t24-suit.red {
+  color: var(--red);
+}
+.t24-card.made {
+  background: var(--accent-soft);
+  border: 2px solid var(--accent);
+}
+.t24-card.made .t24-rank {
+  font-size: 22px;
+}
+.t24-card.picked {
+  border: 2px solid var(--fg);
+  box-shadow: 0 4px 0 var(--fg);
+  transform: translateY(-4px);
+}
+.t24-card.hinted {
+  border: 2px dashed var(--accent);
+}
+.t24-card.used {
+  background: transparent;
+  border: 1px dashed var(--border);
+  box-shadow: none;
+}
+.t24-card.used > * {
+  visibility: hidden;
+}
+
+.t24-work {
+  min-height: 64px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.t24-steps,
+.t24-hint small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.t24-hint div {
+  font-weight: 700;
+}
+.t24-expr {
+  font-size: 18px;
+  font-weight: 700;
+  min-height: 24px;
+}
+.t24-expr:empty {
+  display: none;
+}
+.t24-msg {
+  font-size: 13px;
+  color: var(--accent-strong);
+}
+.t24-msg.good {
+  color: var(--good);
+  font-weight: 700;
+}
+
+.t24-ops {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.t24-ops button {
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 22px;
+  font-weight: 800;
+}
+.t24-ops button.on {
+  border: 2px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+.t24-ops button:disabled {
+  opacity: 0.45;
+}
+
+.t24-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: auto;
+}
+.t24-actions .grow {
+  flex: 1;
+}
+.t24-actions button {
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  white-space: nowrap;
+}
+.t24-actions button.primary {
+  border: none;
+  background: var(--fg);
+  color: var(--bg);
+  font-weight: 800;
+}
+.t24-actions button:disabled {
+  opacity: 0.45;
+}
+.t24-none small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.t24-fine {
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: right;
+}
+
+.t24-result h2 {
+  margin: 18px 0 4px;
+  font-size: 26px;
+}
+.t24-result p {
+  margin: 0;
+  font-size: 15px;
+}
+.t24-mood {
+  margin-top: 8px !important;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.t24-options h3 {
+  margin: 4px 0 0;
+  font-size: 14px;
+}
+.t24-radio {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  line-height: 1.4;
+}
+.t24-radio input {
+  margin-top: 3px;
+  accent-color: var(--accent);
+}

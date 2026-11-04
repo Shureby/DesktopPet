@@ -22,7 +22,7 @@ The product name is not final. It lives in one place, [`product.config.json`](pr
 - **Focus sessions (Pomodoro)**: 25/5 with a long break every 4 rounds (all configurable). The pet sits and "works" with you, then celebrates on breaks. It keeps 7-day stats.
 - **Mood**: affection and fullness (0–100, saved per character). Petting, feeding and using the app's features raise them; ignoring the pet lowers them slowly, and only while the app runs. Mood changes behaviour and lines (adoring pets come to your cursor, grumpy ones mope, hungry ones complain) but never blocks reminders. Hover over the pet to see its hearts.
 - **Feedback everywhere**: setting a timer or adding a to-do gets a spoken confirmation. Timers and the focus session show stacked countdown badges next to the pet.
-- **Mini-game: Safe Landing**. Games read character *abilities*, so the Rooster glides and the Cat clings to walls.
+- **Mini-games: Safe Landing** (games read character *abilities*, so the Rooster glides and the Cat clings to walls) and **24 Points** (race the pet, or practise with its hints).
 - **Storefront layer**: Steam, Epic or direct build, chosen with a Cargo feature.
 
 ## Getting started
@@ -108,7 +108,7 @@ src/
     abilities/             core + climbWall, glide, pounce (reusable by any character)
     combat/                movesets and the shared power budget (Stickman Fight)
   brain/                   Brain interface + RulesBrain (future: LLM brains)
-  features/                todo quick-add, pomodoro logic, games (GameHost + Safe Landing)
+  features/                todo quick-add, pomodoro logic, games (GameHost + Safe Landing, 24 Points)
   pet/  panel/             the pet window and the control panel
   platform/                Backend interface: Tauri implementation + browser mock
 crates/desktoppet-core/    Rust: SQLite store, alarm recurrence, focus sessions (unit tested)

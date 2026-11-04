@@ -474,7 +474,20 @@ much as the whole to-do module. What's worth taking from it is _progress_: to do
 
 ## More mini-games
 
-A taskbar hurdle runner, catching falling food (feeds the pet's mood) and
+~~24 Points~~ shipped in 0.59.0 (vs the pet, practice with its hints, timed, daily).
+
+**Tic-tac-toe, next** (mockups agreed). Same small board window with the pet standing on
+it, pacing while it thinks and settling down when it has its move.
+- Modes: classic 3×3 (the pet's best level can only draw), **vanishing** (three pieces
+  each; placing a fourth removes your oldest, marked "goes next move"; almost never a
+  draw), **ultimate** (nine small boards; where you play sends the other player to that
+  board; win three boards in a row), two players at one computer.
+- The pet's pieces are its own mark (the cat's paw print, the rooster's footprint), the same
+  in every mode; the board is the same size in every mode, so ultimate's cells are smaller.
+- Its level follows its mood or is fixed (Easy / Normal / Won't go easy), as in 24 Points.
+- Later: play a paired ePet over Pet Post.
+
+Also: a taskbar hurdle runner, catching falling food (feeds the pet's mood) and
 whack-a-bug. Scores earn coins that unlock cosmetics.
 
 ## LLM tier

@@ -15,6 +15,12 @@ export const GAMES: GameInfo[] = [
     available: true,
   },
   {
+    id: "twenty-four",
+    name: msg("24 Points"),
+    description: msg("Make 24 from four cards with + − × ÷. Race your pet, or practise with its help."),
+    available: true,
+  },
+  {
     id: "jump-up",
     name: msg("Jump Up"),
     description: msg("Bounce from platform to platform as high as you can, avoiding birds and falling sticky notes."),
