@@ -2196,6 +2196,8 @@ async function main() {
   // "#alarms", or "#post:send" / "#post:verify=<fingerprint>" (Pet Post, opened for that).
   const [initial, sub = ""] = location.hash.slice(1).split(":") as [PanelTab, string?];
   postOpened = sub;
+  // (Pet Post may be drawn already: its tab clicked while this window was still loading.)
+  if (initial === "post") openPost(sub);
   if (initial === "settings" && sub) return showSection(sub);
   select(TABS.some((it) => it.id === initial) ? initial : "todos");
 }

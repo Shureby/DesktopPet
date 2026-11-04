@@ -2318,7 +2318,14 @@ check(
       async () => (await postSettings()).paired[0]?.nick === "Dad",
     );
     await app.waitText(".post-device strong", "Dad");
-    assert.match(await app.text(".post-device .hint"), /Mock Phone/);
+    // (Its own row: another device, added by address earlier, may be listed first.)
+    const hint = await app.b.execute(
+      () =>
+        [...document.querySelectorAll(".post-device")]
+          .find((d) => d.querySelector("strong")?.textContent.includes("Dad"))
+          ?.querySelector(".hint")?.textContent ?? "",
+    );
+    assert.match(hint, /Mock Phone/);
     await app.click(".post-device .post-rename-start");
     await app.type(".post-rename-input", "");
     await app.click(".post-rename-save");

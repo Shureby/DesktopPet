@@ -40,6 +40,17 @@ export function openPairedDetails(fingerprint: string): void {
 let badNetworks: string[] = [];
 
 export function postSection(backend: Backend, get: () => Settings, save: (patch: Partial<Settings>) => Promise<void>, petName: () => string): Node {
+  /**
+   * Saves a change to the Pet Post settings, one after another, each made from what the last
+   * one saved: a nickname saved as its box loses focus and a rule clicked at that moment
+   * don't overwrite each other (each would otherwise start from the same old settings).
+   */
+  let queue: Promise<void> = Promise.resolve();
+  const savePost = (make: () => PostSettings): Promise<void> =>
+    (queue = queue
+      .then(() => save({ post: make() }))
+      .then(() => poll())
+      .catch((e) => console.warn("Pet Post settings not saved", e)));
   const root = h("div", { class: "box post-settings" });
   let status: PostStatus | null = null;
   let tailnet: PostTailnet = { state: "", online: 0 };
@@ -48,7 +59,7 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
   const showTailnet = () => {
     tailnetText.textContent = get().post.tailscale ? tailnetLine(tailnet, devices.filter((d) => d.source === "tailnet").length) : "";
   };
-  const update = (patch: Partial<PostSettings>) => save({ post: { ...get().post, ...patch } }).then(() => poll());
+  const update = (patch: Partial<PostSettings>) => savePost(() => ({ ...get().post, ...patch }));
 
   // How others reach this computer, and the router door: redrawn on its own (devices,
   // the door and Tailscale change while the page is open).
@@ -148,7 +159,7 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
                 "button",
                 {
                   class: "small",
-                  onclick: () => void save({ post: withoutFavorite(get().post, d.fingerprint) }).then(() => poll()),
+                  onclick: () => void savePost(() => withoutFavorite(get().post, d.fingerprint)),
                 },
                 t("Remove"),
               ),
@@ -168,7 +179,7 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
                 "li",
                 { class: "row" },
                 h("span", { class: "grow", title: d.fingerprint }, h("span", {}, d.alias || shortFingerprint(d.fingerprint)), h("span", { class: "hint" }, ` · ${when(d)} · ${shortFingerprint(d.fingerprint)}`)),
-                h("button", { class: "small", onclick: () => void save({ post: without(d.fingerprint) }).then(() => poll()) }, label),
+                h("button", { class: "small", onclick: () => void savePost(() => without(d.fingerprint)) }, label),
               ),
             ),
           )
@@ -209,7 +220,7 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
                     h("span", { class: "hint" }, `${nick ? ` ${d.alias}` : ""} · ${t("Paired {when} with a code", { when: formatWhen(d.at) })} · ${shortFingerprint(fp)}`),
                   ),
                   h("button", { class: "small post-paired-more", "aria-expanded": String(open), onclick: toggle }, open ? t("Done") : t("Name, what it sends…")),
-                  h("button", { class: "small", onclick: () => void save({ post: withoutPaired(get().post, fp) }).then(() => poll()) }, t("Unpair")),
+                  h("button", { class: "small", onclick: () => void savePost(() => withoutPaired(get().post, fp)) }, t("Unpair")),
                 ),
                 open
                   ? h(
@@ -225,7 +236,10 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
                           maxLength: 40,
                           value: nick,
                           placeholder: t("e.g. Dad"),
-                          onchange: (e: Event) => void save({ post: withNick(get().post, fp, (e.target as HTMLInputElement).value) }).then(() => poll()),
+                          onchange: (e: Event) => {
+                            const nick = (e.target as HTMLInputElement).value;
+                            void savePost(() => withNick(get().post, fp, nick));
+                          },
                         }),
                         h("span", { class: "hint" }, t("Only you see it")),
                       ),
@@ -249,7 +263,7 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
                                   value: rule,
                                   "aria-label": `${kindLabel[kind]}: ${l}`,
                                   checked: rules[kind] === rule,
-                                  onchange: () => void save({ post: withRule(get().post, fp, kind, rule) }).then(() => poll()),
+                                  onchange: () => void savePost(() => withRule(get().post, fp, kind, rule)),
                                 }),
                               ),
                             ),

@@ -16,6 +16,14 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.60.3] - 2026-11-04
+
+### Fixed
+- **Pet Post settings: a change could be lost** when two were made one right after the
+  other (a device's nickname, then its rule): each now waits for the one before.
+- **Pet Post opened for Verify (Show on a request to compare) could show Send instead**
+  when its tab was clicked while the window was still opening.
+
 ## [0.60.2] - 2026-11-04
 
 ### Fixed
