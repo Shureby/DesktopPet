@@ -35,6 +35,22 @@ pub fn set_settings(app: AppHandle, state: State<AppState>, settings: Value) -> 
     app.emit("settings", settings).map_err(err)
 }
 
+/// Saves the settings only if they are still `base` (as they were read for this change):
+/// false when another window saved meanwhile, and the change is made again from what's
+/// there now (so neither change is lost).
+#[tauri::command]
+pub fn replace_settings(app: AppHandle, state: State<AppState>, settings: Value, base: Value) -> CmdResult<bool> {
+    let store = state.store();
+    if store.settings().map_err(err)? != base {
+        return Ok(false);
+    }
+    store.set_settings(&settings).map_err(err)?;
+    // (Still held: windows hear the saves in the order they were made.)
+    app.emit("settings", settings).map_err(err)?;
+    drop(store);
+    Ok(true)
+}
+
 // --- To-dos ---------------------------------------------------------------------
 
 #[tauri::command]

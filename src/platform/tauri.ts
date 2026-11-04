@@ -12,10 +12,18 @@ async function getSettings(): Promise<Settings> {
 export const tauriBackend: Backend = {
   kind: "tauri",
   getSettings,
+  // Made from what's saved, and saved only if no other window saved meanwhile (else made
+  // again): two windows saving at once don't undo each other's change.
   setSettings: async (patch: Partial<Settings>) => {
-    const settings = { ...(await getSettings()), ...patch };
-    await invoke("set_settings", { settings });
-    return settings;
+    for (let tries = 1; ; tries++) {
+      const base = await invoke<Partial<Settings>>("get_settings");
+      const settings = { ...mergeSettings(base), ...patch };
+      if (tries >= 5) {
+        await invoke("set_settings", { settings });
+        return settings;
+      }
+      if (await invoke<boolean>("replace_settings", { settings, base })) return settings;
+    }
   },
 
   listTodos: () => invoke("list_todos"),

@@ -16,6 +16,13 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.60.4] - 2026-11-04
+
+### Fixed
+- **A setting changed in one window could be undone by another** saving at the same moment
+  (each wrote back all the settings as it had read them). A save now goes through only if
+  nothing was saved since it read them; otherwise it's made again from what's there.
+
 ## [0.60.3] - 2026-11-04
 
 ### Fixed

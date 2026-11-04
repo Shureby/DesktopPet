@@ -57,6 +57,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::get_settings,
             commands::set_settings,
+            commands::replace_settings,
             commands::list_todos,
             commands::add_todo,
             commands::update_todo,
