@@ -69,6 +69,16 @@ async function main() {
     },
   });
   await backend.on("board-pause", (p) => game.busy(p.reason));
+  // Another character picked meanwhile: its name and its mood from now on.
+  let character = def.id;
+  await backend.on("settings", async (s) => {
+    settings.sound = s.sound;
+    if (s.character === character) return;
+    character = s.character;
+    const next = registry.pick(s.character, "cat").def;
+    const m = parseMood(await backend.loadMood(next.id).catch(() => null));
+    game.characterChanged(characterName(next), levelFromMood(m));
+  });
   // Back from the taskbar: on again after "3, 2, 1".
   if (win) {
     let minimized = false;

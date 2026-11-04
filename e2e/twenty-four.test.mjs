@@ -94,7 +94,7 @@ async function close24() {
 
 check(
   "t24.open",
-  "Play 24 Points opens a small board; the desktop pet itself gets up onto it and sits at its top right, quiet; it stays out when the game closes",
+  "Play 24 Points opens a small board; the desktop pet itself gets up onto it and sits at its top right, quiet (another character picked meanwhile goes up too); it stays out when the game closes",
   async () => {
     const app = ctx.app;
     const s = await open24();
@@ -116,6 +116,28 @@ check(
       `at its right end: ${p.x} on ${board.x}…${board.x + board.w}`,
     );
     assert.equal(Math.round(p.y), Math.round(board.y));
+    // Another character picked meanwhile: it goes up onto the board too, and the tab says so.
+    await app.run("pet", "Switch character", "Rooster");
+    await app.b.waitUntil(
+      async () => (await app.pet()).character === "rooster",
+      { timeout: 5000 },
+    );
+    await onTheBoard();
+    await board();
+    await app.b.waitUntil(
+      () =>
+        app.b.execute(() =>
+          document
+            .querySelector(".t24-tabs button[data-mode=race]")
+            .textContent.includes("Rooster"),
+        ),
+      { timeout: 5000 },
+    );
+    await app.run("pet", "Switch character", "Cat");
+    await app.b.waitUntil(async () => (await app.pet()).character === "cat", {
+      timeout: 5000,
+    });
+    await onTheBoard();
     await close24();
     await app.b.waitUntil(async () => (await app.pet()).board === null, {
       timeout: 5000,

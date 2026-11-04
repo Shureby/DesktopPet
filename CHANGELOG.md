@@ -16,6 +16,13 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.60.2] - 2026-11-04
+
+### Fixed
+- **24 Points: a character switched to during a game stayed off the board** (also after
+  minimizing and coming back). The new one goes up onto the board like the first, and the
+  "Vs …" tab takes its name.
+
 ## [0.60.1] - 2026-11-04
 
 ### Changed

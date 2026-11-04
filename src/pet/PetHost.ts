@@ -479,6 +479,8 @@ export class PetHost {
     const c = this.registry.pick(id, "cat");
     const atlas = await SpriteAtlas.load(c.def.sprite, c.asset);
     const world = this.pet?.world;
+    // Switched while a board game is open: the new character goes up onto the board too.
+    const perch = this.pet?.board ?? (this.board ? { id: BOARD_ID, pose: "rest" as const } : null);
     const brain = new RulesBrain();
     this.character = c;
     this.atlas = atlas;
@@ -491,6 +493,7 @@ export class PetHost {
       y,
     });
     if (world) this.pet.world = world;
+    if (this.board && perch) this.pet.board = { ...perch };
     this.pet.onSay = (text, ms) => this.say(text, ms);
     try {
       this.pet.mood = parseMood(await this.backend.loadMood(c.def.id));

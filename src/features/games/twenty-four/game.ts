@@ -58,7 +58,7 @@ interface Card {
 }
 
 export interface Hooks {
-  /** The pet's name, for "Vs Cat". */
+  /** The pet's name, for "Vs Cat" (another character picked meanwhile: its name). */
   name: string;
   /** Its level now when it follows its mood. */
   moodLevel: Level;
@@ -560,6 +560,13 @@ export class TwentyFour {
     this.hooks.onTop(true);
     this.render();
     if (this.phase === "over" && this.mode === "timed" && !this.timeUp) this.nextTimer = window.setTimeout(() => this.next(), 1500);
+  }
+
+  /** Another character picked while you play: it's the one on the board now. */
+  characterChanged(name: string, moodLevel: Level): void {
+    this.hooks.name = name;
+    this.hooks.moodLevel = moodLevel;
+    this.render();
   }
 
   /** What the board shows (the end-to-end tests). */
