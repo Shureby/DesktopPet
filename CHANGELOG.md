@@ -16,6 +16,15 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.59.1] - 2026-11-04
+
+### Fixed
+- **24 Points: the pet answered too fast** to beat even when you'd worked it out, since
+  putting an answer in takes about nine clicks. It now allows 15 s for that on top of its
+  thinking (a normal hand: about 21 s at "Won't go easy", 30 s at Normal, 45 s at Easy;
+  hard hands longer), gives you 3 s more for each move you make, and says it has it 5 s
+  ahead (was 3).
+
 ## [0.59.0] - 2026-11-04
 
 ### Added

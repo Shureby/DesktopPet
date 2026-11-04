@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createRng } from "../../../engine/random";
-import { apply, dailyHand, deal, frac, handKey, handOf, is24, label, levelFromMood, petPlan, READY_MS, solve, stepText, type Frac } from "./logic";
+import { apply, dailyHand, deal, frac, handKey, handOf, INPUT_S, is24, label, levelFromMood, petPlan, READY_MS, solve, stepText, type Frac } from "./logic";
 
 /** Runs a solution's steps and checks they end at 24. */
 function replays(nums: number[], steps: { a: Frac; op: "+" | "-" | "*" | "/"; b: Frac; r: Frac }[]): boolean {
@@ -133,6 +133,11 @@ describe("the pet's play", () => {
     expect(avg("hard", "normal")).toBeGreaterThan(avg("normal", "normal"));
     const rng = createRng(2);
     for (let i = 0; i < 100; i++) expect(petPlan("normal", "strong", rng).ms).toBeGreaterThan(READY_MS);
+    // Never quicker than putting an answer in plus a little thinking.
+    for (let i = 0; i < 100; i++) expect(petPlan("normal", "strong", rng).ms).toBeGreaterThanOrEqual(INPUT_S * 1000 + 4800);
+    expect(avg("normal", "strong")).toBeGreaterThan(19_000);
+    expect(avg("normal", "normal")).toBeGreaterThan(28_000);
+    expect(avg("normal", "easy")).toBeGreaterThan(42_000);
     const misses = Array.from({ length: 200 }, () => petPlan("hard", "easy", rng).finds).filter((f) => !f).length;
     expect(misses).toBeGreaterThan(60);
   });

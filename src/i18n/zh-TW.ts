@@ -207,8 +207,8 @@ const zhTW: Dictionary = {
     "{name}: {expr} = 24": "{name}：{expr} = 24",
     "{name}: no answer for this one": "{name}：這題無解",
     "Let's see who's quicker!": "來比比誰快！",
-    "Got it~ Take your time, I'll say it in 3 seconds.":
-      "我想好了～你慢慢來，3 秒後我可就說了喔。",
+    "Got it~ Take your time, I'll say it in {s} seconds.":
+      "我想好了～你慢慢來，{s} 秒後我可就說了喔。",
     "I can't find it… your turn.": "這題我也想不出來…看你的了。",
     "I couldn't find it either…": "我也沒想出來…",
     "You got it first!": "被你搶先了！",

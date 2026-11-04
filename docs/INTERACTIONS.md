@@ -740,8 +740,11 @@ board by its title bar. Code: `src/features/games/twenty-four/`.
   count, and "This one's tricky: it needs fractions." ⚙ → "Normal only" leaves them out.
 - **Vs the pet** (13 hands). It paces along the board's top edge while it thinks. When it
   has the answer it settles down (the cat crouches, the rooster sits): "Got it~ Take your
-  time, I'll say it in 3 seconds." Then it says the answer and scores. You first: your
-  point ("You got it first!"). "I can't get it": the pet answers and scores if it knew,
+  time, I'll say it in 5 seconds." Then it says the answer and scores. It never answers
+  sooner than 15 s (putting an answer in: three moves of three clicks) plus its thinking:
+  on a normal hand about 6 s ("Won't go easy"), 15 s (Normal) or 30 s (Easy), twice that on
+  a hard hand. Each move you get further gives you 3 s more (Undo and redo doesn't). You
+  first: your point ("You got it first!"). "I can't get it": the pet answers and scores if it knew,
   otherwise nobody does. Its level (⚙): follows its mood (happy and fed: "Won't go easy";
   content: Normal; grumpy or hungry: Easy), or fixed. Easier levels are slower and sometimes
   stuck on hard hands ("I can't find it… your turn.").

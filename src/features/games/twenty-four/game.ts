@@ -14,6 +14,7 @@ import {
   OPS,
   petPlan,
   READY_MS,
+  STEP_GRACE_MS,
   stepText,
   type DealOptions,
   type Frac,
@@ -82,6 +83,8 @@ export class TwentyFour {
   private history: Card[][] = [];
   /** "8 ÷ 3 = 8/3" for each move made (undone with its card snapshot). */
   private moves: string[] = [];
+  /** The most moves made on this hand (Undo doesn't take it back): the pet waits a bit for each. */
+  private furthest = 0;
   private pick: number | null = null;
   private op: Op | null = null;
   /** playing: working on a hand; over: the hand is done (Next); done: the round is over. */
@@ -193,6 +196,7 @@ export class TwentyFour {
     this.cards = hand.ranks.map((r, i) => ({ value: { n: r, d: 1 }, text: face(r), suit: hand.suits[i], used: false, made: false }));
     this.history = [];
     this.moves = [];
+    this.furthest = 0;
     this.pick = this.op = null;
     this.hint = 0;
     this.wrongNone = false;
@@ -280,6 +284,11 @@ export class TwentyFour {
     this.cards[b] = { value: r, text: label(r), suit: null, used: false, made: true };
     this.op = null;
     this.message = "";
+    if (this.history.length > this.furthest) {
+      // Getting somewhere: the pet gives you a little longer.
+      this.furthest = this.history.length;
+      if (this.plan) this.plan = { ...this.plan, ms: this.plan.ms + STEP_GRACE_MS };
+    }
     const left = this.live;
     if (left.length > 1) {
       this.pick = b;
@@ -423,6 +432,7 @@ export class TwentyFour {
       pet: this.pet,
       hint: this.hint,
       petState: this.petState,
+      petMs: this.plan?.ms ?? null,
       message: this.message,
       kind: this.hand?.kind ?? null,
       key: this.hand?.key ?? null,
@@ -465,7 +475,7 @@ export class TwentyFour {
     if (plan.finds && this.petState === "thinking" && at >= plan.ms - READY_MS) {
       this.petState = "ready";
       stage.set("ready");
-      stage.say(t("Got it~ Take your time, I'll say it in 3 seconds."));
+      stage.say(t("Got it~ Take your time, I'll say it in {s} seconds.", { s: READY_MS / 1000 }));
       this.render();
     }
     if (at < plan.ms) {
@@ -571,7 +581,7 @@ export class TwentyFour {
               this.mode === "timed"
                 ? ""
                 : this.petState === "ready"
-                  ? t("{name} has it: answers in {s} s", { name: this.hooks.name, s: 3 })
+                  ? t("{name} has it: answers in {s} s", { name: this.hooks.name, s: READY_MS / 1000 })
                   : this.petState === "stuck"
                     ? t("{name} is stuck", { name: this.hooks.name })
                     : t("{name} is thinking…", { name: this.hooks.name }),

@@ -242,18 +242,27 @@ export interface PetPlan {
   finds: boolean;
 }
 
-/** Seconds of thinking at each level, before a hard hand's extra time. */
-const THINK_S: Record<Level, number> = { easy: 28, normal: 16, strong: 8 };
+/**
+ * Time for putting an answer in: three moves of three clicks (card, sign, card) at one to
+ * two seconds a click. The pet's thinking comes on top, so someone who has worked it out
+ * isn't beaten by their mouse.
+ */
+export const INPUT_S = 15;
+/** Seconds of thinking at each level on a normal hand (hard hands twice as long, no-answer ones 1.5×). */
+const THINK_S: Record<Level, number> = { easy: 30, normal: 15, strong: 6 };
 /** How often it gets a hard hand at each level (normal hands: easy misses some too). */
 const FINDS_HARD: Record<Level, number> = { easy: 0.4, normal: 0.8, strong: 1 };
 const FINDS_NORMAL: Record<Level, number> = { easy: 0.85, normal: 1, strong: 1 };
 
 /** It "has it" this long before it says so: the pet settles down, sure of itself. */
-export const READY_MS = 3000;
+export const READY_MS = 5000;
+/** Each move you make (the furthest you've got, not again after Undo) gives you this much more time. */
+export const STEP_GRACE_MS = 3000;
 
 export function petPlan(kind: Kind, level: Level, rng: Rng): PetPlan {
-  const extra = kind === "hard" ? 1.6 : kind === "none" ? 1.3 : 1;
-  const ms = Math.round(THINK_S[level] * extra * (0.8 + rng() * 0.45) * 1000);
+  const extra = kind === "hard" ? 2 : kind === "none" ? 1.5 : 1;
+  const think = THINK_S[level] * extra * (0.8 + rng() * 0.45);
+  const ms = Math.round((INPUT_S + think) * 1000);
   const chance = kind === "hard" ? FINDS_HARD[level] : kind === "normal" ? FINDS_NORMAL[level] : 1;
   return { ms: Math.max(ms, READY_MS + 2000), finds: rng() < chance };
 }
