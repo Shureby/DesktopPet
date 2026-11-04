@@ -254,6 +254,17 @@ const zhTW: Dictionary = {
     "↶ Undo a step": "↶ 復原一步",
     "⟲ Start over": "⟲ 重來",
     "Sounds for right and wrong answers": "答對、答錯的提示音",
+    "Time's up! Here's how:": "時間到！這題這樣算：",
+    "See the score": "看總分",
+    "Minimize (pauses the game)": "最小化（遊戲暫停）",
+    "Paused: {name} is ringing": "暫停中：{name}在響鈴",
+    "Paused: {name} is asking you something": "暫停中：{name}在問你事情",
+    "Paused: a celebration": "暫停中：在慶祝呢",
+    Paused: "暫停中",
+    "Back to it in": "馬上繼續",
+    "Keep playing": "先玩著",
+    "This one's tricky: it needs fractions. +15 s on the clock.":
+      "這題會比較難喔，中間要用到分數。時間 +15 秒。",
     "Jump Up": "跳跳樂",
     "Bounce from platform to platform as high as you can, avoiding birds and falling sticky notes.":
       "在平台之間往上跳，越高越好，小心飛鳥和掉下來的便利貼。",

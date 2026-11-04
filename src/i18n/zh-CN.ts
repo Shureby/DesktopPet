@@ -254,6 +254,17 @@ const zhCN: Dictionary = {
     "↶ Undo a step": "↶ 撤销一步",
     "⟲ Start over": "⟲ 重来",
     "Sounds for right and wrong answers": "答对、答错的提示音",
+    "Time's up! Here's how:": "时间到！这题这样算：",
+    "See the score": "看总分",
+    "Minimize (pauses the game)": "最小化（游戏暂停）",
+    "Paused: {name} is ringing": "暂停中：{name}在响铃",
+    "Paused: {name} is asking you something": "暂停中：{name}在问你事情",
+    "Paused: a celebration": "暂停中：在庆祝呢",
+    Paused: "暂停中",
+    "Back to it in": "马上继续",
+    "Keep playing": "先玩着",
+    "This one's tricky: it needs fractions. +15 s on the clock.":
+      "这题会比较难哦，中间要用到分数。时间 +15 秒。",
     "Jump Up": "跳跳乐",
     "Bounce from platform to platform as high as you can, avoiding birds and falling sticky notes.":
       "在平台之间往上跳，越高越好，小心飞鸟和掉下来的便利贴。",

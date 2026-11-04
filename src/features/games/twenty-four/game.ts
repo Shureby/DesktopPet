@@ -41,6 +41,10 @@ export const DEFAULT_OPTIONS: Options = { hard: true, unsolvable: false, level: 
 export const ROUND = 13;
 /** A timed round's length. */
 export const TIMED_MS = 120_000;
+/** A hard hand in a timed round adds this much to the clock. */
+export const TIMED_HARD_BONUS_MS = 15_000;
+/** After a pause (a ring, a question, the window minimized): "3, 2, 1", then on. */
+export const RESUME_MS = 3000;
 /** Recent hands kept so the next rounds don't repeat them. */
 const RECENT = 80;
 
@@ -64,6 +68,10 @@ export interface Hooks {
   /** A round is over: `won` in a race (or any point elsewhere), the score to keep. */
   finished(won: boolean, score: number, raceWon: boolean): void;
   close(): void;
+  /** Minimizes the window (the pet falls off it as off any window). */
+  minimize(): void;
+  /** Keeps the board in front of other windows, or not (while a task may open one). */
+  onTop(on: boolean): void;
   /** Plays the right or wrong sound (the app's "Other sounds" setting may keep it quiet). */
   sound(kind: "right" | "wrong"): void;
   now?: () => number;
@@ -109,6 +117,17 @@ export class TwentyFour {
   private outcome: "right" | "wrong" | null = null;
   /** The answer shown (by the pet, or after "I can't get it"). */
   private revealed = false;
+  /** Time ran out in a timed round with this hand unsolved: its answer shows, then the score. */
+  private timeUp = false;
+  /** A hard hand added to a timed round's clock. */
+  private bonus = false;
+  /**
+   * Paused: why ("minimized", or what the pet is doing: "ring", "ask", "celebrate"), since
+   * when, and when the "3, 2, 1" ends once it's over (0: still paused).
+   */
+  paused: { reason: string; since: number; resumeAt: number } | null = null;
+  /** "Keep playing" pressed: what the pet is busy with doesn't pause it again. */
+  private skipBusy = false;
   private plan: PetPlan | null = null;
   petState: "idle" | "thinking" | "ready" | "found" | "stuck" = "idle";
   private round = new Set<string>();
@@ -162,7 +181,11 @@ export class TwentyFour {
 
   start(mode: Mode = this.mode): void {
     clearTimeout(this.nextTimer);
+    if (this.paused) this.hooks.onTop(true);
+    this.paused = null;
+    this.skipBusy = false;
     this.mode = mode;
+    this.timeUp = false;
     this.you = this.pet = this.solved = this.handNo = 0;
     this.fastest = null;
     this.round = new Set();
@@ -213,6 +236,8 @@ export class TwentyFour {
     this.message = "";
     this.phase = "playing";
     this.dealtAt = this.now();
+    this.bonus = this.mode === "timed" && hand.kind === "hard";
+    if (this.bonus) this.endsAt += TIMED_HARD_BONUS_MS;
     this.plan = this.mode === "race" ? petPlan(hand.kind, this.level, this.rng) : null;
     this.petState = this.plan ? "thinking" : "idle";
     const stage = this.hooks.stage;
@@ -262,7 +287,7 @@ export class TwentyFour {
   }
 
   tapCard(i: number): void {
-    if (this.phase !== "playing" || this.cards[i]?.used) return;
+    if (this.paused || this.phase !== "playing" || this.cards[i]?.used) return;
     if (this.pick === null || this.op === null) {
       this.pick = this.pick === i ? null : i;
       this.op = null;
@@ -455,8 +480,74 @@ export class TwentyFour {
   }
 
   nextHand(): void {
-    if (this.phase === "over") this.next();
+    if (this.paused) return;
+    if (this.phase === "over" && this.timeUp) this.finish();
+    else if (this.phase === "over") this.next();
     else if (this.phase === "done") this.start();
+  }
+
+  // --- Pausing -------------------------------------------------------------------
+
+  /** The pet is busy with something that needs you (null: it's over). */
+  busy(reason: string | null): void {
+    if (reason === null) {
+      this.skipBusy = false;
+      if (this.paused && this.paused.reason !== "minimized" && !this.paused.resumeAt) this.resumeSoon();
+      return;
+    }
+    if (this.skipBusy || this.phase === "done") return;
+    this.pause(reason);
+    // A task may open a window (Pet Post's): the board doesn't cover it meanwhile.
+    this.hooks.onTop(false);
+  }
+
+  /** "–": the window goes down, the game waits. */
+  minimize(): void {
+    this.pause("minimized");
+    this.hooks.minimize();
+  }
+
+  /** The window is back from the taskbar. */
+  restored(): void {
+    if (this.paused?.reason === "minimized") this.resumeSoon();
+  }
+
+  /** "Keep playing": on now, whatever the pet is doing. */
+  keepPlaying(): void {
+    if (!this.paused) return;
+    this.skipBusy = this.paused.reason !== "minimized";
+    this.resumeSoon();
+  }
+
+  private pause(reason: string): void {
+    if (this.phase === "done") return;
+    if (this.paused) {
+      // Already paused (or counting down): this is why now, and it waits again.
+      this.paused = { ...this.paused, reason, resumeAt: 0 };
+    } else {
+      this.paused = { reason, since: this.now(), resumeAt: 0 };
+      clearTimeout(this.nextTimer);
+    }
+    this.render();
+  }
+
+  private resumeSoon(): void {
+    if (!this.paused) return;
+    this.paused.resumeAt = this.now() + RESUME_MS;
+    this.render();
+  }
+
+  /** Back to it: the time paused doesn't count (the clock, the pet's thinking). */
+  private resume(): void {
+    const p = this.paused;
+    if (!p) return;
+    const away = this.now() - p.since;
+    this.dealtAt += away;
+    this.endsAt += away;
+    this.paused = null;
+    this.hooks.onTop(true);
+    this.render();
+    if (this.phase === "over" && this.mode === "timed" && !this.timeUp) this.nextTimer = window.setTimeout(() => this.next(), 1500);
   }
 
   /** What the board shows (the end-to-end tests). */
@@ -471,6 +562,9 @@ export class TwentyFour {
       hint: this.hint,
       petState: this.petState,
       petMs: this.plan?.ms ?? null,
+      paused: this.paused ? { reason: this.paused.reason, counting: this.paused.resumeAt > 0 } : null,
+      endsIn: this.mode === "timed" ? this.endsAt - this.now() : null,
+      timeUp: this.timeUp,
       message: this.message,
       kind: this.hand?.kind ?? null,
       key: this.hand?.key ?? null,
@@ -489,7 +583,7 @@ export class TwentyFour {
   }
 
   /** A timed round's time runs out now (the end-to-end tests). */
-  timeUp(): void {
+  runOut(): void {
     if (this.mode === "timed") this.endsAt = this.now();
     this.tick();
   }
@@ -501,9 +595,19 @@ export class TwentyFour {
   }
 
   private tick() {
-    if (this.mode === "timed" && this.phase !== "done" && this.now() >= this.endsAt) {
-      if (this.phase === "playing") this.reveal();
-      return this.finish();
+    if (this.paused) {
+      if (this.paused.resumeAt && this.now() >= this.paused.resumeAt) this.resume();
+      else this.renderPause();
+      return;
+    }
+    if (this.mode === "timed" && this.phase !== "done" && !this.timeUp && this.now() >= this.endsAt) {
+      clearTimeout(this.nextTimer);
+      // Unsolved when time ran out: its answer, then the score when you've seen it.
+      if (this.phase !== "playing") return this.finish();
+      this.timeUp = true;
+      this.reveal();
+      this.say(t("Time's up! Here's how:"), false);
+      return this.endHand(0);
     }
     if (this.mode === "timed" && this.phase !== "done") this.renderClock();
     const plan = this.plan;
@@ -540,6 +644,7 @@ export class TwentyFour {
   }
 
   private onKey(e: KeyboardEvent) {
+    if (this.paused && e.key !== "Escape") return;
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
     const ops: Record<string, Op> = { "+": "+", "-": "-", "*": "*", x: "*", X: "*", "/": "/" };
     if (/^[1-4]$/.test(e.key)) this.tapCard(Number(e.key) - 1);
@@ -586,10 +691,43 @@ export class TwentyFour {
         ...tabs.map(([m, text]) => h("button", { class: m === this.mode ? "on" : "", "data-mode": m, onclick: () => this.start(m) }, text)),
       ),
       h("button", { class: "t24-icon", title: t("Options"), "aria-label": t("Options"), "aria-expanded": String(this.showOptions), onclick: () => ((this.showOptions = !this.showOptions), this.render()) }, "⚙"),
+      h("button", { class: "t24-icon", title: t("Minimize (pauses the game)"), "aria-label": t("Minimize (pauses the game)"), onclick: () => this.minimize() }, "–"),
       h("button", { class: "t24-icon", title: t("Close"), "aria-label": t("Close"), onclick: () => this.hooks.close() }, "×"),
     );
     const body = this.showOptions ? this.optionsView() : this.phase === "done" ? this.resultView() : this.handView();
+    if (this.paused && !this.showOptions && this.phase !== "done") {
+      body.classList.add("paused");
+      body.append(this.pauseView());
+    }
     this.root.replaceChildren(header, body);
+  }
+
+  /** The veil over a paused board: why, then "3, 2, 1". The cards under it are blurred. */
+  private pauseView(): HTMLElement {
+    const p = this.paused!;
+    const name = this.hooks.name;
+    const why =
+      p.reason === "ring"
+        ? t("Paused: {name} is ringing", { name })
+        : p.reason === "ask"
+          ? t("Paused: {name} is asking you something", { name })
+          : p.reason === "celebrate"
+            ? t("Paused: a celebration")
+            : t("Paused");
+    const counting = p.resumeAt > 0;
+    return h(
+      "div",
+      { class: "t24-pause", role: "status" },
+      h("div", { class: "t24-pause-why" }, counting ? t("Back to it in") : why),
+      h("div", { class: "t24-pause-count" }, counting ? String(Math.max(1, Math.ceil((p.resumeAt - this.now()) / 1000))) : "⏸"),
+      !counting && p.reason !== "minimized" ? h("button", { onclick: () => this.keepPlaying() }, t("Keep playing")) : null,
+    );
+  }
+
+  private renderPause() {
+    const p = this.paused;
+    const el = this.root.querySelector(".t24-pause-count");
+    if (p?.resumeAt && el) el.textContent = String(Math.max(1, Math.ceil((p.resumeAt - this.now()) / 1000)));
   }
 
   private handView(): HTMLElement {
@@ -629,7 +767,10 @@ export class TwentyFour {
           )
         : null;
     this.clockEl = clock;
-    const note = hard && this.phase === "playing" && this.mode !== "race" ? h("div", { class: "t24-note" }, t("This one's tricky: it needs fractions.")) : null;
+    const note =
+      hard && this.phase === "playing" && this.mode !== "race"
+        ? h("div", { class: "t24-note" }, this.bonus ? t("This one's tricky: it needs fractions. +15 s on the clock.") : t("This one's tricky: it needs fractions."))
+        : null;
     const step = this.hint > 0 && this.hint < 4 ? this.hand.solution?.steps[0] : undefined;
     const hinted = (i: number) => {
       if (!step || this.hint !== 1 || this.history.length) return false;
@@ -697,7 +838,7 @@ export class TwentyFour {
             { class: "t24-actions" },
             h("span", { class: "t24-fine" }, t("Enter works too")),
             h("span", { class: "grow" }),
-            h("button", { class: "primary", onclick: () => this.nextHand() }, this.lastHand ? t("See the result") : t("Next hand →")),
+            h("button", { class: "primary", onclick: () => this.nextHand() }, this.timeUp ? t("See the score") : this.lastHand ? t("See the result") : t("Next hand →")),
           )
         : h(
             "div",

@@ -124,8 +124,8 @@ pub fn post_attention<R: Runtime>(app: &AppHandle<R>) {
     }
 }
 
-/// 24 Points' window (logical px): the board and the strip above it where the pet stands.
-const BOARD: (f64, f64) = (500.0, 700.0);
+/// 24 Points' window (logical px): the board, in a small transparent margin (the pet stands on it).
+const BOARD: (f64, f64) = (500.0, 600.0);
 
 /// Opens a mini-game as a transparent overlay over the work area the pet is on.
 pub fn open_game<R: Runtime>(app: &AppHandle<R>, game: &str) -> tauri::Result<()> {
@@ -146,7 +146,8 @@ pub fn open_game<R: Runtime>(app: &AppHandle<R>, game: &str) -> tauri::Result<()
         .transparent(true)
         .decorations(false)
         .always_on_top(true)
-        .skip_taskbar(true)
+        // The board can be minimized, so it has a taskbar button to come back from.
+        .skip_taskbar(!board)
         .resizable(false)
         .shadow(false)
         .focused(true);
@@ -164,8 +165,9 @@ pub fn open_game<R: Runtime>(app: &AppHandle<R>, game: &str) -> tauri::Result<()
             }
             None => (left + w / 2.0, top + h / 2.0),
         };
-        let x = (px - BOARD.0 + 70.0).clamp(left, (left + w - BOARD.0).max(left));
-        let y = (py - 100.0).clamp(top, (top + h - BOARD.1).max(top));
+        // Its right end by the pet, just above it, with room above for the pet to sit.
+        let x = (px - BOARD.0 + 60.0).clamp(left, (left + w - BOARD.0).max(left));
+        let y = (py - BOARD.1 - 8.0).clamp((top + 130.0).min(top + h - BOARD.1), (top + h - BOARD.1).max(top));
         builder = builder.position(x, y).inner_size(BOARD.0, BOARD.1);
     } else if let Some(m) = monitor {
         let wa = m.work_area();
@@ -180,6 +182,15 @@ pub fn open_game<R: Runtime>(app: &AppHandle<R>, game: &str) -> tauri::Result<()
     }
     let window = builder.build()?;
     window.set_focus()?;
+    if board {
+        // The pet rides along when you drag the board.
+        let handle = app.clone();
+        window.on_window_event(move |e| {
+            if let tauri::WindowEvent::Moved(_) = e {
+                let _ = handle.emit("board-moved", ());
+            }
+        });
+    }
     app.emit("game", GameEvent { state: "started", game })?;
     Ok(())
 }

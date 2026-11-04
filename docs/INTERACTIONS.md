@@ -724,9 +724,24 @@ pet can't be answered, so nothing rings while the pet is aside unless it comes o
 
 ## 24 Points (since 0.59.0)
 
-Four cards, + − × ÷, make 24. A small board window (not full screen) opens where the pet
-was; the pet steps off the desktop and stands on the board's top right instead. Drag the
-board by its title bar. Code: `src/features/games/twenty-four/`.
+Four cards, + − × ÷, make 24. A small board window (not full screen) opens by the pet. Drag
+it by its title bar. Code: `src/features/games/twenty-four/`, the pet's side
+`src/characters/board.ts` (since 0.60.0).
+
+- **The pet on the board is the desktop pet itself.** It gets up onto the board's window as
+  it can (a climber climbs a side, the others leap or fly up; from another screen it's there
+  at once) and sits near its right end, riding along when you drag the board. Hidden, it
+  comes out to play and goes back in afterwards. While you play it doesn't chatter or wander.
+  Carried off, it goes back up.
+- **Something needs you** (an alarm, a timer or a to-do ringing, a question in its bubble such
+  as Pet Post asking to accept, a celebration): the pet deals with it where it sits, as
+  usual, and the game pauses: a veil over the board ("Paused: Cat is ringing"), the cards
+  blurred, the clock and the pet's thinking stopped. Meanwhile the board isn't kept on top
+  (a task may open a window). Once it's over: "Back to it in 3, 2, 1", and on. "Keep
+  playing" goes on at once (it doesn't pause again for the same thing).
+- **– (minimize)** pauses the game too. The window goes to the taskbar and the pet falls off
+  it, as off any window that goes away, and waits on the floor. Back from the taskbar, it
+  goes up again and "3, 2, 1". Switching to another window doesn't pause.
 
 - **Playing a hand.** Click a card, a sign, then another card: the two make a new card
   (8 ÷ 3 makes 8/3, kept exact), and the new card stays picked so you can carry on with a
@@ -751,13 +766,15 @@ board by its title bar. Code: `src/features/games/twenty-four/`.
   a hard hand. Each move you get further gives you 3 s more (Undo and redo doesn't). You
   first: your point ("You got it first!"). "I can't get it": the pet answers and scores if it knew,
   otherwise nobody does. Its level (⚙): follows its mood (happy and fed: "Won't go easy";
-  content: Normal; grumpy or hungry: Easy), or fixed. Easier levels are slower and sometimes
+  content: Normal; grumpy or hungry: Easy), or fixed. A hard hand gives you 15 s more before
+  it answers. Easier levels are slower and sometimes
   stuck on hard hands ("I can't find it… your turn.").
 - **Practice** (13 hands). "I can't get it": the pet walks over and gives the first step,
   its two cards marked ("Watch me: first 8 ÷ 3 = 8/3."); "Show the next step" gives the
   next, then the whole answer. A hand solved after help scores 0.
-- **Timed.** 2 minutes, as many hands as you can; "I can't get it" shows the answer and
-  moves on.
+- **Timed.** 2 minutes, as many hands as you can; a hard hand adds 15 s to the clock
+  ("+15 s on the clock"). "I can't get it" shows the answer and moves on. Time running out
+  on an unsolved hand: "Time's up! Here's how:" with its answer, then "See the score".
 - **Daily.** One hand a day, the same everywhere; after it, "A new hand comes tomorrow."
   (opening it again that day shows the result).
 - **No answer!** (only with hands without an answer mixed in): right +1, wrong −1 and the

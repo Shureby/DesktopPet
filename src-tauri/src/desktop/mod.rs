@@ -88,7 +88,35 @@ pub fn snapshot<R: Runtime>(pet: &WebviewWindow<R>) -> tauri::Result<DesktopSnap
     let areas: Vec<Area> = monitors.iter().map(area).collect();
     let screens = monitors.iter().map(|m| screen(m, primary.as_ref())).collect();
     let scale = pet.scale_factor()?;
-    Ok(DesktopSnapshot { windows: list_windows(&areas), areas: areas.iter().map(|a| a.rect).collect(), screens, scale })
+    let mut windows = list_windows(&areas);
+    // A board game's window (24 Points) is ours but the pet sits on it: in front of the
+    // others (it stays on top), while it's on screen (not minimized).
+    if let Some(b) = board(pet) {
+        windows.insert(0, b);
+    }
+    Ok(DesktopSnapshot { windows, areas: areas.iter().map(|a| a.rect).collect(), screens, scale })
+}
+
+/// The board game's window as the pet stands on it: the board itself, inside the window's
+/// transparent margin (logical px, as twenty-four.css lays it out).
+pub const BOARD_ID: &str = "epet-board";
+const BOARD_INSET: (f64, f64, f64, f64) = (12.0, 8.0, 12.0, 14.0);
+
+fn board<R: Runtime>(pet: &WebviewWindow<R>) -> Option<WindowRect> {
+    use tauri::Manager;
+    let w = pet.app_handle().get_webview_window(crate::app_windows::GAME)?;
+    if !w.url().ok()?.path().contains("twenty-four") || !w.is_visible().ok()? || w.is_minimized().ok()? {
+        return None;
+    }
+    let (pos, size, s) = (w.outer_position().ok()?, w.outer_size().ok()?, w.scale_factor().ok()?);
+    let (l, t, r, b) = BOARD_INSET;
+    Some(WindowRect {
+        id: BOARD_ID.to_string(),
+        x: pos.x as f64 + l * s,
+        y: pos.y as f64 + t * s,
+        w: size.width as f64 - (l + r) * s,
+        h: size.height as f64 - (t + b) * s,
+    })
 }
 
 /// Other applications' visible windows, front-to-back, excluding our own.

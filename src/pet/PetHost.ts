@@ -10,6 +10,7 @@ import type { Vigil } from "../characters/abilities/core";
 import { applyMoodEvent, isHungry, moodTier, parseMood, type Mood, type MoodEvent } from "../brain/mood";
 import { RulesBrain } from "../brain/RulesBrain";
 import { Pet } from "../characters/Pet";
+import { onBoard } from "../characters/board";
 import { loadAll, type CharacterRegistry, type LoadedCharacter } from "../characters/registry";
 import { areaIndexAt, nearestAreaIndex } from "../engine/physics";
 import { allowedScreens, homeScreen, nearestAllowed, screensOf, VISIT_MS, walkHome, type ScreenInfo } from "../features/screens/screens";
@@ -47,7 +48,7 @@ import {
   timerName,
 } from "../features/alarm/timers";
 import { formatRemaining, gameHeld } from "../features/pomodoro/logic";
-import type { Alarm, Backend, Celebration, DesktopSnapshot, PetActivity, PomodoroStatus, ReminderEvent, Settings, Unseen } from "../platform";
+import type { Alarm, Backend, BackendEvents, Celebration, DesktopSnapshot, PetActivity, PomodoroStatus, ReminderEvent, Settings, Unseen } from "../platform";
 import type { CareAction } from "../characters/schema";
 import { buildItems, buildTrayItems, nativeMenu, showPetMenu, type Item, type MenuContext, type PetMenuContext } from "./menu";
 import { CLOCK_STEPS, shiftLabel } from "../platform/testClock";
@@ -95,6 +96,10 @@ const POSTPONED_KEY = "epet-postponed";
 const MISSED_KEY = "epet-missed-anniversaries";
 /** A missed anniversary older than this isn't brought up any more. */
 const MISSED_DAYS = 7;
+/** Games played on a board the pet sits on (the others cover the screen and the pet hides). */
+const BOARD_GAMES = ["twenty-four"];
+/** The board window's id among the windows the pet can stand on (src-tauri desktop/mod.rs). */
+const BOARD_ID = "epet-board";
 
 /** Put-off anniversaries kept over a restart (today's, or missed ones from the last days). */
 function loadList(key: string): Postponed[] {
@@ -210,6 +215,15 @@ export class PetHost {
   private lastCelebration: Celebration | null = null;
   /** A mini-game is open (the pet is hidden for it). */
   private gameOn = false;
+  /**
+   * A board game open (24 Points): the pet sits on its window (characters/board.ts) instead of
+   * hiding. `showed`: it was hidden and came out for the game (hidden again after).
+   */
+  private board: { game: string; showed: boolean } | null = null;
+  /** What the board game was last told keeps it paused (a ring, a question…), or null. */
+  private boardBusy: string | null = null;
+  /** The bubble asks something (it has buttons): a board game pauses for it. */
+  private asking = false;
   /** "While I was hidden you missed…" waits for a ring to finish. */
   private unseenPending = false;
   /** Until when an important bubble (a missed-alarm notice) can't be talked over. */
@@ -375,9 +389,15 @@ export class PetHost {
       this.enterPeek();
     });
     await this.backend.on("game", (g) => {
+      if (g.state === "started" && BOARD_GAMES.includes(g.game)) return void this.startBoard(g.game);
+      if (g.state !== "started" && this.board) return void this.endBoard();
       this.gameOn = g.state === "started";
       this.setHidden(this.gameOn);
     });
+    // The board game says what the pet does there and what it says.
+    await this.backend.on("board-pet", (b) => this.onBoardPet(b));
+    // Its window moved: where the pet stands, at once (not at the next look in half a second).
+    await this.backend.on("board-moved", () => void this.refreshWorld());
     await this.backend.on("avoid", (reason) => this.onAvoid(reason));
     await this.backend.on("avoid-slideshows", (screens) => (this.slideshows = screens));
     await this.backend.on("avoid-shown-anyway", () => (this.shownAnyway = true));
@@ -448,6 +468,7 @@ export class PetHost {
       this.updateMode();
     }, 30_000);
     setInterval(() => void this.refreshWorld(), 500);
+    setInterval(() => this.checkBoardBusy(), 250);
 
     this.pet.react({ type: "greet" });
     requestAnimationFrame((it) => this.frame(it));
@@ -515,7 +536,8 @@ export class PetHost {
     const preset = this.preset();
     const outOfSight = this.hidden || (this.away !== null && !this.peek);
     this.pet.mode = outOfSight ? "hidden" : this.pomodoro.phase === "focus" ? "focus" : preset.calm ? "quiet" : "free";
-    this.pet.chatty = preset.chatter;
+    // (No chatter while you play a board game with it.)
+    this.pet.chatty = preset.chatter && !this.board;
     const now = new Date();
     const today = dayKey(now);
     // Put off on an earlier day and never played: missed (told later, once).
@@ -1392,6 +1414,8 @@ export class PetHost {
         vx: this.pet.body.vx,
         vy: this.pet.body.vy,
         grounded: this.pet.grounded,
+        /** A board game it sits on (24 Points) and what it does there. */
+        board: this.pet.board ? { ...this.pet.board, on: onBoard(this.pet) } : null,
         /** What it stands on: the floor of an area, or a window's top (its id). */
         support: this.pet.body.support,
         /** Where the pet window is (physical px): page px × dpr from here are screen px. */
@@ -1783,6 +1807,7 @@ export class PetHost {
       this.bubble.append(row);
     }
     this.bubble.hidden = false;
+    this.asking = actions.length > 0;
     this.activeRing = onTimeout ? { onTimeout } : null;
     this.bubbleTimer = setTimeout(() => {
       const ring = this.activeRing;
@@ -1790,6 +1815,52 @@ export class PetHost {
       this.hideBubble();
       ring?.onTimeout();
     }, ms);
+  }
+
+  // --- Board games (24 Points): the pet sits on the game's window ------------------
+
+  private async startBoard(game: string): Promise<void> {
+    this.board = { game, showed: !this.petVisible };
+    this.boardBusy = null;
+    this.pet.board = { id: BOARD_ID, pose: "rest" };
+    this.updateMode();
+    // Hidden, it comes out to play (and goes back in afterwards).
+    if (!this.petVisible) await this.backend.setPetVisible(true);
+    await this.refreshWorld();
+    if (this.pet.grounded && this.pet.state !== "drag") this.pet.fsm.set(this.pet.next(), true);
+  }
+
+  private endBoard(): void {
+    const showed = this.board?.showed;
+    this.board = null;
+    this.boardBusy = null;
+    this.pet.board = null;
+    this.updateMode();
+    // Its window gone, it falls off as off any window; on the floor it carries on as usual.
+    if (this.pet.grounded && this.pet.state.startsWith("board")) this.pet.fsm.set(this.pet.next(), true);
+    if (showed) void this.backend.setPetVisible(false);
+  }
+
+  private onBoardPet(b: BackendEvents["board-pet"]): void {
+    const perch = this.pet.board;
+    if (!this.board || !perch) return;
+    if (b.pose && b.pose !== perch.pose) {
+      perch.pose = b.pose;
+      // Changes at once on the board (not in the middle of getting up there, or being carried).
+      const settled = ["idle", "sit", "happy", "alert", "land"].includes(this.pet.state) || this.pet.state.startsWith("board");
+      if (onBoard(this.pet) && settled && this.pet.state !== "boardMount" && this.pet.state !== "boardLeap") this.pet.fsm.set(this.pet.next(), true);
+    }
+    // Its lines are ordinary ones: a ring or a question showing keeps the bubble.
+    if (b.say) this.say(b.say, b.ms || 8000);
+  }
+
+  /** Something needs you while you play: the board game pauses until it's over (checked often). */
+  private checkBoardBusy(): void {
+    if (!this.board) return;
+    const reason = this.activeRing ? "ring" : this.celebrating ? "celebrate" : this.asking || this.prompting ? "ask" : null;
+    if (reason === this.boardBusy) return;
+    this.boardBusy = reason;
+    void this.backend.emit("board-pause", { reason });
   }
 
   /** What Pet Post's courier (courier.ts) may do with the pet. */
@@ -1889,6 +1960,7 @@ export class PetHost {
 
   private hideBubble(): void {
     this.bubble.hidden = true;
+    this.asking = false;
     this.stopRinging?.();
     this.stopRinging = null;
   }

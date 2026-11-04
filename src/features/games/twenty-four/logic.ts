@@ -258,11 +258,13 @@ const FINDS_NORMAL: Record<Level, number> = { easy: 0.85, normal: 1, strong: 1 }
 export const READY_MS = 5000;
 /** Each move you make (the furthest you've got, not again after Undo) gives you this much more time. */
 export const STEP_GRACE_MS = 3000;
+/** A hard hand (fractions) takes longer to put in too: this much more before the pet answers. */
+export const HARD_EXTRA_MS = 15_000;
 
 export function petPlan(kind: Kind, level: Level, rng: Rng): PetPlan {
   const extra = kind === "hard" ? 2 : kind === "none" ? 1.5 : 1;
   const think = THINK_S[level] * extra * (0.8 + rng() * 0.45);
-  const ms = Math.round((INPUT_S + think) * 1000);
+  const ms = Math.round((INPUT_S + think) * 1000) + (kind === "hard" ? HARD_EXTRA_MS : 0);
   const chance = kind === "hard" ? FINDS_HARD[level] : kind === "normal" ? FINDS_NORMAL[level] : 1;
   return { ms: Math.max(ms, READY_MS + 2000), finds: rng() < chance };
 }

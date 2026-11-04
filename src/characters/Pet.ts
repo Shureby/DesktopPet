@@ -6,6 +6,7 @@ import { createBody, step, type Body, type Ledge, type StepResult, type World } 
 import { pick, range, type Rng } from "../engine/random";
 import { resolveAbilities, type ResolvedAbility } from "./abilities";
 import { pendingVigil } from "./abilities/core";
+import { boardNext, type BoardPerch } from "./board";
 import { BASE_GAME_MODIFIERS, type BehaviorDef, type GameModifiers } from "./abilities/types";
 import { frameSize, type CharacterDef } from "./schema";
 import { characterLines } from "./text";
@@ -45,6 +46,8 @@ export class Pet {
   cursor: { x: number; y: number } | null = null;
   /** The mouse is resting on the pet and it has stopped for you (`attend` state). */
   attending = false;
+  /** A board game's window it sits on while you play (see board.ts); null otherwise. */
+  board: BoardPerch | null = null;
   /** Destination for the `goto` state. */
   target: { x: number } | null = null;
   /** Scratch space for ability states (e.g. the wall being climbed). */
@@ -145,6 +148,8 @@ export class Pet {
 
   /** Ask the brain what to do next (states return this from `update`). */
   next(): string {
+    // Playing a board game with you: on the board, doing what the game says.
+    if (this.board) return boardNext(this);
     // Stepped up onto another screen on its way somewhere: on it goes.
     const resume = this.scratch.afterLedge as string | undefined;
     if (resume) {

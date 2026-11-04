@@ -86,7 +86,8 @@ export const climbWall: AbilityModule<Params> = {
           p.body.y = win.y;
           p.body.x += p.facing * p.body.w;
           p.body.support = { kind: "window", id: win.id, dx: p.body.x - win.x };
-          return "idle";
+          // (Up onto a board game's window: straight to what the game wants.)
+          return p.board ? p.next() : "idle";
         }
         // Reached the chosen height on a screen edge: kick off and fall back down.
         p.facing = p.facing === 1 ? -1 : 1;

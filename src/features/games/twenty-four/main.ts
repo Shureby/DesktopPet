@@ -1,17 +1,27 @@
 import { parseMood } from "../../../brain/mood";
 import { loadBundled, loadUser } from "../../../characters/registry";
 import { characterName } from "../../../characters/text";
-import { SpriteAtlas } from "../../../engine/sprites";
 import { followLocale } from "../../../i18n/apply";
+import { playAnswerSound } from "../../../pet/sound";
 import { backend } from "../../../platform";
 import { followTestClock } from "../../../platform/testClock";
 import "../../../styles/twenty-four.css";
 import { TwentyFour, type Mode } from "./game";
 import { levelFromMood } from "./logic";
 import { PetStage } from "./stage";
-import { playAnswerSound } from "../../../pet/sound";
 
-/** The 24 Points window: the board, with the current character standing on top of it. */
+/** This window, in the app (absent in a plain browser). */
+async function appWindow() {
+  if (!("__TAURI_INTERNALS__" in window)) return null;
+  const { getCurrentWindow } = await import("@tauri-apps/api/window");
+  return getCurrentWindow();
+}
+
+/**
+ * The 24 Points window: the board. The pet on it is the desktop pet (characters/board.ts):
+ * the game tells it what to do ("board-pet"), and it tells the game when something needs
+ * you ("board-pause").
+ */
 async function main() {
   await followTestClock(backend);
   const registry = loadBundled();
@@ -22,11 +32,10 @@ async function main() {
   }
   const settings = await backend.getSettings();
   await followLocale(backend, settings);
-  const character = registry.pick(settings.character, "cat");
-  const def = character.def;
-  const atlas = await SpriteAtlas.load(def.sprite, character.asset);
+  const def = registry.pick(settings.character, "cat").def;
   const mood = parseMood(await backend.loadMood(def.id).catch(() => null));
-  const stage = new PetStage(document.getElementById("t24-pet") as HTMLCanvasElement, document.getElementById("t24-bubble")!, def, atlas);
+  const win = await appWindow();
+  const stage = new PetStage((b) => void backend.emit("board-pet", b));
   const game = new TwentyFour(document.getElementById("t24")!, {
     name: characterName(def),
     moodLevel: levelFromMood(mood),
@@ -52,11 +61,23 @@ async function main() {
       void backend.emit("pet-event", { type: "game", won });
     },
     close: () => void backend.closeGame(),
+    minimize: () => void win?.minimize(),
+    onTop: (on) => void win?.setAlwaysOnTop(on),
     // Settings → "Other sounds" off keeps these quiet too.
     sound: (kind) => {
       if (settings.sound) playAnswerSound(kind, 0.6);
     },
   });
+  await backend.on("board-pause", (p) => game.busy(p.reason));
+  // Back from the taskbar: on again after "3, 2, 1".
+  if (win) {
+    let minimized = false;
+    setInterval(async () => {
+      const now = await win.isMinimized().catch(() => false);
+      if (minimized && !now) game.restored();
+      minimized = now;
+    }, 400);
+  }
   const first = location.hash.slice(1) as Mode;
   game.start(["race", "practice", "timed", "daily"].includes(first) ? first : "race");
   // End-to-end tests (e2e/, debug builds only): what the board shows, a given hand, the pet answering now.
@@ -70,8 +91,13 @@ async function main() {
         deal: (ranks: number[]) => game.dealHand(ranks),
         petNow: () => game.petNow(),
         petReady: () => game.petReady(),
-        timeUp: () => game.timeUp(),
+        timeUp: () => game.runOut(),
         start: (mode: Mode) => game.start(mode),
+        minimize: () => game.minimize(),
+        restore: async () => {
+          await win?.unminimize();
+          await win?.setFocus();
+        },
       },
     });
   }

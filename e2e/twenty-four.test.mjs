@@ -74,13 +74,27 @@ async function open24() {
   return board();
 }
 
+/** Waits until the desktop pet stands on the board's window. */
+async function onTheBoard(timeout = 20_000) {
+  await ctx.app.b
+    .waitUntil(async () => (await ctx.app.pet()).board?.on === true, {
+      timeout,
+    })
+    .catch(async () => {
+      const p = await ctx.app.pet();
+      throw new Error(
+        `not on the board: ${p.state} ${JSON.stringify(p.support)} ${JSON.stringify(p.board)}`,
+      );
+    });
+}
+
 async function close24() {
   await ctx.app.closeWindow("game");
 }
 
 check(
   "t24.open",
-  "Play 24 Points opens a small board with the pet standing on its top right; the desktop pet steps away until it closes",
+  "Play 24 Points opens a small board; the desktop pet itself gets up onto it and sits at its top right, quiet; it stays out when the game closes",
   async () => {
     const app = ctx.app;
     const s = await open24();
@@ -92,16 +106,94 @@ check(
       window.innerHeight,
     ]);
     assert.ok(w <= 520 && h <= 720, `a board, not the whole screen: ${w}×${h}`);
-    // Its pet is drawn on the strip above the board.
+    // The desktop pet, not a copy: out, on the board's window, near its right end.
+    await onTheBoard();
+    const p = await app.pet();
+    assert.equal(p.hidden, false);
+    const board = p.windows.find((x) => x.id === "epet-board");
     assert.ok(
-      await app.b.execute(() => document.getElementById("t24-pet").width > 0),
+      p.x > board.x + board.w / 2,
+      `at its right end: ${p.x} on ${board.x}…${board.x + board.w}`,
     );
-    assert.equal((await app.pet()).hidden, true, "the desktop pet steps away");
+    assert.equal(Math.round(p.y), Math.round(board.y));
     await close24();
-    await app.b.waitUntil(async () => (await app.pet()).hidden === false, {
+    await app.b.waitUntil(async () => (await app.pet()).board === null, {
       timeout: 5000,
     });
+    assert.equal((await app.pet()).hidden, false);
   },
+);
+
+check(
+  "t24.pause",
+  "an alarm or timer ringing (anything the pet asks): the game pauses (veil, cards blurred) and the pet rings on the board; answered, “3, 2, 1” and on; “Keep playing” goes on at once",
+  async () => {
+    const app = ctx.app;
+    await open24();
+    await options({ level: "easy" }, "race");
+    await onTheBoard();
+    await app.addTimer(1, 1500);
+    await app.waitBubble("Time's up", 10_000);
+    await app.b.waitUntil(
+      async () => (await board()).paused?.reason === "ring",
+      { timeout: 5000 },
+    );
+    assert.ok((await app.text(".t24-pause")).includes("ringing"));
+    assert.equal(
+      await app.b.execute(() =>
+        document.querySelector(".t24-body").classList.contains("paused"),
+      ),
+      true,
+    );
+    // It rang where it sits.
+    assert.equal((await app.pet()).support?.id, "epet-board");
+    await app.answer("Done");
+    await app.b.waitUntil(
+      async () => (await board()).paused?.counting === true,
+      { timeout: 5000 },
+    );
+    await app.b.waitUntil(async () => (await board()).paused === null, {
+      timeout: 6000,
+    });
+    // Keep playing: on at once, even while it still rings.
+    await app.addTimer(1, 1500);
+    await app.waitBubble("Time's up", 10_000);
+    await app.b.waitUntil(
+      async () => (await board()).paused?.reason === "ring",
+      { timeout: 5000 },
+    );
+    await app.click(".t24-pause button", "Keep playing");
+    await app.b.waitUntil(async () => (await board()).paused === null, {
+      timeout: 6000,
+    });
+    await app.answer("Done");
+    await close24();
+  },
+  { timeout: 120_000 },
+);
+
+check(
+  "t24.minimize",
+  "– minimizes the board and pauses the game: the pet falls off as off any window; back from the taskbar, it goes up again and “3, 2, 1”, on",
+  async () => {
+    const app = ctx.app;
+    await open24();
+    await onTheBoard();
+    await app.click(".t24-icon", "–");
+    assert.equal((await board()).paused?.reason, "minimized");
+    await app.b.waitUntil(
+      async () =>
+        (await app.pet()).board?.on === false && (await app.pet()).grounded,
+      { timeout: 8000 },
+    );
+    await hook("restore");
+    await app.b.waitUntil(async () => (await board()).paused === null, {
+      timeout: 8000,
+    });
+    await onTheBoard();
+    await close24();
+  },
+  { timeout: 120_000 },
 );
 
 check(
@@ -328,13 +420,30 @@ check(
 
 check(
   "t24.modes",
-  "Timed: a 2-minute clock, then the result; Daily: one hand a day, the same for everyone, then “a new hand comes tomorrow”",
+  "Timed: a 2-minute clock, +15 s for a hard hand; time up on an unsolved hand: its answer, then the score; Daily: one hand a day, the same for everyone, then “a new hand comes tomorrow”",
   async () => {
     const app = ctx.app;
     await open24();
     await app.click(".t24-tabs button[data-mode=timed]");
     assert.ok((await app.text(".t24-clock-text")).includes("s left"));
+    // A hard hand: 15 s more on the clock.
+    const before = (await board()).endsIn;
+    await hook("deal", [3, 3, 8, 8]);
+    const after = (await board()).endsIn;
+    assert.ok(after - before > 14_000, `${before} → ${after}`);
+    assert.ok((await app.text(".t24-note")).includes("+15 s"));
+    // Time's up on an unsolved hand: its answer first, the score when you say.
     await hook("timeUp");
+    let s = await board();
+    assert.equal(s.phase, "over");
+    assert.equal(s.timeUp, true);
+    assert.match(await app.text(".t24-msg"), /Time's up/);
+    assert.deepEqual(await app.texts(".t24-line"), [
+      "8 ÷ 3 = 8/3",
+      "3 − 8/3 = 1/3",
+      "8 ÷ 1/3 = 24 ✓",
+    ]);
+    await app.click(".t24-actions button.primary", "See the score");
     assert.equal((await board()).phase, "done");
     assert.ok(
       (await app.text(".t24-result h2")).includes("solved in 2 minutes"),

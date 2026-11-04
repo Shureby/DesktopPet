@@ -1,4 +1,5 @@
 import product from "../../product.config.json";
+import type { BoardPose } from "../characters/board";
 import type { Rect, WindowRect } from "../engine/geometry";
 import type { ScreenInfo } from "../features/screens/screens";
 import type { RingtoneId } from "../pet/sound";
@@ -438,6 +439,12 @@ export interface BackendEvents {
   /** Today is an anniversary (once a day, the first time you're at the computer). */
   celebrate: Celebration;
   game: { state: "started" | "ended"; game: string };
+  /** A board game (24 Points) to the pet sitting on it: what to do there, and a line to say. */
+  "board-pet": { pose?: BoardPose; say?: string; ms?: number };
+  /** The pet to the board game: something needs you (a ring, a question, a celebration): pause; null: go on. */
+  "board-pause": { reason: string | null };
+  /** The board game's window moved (the pet rides along at once). */
+  "board-moved": null;
   /** A tab to show; Pet Post also as "post:send" / "post:verify=<fingerprint>". */
   "panel-tab": string;
   "pet-command": "show" | "hide" | "greet";

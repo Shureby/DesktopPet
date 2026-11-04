@@ -16,6 +16,28 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.60.0] - 2026-11-04
+
+### Changed
+- **24 Points: the pet on the board is your desktop pet.** It gets up onto the board as it
+  can (the cat climbs a side, the rooster flies up), sits at its top right, rides along when
+  you drag the board, paces while it thinks and settles down when it has the answer. No
+  chatter while you play. (Before, the board had its own drawing of the pet and the desktop
+  one hid.)
+- **Hard hands give you more time:** 15 s more before the pet answers, and 15 s more on a
+  timed round's clock ("+15 s on the clock").
+- **Time running out on an unsolved hand** (timed) shows its answer first ("Time's up!
+  Here's how:"); "See the score" then shows the result.
+
+### Added
+- **The game pauses when something needs you:** an alarm, timer or to-do ringing, or the pet
+  asking something (Pet Post…). The pet deals with it on the board as usual; the board shows
+  "Paused" (cards blurred, the clock and the pet's thinking stopped), then "3, 2, 1" and on
+  once it's over. "Keep playing" goes on at once.
+- **– (minimize) on the board:** the game pauses, the board goes to the taskbar and the pet
+  falls off it as off any window. Back from the taskbar, the pet goes up again and the game
+  goes on after "3, 2, 1".
+
 ## [0.59.2] - 2026-11-04
 
 ### Changed

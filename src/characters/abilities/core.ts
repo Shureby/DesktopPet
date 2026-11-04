@@ -2,6 +2,7 @@ import { msg } from "../../i18n";
 import { z } from "zod";
 import { bottom, right } from "../../engine/geometry";
 import { areaIndexAt, nearestAreaIndex } from "../../engine/physics";
+import { BOARD_STATES } from "../board";
 import type { Pet } from "../Pet";
 import type { AbilityModule } from "./types";
 
@@ -54,6 +55,7 @@ export const core: AbilityModule<Record<string, never>> = {
     approach: { state: "approach", canStart: (p) => grounded(p) && p.cursor !== null },
   },
   states: {
+    ...BOARD_STATES,
     idle: rest("idle", 2, 5),
     sit: rest("sit", 4, 10),
     sleep: {
