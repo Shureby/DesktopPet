@@ -55,6 +55,11 @@ async function options({ hands, unsolvable, level, sounds }, mode) {
       const c = document.querySelector("input[name=unsolvable]");
       if (c.checked !== on) c.click();
     }, unsolvable);
+  if (sounds !== undefined)
+    await app.b.execute((on) => {
+      const c = document.querySelector("input[name=sounds]");
+      if (c.checked !== on) c.click();
+    }, sounds);
   if (level)
     await app.b.execute(
       (v) => document.querySelector(`input[name=level][value=${v}]`).click(),
@@ -135,6 +140,71 @@ check(
 );
 
 check(
+  "t24.feedback",
+  "one line per move; the last one green ✓ (a ding-dong) or red ✗ (a boop) with Undo and Start over picked out; a right answer waits for Next; the sounds can be turned off",
+  async () => {
+    const app = ctx.app;
+    await open24();
+    await options({ sounds: true }, "race");
+    const sounds = () =>
+      app.b.execute(() =>
+        window.__epetSounds.filter((x) => x.kind === "answer").map((x) => x.id),
+      );
+    // 6 7 Q 4 the long way round: 7 × 4 = 28, 28 − Q = 16, 16 + 6 = 22.
+    await hook("deal", [6, 7, 12, 4]);
+    await tap(1, "×", 3);
+    assert.deepEqual(await app.texts(".t24-line"), [
+      "7 × 4 = 28",
+      "28 ▍ Pick a sign",
+    ]);
+    await tap("−", 2, "+", 0);
+    assert.deepEqual(await app.texts(".t24-line"), [
+      "7 × 4 = 28",
+      "28 − Q = 16",
+      "16 + 6 = 22 ✗",
+    ]);
+    assert.equal((await app.texts(".t24-line.wrong")).length, 1);
+    assert.match(await app.text(".t24-msg"), /Makes 22, not 24/);
+    assert.equal((await app.texts(".t24-actions button.warn")).length, 2);
+    assert.deepEqual(await sounds(), ["wrong"]);
+    // Start over: the four cards again.
+    await app.click(".t24-actions button", "Start over");
+    assert.deepEqual(
+      (await board()).cards.map((c) => c.used),
+      [false, false, false, false],
+    );
+    assert.equal(
+      (await app.texts(".t24-line")).length,
+      1,
+      "only the “Pick a card…” line",
+    );
+    // 7 − 4 = 3, 6 ÷ 3 = 2, 2 × Q = 24.
+    await tap(1, "−", 3, 0, "÷", 3, "×", 2);
+    assert.deepEqual(await app.texts(".t24-line"), [
+      "7 − 4 = 3",
+      "6 ÷ 3 = 2",
+      "2 × Q = 24 ✓",
+    ]);
+    assert.match(await app.text(".t24-msg.good"), /Got it! \+1/);
+    assert.deepEqual(await sounds(), ["wrong", "right"]);
+    // It stays until Next.
+    const s = await board();
+    await app.sleep(2500);
+    assert.equal((await board()).handNo, s.handNo);
+    assert.equal((await board()).phase, "over");
+    await app.click(".t24-actions button.primary", "Next hand");
+    assert.equal((await board()).handNo, s.handNo + 1);
+    // Turned off: no sounds.
+    await options({ sounds: false }, "practice");
+    await hook("deal", [1, 2, 3, 4]);
+    await tap(0, "+", 1, "+", 2, "+", 3);
+    assert.deepEqual(await sounds(), ["wrong", "right"]);
+    await options({ sounds: true });
+    await close24();
+  },
+);
+
+check(
   "t24.help",
   "“I can't get it” in practice: the pet comes over, gives the first step (its cards marked), then the next, then the answer; the hand scores 0; a hard hand says it needs fractions",
   async () => {
@@ -164,7 +234,7 @@ check(
 
 check(
   "t24.race",
-  "vs the pet: it paces while thinking, settles down 3 s before it answers (“answers in 3 s”), then answers and scores; you first: your point",
+  "vs the pet: it paces while thinking, never answers sooner than 15 s plus its thinking, 3 s more for each move you make (not again after Undo); settles down 5 s before it answers (“answers in 5 s”), then answers and scores; you first: your point",
   async () => {
     const app = ctx.app;
     await open24();
@@ -173,11 +243,19 @@ check(
     let s = await board();
     assert.equal(s.petState, "thinking");
     assert.equal(s.pose, "think");
+    const ms = s.petMs;
+    assert.ok(ms >= 19_000, `answers after ${ms} ms`);
+    await tap(0, "×", 1);
+    assert.equal((await board()).petMs, ms + 3000);
+    await app.click(".t24-actions button", "Undo");
+    await tap(0, "×", 1);
+    assert.equal((await board()).petMs, ms + 3000, "not again after Undo");
+    await app.click(".t24-actions button", "Start over");
     await hook("petReady");
     s = await board();
     assert.equal(s.petState, "ready");
     assert.equal(s.pose, "ready");
-    assert.ok((await app.text(".t24-clock-text")).includes("answers in"));
+    assert.ok((await app.text(".t24-clock-text")).includes("answers in 5 s"));
     await hook("petNow");
     s = await board();
     assert.equal(s.pet, 1);
