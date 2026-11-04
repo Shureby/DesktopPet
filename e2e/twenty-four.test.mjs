@@ -110,12 +110,12 @@ check(
     await onTheBoard();
     const p = await app.pet();
     assert.equal(p.hidden, false);
-    const board = p.windows.find((x) => x.id === "epet-board");
+    const win = p.windows.find((x) => x.id === "epet-board");
     assert.ok(
-      p.x > board.x + board.w / 2,
-      `at its right end: ${p.x} on ${board.x}…${board.x + board.w}`,
+      p.x > win.x + win.w / 2,
+      `at its right end: ${p.x} on ${win.x}…${win.x + win.w}`,
     );
-    assert.equal(Math.round(p.y), Math.round(board.y));
+    assert.equal(Math.round(p.y), Math.round(win.y));
     // Another character picked meanwhile: it goes up onto the board too, and the tab says so.
     await app.run("pet", "Switch character", "Rooster");
     await app.b.waitUntil(
