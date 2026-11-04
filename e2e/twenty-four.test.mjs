@@ -179,8 +179,17 @@ check(
     const app = ctx.app;
     await open24();
     await onTheBoard();
+    await board();
     await app.click(".t24-icon", "–");
     assert.equal((await board()).paused?.reason, "minimized");
+    const minimized = await app.invoke("plugin:window|is_minimized", {
+      label: "game",
+    });
+    if (!minimized && process.platform === "linux") {
+      // (Xvfb without a window manager can't minimize: the pause is all there is to see.)
+      await close24();
+      return;
+    }
     await app.b.waitUntil(
       async () =>
         (await app.pet()).board?.on === false && (await app.pet()).grounded,
