@@ -743,6 +743,11 @@ it by its title bar. Code: `src/features/games/twenty-four/`, the pet's side
   it, as off any window that goes away, and waits on the floor. Back from the taskbar, it
   goes up again and "3, 2, 1". Switching to another window doesn't pause.
 
+- **The board's rows stay put** (since 0.60.1): score, the status line (the pet thinking or
+  having it, "Cat got it first (31 s)", time left, "This one's tricky…"), the cards, the
+  signs right under them, the working box (always the same size) and the buttons. An answer
+  shown there is headed by whose it is ("Cat's way:", "The answer:", "Time's up! Here's
+  how:"), one step a line.
 - **Playing a hand.** Click a card, a sign, then another card: the two make a new card
   (8 ÷ 3 makes 8/3, kept exact), and the new card stays picked so you can carry on with a
   sign. The box under the cards shows one line per move ("7 − 4 = 3"), then the move in

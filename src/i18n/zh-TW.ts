@@ -198,8 +198,6 @@ const zhTW: Dictionary = {
     "There is an answer! −1": "其實有解喔！−1",
     "No answer for this one.": "這題無解。",
     "No answer for this one!": "這題無解！",
-    "Answer: {expr} = 24": "答案：{expr} = 24",
-    "{name}: {expr} = 24": "{name}：{expr} = 24",
     "{name}: no answer for this one": "{name}：這題無解",
     "Let's see who's quicker!": "來比比誰快！",
     "Got it~ Take your time, I'll say it in {s} seconds.":
@@ -263,8 +261,12 @@ const zhTW: Dictionary = {
     Paused: "暫停中",
     "Back to it in": "馬上繼續",
     "Keep playing": "先玩著",
-    "This one's tricky: it needs fractions. +15 s on the clock.":
-      "這題會比較難喔，中間要用到分數。時間 +15 秒。",
+    "{name} got it first ({s} s)": "{name}搶先了（用了 {s} 秒）",
+    "You got this one first": "這題你先算出來了",
+    "Nobody got this one": "這題誰都沒算出來",
+    "Hard hand: +15 s on the clock.": "難題：時間 +15 秒",
+    "{name}'s way:": "{name}的算法：",
+    "The answer:": "答案：",
     "Jump Up": "跳跳樂",
     "Bounce from platform to platform as high as you can, avoiding birds and falling sticky notes.":
       "在平台之間往上跳，越高越好，小心飛鳥和掉下來的便利貼。",

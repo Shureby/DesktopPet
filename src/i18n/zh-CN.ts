@@ -198,8 +198,6 @@ const zhCN: Dictionary = {
     "There is an answer! −1": "其实有解哦！−1",
     "No answer for this one.": "这题无解。",
     "No answer for this one!": "这题无解！",
-    "Answer: {expr} = 24": "答案：{expr} = 24",
-    "{name}: {expr} = 24": "{name}：{expr} = 24",
     "{name}: no answer for this one": "{name}：这题无解",
     "Let's see who's quicker!": "来比比谁快！",
     "Got it~ Take your time, I'll say it in {s} seconds.":
@@ -263,8 +261,12 @@ const zhCN: Dictionary = {
     Paused: "暂停中",
     "Back to it in": "马上继续",
     "Keep playing": "先玩着",
-    "This one's tricky: it needs fractions. +15 s on the clock.":
-      "这题会比较难哦，中间要用到分数。时间 +15 秒。",
+    "{name} got it first ({s} s)": "{name}抢先了（用了 {s} 秒）",
+    "You got this one first": "这题你先算出来了",
+    "Nobody got this one": "这题谁都没算出来",
+    "Hard hand: +15 s on the clock.": "难题：时间 +15 秒",
+    "{name}'s way:": "{name}的算法：",
+    "The answer:": "答案：",
     "Jump Up": "跳跳乐",
     "Bounce from platform to platform as high as you can, avoiding birds and falling sticky notes.":
       "在平台之间往上跳，越高越好，小心飞鸟和掉下来的便利贴。",

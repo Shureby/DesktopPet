@@ -124,7 +124,9 @@ button:disabled {
   flex-direction: column;
   gap: 12px;
   padding: 14px 18px 16px;
-  min-height: 430px;
+  /* The same height whatever it shows, so nothing on the board jumps. */
+  height: 532px;
+  overflow: hidden;
   box-sizing: border-box;
 }
 .t24-top {
@@ -146,9 +148,27 @@ button:disabled {
   color: var(--accent-strong);
 }
 .t24-clock {
+  position: relative;
+  height: 34px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   gap: 5px;
+}
+.t24-clock.over .t24-bar > div {
+  background: var(--border);
+}
+.t24-clock .t24-note {
+  background: none;
+  padding: 0;
+  font-weight: 700;
+}
+.t24-clock .t24-tip {
+  position: absolute;
+  right: 0;
+  top: 0;
+  font-size: 12px;
 }
 .t24-clock-text {
   font-size: 12px;
@@ -232,7 +252,10 @@ button:disabled {
 }
 
 .t24-work {
-  min-height: 104px;
+  height: 132px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  box-sizing: border-box;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -305,15 +328,20 @@ button:disabled {
 .t24-ops {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
 .t24-ops button {
-  height: 44px;
-  border-radius: 10px;
+  height: 56px;
+  border-radius: 12px;
   border: 1px solid var(--border);
   background: var(--surface);
-  font-size: 22px;
+  box-shadow: 0 2px 0 var(--border);
+  font-size: 30px;
   font-weight: 800;
+  line-height: 1;
+}
+.t24-ops button:not(:disabled):hover {
+  transform: translateY(-1px);
 }
 .t24-ops button.on {
   border: 2px solid var(--accent);
@@ -429,4 +457,11 @@ button:disabled {
   border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--surface);
+}
+
+/* Whose answer is shown ("Cat's way:", "Time's up! Here's how:"). */
+.t24-reveal {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
 }

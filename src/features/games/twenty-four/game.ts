@@ -115,8 +115,10 @@ export class TwentyFour {
   private messageGood = false;
   /** How the last move came out: 24, or one card that isn't 24. */
   private outcome: "right" | "wrong" | null = null;
-  /** The answer shown (by the pet, or after "I can't get it"). */
-  private revealed = false;
+  /** The answer shown: by the pet, after "I can't get it", or when time ran out. */
+  private revealed: "pet" | "answer" | "timeup" | false = false;
+  /** Who got the hand (for the status line once it's over), and how long it took. */
+  private winner: { who: "you" | "pet" | "none"; ms: number } | null = null;
   /** Time ran out in a timed round with this hand unsolved: its answer shows, then the score. */
   private timeUp = false;
   /** A hard hand added to a timed round's clock. */
@@ -230,6 +232,7 @@ export class TwentyFour {
     this.furthest = 0;
     this.outcome = null;
     this.revealed = false;
+    this.winner = null;
     this.pick = this.op = null;
     this.hint = 0;
     this.wrongNone = false;
@@ -374,6 +377,7 @@ export class TwentyFour {
     this.solved++;
     const stage = this.hooks.stage;
     this.outcome = "right";
+    this.won("you");
     this.sound("right");
     if (this.hint > 0) {
       this.say(t("Got it! (no point after help)"), true);
@@ -401,6 +405,7 @@ export class TwentyFour {
       this.you++;
       this.solved++;
       this.say(t("Right, no answer! +1"), true);
+      this.won("you");
       this.sound("right");
       stage.set(this.mode === "race" ? "sulk" : "cheer");
       stage.say(this.mode === "race" ? t("You called it first!") : t("Nice one!"), 2000);
@@ -430,7 +435,8 @@ export class TwentyFour {
         stage.say(t("I couldn't find it either…"), 3000);
       }
       this.petState = "found";
-      this.reveal();
+      this.won(this.plan?.finds ? "pet" : "none");
+      this.reveal(this.plan?.finds ? "pet" : "answer");
       return this.endHand(0);
     }
     if (this.mode === "timed") {
@@ -465,15 +471,21 @@ export class TwentyFour {
     this.render();
   }
 
-  private reveal() {
-    const sol = this.hand.solution;
-    this.revealed = true;
-    this.say(sol ? t("Answer: {expr} = 24", { expr: sol.expr }) : t("No answer for this one."), false);
+  /** The answer, one step a line (the header says whose); none: said so. */
+  private reveal(by: "pet" | "answer" | "timeup" = "answer") {
+    this.revealed = by;
+    if (this.hand.solution) this.message = "";
+    else this.say(by === "pet" ? t("{name}: no answer for this one", { name: this.hooks.name }) : t("No answer for this one."), false);
+  }
+
+  private won(who: "you" | "pet" | "none") {
+    this.winner = { who, ms: this.now() - this.dealtAt };
   }
 
   /** The hand is done; the next one comes after `ms` (0: when Next is pressed). */
   private endHand(ms: number) {
     this.phase = "over";
+    this.pick = this.op = null;
     this.plan = null;
     this.render();
     if (ms > 0) this.nextTimer = window.setTimeout(() => this.next(), ms);
@@ -605,8 +617,7 @@ export class TwentyFour {
       // Unsolved when time ran out: its answer, then the score when you've seen it.
       if (this.phase !== "playing") return this.finish();
       this.timeUp = true;
-      this.reveal();
-      this.say(t("Time's up! Here's how:"), false);
+      this.reveal("timeup");
       return this.endHand(0);
     }
     if (this.mode === "timed" && this.phase !== "done") this.renderClock();
@@ -638,8 +649,8 @@ export class TwentyFour {
     stage.set("cheer");
     const sol = this.hand.solution;
     stage.say(sol ? t("{expr} = 24!", { expr: sol.expr }) : t("No answer for this one!"));
-    this.revealed = true;
-    this.say(sol ? t("{name}: {expr} = 24", { name: this.hooks.name, expr: sol.expr }) : t("{name}: no answer for this one", { name: this.hooks.name }), false);
+    this.won("pet");
+    this.reveal("pet");
     this.endHand(0);
   }
 
@@ -667,6 +678,8 @@ export class TwentyFour {
       const left = Math.max(0, this.endsAt - this.now());
       el.querySelector(".t24-bar > div")?.setAttribute("style", `width: ${(left / TIMED_MS) * 100}%`);
       el.querySelector(".t24-clock-text")!.textContent = t("{s} s left", { s: Math.ceil(left / 1000) });
+    } else if (this.mode === "race" && !this.plan) {
+      el.querySelector(".t24-bar > div")?.setAttribute("style", "width: 100%");
     } else if (this.plan) {
       const at = this.now() - this.dealtAt;
       el.querySelector(".t24-bar > div")?.setAttribute("style", `width: ${Math.min(100, (at / this.plan.ms) * 100)}%`);
@@ -747,30 +760,36 @@ export class TwentyFour {
         hard ? h("b", { class: "t24-hard" }, ` · ${t("Hard")}`) : null,
       ),
     );
-    const clock =
-      this.mode === "timed" || this.plan
-        ? h(
-            "div",
-            { class: "t24-clock" },
-            h(
-              "div",
-              { class: "t24-clock-text" },
-              this.mode === "timed"
-                ? ""
-                : this.petState === "ready"
-                  ? t("{name} has it: answers in {s} s", { name: this.hooks.name, s: READY_MS / 1000 })
-                  : this.petState === "stuck"
-                    ? t("{name} is stuck", { name: this.hooks.name })
-                    : t("{name} is thinking…", { name: this.hooks.name }),
-            ),
-            h("div", { class: "t24-bar" }, h("div", {})),
-          )
-        : null;
+    // The status line: always there (so nothing below it moves), what it says changes.
+    const name = this.hooks.name;
+    const bar = this.mode === "timed" || this.mode === "race";
+    let text = "";
+    let tip: string | null = null;
+    if (this.mode === "race") {
+      const w = this.winner;
+      text = w
+        ? w.who === "pet"
+          ? t("{name} got it first ({s} s)", { name, s: Math.round(w.ms / 1000) })
+          : w.who === "you"
+            ? t("You got this one first")
+            : t("Nobody got this one")
+        : this.petState === "ready"
+          ? t("{name} has it: answers in {s} s", { name, s: READY_MS / 1000 })
+          : this.petState === "stuck"
+            ? t("{name} is stuck", { name })
+            : t("{name} is thinking…", { name });
+    } else if (this.mode !== "timed") {
+      text = hard && this.phase === "playing" ? t("This one's tricky: it needs fractions.") : t("After help, a hand scores 0.");
+    }
+    if (this.mode === "timed" && hard && this.bonus) tip = t("Hard hand: +15 s on the clock.");
+    const clock = h(
+      "div",
+      { class: this.winner || this.phase !== "playing" ? "t24-clock over" : "t24-clock" },
+      h("div", { class: hard && this.mode !== "race" && this.phase === "playing" && this.mode !== "timed" ? "t24-clock-text t24-note" : "t24-clock-text" }, text),
+      tip ? h("div", { class: "t24-note t24-tip" }, tip) : null,
+      bar ? h("div", { class: "t24-bar" }, h("div", {})) : null,
+    );
     this.clockEl = clock;
-    const note =
-      hard && this.phase === "playing" && this.mode !== "race"
-        ? h("div", { class: "t24-note" }, this.bonus ? t("This one's tricky: it needs fractions. +15 s on the clock.") : t("This one's tricky: it needs fractions."))
-        : null;
     const step = this.hint > 0 && this.hint < 4 ? this.hand.solution?.steps[0] : undefined;
     const hinted = (i: number) => {
       if (!step || this.hint !== 1 || this.history.length) return false;
@@ -818,6 +837,13 @@ export class TwentyFour {
     const work = h(
       "div",
       { class: "t24-work" },
+      shown
+        ? h(
+            "div",
+            { class: "t24-reveal" },
+            this.revealed === "pet" ? t("{name}'s way:", { name }) : this.revealed === "timeup" ? t("Time's up! Here's how:") : t("The answer:"),
+          )
+        : null,
       this.hint > 0 && this.hint < 4 && sol
         ? h("div", { class: "t24-hint" }, h("small", {}, t("{name}'s hint (step {n} of 3)", { name: this.hooks.name, n: this.hint })), h("div", {}, sol.steps.slice(0, this.hint).map((st) => stepText(st)).join("   ·   ")))
         : null,
@@ -855,8 +881,7 @@ export class TwentyFour {
               this.hint > 0 && this.hint < 4 ? t("Show the next step") : t("I can't get it"),
             ),
           );
-    const help = this.mode === "practice" || this.mode === "daily" ? h("p", { class: "t24-fine" }, t("After help, a hand scores 0.")) : null;
-    const el = h("div", { class: "t24-body" }, top, clock, note, cards, work, ops, actions, help);
+    const el = h("div", { class: "t24-body" }, top, clock, cards, ops, work, actions);
     queueMicrotask(() => this.renderClock());
     return el;
   }

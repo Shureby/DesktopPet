@@ -16,6 +16,17 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.60.1] - 2026-11-04
+
+### Changed
+- **24 Points: the signs are right under the cards** (card, sign, card without crossing the
+  board) and bigger.
+- **The board no longer changes height** as a hand goes on: the status line (the pet
+  thinking or having it, who got the hand first and in how long, time left, "this one's
+  tricky") is always there, and the working box is always the same size.
+- **An answer shown is headed by whose it is** ("Cat's way:", "The answer:", "Time's up!
+  Here's how:") and written one step a line, instead of a line of text under it.
+
 ## [0.60.0] - 2026-11-04
 
 ### Changed

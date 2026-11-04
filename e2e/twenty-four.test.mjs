@@ -327,7 +327,12 @@ check(
     await app.click(".t24-actions button.primary", "Show the next step");
     s = await board();
     assert.equal(s.phase, "over");
-    assert.match(s.message, /8 ÷ \(3 − 8 ÷ 3\) = 24/);
+    assert.equal(await app.text(".t24-reveal"), "The answer:");
+    assert.deepEqual(await app.texts(".t24-line"), [
+      "8 ÷ 3 = 8/3",
+      "3 − 8/3 = 1/3",
+      "8 ÷ 1/3 = 24 ✓",
+    ]);
     assert.equal(s.you, 0);
     await close24();
   },
@@ -335,7 +340,7 @@ check(
 
 check(
   "t24.race",
-  "vs the pet: it paces while thinking, never answers sooner than 15 s plus its thinking, 3 s more for each move you make (not again after Undo); settles down 5 s before it answers (“answers in 5 s”), then answers and scores; you first: your point",
+  "vs the pet: it paces while thinking, never answers sooner than 15 s plus its thinking, 3 s more for each move you make (not again after Undo); settles down 5 s before it answers (“answers in 5 s”), then answers and scores, its way one step a line (“Cat's way:”), “Cat got it first”; the board's rows never move; you first: your point",
   async () => {
     const app = ctx.app;
     await open24();
@@ -362,6 +367,24 @@ check(
     assert.equal(s.pet, 1);
     assert.equal(s.phase, "over");
     assert.match(s.bubble, /= 24!/);
+    // Its way, one step a line; the status line says it got there first. Nothing moved.
+    assert.equal(await app.text(".t24-reveal"), "Cat's way:");
+    assert.match(await app.text(".t24-clock-text"), /Cat got it first/);
+    const rows = () =>
+      app.b.execute(() =>
+        [
+          ".t24-clock",
+          ".t24-cards",
+          ".t24-ops",
+          ".t24-work",
+          ".t24-actions",
+        ].map((c) =>
+          Math.round(document.querySelector(c).getBoundingClientRect().top),
+        ),
+      );
+    const after = await rows();
+    await app.click(".t24-actions button.primary", "Next hand");
+    assert.deepEqual(await rows(), after, "the rows stay where they are");
     await hook("deal", [1, 2, 3, 4]);
     await tap(0, "×", 1, "×", 2, "×", 3);
     s = await board();
@@ -446,7 +469,7 @@ check(
     let s = await board();
     assert.equal(s.phase, "over");
     assert.equal(s.timeUp, true);
-    assert.match(await app.text(".t24-msg"), /Time's up/);
+    assert.match(await app.text(".t24-reveal"), /Time's up/);
     assert.deepEqual(await app.texts(".t24-line"), [
       "8 ÷ 3 = 8/3",
       "3 − 8/3 = 1/3",
