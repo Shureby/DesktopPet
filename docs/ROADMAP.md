@@ -320,6 +320,33 @@ extensions we already have (`epet: 1` in the device info, LocalSend ignores it;
 - Order if started: pairing and strict mode first (security, smallest), then chat, then
   sync (the biggest).
 
+## Pet Post across networks with iroh (low priority)
+
+Researched 2026-11-05; not scheduled. Tailscale (0.45) already covers it for users who
+install it, so this waits. For two **paired** ePets on different networks, both behind
+NAT, without Tailscale: a fourth way after the LAN, pickup through a second router and
+Tailscale. LocalSend phones can't use it (ePet ↔ ePet only).
+- **iroh** (n0, Rust, MIT/Apache, 1.x since 2026-06): QUIC dialed by an ed25519 key, hole
+  punching first, a relay when that fails; TLS end to end (the relay only passes it on),
+  and the peer's key is checked (`remote_id`), so it fits pairing: exchange the iroh key
+  (and addresses) when pairing, and don't depend on n0's DNS lookup.
+- **Caveats:** a symmetric NAT (mobile carriers, CGNAT) on one side and an ordinary home
+  router on the other usually won't hole-punch (the maintainers' words), so much goes
+  through a relay, slower for big files. iroh-blobs isn't production quality: files over
+  our own framing on a QUIC stream. Pin the version (1.x minor releases still break).
+  macOS: turn off `fast-apple-datapath` (private Apple APIs). Test Windows firewall
+  prompts.
+- **Relays:** n0's public ones are free but rate-limited, open to everyone, no uptime
+  promise, and only in the US, EU and Singapore (far from users in China); paid plans
+  are for their hosting (Pro $19/month: authenticated, 5 MB/s, 100 GB). Self-hosting
+  iroh-relay is allowed (same license): a small VPS with a public IP and TLS (Hong Kong or
+  Singapore first), access checked by a call to our server (a token in the app could be
+  taken out), traffic paid only for what doesn't hole-punch.
+- **If started:** a prototype on n0's free relays, paired ePets only, texts and small
+  files, measuring how often it hole-punches between home, mobile hotspot and office
+  networks; then decide on our own relay. Chat / Records and sends that wait (0.61) work
+  over it unchanged.
+
 ## Release order: Windows, then macOS, then mobile
 
 Windows (direct download, then Steam) ships first; macOS next; Android last.
