@@ -9,7 +9,7 @@ import dgram from "node:dgram";
 import { mkdtempSync, readFileSync } from "node:fs";
 import http from "node:http";
 import https from "node:https";
-import { tmpdir } from "node:os";
+import { networkInterfaces, tmpdir } from "node:os";
 import { join } from "node:path";
 import { CONFIRM_A, CONFIRM_B, proof, spake2 } from "./spake2.mjs";
 
@@ -533,9 +533,27 @@ export class Peer {
       this.udp.setMulticastLoopback(true);
     }
     const msg = Buffer.from(JSON.stringify({ ...this.info(), announce: true }));
+    // On every network (and the default one): with several, the default may not be one
+    // ePet joined the group on.
+    const ifaces = [
+      null,
+      ...Object.values(networkInterfaces())
+        .flat()
+        .filter((a) => a?.family === "IPv4")
+        .map((a) => a.address),
+    ];
     for (const wait of [0, 300, 1000]) {
       await new Promise((r) => setTimeout(r, wait));
-      this.udp.send(msg, LOCALSEND_PORT, GROUP);
+      for (const ip of ifaces) {
+        try {
+          if (ip) this.udp.setMulticastInterface(ip);
+          await new Promise((r) =>
+            this.udp.send(msg, LOCALSEND_PORT, GROUP, () => r()),
+          );
+        } catch {
+          // (An interface without multicast.)
+        }
+      }
     }
   }
 }
