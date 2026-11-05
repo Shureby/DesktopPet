@@ -152,16 +152,6 @@ check("mood.offline", "the time ePet was off doesn't lower the mood", async () =
   assert.ok(now.fullness >= ctx.mood.fullness - 0.5, `fullness ${ctx.mood.fullness} → ${now.fullness}`);
 });
 
-check("tray.quit", "Quit in the tray closes every window and ends ePet", async () => {
-  const app = ctx.app;
-  await app.run("pet", "Open panel…");
-  await app.panelTab();
-  await app.toPet();
-  await app.invoke("e2e_tray", { id: "quit" }).catch(() => {});
-  for (let i = 0; i < 20 && appProcesses() > 0; i++) await sleep(500);
-  assert.equal(appProcesses(), 0, "ePet has ended");
-});
-
 check("stability.step-error", "an error while the pet moves (a bug): it doesn't freeze in the air; it falls back down, keeps going, and the error is kept in errors.log", async () => {
   const app = ctx.app;
   await app.toPet();
@@ -176,4 +166,14 @@ check("stability.step-error", "an error while the pet moves (a bug): it doesn't 
   const log = join(appDataDir(), "errors.log");
   await app.b.waitUntil(async () => existsSync(log) && readFileSync(log, "utf8").includes("e2e: a step that fails"), { timeout: 5000, timeoutMsg: "kept in errors.log" });
   assert.match(readFileSync(log, "utf8"), /\[pet\] step \(/);
+});
+
+check("tray.quit", "Quit in the tray closes every window and ends ePet", async () => {
+  const app = ctx.app;
+  await app.run("pet", "Open panel…");
+  await app.panelTab();
+  await app.toPet();
+  await app.invoke("e2e_tray", { id: "quit" }).catch(() => {});
+  for (let i = 0; i < 20 && appProcesses() > 0; i++) await sleep(500);
+  assert.equal(appProcesses(), 0, "ePet has ended");
 });
