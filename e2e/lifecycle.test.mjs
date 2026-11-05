@@ -3,7 +3,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { App, appProcesses, check, useApp } from "./harness.mjs";
+import { App, appDataDir, appProcesses, check, useApp } from "./harness.mjs";
 
 const ctx = useApp(import.meta.filename);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -160,4 +160,20 @@ check("tray.quit", "Quit in the tray closes every window and ends ePet", async (
   await app.invoke("e2e_tray", { id: "quit" }).catch(() => {});
   for (let i = 0; i < 20 && appProcesses() > 0; i++) await sleep(500);
   assert.equal(appProcesses(), 0, "ePet has ended");
+});
+
+check("stability.step-error", "an error while the pet moves (a bug): it doesn't freeze in the air; it falls back down, keeps going, and the error is kept in errors.log", async () => {
+  const app = ctx.app;
+  await app.toPet();
+  const p = await app.pet();
+  const area = p.area;
+  await app.b.execute((x, y) => window.__epet.dropAt(x, y), area.x + area.w / 2, area.y + area.h / 3);
+  await app.b.execute(() => window.__epet.failNextStep());
+  await app.b.waitUntil(async () => (await app.pet()).grounded, { timeout: 10_000, timeoutMsg: "back on the floor" });
+  const before = (await app.pet()).frames;
+  await sleep(1000);
+  assert.ok((await app.pet()).frames > before + 10, "it keeps going");
+  const log = join(appDataDir(), "errors.log");
+  await app.b.waitUntil(async () => existsSync(log) && readFileSync(log, "utf8").includes("e2e: a step that fails"), { timeout: 5000, timeoutMsg: "kept in errors.log" });
+  assert.match(readFileSync(log, "utf8"), /\[pet\] step \(/);
 });

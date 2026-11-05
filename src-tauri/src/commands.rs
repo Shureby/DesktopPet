@@ -374,6 +374,38 @@ pub fn top_scores(state: State<AppState>, game: String, limit: u32) -> CmdResult
     state.store().top_scores(&game, limit.min(100)).map_err(err)
 }
 
+/// The error log (errors.log in the app's data folder) is kept to about this size.
+const ERROR_LOG_MAX: u64 = 256 * 1024;
+
+/// A window's script error, kept in errors.log (newest last) so a "the pet froze" report can
+/// say what went wrong. Too big: the older half goes.
+#[tauri::command]
+pub fn log_error(app: AppHandle, source: String, message: String) -> CmdResult<()> {
+    use std::io::Write;
+    let dir = app.path().app_data_dir().map_err(err)?;
+    std::fs::create_dir_all(&dir).map_err(err)?;
+    let path = dir.join("errors.log");
+    if std::fs::metadata(&path).is_ok_and(|m| m.len() > ERROR_LOG_MAX) {
+        let text = std::fs::read_to_string(&path).unwrap_or_default();
+        let half = text.len() / 2;
+        let cut = text[half..].find('\n').map_or(text.len(), |i| half + i + 1);
+        std::fs::write(&path, &text[cut..]).map_err(err)?;
+    }
+    let source: String = source.chars().take(40).collect();
+    let message: String = message.chars().take(4000).collect();
+    let line = format!(
+        "{} v{} [{}] {}\n",
+        Local::now().format("%Y-%m-%d %H:%M:%S"),
+        app.package_info().version,
+        source,
+        message.replace('\n', "\n    ")
+    );
+    let mut f = std::fs::OpenOptions::new().create(true).append(true).open(&path).map_err(err)?;
+    f.write_all(line.as_bytes()).map_err(err)?;
+    log::warn!("{source}: {message}");
+    Ok(())
+}
+
 #[tauri::command]
 pub fn unlock_achievement(state: State<AppState>, id: String) -> CmdResult<()> {
     if state.store().unlock_achievement(&id, now_ms()).map_err(err)? {

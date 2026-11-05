@@ -9,9 +9,11 @@ import { followTestClock } from "../../platform/testClock";
 import "../../styles/game.css";
 import { GameHost, type MiniGame } from "./GameHost";
 import { SafeLandingGame } from "./safe-landing/game";
+import { watchErrors } from "../../platform/errors";
 
 /** Entry point of the game window: picks the game from the URL hash and the current character. */
 async function main() {
+  watchErrors(backend, "game");
   await followTestClock(backend);
   const registry = loadBundled();
   try {

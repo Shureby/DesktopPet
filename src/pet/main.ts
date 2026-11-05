@@ -6,8 +6,10 @@ import { startMockScheduler } from "../platform/mock";
 import "../styles/pet.css";
 import { enableFakeWindowDragging } from "./demo";
 import { PetHost } from "./PetHost";
+import { watchErrors } from "../platform/errors";
 
 async function main() {
+  watchErrors(backend, "pet");
   await followTestClock(backend);
   const registry = await loadAll(() => backend.listUserCharacters(), backend.assetUrl);
   for (const issue of registry.issues) console.warn(`Character not loaded: ${issue.source}\n  ${issue.errors.join("\n  ")}`);

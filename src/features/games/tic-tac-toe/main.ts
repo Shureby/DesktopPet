@@ -11,6 +11,7 @@ import "../../../styles/tic-tac-toe.css";
 import { PetStage } from "../twenty-four/stage";
 import { TicTacToe, type Mark, type Mode } from "./game";
 import { levelFromMood } from "./logic";
+import { watchErrors } from "../../../platform/errors";
 
 /** This window, in the app (absent in a plain browser). */
 async function appWindow() {
@@ -30,6 +31,7 @@ function markOf(def: CharacterDef): Mark {
  * you ("board-pause"), as in 24 Points.
  */
 async function main() {
+  watchErrors(backend, "tic-tac-toe");
   await followTestClock(backend);
   const registry = loadBundled();
   try {

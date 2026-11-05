@@ -2,7 +2,7 @@ import type { Brain, PetEvent, PetMode } from "../brain/Brain";
 import { defaultMood, type Mood } from "../brain/mood";
 import { AnimationPlayer } from "../engine/animation";
 import { StateMachine, type StateDef } from "../engine/fsm";
-import { createBody, step, type Body, type Ledge, type StepResult, type World } from "../engine/physics";
+import { createBody, nearestAreaIndex, step, type Body, type Ledge, type StepResult, type World } from "../engine/physics";
 import { pick, range, type Rng } from "../engine/random";
 import { resolveAbilities, type ResolvedAbility } from "./abilities";
 import { pendingVigil } from "./abilities/core";
@@ -263,6 +263,25 @@ export class Pet {
 
     this.anim.play(this.animFor(this.state));
     this.anim.update(dt);
+  }
+
+  /**
+   * After an error mid-step (logged by the window): it lets go of whatever it stood on or was
+   * doing and falls from where it is, kept on a screen, so it never stays stuck in the air.
+   */
+  recover(): void {
+    const b = this.body;
+    b.support = null;
+    b.vx = 0;
+    b.vy = 0;
+    const i = nearestAreaIndex(this.world, b.x, b.y);
+    const a = this.world.areas[i];
+    if (a) {
+      b.x = Math.min(Math.max(b.x, a.x + b.w / 2), a.x + a.w - b.w / 2);
+      b.y = Math.min(Math.max(b.y, a.y + b.h), a.y + a.h);
+    }
+    // (Perched on a board game, it goes up again once it has landed.)
+    if (this.fsm.has("fall")) this.fsm.set("fall", true);
   }
 
   /** Going somewhere on purpose always; wandering, often. */

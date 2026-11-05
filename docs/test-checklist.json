@@ -2439,6 +2439,13 @@
           "expect": "不卡死、没有黑窗、任务栏不消失"
         },
         {
+          "id": "stability.step-error",
+          "rev": "0.62.1",
+          "ci": "auto",
+          "do": "（出错时的保护）平时用着，如果宠物曾经卡在半空不动",
+          "expect": "不会再卡死：出错的那一下宠物掉回地面继续动，能拖能右键；错误记在数据文件夹的 errors.log 里（Windows：%APPDATA%\\com.ezyappco.epet\\errors.log；Mac：~/Library/Application Support/com.ezyappco.epet/errors.log），发给开发者能看到原因"
+        },
+        {
           "id": "stability.sleep",
           "rev": "0.5.0",
           "mac": true,

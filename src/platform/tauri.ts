@@ -147,6 +147,7 @@ export const tauriBackend: Backend = {
   recordScore: (game, character, score) => invoke("record_score", { game, character, score }),
   topScores: (game, limit) => invoke("top_scores", { game, limit }),
   unlockAchievement: (id) => invoke("unlock_achievement", { id }),
+  logError: (source, message) => invoke("log_error", { source, message }),
   storefront: () => invoke("storefront_name"),
 
   desktopSnapshot: () => invoke("desktop_snapshot"),

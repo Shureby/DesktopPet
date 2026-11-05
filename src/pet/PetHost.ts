@@ -52,6 +52,7 @@ import type { Alarm, Backend, BackendEvents, Celebration, DesktopSnapshot, PetAc
 import type { CareAction } from "../characters/schema";
 import { buildItems, buildTrayItems, nativeMenu, showPetMenu, type Item, type MenuContext, type PetMenuContext } from "./menu";
 import { CLOCK_STEPS, shiftLabel } from "../platform/testClock";
+import { errorLogger } from "../platform/errors";
 import product from "../../product.config.json";
 import { icon } from "../ui/icons";
 import {
@@ -782,23 +783,54 @@ export class PetHost {
     return { x: this.pet.body.x / this.dpr, y: this.pet.body.y / this.dpr };
   }
 
+  /** The end-to-end tests make the next step throw. */
+  private failStep = false;
+  /** Errors in the frame loop, into errors.log (a few a minute at most). */
+  private logErrorFn: ((e: unknown, where?: string) => void) | null = null;
+  private logError(e: unknown, where: string): void {
+    this.logErrorFn ??= errorLogger(this.backend, "pet");
+    this.logErrorFn(e, where);
+  }
+
   private frame(now: number): void {
+    // The next frame is asked for first: an error in this one must never stop the pet (it
+    // would hang in the air, not draggable, its clicks passing through).
+    requestAnimationFrame((it) => this.frame(it));
     // Up to a second at once: slow frames (a busy computer, a window over a full-screen game or
     // slide show) don't slow the pet down.
     const dt = Math.min(1, (now - this.last) / 1000);
     this.last = now;
     this.frames++;
     this.acc += dt;
-    const ratio = window.devicePixelRatio || 1;
-    if (this.windowed && ratio !== this.dpr) this.setScale(ratio);
-    while (this.acc >= STEP) {
-      // Dragging is a kinematic state, so updating is safe (physics is skipped).
-      this.pet.update(STEP);
-      this.acc -= STEP;
+    try {
+      const ratio = window.devicePixelRatio || 1;
+      if (this.windowed && ratio !== this.dpr) this.setScale(ratio);
+      while (this.acc >= STEP) {
+        if (this.failStep) {
+          this.failStep = false;
+          throw new Error("e2e: a step that fails");
+        }
+        // Dragging is a kinematic state, so updating is safe (physics is skipped).
+        this.pet.update(STEP);
+        this.acc -= STEP;
+      }
+    } catch (e) {
+      this.acc = 0;
+      this.logError(e, `step (${this.pet.state})`);
+      // Let go of whatever went wrong and fall back down.
+      this.drag = null;
+      try {
+        this.pet.recover();
+      } catch (again) {
+        this.logError(again, "recover");
+      }
     }
-    this.render();
-    void this.syncWindow();
-    requestAnimationFrame((it) => this.frame(it));
+    try {
+      this.render();
+    } catch (e) {
+      this.logError(e, "render");
+    }
+    this.syncWindow().catch((e) => this.logError(e, "sync"));
   }
 
   private render(): void {
@@ -1357,6 +1389,10 @@ export class PetHost {
       walkTo: (x: number) => {
         this.pet.target = { x };
         this.pet.fsm.set("walkTo", true);
+      },
+      /** The next step throws (as a bug would): the pet must carry on, and it's logged. */
+      failNextStep: () => {
+        this.failStep = true;
       },
       /** Puts the pet down at (x, y) (physical px) as if carried there and let go. */
       dropAt: (x: number, y: number) => {

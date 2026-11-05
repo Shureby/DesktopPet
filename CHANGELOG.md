@@ -16,6 +16,17 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.62.1] - 2026-11-05
+
+### Fixed
+- **The pet could freeze in the air** (where a window had just been): it no longer moved,
+  couldn't be dragged or right-clicked, though alarms and the tray still worked. One error
+  in a step stopped its frames for good; now the next frame always comes, and the pet lets
+  go and falls back to the floor.
+- Errors in the app's windows are kept in **errors.log** in its data folder (Windows:
+  `%APPDATA%\com.ezyappco.epet`, macOS: `~/Library/Application Support/com.ezyappco.epet`),
+  so a report can say what went wrong.
+
 ## [0.62.0] - 2026-11-05
 
 ### Added

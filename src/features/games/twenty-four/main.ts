@@ -9,6 +9,7 @@ import "../../../styles/twenty-four.css";
 import { TwentyFour, type Mode } from "./game";
 import { levelFromMood } from "./logic";
 import { PetStage } from "./stage";
+import { watchErrors } from "../../../platform/errors";
 
 /** This window, in the app (absent in a plain browser). */
 async function appWindow() {
@@ -23,6 +24,7 @@ async function appWindow() {
  * you ("board-pause").
  */
 async function main() {
+  watchErrors(backend, "twenty-four");
   await followTestClock(backend);
   const registry = loadBundled();
   try {

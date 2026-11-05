@@ -826,6 +826,8 @@ export interface Backend {
   recordScore(game: string, character: string, score: number): Promise<void>;
   topScores(game: string, limit: number): Promise<Score[]>;
   unlockAchievement(id: string): Promise<void>;
+  /** Keeps a script error in errors.log (the app's data folder), for "it froze" reports. */
+  logError(source: string, message: string): Promise<void>;
   /** "steam", "epic", "direct" (website) or "browser" (mock). */
   storefront(): Promise<string>;
 

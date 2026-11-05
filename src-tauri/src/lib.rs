@@ -104,6 +104,7 @@ pub fn run() {
             commands::record_score,
             commands::top_scores,
             commands::unlock_achievement,
+            commands::log_error,
             commands::storefront_name,
             commands::desktop_snapshot,
             commands::identify_screens,

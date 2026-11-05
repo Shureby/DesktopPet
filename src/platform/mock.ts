@@ -1169,6 +1169,9 @@ export const mockBackend: Backend = {
       .sort((a, b) => b.score - a.score)
       .slice(0, limit);
   },
+  async logError(source, message) {
+    console.warn(`[mock] error in ${source}: ${message}`);
+  },
   async unlockAchievement(id) {
     console.info(`[mock] achievement unlocked: ${id}`);
   },

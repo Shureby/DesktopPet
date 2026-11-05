@@ -101,6 +101,7 @@ import { formatHm, parseHm, timeField } from "./timeField";
 import { dotted, formatDay, formatWhen, h } from "./dom";
 import { dateField, ymdOf, ymdToMs } from "./dateField";
 import { repeatBadge, splitTodos, todoHint, todoWhen } from "./todoText";
+import { watchErrors } from "../platform/errors";
 
 const TABS: { id: PanelTab; label: string }[] = [
   { id: "todos", label: msg("To-dos") },
@@ -2137,6 +2138,7 @@ async function save(patch: Partial<Settings>) {
 }
 
 async function main() {
+  watchErrors(backend, "panel");
   // The test clock set ahead: Today, Overdue… read again.
   await followTestClock(backend, () => void render());
   document.title = product.productName;
