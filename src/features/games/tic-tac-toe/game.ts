@@ -188,8 +188,11 @@ export class TicTacToe {
   }
 
   /** The pet's turn: it paces while it thinks, then plays. */
+  /** How long the pet thinks, fixed (the end-to-end tests; null: as it likes). */
+  thinkFor: number | null = null;
+
   private petTurn(): void {
-    this.petAt = this.now() + thinkMs(this.state, this.rng);
+    this.petAt = this.now() + (this.thinkFor ?? thinkMs(this.state, this.rng));
     this.hooks.stage.set("think");
   }
 

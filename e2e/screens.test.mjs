@@ -122,7 +122,13 @@ check(
     assert.equal(s.screens.visit?.id, "fake1", "a visit");
     assert.deepEqual(s.screens.allowed, [true, true], "home stays open");
     await app.sleep(3000);
-    assert.ok(await standsOn(1), "plays there");
+    // It plays there: not sent home (it may wander back by itself: the way home is open).
+    s = await app.pet();
+    assert.equal(s.screens.homing, null, "plays there, not sent home");
+    assert.ok(
+      (await standsOn(1)) || s.screens.visit === null,
+      "on the visited screen, or wandered home",
+    );
     await hook("ageVisit", 11 * 60_000);
     await app.b.waitUntil(() => standsOn(0), {
       timeout: 30_000,

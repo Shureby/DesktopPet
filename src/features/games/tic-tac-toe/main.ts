@@ -106,6 +106,7 @@ async function main() {
         },
         tap: (i: number) => game.tap(i),
         petNow: () => game.petNow(),
+        think: (ms: number | null) => (game.thinkFor = ms),
         start: (mode: Mode) => game.start(mode),
         level: (level: "easy" | "normal" | "strong" | "mood") => ((game.options = { ...game.options, level }), game.render()),
         minimize: () => game.minimize(),

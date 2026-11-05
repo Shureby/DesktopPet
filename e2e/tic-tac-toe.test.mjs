@@ -229,6 +229,8 @@ check(
     await openTtt();
     await hook("start", "classic");
     await onTheBoard();
+    // (It thinks longer than the timer takes to ring: the ring comes while it thinks.)
+    await hook("think", 60_000);
     await tap(4);
     await app.addTimer(1, 1500);
     await app.waitBubble("Time's up", 10_000);
