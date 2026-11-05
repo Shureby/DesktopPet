@@ -129,8 +129,11 @@ pub fn post_attention<R: Runtime>(app: &AppHandle<R>) {
     }
 }
 
-/// 24 Points' window (logical px): the board, in a small transparent margin (the pet stands on it).
+/// A board game's window (logical px): the board, in a small transparent margin (the pet stands on it).
 const BOARD: (f64, f64) = (500.0, 600.0);
+
+/// The games played on such a board (each its own page, `<game>.html`).
+pub const BOARD_GAMES: [&str; 2] = ["twenty-four", "tic-tac-toe"];
 
 /// Opens a mini-game as a transparent overlay over the work area the pet is on.
 pub fn open_game<R: Runtime>(app: &AppHandle<R>, game: &str) -> tauri::Result<()> {
@@ -143,9 +146,10 @@ pub fn open_game<R: Runtime>(app: &AppHandle<R>, game: &str) -> tauri::Result<()
         None => None,
     }
     .or(app.primary_monitor()?);
-    // 24 Points is a board in a small window (the pet stands on it); the others cover the work area.
-    let board = game == "twenty-four";
-    let page = if board { "twenty-four.html".to_string() } else { format!("game.html#{game}") };
+    // 24 Points and tic-tac-toe are a board in a small window (the pet stands on it); the
+    // others cover the work area.
+    let board = BOARD_GAMES.contains(&game);
+    let page = if board { format!("{game}.html") } else { format!("game.html#{game}") };
     let mut builder = window(app, GAME, page)
         .title(product_name(app))
         .transparent(true)

@@ -787,6 +787,29 @@ it by its title bar. Code: `src/features/games/twenty-four/`, the pet's side
 - **After a round** the result, and the pet is happier (as after any game); a won race
   unlocks an achievement.
 
+## Tic-tac-toe (since 0.62.0)
+
+The same small board window as 24 Points, the desktop pet standing on it (pausing for
+what needs you, – minimizes, as there). Code: `src/features/games/tic-tac-toe/`. Opened
+from the pet's menu ("Play tic-tac-toe") or the Games tab.
+- **Tabs:** Classic (3×3), Vanishing, Ultimate, Two players (⚙: which of the three).
+  You are ✕; the pet plays its own mark (the cat's paw print, the rooster's footprint, a
+  dot for others); two players are ✕ and ○. The score adds up while the tab stays;
+  "Play again" lets the other side start.
+- **Vanishing:** three pieces each; with three on the board your oldest is faded and says
+  "goes next move", and goes when you place a fourth. A game this long (60 moves) is a draw.
+- **Ultimate:** nine small boards; where you play in one sends the other player to that
+  board (lit; the others can't be played), or anywhere open when it's finished. Three in
+  a row in a small board wins it (a big mark over it); three won boards in a row wins.
+- **The pet:** on its turn it paces on the board ("… is thinking…", about 1–2 s, longer in
+  ultimate), then plays and settles; it cheers when it wins, sulks when it loses, and says
+  one line. Its level follows its mood or is set in ⚙ (Easy / Normal / Won't go easy); at
+  its best it never loses at classic.
+- **Undo a move** takes back your last move and its answer (a finished game too: then it
+  doesn't count); **Resign** gives the game to the other side. Keys: 1–9 for the cells
+  (classic, vanishing), Backspace undoes, Enter plays again, Esc closes.
+- A game won against the pet counts for its mood (as 24 Points) and its score.
+
 ## Games during a focus session (since 0.20.0)
 
 Code: `gameHeld` in `src/features/pomodoro/logic.ts`, `PetHost.playGame`, `playGame` in the

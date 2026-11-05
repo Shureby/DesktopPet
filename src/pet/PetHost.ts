@@ -97,7 +97,7 @@ const MISSED_KEY = "epet-missed-anniversaries";
 /** A missed anniversary older than this isn't brought up any more. */
 const MISSED_DAYS = 7;
 /** Games played on a board the pet sits on (the others cover the screen and the pet hides). */
-const BOARD_GAMES = ["twenty-four"];
+const BOARD_GAMES = ["twenty-four", "tic-tac-toe"];
 /** The board window's id among the windows the pet can stand on (src-tauri desktop/mod.rs). */
 const BOARD_ID = "epet-board";
 

@@ -16,6 +16,17 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.62.0] - 2026-11-05
+
+### Added
+- **Tic-tac-toe**, on the same small board as 24 Points with the pet standing on it:
+  classic, **vanishing** (three pieces each: your fourth takes your oldest away, marked
+  "goes next move") and **ultimate** (nine small boards: where you play sends the other
+  player to that board), against the pet or two players at one computer. The pet plays its
+  own mark (the cat's paw print, the rooster's footprint), paces while it thinks, and plays
+  at the level of its mood or the one you set; at its best it never loses at classic.
+  Undo a move, Resign, a running score. In the pet's menu and the Games tab.
+
 ## [0.61.0] - 2026-11-05
 
 ### Added

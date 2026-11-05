@@ -1,0 +1,163 @@
+/* Tic-tac-toe (src/features/games/tic-tac-toe): on 24 Points' board (twenty-four.css: the
+   window, header, tabs, pause veil, buttons); here the score, the grid and the marks. */
+.ttt-body {
+  gap: 10px;
+}
+.ttt-score {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 700;
+}
+.ttt-side {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.ttt-side .ttt-mark {
+  width: 22px;
+  height: 22px;
+}
+.ttt-count {
+  font-size: 22px;
+  font-weight: 800;
+}
+.ttt-status {
+  min-height: 20px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--accent-strong);
+}
+.ttt-status.over {
+  font-size: 18px;
+}
+.ttt-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  width: 340px;
+  height: 340px;
+  margin: 0 auto;
+  flex-shrink: 0;
+}
+.ttt-cell,
+.ttt-mini {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 2px 0 var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: var(--fg);
+}
+.ttt-cell:disabled,
+.ttt-mini:disabled {
+  cursor: default;
+  opacity: 1;
+}
+.ttt-cell.open:hover,
+.ttt-mini.open:hover {
+  background: var(--accent-soft);
+}
+.ttt-mark {
+  width: 62%;
+  height: 62%;
+}
+.ttt-mark.pet,
+.ttt-mark.ring {
+  color: var(--accent);
+}
+.ttt-cell.last,
+.ttt-mini.last {
+  border-color: var(--accent);
+}
+.ttt-cell.won,
+.ttt-board.won {
+  background: var(--good-soft);
+  border-color: var(--good);
+}
+.ttt-cell.fading .ttt-mark {
+  opacity: 0.4;
+}
+.ttt-goes {
+  position: absolute;
+  bottom: 6px;
+  left: 0;
+  right: 0;
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+}
+/* Ultimate: nine small boards, the one to play in lit. */
+.ttt-grid.ultimate {
+  gap: 8px;
+}
+.ttt-board {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--track);
+  border: 1px solid transparent;
+}
+.ttt-board.active {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.ttt-board.done.draw {
+  opacity: 0.55;
+}
+.ttt-mini {
+  border-radius: 5px;
+  box-shadow: none;
+}
+.ttt-mini .ttt-mark {
+  width: 72%;
+  height: 72%;
+}
+.ttt-board-mark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  border-radius: 10px;
+}
+.ttt-board-mark .ttt-mark {
+  width: 70%;
+  height: 70%;
+}
+.ttt-rule {
+  text-align: center;
+  margin: 0;
+}
+.ttt-level {
+  white-space: nowrap;
+}
+/* Four tabs and three buttons in the header: a little tighter than 24 Points'. */
+#ttt .t24-head {
+  gap: 4px;
+  padding: 0 4px 0 10px;
+}
+#ttt .t24-head strong {
+  font-size: 13px;
+}
+#ttt .t24-tabs {
+  gap: 3px;
+}
+#ttt .t24-tabs button {
+  padding: 4px 8px;
+}
+#ttt .t24-icon {
+  width: 28px;
+}

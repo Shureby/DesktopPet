@@ -21,6 +21,12 @@ export const GAMES: GameInfo[] = [
     available: true,
   },
   {
+    id: "tic-tac-toe",
+    name: msg("Tic-tac-toe"),
+    description: msg("Classic, vanishing (three pieces each) or ultimate (nine boards in one) against your pet, or two players at one computer."),
+    available: true,
+  },
+  {
     id: "jump-up",
     name: msg("Jump Up"),
     description: msg("Bounce from platform to platform as high as you can, avoiding birds and falling sticky notes."),

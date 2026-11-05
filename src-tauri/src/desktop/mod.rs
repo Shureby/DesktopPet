@@ -105,7 +105,11 @@ const BOARD_INSET: (f64, f64, f64, f64) = (12.0, 8.0, 12.0, 14.0);
 fn board<R: Runtime>(pet: &WebviewWindow<R>) -> Option<WindowRect> {
     use tauri::Manager;
     let w = pet.app_handle().get_webview_window(crate::app_windows::GAME)?;
-    if !w.url().ok()?.path().contains("twenty-four") || !w.is_visible().ok()? || w.is_minimized().ok()? {
+    let path = w.url().ok()?.path().to_string();
+    if !crate::app_windows::BOARD_GAMES.iter().any(|g| path.contains(g))
+        || !w.is_visible().ok()?
+        || w.is_minimized().ok()?
+    {
         return None;
     }
     let (pos, size, s) = (w.outer_position().ok()?, w.outer_size().ok()?, w.scale_factor().ok()?);
