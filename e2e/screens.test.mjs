@@ -23,6 +23,11 @@ async function pretend(parts, unticked = []) {
     h: a.h - up,
   }));
   await hook("fakeScreens", areas);
+  // On a screen that stays ticked first: unticked under its feet, the way home would stay
+  // open until it's back (by design), and the walls would show only then.
+  const home = areas.find((_, i) => !unticked.includes(`fake${i}`)) ?? areas[0];
+  await hook("dropAt", home.x + home.w / 2, home.y + home.h - 200);
+  await app.until(() => window.__epet.state().grounded, [], 10_000);
   await app.setSettings((s) => ({ ...s, screens: { off: unticked } }));
   return areas;
 }
