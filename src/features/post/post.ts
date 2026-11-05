@@ -681,7 +681,93 @@ export interface PostReceived {
 
 export interface PostText {
   alias: string;
+  /** Proven by its certificate ("" when not): Reply goes to it. */
+  fingerprint: string;
   text: string;
+}
+
+/**
+ * One line in Chat / Records (src-tauri/src/post/chat.rs): a text, files or a reminder sent
+ * to or received from a device. Kept for good.
+ */
+export interface PostChatEntry {
+  id: string;
+  at: number;
+  dir: "in" | "out";
+  /** "" when it wasn't proven: then its name tells the device apart. */
+  fingerprint: string;
+  /** The device's name then. */
+  alias: string;
+  deviceType: string;
+  kind: "text" | "files" | "share";
+  /** The text; a reminder's title. */
+  text: string | null;
+  files: number;
+  bytes: number;
+  paths: string[];
+  folder: string | null;
+  /** A reminder's kind: "alarm" | "todo" | "anniversary". */
+  share: string | null;
+  uid: string | null;
+  /**
+   * Sent: "sending" | "done" | "waiting" (goes again when the device is back) | "declined" |
+   * "failed" | "cancelled". Received: "done". A reminder: its answer ("added", "asked"…).
+   */
+  state: string;
+  error: string | null;
+  /** Received and not looked at yet. */
+  unread: boolean;
+  retryAt: number;
+  tries: number;
+}
+
+/** Its conversation: the device, by fingerprint, else by name (as chat.rs's `key`). */
+export function chatKey(e: Pick<PostChatEntry, "fingerprint" | "alias">): string {
+  return e.fingerprint || `~${e.alias}`;
+}
+
+/** One device's conversation in Chat / Records' list. */
+export interface ChatConversation {
+  key: string;
+  fingerprint: string;
+  /** Its latest name. */
+  alias: string;
+  deviceType: string;
+  last: PostChatEntry;
+  unread: number;
+}
+
+/** The conversations, the latest first. `entries`: the oldest first. */
+export function chatConversations(entries: PostChatEntry[]): ChatConversation[] {
+  const by = new Map<string, ChatConversation>();
+  for (const e of entries) {
+    const key = chatKey(e);
+    const c = by.get(key) ?? { key, fingerprint: e.fingerprint, alias: e.alias, deviceType: e.deviceType, last: e, unread: 0 };
+    if (e.at >= c.last.at) {
+      c.last = e;
+      if (e.alias) c.alias = e.alias;
+      if (e.deviceType) c.deviceType = e.deviceType;
+    }
+    if (e.unread) c.unread++;
+    by.set(key, c);
+  }
+  return [...by.values()].sort((a, b) => b.last.at - a.last.at);
+}
+
+/** Entries merged with one that changed (by id), kept oldest first. */
+export function chatMerge(entries: PostChatEntry[], e: PostChatEntry): PostChatEntry[] {
+  const i = entries.findIndex((x) => x.id === e.id);
+  if (i >= 0) return entries.map((x, j) => (j === i ? e : x));
+  const out = [...entries, e];
+  return out[out.length - 2] && out[out.length - 2].at > e.at ? out.sort((a, b) => a.at - b.at) : out;
+}
+
+/** Lines matching `query` (its text, a reminder's title, or a file's name), any case. */
+export function chatMatches(e: PostChatEntry, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const names = e.paths.map((p) => p.split(/[\\/]/).pop() ?? p);
+  return [e.text ?? "", e.alias, ...names].some((s) => s.toLowerCase().includes(q));
 }
 
 export const DEVICE_ICONS: Record<DeviceType, string> = { mobile: "📱", desktop: "💻", web: "🌐", headless: "🖥", server: "🗄" };

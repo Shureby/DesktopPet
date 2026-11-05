@@ -38,6 +38,8 @@ export function openPairedDetails(fingerprint: string): void {
 
 /** Lines of "Also look in these networks" that aren't one (shown until fixed; the page is redrawn on saving). */
 let badNetworks: string[] = [];
+/** Settings → Pet Post → Clear all records: asked, waiting for yes. */
+let clearAsk = false;
 
 export function postSection(backend: Backend, get: () => Settings, save: (patch: Partial<Settings>) => Promise<void>, petName: () => string): Node {
   /**
@@ -373,6 +375,8 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
             marks(s.verified, "post-verified-list", (d) => t("Verified {when}", { when: formatWhen(d.at) }), t("Remove"), (post, fp) => withoutVerified(post, fp), t("None yet. In Pet Post, Verify a device and choose “They match”.")),
             h("div", { class: "subhead" }, t("Blocked devices")),
             marks(s.blocked, "post-blocked-list", (d) => t("Blocked {when} · the icons didn't match", { when: formatWhen(d.at) }), t("Unblock"), (post, fp) => withoutBlocked(post, fp), t("None.")),
+            h("div", { class: "subhead" }, t("Chat / Records")),
+            records(),
             h("hr"),
             h("div", { class: "subhead" }, t("How others reach this computer")),
             reach,
@@ -429,6 +433,30 @@ export function postSection(backend: Backend, get: () => Settings, save: (patch:
       h("button", { onclick: () => void backend.openPostWindow() }, t("Open Pet Post…")),
     );
   };
+
+  /** Chat / Records: kept for good, on this computer; how much, and Clear all. */
+  function records(): Node {
+    const count = h("span", {}, "");
+    void backend.postChat().then((list) => {
+      const devices = new Set(list.map((e) => e.fingerprint || `~${e.alias}`)).size;
+      count.textContent = list.length ? ` ${t("{n} lines · {devices} conversations", { n: list.length, devices })}` : ` ${t("Nothing yet.")}`;
+    }, () => {});
+    const box = h(
+      "div",
+      { class: "post-records" },
+      h("p", { class: "hint" }, t("Texts and files sent and received, and reminders, device by device (Pet Post → Chat / Records). Kept for good, on this computer only."), count),
+      clearAsk
+        ? h(
+            "div",
+            { class: "row" },
+            h("span", { class: "grow" }, t("Clear all of Chat / Records? The files received stay where they are.")),
+            h("button", { class: "small danger post-records-clear-yes", onclick: () => ((clearAsk = false), void backend.postChatClear(null).then(draw)) }, t("Clear all")),
+            h("button", { class: "small", onclick: () => ((clearAsk = false), draw()) }, t("Cancel")),
+          )
+        : h("button", { class: "small post-records-clear", onclick: () => ((clearAsk = true), draw()) }, t("Clear all records…")),
+    );
+    return box;
+  }
 
   // Until it says it's listening (or why not): the pet window starts it after the save.
   // The panel may build the page a moment before showing it, so this keeps going until

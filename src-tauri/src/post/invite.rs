@@ -121,6 +121,7 @@ async fn receipt(inner: &Arc<Inner>, req: Request<Incoming>, cert: Option<String
         return status(403);
     }
     let answer: String = r.answer.chars().take(16).collect();
+    inner.chat_share_answer("out", &fp, &r.uid, &answer);
     inner.record_sent(|list| {
         for s in list.iter_mut().filter(|s| s.fingerprint == fp && s.uid == r.uid) {
             s.answer = answer.clone();
@@ -245,6 +246,7 @@ pub(crate) fn take_in(app: &AppHandle, from: &str, name: &str, parsed: ics::Pars
                 }
             }
         };
+        post.0.chat_share("in", (from, name), kind, &title, &s.uid, answer);
         out.push(Answer { uid: s.uid, answer: answer.into() });
     }
     out
@@ -285,11 +287,13 @@ pub async fn post_schedule_send(
             });
         };
         mark("sending");
+        inner.chat_share("out", (&fp, ""), &kind, shared.item.title(), &shared.uid, "sending");
         let answer = match send_to(&inner, &fp, &text).await {
             Ok(answers) => answers.into_iter().find(|a| a.uid == shared.uid).map_or("unreachable".into(), |a| a.answer),
             Err(e) => e.to_string(),
         };
         mark(&answer);
+        inner.chat_share_answer("out", &fp, &shared.uid, &answer);
         out.push(Result1 { fingerprint: fp, answer });
     }
     Ok(out)
@@ -464,6 +468,7 @@ pub fn post_schedule_answer(
         changed(&app, e.shared.item.kind());
     }
     let _ = app.emit("post-schedule-inbox", ());
+    post.0.chat_share_answer("in", &e.from, &e.shared.uid, t.answer);
     send_receipt(post.0.clone(), e.from, e.shared.uid, t.answer);
     Ok(t.answer.into())
 }
@@ -483,6 +488,7 @@ pub fn post_schedule_undo(
     drop(store);
     changed(&app, &kind);
     if let Some((from, uid)) = origin {
+        post.0.chat_share_answer("in", &from, &uid, "declined");
         send_receipt(post.0.clone(), from, uid, "declined");
     }
     Ok(())

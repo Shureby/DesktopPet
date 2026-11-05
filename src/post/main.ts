@@ -57,6 +57,7 @@ import {
 } from "../features/post/post";
 import { closePair, pairing, pairView, startPair, tickPair, type PairContext } from "./pair";
 import { importCalendar, inboxCards, inboxCount, loadInbox, type InboxContext } from "./schedule";
+import { chatDrop, chatState, chatTab, chatUnread, closeChat, loadChat, openChat, type ChatContext } from "./chat";
 import { nickOf, withNick } from "../features/post/schedule";
 
 /** Where Pet Post is drawn: the main window's Pet Post tab (`mountPost`). */
@@ -112,6 +113,8 @@ let transfer: PostTransfer | null = null;
 let offer: PostOffer | null = null;
 /** A delivery coming in. */
 let incoming: PostTransfer | null = null;
+/** The delivery going out now, whoever started it (Chat / Records shows its progress). */
+let outNow: PostTransfer | null = null;
 /** What a device shares by link, being looked at (by fingerprint, or "link"). */
 let share: {
   key: string;
@@ -210,6 +213,8 @@ function dropNoteFor(msg: string): void {
 function dropFiles(paths: string[]): void {
   dragging = 0;
   if (!paths.length) return render();
+  // On a conversation: sent to that device.
+  if (tab === "chat" && chatDrop(chatContext, paths)) return;
   if (tab !== "send") tab = "send";
   setSendMode("files");
   if (!selected) return dropNoteFor(t("Pick a device above first."));
@@ -608,11 +613,11 @@ function deviceList(): Node {
   return h("ul", { class: "post-devices" }, ...devices.map(deviceRow));
 }
 
-type Tab = "receive" | "send" | "history";
+type Tab = "receive" | "send" | "chat";
 const TABS: { id: Tab; icon: string; label: () => string }[] = [
   { id: "receive", icon: "📥", label: () => t("Receive") },
   { id: "send", icon: "📤", label: () => t("Send") },
-  { id: "history", icon: "🕘", label: () => t("History") },
+  { id: "chat", icon: "💬", label: () => t("Chat / Records") },
 ];
 
 /** A per-window choice kept in this browser's storage (it may be unavailable: then not kept). */
@@ -632,7 +637,7 @@ function store(key: string, value: string): void {
 }
 
 /** The tab shown: as left last time, unless the window was opened for another. */
-let tab: Tab = (["receive", "send", "history"] as const).find((x) => x === stored("post.tab")) ?? "receive";
+let tab: Tab = (["receive", "send", "chat"] as const).find((x) => x === (stored("post.tab") === "history" ? "chat" : stored("post.tab"))) ?? "receive";
 function show(next: Tab): void {
   tab = next;
   store("post.tab", next);
@@ -650,6 +655,24 @@ const pairContext: PairContext = {
     show("send");
   },
   verify: (fp, alias) => verify(fp, alias),
+};
+
+/** Chat / Records in sight (its progress bars move with the delivery). */
+function chatShown(): boolean {
+  return tab === "chat" && !!chatState().open;
+}
+
+/** What Chat / Records (./chat.ts) needs of this window. */
+const chatContext: ChatContext = {
+  backend,
+  settings: () => settings,
+  devices: () => devices,
+  render: () => render(),
+  incoming: () => incoming,
+  outgoing: () => outNow,
+  badge: (fp) => verifiedBadge(fp, true),
+  copyButton: (css, text) => copyButton(css, text),
+  showReceive: () => show("receive"),
 };
 
 /** What the invitations (alarms, to-dos, anniversaries sent here: ./schedule.ts) need. */
@@ -808,7 +831,7 @@ function receiveTab(): Node[] {
     ),
     h("h3", {}, t("Latest")),
     latest ? h("ul", { class: "post-received" }, receivedRow(latest)) : h("p", { class: "hint" }, t("Nothing received yet.")),
-    history.length > 1 ? h("p", { class: "hint" }, h("a", { href: "#", class: "post-to-history", onclick: (e: Event) => (e.preventDefault(), show("history")) }, t("All of it: 🕘 History"))) : null,
+    history.length > 1 ? h("p", { class: "hint" }, h("a", { href: "#", class: "post-to-history", onclick: (e: Event) => (e.preventDefault(), closeChat(), show("chat")) }, t("All of it: 💬 Chat / Records"))) : null,
     recentList(),
   ] as (Node | null)[]).filter((n): n is Node => n !== null);
 }
@@ -1036,20 +1059,6 @@ function recentList(): Node | null {
     ),
     h("p", { class: "hint" }, t("The last devices that sent you something.")),
   );
-}
-
-/** The History tab: everything received (the last 50). */
-function historyTab(): Node[] {
-  return [
-    h(
-      "div",
-      { class: "row spread" },
-      h("h3", {}, t("Received files and messages")),
-      history.length ? h("button", { class: "small post-clear-history", onclick: () => void backend.postClearHistory() }, t("Clear")) : null,
-    ),
-    history.length ? h("ul", { class: "post-received" }, ...history.map(receivedRow)) : h("p", { class: "hint" }, t("Nothing received yet.")),
-    h("p", { class: "row" }, h("button", { class: "small", onclick: () => void backend.postOpen(null) }, t("Open the received files folder"))),
-  ];
 }
 
 /** "+ Add by address": behind another router, on Tailscale, or where multicast doesn't get through. */
@@ -1463,6 +1472,7 @@ function render(): void {
         { class: `post-tab${tab === x.id ? " active" : ""}`, "data-tab": x.id, role: "tab", "aria-selected": String(tab === x.id), onclick: () => show(x.id) },
         `${x.icon} ${x.label()}`,
         x.id === "receive" && (offer || inboxCount()) && tab !== "receive" ? h("span", { class: "post-tab-badge" }, String((offer ? 1 : 0) + inboxCount())) : null,
+        x.id === "chat" && chatUnread() ? h("span", { class: "post-tab-badge" }, String(chatUnread())) : null,
       ),
     ),
     h("span", { class: "grow" }),
@@ -1470,7 +1480,7 @@ function render(): void {
   );
   const state =
     status?.running || !status?.error ? null : h("p", { class: "warning" }, t("Couldn't start: {error}", { error: status.error }));
-  const body = tab === "receive" ? receiveTab() : tab === "send" ? sendTab() : historyTab();
+  const body = tab === "receive" ? receiveTab() : tab === "send" ? sendTab() : chatTab(chatContext);
   const focus = remember();
   root.replaceChildren(tabs, ...(state ? [state] : []), h("div", { class: "post-tab-body" }, ...body));
   focus();
@@ -1657,10 +1667,18 @@ export function openPost(opened: string): void {
 function applyOpened(opened: string): void {
   const asked = /^verify=([0-9A-Fa-f]+)$/.exec(opened)?.[1];
   if (asked) return verify(asked);
-  const on = /^(receive|send|history)$/.exec(opened)?.[1] as Tab | undefined;
+  // Chat / Records at a device (the pet's Reply).
+  const chat = /^chat=([0-9A-Za-z]+)$/.exec(opened)?.[1];
+  if (chat) {
+    verifying = null;
+    openChat(chat.toUpperCase());
+    return show("chat");
+  }
+  const on = /^(receive|send|chat|history)$/.exec(opened)?.[1];
   if (on) {
     verifying = null;
-    show(on);
+    if (on !== "send" && on !== "receive") closeChat();
+    show(on === "history" ? "chat" : (on as Tab));
   }
 }
 
@@ -1684,7 +1702,7 @@ async function main(opened: string): Promise<void> {
     }
   });
   // Tests send files from here as the file dialog (or a drop) would: neither can be driven.
-  if (await backend.e2eEnabled()) Object.assign(window, { __post: { send: (paths: string[]) => send(paths, null), drop: dropFiles } });
+  if (await backend.e2eEnabled()) Object.assign(window, { __post: { send: (paths: string[]) => send(paths, null), drop: dropFiles, chat: chatState } });
   // Text dropped on the window (files come through the app, below): into the message.
   document.addEventListener("dragover", (e) => {
     const types = e.dataTransfer?.types ?? [];
@@ -1745,7 +1763,7 @@ async function main(opened: string): Promise<void> {
     tab = "receive";
     render();
   });
-  await backend.on("post-tab", (x) => (showTab(), show(x)));
+  await backend.on("post-tab", (x) => (showTab(), show(x === "history" ? "chat" : x)));
   await backend.on("post-offer-closed", (c) => {
     if (offer?.id !== c.id) return;
     offer = null;
@@ -1763,6 +1781,8 @@ async function main(opened: string): Promise<void> {
       return;
     }
     // How a delivery from the pet goes is the pet's to say; this window shows its own.
+    outNow = tr;
+    if (chatShown()) render();
     if (!mine) return;
     if (tr.state === "waiting") outRate.push(0);
     outRate.push(tr.done);
@@ -1781,6 +1801,7 @@ async function main(opened: string): Promise<void> {
   if (offer) tab = "receive";
   history = await backend.postHistory().catch(() => []);
   await loadInbox(inboxContext);
+  await loadChat(chatContext);
   await backend.on("post-schedule", () => void loadInbox(inboxContext));
   await backend.on("post-schedule-inbox", () => void loadInbox(inboxContext));
   // The offer's countdown (only its line).

@@ -1741,11 +1741,11 @@
         },
         {
           "id": "post.text",
-          "rev": "0.51.2",
+          "rev": "0.61.0",
           "ci": "partial",
           "human": "用真手机发一段文字（LocalSend 的“文字”），含一个很长的链接",
           "do": "手机 LocalSend 选 文字，发一句话给 ePet；点 Copy",
-          "expect": "宠物气泡显示 💬 <手机名> says: 和那句话，长链接在气泡里换行不溢出；点 Copy 后宠物说 “📋 Copied to the clipboard.”（约 2 秒），能粘贴出来；拷贝失败时气泡留着并写 “Couldn't copy it. Try again?”；主窗口的 Pet Post 标签开着时 Received 下也有这条，带 Copy"
+          "expect": "宠物气泡显示 💬 <手机名> says: 和那句话，长链接在气泡里换行不溢出；按钮是 Reply / Copy / OK；点 Copy 后宠物说 “📋 Copied to the clipboard.”（约 2 秒），能粘贴出来；拷贝失败时气泡留着并写 “Couldn't copy it. Try again?”；主窗口的 Pet Post 标签开着时 Received 下也有这条，带 Copy"
         },
         {
           "id": "post.copy",
@@ -1906,11 +1906,26 @@
           "expect": "窗口说 Stopped receiving from <手机>.；手机那边显示发送失败；已收完的文件留着，没收完的不留半截"
         },
         {
-          "id": "post.history",
-          "rev": "0.45.0",
+          "id": "post.chat-records",
+          "rev": "0.61.0",
           "ci": "auto",
-          "do": "收几次文件和文字后，关掉 主窗口的 Pet Post 标签和 ePet，再打开",
-          "expect": "Received 下仍列着最近收到的（最多 50 条）：文件写 N files from <谁> · 大小、时间、文件名，一个文件有 Open 和 Show in folder，多个只有 Show in folder；文字有 Copy；文件被删了点 Open 时说 Not there any more (moved or deleted).；点 Clear 清空"
+          "do": "收发几次文字和文件后，打开主窗口 Pet Post → 💬 Chat / Records；关掉 ePet 再打开看一次；点开一个对话，点 Clear… → Clear",
+          "expect": "原来的 History 换成 Chat / Records：先是对话列表（每台设备一个，最新的在上面，显示最后一条、时间和未读数；顶上可以搜文字和文件名）。点开才展开对话：‹ All conversations 返回；收到的在左、发出的在右，按天分；文件不分格式写 Received / Sent N files · 大小 + Open folder；发出的写 Delivered；提醒（闹钟/待办/纪念日）在中间一行写谁发了什么、结果。重开后都还在（一直保存）。Clear… 只清空这个对话，收到的文件不删。Settings → Pet Post → Chat / Records 写着共几条、几个对话，Clear all records… 清空全部"
+        },
+        {
+          "id": "post.chat-reply",
+          "rev": "0.61.0",
+          "ci": "partial",
+          "human": "用真手机（LocalSend）发一句话，点气泡里的 Reply 回一句，看手机收到",
+          "do": "另一台设备发来一句话；点气泡的 Reply；写一句，按回车",
+          "expect": "气泡按钮是 Reply / Copy / OK。Reply 打开 Chat / Records 直接进入这台设备的对话，光标已在输入框；回车发送（Shift+回车换行），发出的显示 Sending… 再变 Delivered，对方收到；📎 选文件发给它，拖文件到对话里也发给它"
+        },
+        {
+          "id": "post.chat-resend",
+          "rev": "0.61.0",
+          "ci": "auto",
+          "do": "关掉另一台设备的 LocalSend / ePet，在它的对话里发一句；再发一句后点那句的 Cancel；再打开那台设备",
+          "expect": "发出的写 “Not delivered yet: goes by itself when <谁> is back · Cancel”；那台设备回来后（约半分钟内）第一句自动发出、变 Delivered，点了 Cancel 的写 Cancelled · Send again，不会发；对方点了不收的写 “<谁> didn't take it · Send again”，不会自动重发"
         },
         {
           "id": "post.own-address",
@@ -2097,8 +2112,8 @@
           "id": "post.verified-badge",
           "rev": "0.48.0",
           "mac": true,
-          "do": "把一台设备标为 Verified 后，给它发文件、让它给你发文件，再看 Receive / History",
-          "expect": "绿色 🛡 Verified 出现在：Send 列表、宠物 “Deliver to…” 按钮（名字后 🛡）、发送 / 接收进度（窗口和气泡）、来件提问（气泡和窗口卡片）、Recent senders；Latest 和 History 每条记录名字后一个小绿盾。悬停显示 “Verified on …: the icons matched on both screens.”。没核对过的设备什么都不显示"
+          "do": "把一台设备标为 Verified 后，给它发文件、让它给你发文件，再看 Receive / Chat / Records",
+          "expect": "绿色 🛡 Verified 出现在：Send 列表、宠物 “Deliver to…” 按钮（名字后 🛡）、发送 / 接收进度（窗口和气泡）、来件提问（气泡和窗口卡片）、Recent senders；Latest 每条记录名字后、Chat / Records 的对话名字后一个小绿盾。悬停显示 “Verified on …: the icons matched on both screens.”。没核对过的设备什么都不显示"
         },
         {
           "id": "post.recent-senders",

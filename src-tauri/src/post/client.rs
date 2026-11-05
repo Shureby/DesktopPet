@@ -43,6 +43,15 @@ pub(crate) struct Sending {
     session: Arc<Mutex<Option<String>>>,
     /// Set just before the last word on it (done, declined…), so the next one may start.
     over: Arc<AtomicBool>,
+    /// Its line in Chat / Records.
+    pub(crate) entry: Option<String>,
+}
+
+impl Sending {
+    /// Over (done, declined, cancelled…): another may start.
+    pub(crate) fn is_over(&self) -> bool {
+        self.over.load(Ordering::SeqCst)
+    }
 }
 
 /// Where a file's data comes from.
@@ -412,23 +421,47 @@ fn text_file(text: &str) -> (FileInfo, Source) {
     (info, Source::Text(bytes))
 }
 
-/// Starts sending to `device`; "post-transfer" events say how it goes.
+/// Starts sending to `device`; "post-transfer" events say how it goes, and its line in
+/// Chat / Records (a new one, or `again`: one sent again).
 pub(crate) fn send(
     inner: Arc<Inner>,
     device: Device,
     paths: Vec<PathBuf>,
     text: Option<String>,
     pin: Option<String>,
+    again: Option<String>,
 ) -> Result<(), String> {
     let mut sending = lock(&inner.sending);
-    if sending.as_ref().is_some_and(|s| !s.over.load(Ordering::SeqCst)) {
+    if sending.as_ref().is_some_and(|s| !s.is_over()) {
         return Err("busy".into());
     }
+    let entry = inner.chat_sending(again.as_deref(), || {
+        let (files, bytes) = if text.is_some() { (0, 0) } else { measure(&paths) };
+        super::chat::Entry {
+            id: random_id(),
+            at: now_ms(),
+            dir: "out".into(),
+            fingerprint: device.fingerprint.clone(),
+            alias: device.alias.clone(),
+            device_type: device.device_type.clone(),
+            kind: if text.is_some() { "text" } else { "files" }.into(),
+            text: text.clone(),
+            files,
+            bytes,
+            paths: if text.is_some() {
+                Vec::new()
+            } else {
+                paths.iter().map(|p| p.to_string_lossy().into_owned()).collect()
+            },
+            state: "sending".into(),
+            ..Default::default()
+        }
+    });
     let session = Arc::new(Mutex::new(None));
     let over = Arc::new(AtomicBool::new(false));
-    let job = Job { device: device.clone(), session: session.clone(), over: over.clone() };
+    let job = Job { device: device.clone(), session: session.clone(), over: over.clone(), entry: entry.clone() };
     let task = tauri::async_runtime::spawn(run(inner.clone(), job, paths, text, pin));
-    *sending = Some(Sending { task, device, session, over });
+    *sending = Some(Sending { task, device, session, over, entry: Some(entry) });
     Ok(())
 }
 
@@ -442,6 +475,9 @@ pub(crate) fn cancel(inner: Arc<Inner>) {
     let session = lock(&s.session).clone().unwrap_or_default();
     let peer = s.device.alias.clone();
     let fingerprint = s.device.fingerprint.clone();
+    if let Some(id) = &s.entry {
+        inner.chat_sent(id, "cancelled", true, 0, None);
+    }
     inner.transfer(Transfer { direction: "out", state: "cancelled", peer, fingerprint, ..Default::default() });
     tauri::async_runtime::spawn(async move {
         let d = s.device;
@@ -467,10 +503,11 @@ struct Job {
     device: Device,
     session: Arc<Mutex<Option<String>>>,
     over: Arc<AtomicBool>,
+    entry: String,
 }
 
 async fn run(inner: Arc<Inner>, job: Job, paths: Vec<PathBuf>, text: Option<String>, pin: Option<String>) {
-    let Job { device: d, session, over } = job;
+    let Job { device: d, session, over, entry } = job;
     // Each file and how far it is.
     let tracker: Shared = Default::default();
     let report = |state: &'static str, done: u64, total: u64, files: usize, error: Option<String>| {
@@ -482,6 +519,13 @@ async fn run(inner: Arc<Inner>, job: Job, paths: Vec<PathBuf>, text: Option<Stri
             "done" => lock(&tracker).finish_all(),
             "failed" | "cancelled" => lock(&tracker).stop_moving(),
             _ => {}
+        }
+        if !matches!(state, "waiting" | "sending") {
+            // Nothing to send (files gone): no use waiting. Else it went if the receiver
+            // took the session (or answered at all).
+            let reached = files == 0 || lock(&session).is_some();
+            let reached = reached || !error.as_deref().is_some_and(|e| e.starts_with(UNREACHABLE) || e == "timeout");
+            inner.chat_sent(&entry, state, reached, total, error.clone());
         }
         let t = Transfer {
             direction: "out",

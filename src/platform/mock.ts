@@ -4,7 +4,7 @@ import { currentWorkPeriod, runCutoff } from "../features/pomodoro/workHours";
 import { endOfDay, nextAfterTick, todoRemindsAt } from "../features/todo/repeat";
 import { nextAnniversary, prepDay } from "../features/anniversary/templates";
 import { NOT_BUSY, othersPresent, type AvoidReason, type Busy } from "../features/avoid/avoid";
-import type { PostDevice, PostReceived, PostStatus } from "../features/post/post";
+import type { PostChatEntry, PostDevice, PostReceived, PostStatus } from "../features/post/post";
 import type { InboxItem, SentItem } from "../features/post/schedule";
 import {
   DEFAULT_SETTINGS,
@@ -147,6 +147,37 @@ const MOCK_DEVICES: PostDevice[] = [
 const mockHistory: PostReceived[] = [
   { id: "h2", at: Date.now() - 600_000, from: "Pixel 8", fingerprint: "A1", deviceModel: "Google", deviceType: "mobile", text: "Dinner at 7? 🍜", files: 0, bytes: 0, paths: [], folder: null },
   { id: "h1", at: Date.now() - 3_600_000, from: "Mum's MacBook", fingerprint: "B2", deviceModel: "macOS", deviceType: "desktop", text: null, files: 1, bytes: 2_400_000, paths: ["Downloads/ePet/trip.pdf"], folder: "Downloads/ePet" },
+];
+
+const chatLine = (e: Partial<PostChatEntry>): PostChatEntry => ({
+  id: `c${Math.random().toString(36).slice(2)}`,
+  at: Date.now(),
+  dir: "in",
+  fingerprint: "",
+  alias: "",
+  deviceType: "mobile",
+  kind: "text",
+  text: null,
+  files: 0,
+  bytes: 0,
+  paths: [],
+  folder: null,
+  share: null,
+  uid: null,
+  state: "done",
+  error: null,
+  unread: false,
+  retryAt: 0,
+  tries: 0,
+  ...e,
+});
+
+/** Chat / Records, the oldest first. */
+const mockChat: PostChatEntry[] = [
+  chatLine({ at: Date.now() - 86_400_000, dir: "in", fingerprint: "B2", alias: "Mum's MacBook", deviceType: "desktop", kind: "files", files: 1, bytes: 2_400_000, paths: ["Downloads/ePet/trip.pdf"], folder: "Downloads/ePet" }),
+  chatLine({ at: Date.now() - 86_000_000, dir: "out", fingerprint: "B2", alias: "Mum's MacBook", deviceType: "desktop", text: "Got it, thanks!" }),
+  chatLine({ at: Date.now() - 3_600_000, dir: "out", fingerprint: "C3", alias: "Work laptop", deviceType: "desktop", kind: "share", share: "alarm", text: "Stand-up", state: "added" }),
+  chatLine({ at: Date.now() - 600_000, dir: "in", fingerprint: "A1", alias: "Pixel 8", text: "Dinner at 7? 🍜", unread: true }),
 ];
 
 /** The pretend devices, and the ones added by address (in the settings). */
@@ -984,6 +1015,38 @@ export const mockBackend: Backend = {
     fire("post-history", []);
   },
   async postOpenReceived() {},
+  async postChat() {
+    return [...mockChat];
+  },
+  async postChatSend(to, text, paths) {
+    const d = mockDevices().find((x) => x.fingerprint === to);
+    const e = chatLine({ dir: "out", fingerprint: to, alias: d?.alias ?? to, kind: text ? "text" : "files", text, files: paths.length, bytes: 1_200_000 * paths.length, paths, state: d ? "sending" : "waiting" });
+    mockChat.push(e);
+    fire("post-chat", e);
+    if (d)
+      setTimeout(() => {
+        e.state = "done";
+        fire("post-chat", { ...e });
+      }, 1200);
+    return e.id;
+  },
+  async postChatCancel(id) {
+    const e = mockChat.find((x) => x.id === id);
+    if (e && ["waiting", "sending"].includes(e.state)) fire("post-chat", Object.assign(e, { state: "cancelled" }));
+  },
+  async postChatRetry(id) {
+    const e = mockChat.find((x) => x.id === id);
+    if (e) fire("post-chat", Object.assign(e, { state: "waiting" }));
+  },
+  async postChatRead(key) {
+    for (const e of mockChat) if (e.unread && (e.fingerprint || `~${e.alias}`) === key) fire("post-chat", Object.assign(e, { unread: false }));
+  },
+  async postChatClear(key) {
+    const keep = mockChat.filter((e) => key !== null && (e.fingerprint || `~${e.alias}`) !== key);
+    mockChat.splice(0, mockChat.length, ...keep);
+    fire("post-chat-cleared", { key });
+  },
+  async postChatOpen() {},
   async postWindowShown() {
     return false;
   },

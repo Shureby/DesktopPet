@@ -7,6 +7,7 @@
 //! network. The pet window sends the settings (`post_configure`) and shows what happens
 //! (the `post-*` events).
 
+pub(crate) mod chat;
 mod client;
 mod discovery;
 mod door;
@@ -327,6 +328,8 @@ const HISTORY: usize = 50;
 #[serde(rename_all = "camelCase")]
 pub struct TextMessage {
     pub alias: String,
+    /// Proven by its certificate ("" when not): Reply goes to it.
+    pub fingerprint: String,
     pub text: String,
 }
 
@@ -388,6 +391,8 @@ pub struct Inner {
     pub(crate) tailnet: Mutex<Tailnet>,
     /// What was received (read from its file when first needed).
     pub(crate) history: Mutex<Option<Vec<Received>>>,
+    /// Chat / Records (chat.rs), loaded when first needed.
+    pub(crate) chat: Mutex<Option<Vec<chat::Entry>>>,
     /// Devices that asked to compare Verify (fingerprint → who, when, and the answer to give).
     pub(crate) verify_asked: Mutex<HashMap<String, Asked>>,
     /// What the user decided on Verify for a device (fingerprint → match or not), for its
@@ -666,8 +671,9 @@ impl Inner {
         self.emit("post-history", list);
     }
 
-    /// Keeps something received (the latest first, at most HISTORY).
+    /// Keeps something received (the latest first, at most HISTORY), and in Chat / Records.
     pub(crate) fn remember(&self, entry: Received) {
+        self.chat_add(chat::Entry { unread: true, ..chat::Entry::from(&entry) });
         let mut list = self.history();
         list.insert(0, entry);
         list.truncate(HISTORY);
@@ -718,6 +724,7 @@ impl Post {
             sending: Mutex::new(None),
             tailnet: Mutex::new(Tailnet::default()),
             history: Mutex::new(None),
+            chat: Mutex::new(None),
             verify_asked: Mutex::new(HashMap::new()),
             verify_decided: Mutex::new(HashMap::new()),
             came_in: Mutex::new(HashSet::new()),
@@ -758,6 +765,7 @@ async fn start(inner: &Arc<Inner>, port: u16) -> Result<(), String> {
     // may hold the TCP port; the UDP one is shared).
     discovery::watch(inner.clone(), stop_rx.clone());
     pickup::collect(inner.clone(), stop_rx.clone());
+    chat::watch(inner.clone(), stop_rx.clone());
     door::keep(inner.clone(), stop_rx.clone());
     let udp = match discovery::spawn(inner.clone(), stop_rx).await {
         Ok(udp) => Some(udp),
@@ -972,7 +980,7 @@ pub fn post_send(
     if !device.online || device.ip.is_unspecified() {
         return Err("offline".into());
     }
-    client::send(inner, device, paths.into_iter().map(PathBuf::from).collect(), text, pin)
+    client::send(inner, device, paths.into_iter().map(PathBuf::from).collect(), text, pin, None)
 }
 
 #[tauri::command]

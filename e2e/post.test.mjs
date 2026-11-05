@@ -721,9 +721,10 @@ check(
     const active = () =>
       app.until(() => document.querySelector(".post-tab.active")?.dataset.tab);
     await app.toPet();
+    // (History is Chat / Records now: asked for by its old name, that's where it opens.)
     await app.invoke("open_post_window", { verify: null, tab: "history" });
     await toPost();
-    assert.equal(await active(), "history");
+    assert.equal(await active(), "chat");
     await app.toPet();
     await app.invoke("open_post_window", { verify: null, tab: "send" });
     await toPost();
@@ -858,18 +859,139 @@ check(
 );
 
 check(
-  "post.history",
-  "Received keeps what came (files and texts) across restarts of the window; Clear empties it",
+  "post.chat-records",
+  "Chat / Records: one conversation per device, the texts and files sent and received, kept across restarts of the window; Clear… empties one",
   async () => {
     const app = ctx.app;
     await app.closeWindow("panel");
     await app.invoke("open_post_window");
-    await postTab("history");
-    await app.waitText(".post-received-item", "1 file from Mock Phone");
-    await app.waitText(".post-received-item", "Dinner at 7?");
-    await app.click(".post-clear-history");
-    await app.until(() => !document.querySelector(".post-received-item"));
-    assert.deepEqual(await app.invoke("post_history"), []);
+    await postTab("chat");
+    const row = `.chat-conv[data-key="${peer.fingerprint}"]`;
+    await app.waitText(row, "Mock Phone");
+    await app.click(row);
+    await app.waitText(".chat-thread", "Dinner at 7?");
+    await app.waitText(".chat-thread", "Received 1 file");
+    await app.waitText(".chat-thread", "sent from ePet");
+    await app.waitText(".chat-line.out .chat-state", "Delivered");
+    // In and out, in time order, all for this device.
+    const mine = (await app.invoke("post_chat")).filter(
+      (e) => e.fingerprint === peer.fingerprint,
+    );
+    assert.ok(mine.some((e) => e.dir === "in" && e.kind === "files"));
+    assert.ok(mine.some((e) => e.dir === "out" && e.text === "sent from ePet"));
+    assert.ok(mine.every((e, i) => i === 0 || mine[i - 1].at <= e.at));
+    // Looked at: nothing new in it any more.
+    await until("read", async () =>
+      (await app.invoke("post_chat")).every(
+        (e) => e.fingerprint !== peer.fingerprint || !e.unread,
+      ),
+    );
+    await app.click(".chat-clear");
+    await app.click(".chat-clear-yes");
+    await app.until(() => !!document.querySelector(".chat-convs, .chat-empty"));
+    await until("cleared", async () =>
+      (await app.invoke("post_chat")).every(
+        (e) => e.fingerprint !== peer.fingerprint,
+      ),
+    );
+  },
+);
+
+check(
+  "post.chat-reply",
+  "a text received: the pet's bubble has Reply, which opens Chat / Records at that device ready to write; Enter sends it",
+  async () => {
+    const app = ctx.app;
+    await app.closeWindow("panel");
+    await app.toPet();
+    assert.equal((await peer.sendText("Are you there?")).status, 204);
+    await app.waitBubble("Mock Phone says:");
+    await app.answer("Reply");
+    await app.toWindow("panel.html");
+    await app.until(
+      () =>
+        document
+          .querySelector(".chat-head")
+          ?.innerText.includes("Mock Phone") &&
+        document.activeElement?.classList.contains("chat-input"),
+    );
+    await app.waitText(".chat-thread", "Are you there?");
+    await app.type(".chat-input", "Yes, here!");
+    await app.b.execute(() =>
+      document
+        .querySelector(".chat-input")
+        .dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        ),
+    );
+    await until("reply arrived", () => peer.texts?.includes("Yes, here!"));
+    await app.waitText(".chat-line.out .chat-state", "Delivered");
+    assert.equal(
+      await app.b.execute(() => document.querySelector(".chat-input").value),
+      "",
+    );
+  },
+);
+
+check(
+  "post.chat-resend",
+  "Chat / Records: sent while the device is away it waits (Not delivered yet), and goes by itself when it's back; Cancel stops one",
+  async () => {
+    const app = ctx.app;
+    await postTab("chat");
+    const row = `.chat-conv[data-key="${peer.fingerprint}"]`;
+    if (await app.b.execute((s) => !!document.querySelector(s), row))
+      await app.click(row);
+    await app.until(() => !!document.querySelector(".chat-input"));
+    const say = async (text) => {
+      await app.type(".chat-input", text);
+      await app.click(".chat-send");
+      await until(`${text} listed`, async () =>
+        (await app.invoke("post_chat")).find((e) => e.text === text),
+      );
+    };
+    await peer.stop();
+    try {
+      await say("Back yet?");
+      await say("Never mind");
+      const entry = async (text) =>
+        (await app.invoke("post_chat")).filter((e) => e.text === text).pop();
+      await until(
+        "waiting",
+        async () => (await entry("Back yet?")).state === "waiting",
+      );
+      await app.waitText(".chat-line.out .chat-state", "Not delivered yet");
+      await until(
+        "waiting",
+        async () => (await entry("Never mind")).state === "waiting",
+      );
+      const id = (await entry("Never mind")).id;
+      await app.click(`.chat-line[data-id="${id}"] .chat-cancel`);
+      await until(
+        "cancelled",
+        async () => (await entry("Never mind")).state === "cancelled",
+      );
+      await app.waitText(
+        `.chat-line[data-id="${id}"] .chat-state`,
+        "Cancelled",
+      );
+    } finally {
+      await peer.start();
+      await peer.register();
+    }
+    await until(
+      "sent when back",
+      () => peer.texts?.includes("Back yet?"),
+      60_000,
+    );
+    await until(
+      "delivered",
+      async () =>
+        (await app.invoke("post_chat"))
+          .filter((e) => e.text === "Back yet?")
+          .pop()?.state === "done",
+    );
+    assert.equal(peer.texts.includes("Never mind"), false);
   },
 );
 

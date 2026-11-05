@@ -2,7 +2,7 @@
 
 <!-- Generated from test-checklist.json by `npm run test-checklist`. Edit the JSON, not this file. -->
 
-当前版本 `0.60.5`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
+当前版本 `0.61.0`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
 标 🤖 的项目由 CI 自动测（Windows），不用手动测；标 🤖+👀 的项目逻辑由 CI 测，你只看 👀 后面写的部分；标 🌙 的每晚测一次（太久，不在每次推送时测）。
 macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码，在 Windows 上测过就行。
 在线勾选页面（保存结果，自动标出需要重测的项目）：https://claude.ai/artifact/XQVzPKq4w2MThVnTLYCGy1
@@ -11,7 +11,7 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 
 - [ ] 1.1 🍎 安装包安装 → **开始菜单/启动台里有应用，图标和名字正常**
 - [ ] 1.2 🍎 🤖+👀 首次启动 → **宠物从屏幕上方掉下来，落在任务栏/Dock 上方** 👀 你只看掉落的样子（窗口出现、宠物落在任务栏上方由 CI 测）
-- [ ] 1.3 🤖 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.60.5 · …`，与安装包版本一致**
+- [ ] 1.3 🤖 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.61.0 · …`，与安装包版本一致**
 - [ ] 1.4 🍎 🤖 已经运行时再启动一次 → **不会出现第二只宠物（只打开面板）**
 - [ ] 1.5 🤖 装着旧版本、ePet 正在运行时，双击新版本的安装包，一路点 Next / Install / Finish → **不再出现“已安装（Already Installed）/ 是否先卸载”那一页，也不提示 ePet 正在运行（会自动关掉它）；旧版被安静地卸载后装上新版；之前的待办、闹钟、纪念日、设置、心情值都还在。重装同一版本或装更旧的版本时仍会询问**
 - [ ] 1.6 🤖 ePet 开着时，再运行一次同一个版本的安装包（例如同一个测试包装两次） → **不出现“Already Installed / Add/Reinstall / Uninstall”页，也不问 ePet 正在运行；装完 ePet 正常，数据都在。只有用旧版本盖新版本时才会问**
@@ -280,7 +280,7 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 - [ ] 20.4 🍎 🤖+👀 手机 LocalSend 选几张照片发给 ePet → **宠物跳出来（藏着的也会出来），气泡写 📦 <手机名> wants to send you 3 files (… MB) 和文件名，有 Accept / Decline / Always accept；点 Accept 后宠物旁有 📦 进度徽章，收完说 Got 3 files from <手机名>!，点 Show 打开文件所在文件夹；文件在 下载/ePet，同名的变成 name (2).jpg** 👀 用真手机的 LocalSend 发几张照片和一个文件夹
 - [ ] 20.5 🤖 手机再发一次，点 Decline → **手机上显示被拒绝；电脑上没有新文件**
 - [ ] 20.6 手机发文件后不理它，等 1 分钟以上（宠物藏着时也试一次） → **约 60 秒后气泡消失，手机显示被拒绝；Show pet 时 “While I was hidden you missed:” 里有 📦 <手机名>: 1 file**
-- [ ] 20.7 🤖+👀 手机 LocalSend 选 文字，发一句话给 ePet；点 Copy → **宠物气泡显示 💬 <手机名> says: 和那句话，长链接在气泡里换行不溢出；点 Copy 后宠物说 “📋 Copied to the clipboard.”（约 2 秒），能粘贴出来；拷贝失败时气泡留着并写 “Couldn't copy it. Try again?”；主窗口的 Pet Post 标签开着时 Received 下也有这条，带 Copy** 👀 用真手机发一段文字（LocalSend 的“文字”），含一个很长的链接
+- [ ] 20.7 🤖+👀 **【新】** 手机 LocalSend 选 文字，发一句话给 ePet；点 Copy → **宠物气泡显示 💬 <手机名> says: 和那句话，长链接在气泡里换行不溢出；按钮是 Reply / Copy / OK；点 Copy 后宠物说 “📋 Copied to the clipboard.”（约 2 秒），能粘贴出来；拷贝失败时气泡留着并写 “Couldn't copy it. Try again?”；主窗口的 Pet Post 标签开着时 Received 下也有这条，带 Copy** 👀 用真手机发一段文字（LocalSend 的“文字”），含一个很长的链接
 - [ ] 20.8 🍎 🤖 主窗口的 Pet Post 标签：接收 页点地址旁的 Copy；“最新”里收到的文字旁点 Copy → **按钮原地变成绿色的 “✓ Copied”，约 1.5 秒后变回 Copy，内容在剪贴板里；拷贝失败时变成红色的 “✗ Couldn't copy”**
 - [ ] 20.9 🤖+👀 设置 → Pet Post 的 PIN 填 2468，再用手机发 → **手机先要求输入 PIN；输错不能发送；输对后宠物照常问你** 👀 手机端输入 PIN 的提示
 - [ ] 20.10 🤖+👀 手机发文件时点 Always accept；再发一次；然后在 设置 → Pet Post → 收藏的设备（Favorites） 里 Remove 它 → **第一次收下并把手机加入收藏（Pet Post 里它那行变成 ♥）；第二次不再问，直接收下；Remove 后又会问；取消勾选 Accept from favorites without asking 时收藏的设备也要问** 👀 设置里的 收藏的设备（Favorites）列表和 Remove
@@ -301,50 +301,52 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 - [ ] 20.25 🍎 🤖+👀 打开 主窗口的 Pet Post 标签，用手机 LocalSend 发文件给 ePet → **窗口顶部出现来件卡片：📦 <手机> wants to send you N files (… MB)、文件名、Declined in N s if you don't answer. 倒计时，按钮 Accept / Decline / Always accept / 🛡 Verify；宠物气泡也同时问。在窗口点 Accept 后宠物的气泡消失（反过来在宠物那里答，窗口的卡片也消失）；窗口显示接收进度，收完说 Got N files from <手机>!，并轻响一声（比提问时的 Chime 短；静音类模式不响）** 👀 真手机发文件时，窗口在后台：任务栏按钮闪（Mac：Dock 图标跳一下）；收完的提示音
 - [ ] 20.26 🤖 藏起宠物，打开主窗口的 Pet Post 标签，让手机发文件；再切到别的标签（或最小化主窗口）发一次 → **Pet Post 标签在眼前时宠物不跳出来（仍是藏着），由标签里问；切到别的标签或最小化后再发，宠物照旧跳出来问**
 - [ ] 20.27 🍎 🤖+👀 接收大文件时，在窗口的进度卡片里点 Stop receiving → **窗口说 Stopped receiving from <手机>.；手机那边显示发送失败；已收完的文件留着，没收完的不留半截** 👀 手机发一个大文件（几百 MB），接收中途点 Stop receiving
-- [ ] 20.28 🤖 收几次文件和文字后，关掉 主窗口的 Pet Post 标签和 ePet，再打开 → **Received 下仍列着最近收到的（最多 50 条）：文件写 N files from <谁> · 大小、时间、文件名，一个文件有 Open 和 Show in folder，多个只有 Show in folder；文字有 Copy；文件被删了点 Open 时说 Not there any more (moved or deleted).；点 Clear 清空**
-- [ ] 20.29 🍎 🤖+👀 打开 主窗口的 Pet Post 标签的 📥 接收页，看“在其他设备上按地址添加这台电脑时，填：” → **只显示一个地址（最可能用到的：有线优先，其次 Wi-Fi，再 Tailscale，虚拟网卡最后），旁边是网卡名；点它展开列表，按 局域网（有线 / 无线）/ Tailscale / 其他虚拟网卡（一般用不到，灰色）分组；选一个后 复制 复制它，下次打开还是它；“保存到：”显示收件文件夹，点 更改… 能直接换；手机 LocalSend 按这个地址手动添加能连上** 👀 在手机 LocalSend 里照着窗口显示的地址手动添加这台电脑
-- [ ] 20.30 🍎 🤖+👀 主窗口的 Pet Post 标签里在手机那行点 🛡 Verify；手机 LocalSend 里点这台电脑（或它发来的消息），再点 Verify → **两边都是 16 个图标（4×4），一样、顺序一样；切到 Text 是同一串字符；点 Done 回到列表** 👀 和真手机 LocalSend 的 Verify 对照：图标、顺序和文字完全一样
-- [ ] 20.31 🤖 手机发文件，宠物问你时点 Verify… → **主窗口的 Pet Post 标签打开并显示对这台手机的 Verify；宠物的问题还在（Accept / Decline 仍可点）**
-- [ ] 20.32 🍎 🤖+👀 在 A 的 Pet Post → Send，点 B 那行的 🛡 Verify；B 上点 Show；对比两边图标后，在 A 上点 ✓ They match → **A 先显示 “⏳ Verification request sent to B. Waiting for it…”；B 点 Show 后 A 变成绿字 “✓ B shows them too. Compare the icons…（man-in-the-middle）”，下面有 ✓ They match / ✗ They don't match；点 They match 后直接回到列表（不用点 Done），B 的名字旁出现绿色 🛡 Verified；页面再长，Done 等按钮也固定在窗口底部看得到（Mac 上也一样）；设置 → Pet Post → Verified devices 里有 B（可 Remove）** 👀 两台电脑都装 ePet（一台 Windows、一台 Mac）
-- [ ] 20.33 🍎 🤖+👀 A 点 Verify 后，看 B 的宠物；点 Show → **B 的宠物气泡 “A wants to verify with you.”（Show / Decline）；点 Show 打开 Pet Post 的 Verify，图标和 A 上一样，写着 “A asked to compare.”，也有 They match / They don't match；A 那边不会再收到反过来的请求。宠物藏起来时先探出来再问；1 分钟不理，气泡收起，A 显示 declined** 👀 接着上一项，在 B 上看；再试一次 B 的宠物藏起来时
-- [ ] 20.34 🍎 🤖+👀 两台电脑都开 ePet 和宠物驿站：在 A 的宠物驿站 → 发送里，点 B 旁边的 🔗 配对…，在 B 上看宠物说出的 6 位码，输进 A → **B 的宠物出来说出码（2 分钟有效，可拒绝）；A 输对后两边都显示 🔒 已配对，设置 → 宠物驿站 → 已配对的 ePet 里有对方，可取消配对** 👀 你用两台装了 ePet 的电脑真配一次（CI 用模拟的 ePet 测码对、码错、拒绝）
-- [ ] 20.35 🍎 🤖 配对时故意输错一个数字 → **A 显示“配对码不对，这次配对已取消”，B 的宠物说“和 … 配对没成功”；重新配对会换新码；同一台电脑连错 3 次后 10 分钟内不能再配**
-- [ ] 20.36 🍎 🤖 B 的宠物显示配对码时点 拒绝，再在 A 输码；另试一次在 A 点 取消 → **A 显示“… 拒绝了配对”；在 A 取消时 B 的码气泡马上消失**
-- [ ] 20.37 🍎 🤖+👀 A 和 B 配对后，B 重装 ePet（身份会变），再在 A 的宠物驿站里看 B → **B 那行写着“⚠ 这不是你配对过的 B…”，不能选它发送；点 重新配对… 配好后恢复正常，或点 取消旧的配对** 👀 你在 B 上重装 ePet（或换一台同名电脑）后看 A 的提示（冒充请求被拒由 CI 测）
-- [ ] 20.38 🍎 🤖+👀 A、B 配对后，在 A 的 闹钟（或待办、纪念日）那一行点 📤，勾选 B，点 发送；再试 存成 .ics… → **B 那一行先写“已送达 · 等对方决定”，B 那边点了加上后变成“✓ 已收下”；.ics 文件能存下来，手机能用它加进日历** 👀 你在两台电脑上试（发送和回执由 CI 测）
-- [ ] 20.39 🍎 🤖+👀 B 收到 A 发来的提醒：看宠物气泡，点 看看；在 驿站 → 接收 里点 加上。A 改一下时间再发；B 自己也改一下后 A 再发一次 → **宠物说“爸爸送来一个提醒…”；预览里有时间、重复、设置；加上后闹钟列表里那一行有“👤 爸爸”；A 改了再发时只列出变化（更新/不用）；B 自己也改过时两边并排，默认是“保留我的”** 👀 你在两台电脑上试（预览、加上、更新、冲突由 CI 测）
-- [ ] 20.40 🍎 🤖+👀 A 给 B 发一个带两条“提前准备”、放烟花的纪念日；B 在预览里勾掉第一条准备，点 加上所选。A 再改日期和准备后发一次；再改日期和烟花发一次，B 只勾日期 → **B 加上的纪念日只有第二条准备，烟花保留；A 第二次发时 B 只看到日期的改动，下面写着“没有列出：提前准备…”；第三次 B 点 更新所选（1）后只有日期变了，烟花还在** 👀 你在两台电脑上试一下（逐项勾选、部分更新由 CI 测）
-- [ ] 20.41 🍎 🤖 设置 → 宠物驿站 → 已配对的 ePet 里点 备注名、收什么…，起个备注名，把 待办 设成 直接加、纪念日 设成 不收；然后让对方发一个待办和一个纪念日 → **待办直接出现在列表里，宠物说“爸爸给你加了一个待办…”，点 撤销 就删掉、对方看到“对方不要”；纪念日不会收，对方看到“对方不要”**
-- [ ] 20.42 🍎 A（例如上海）给 B（例如东京）发一个“今晚 9 点”的一次性闹钟，和一个“每天 8:00”的闹钟 → **一次性的在 B 的预览里显示为 B 的时间，并注明 A 那边是几点；每天的那个问“按谁的时间响？”，选“对方的”后在 B 那边按换算后的时间响**
-- [ ] 20.43 🍎 🤖+👀 用 LocalSend 把手机日历导出的 .ics 发到电脑，在 驿站 → 记录 里点 加到 ePet…（或 驿站 → 接收 → 导入日历文件…） → **每一项都出现在 接收 里等你决定：生日变成纪念日（带出生年份），预约变成闹钟，已经过去的不出现** 👀 你用手机日历导出的 .ics 试一下（解析由 CI 测）
-- [ ] 20.44 🤖 没配对的 ePet 给你发提醒 → **被拒收，什么都不会加**
-- [ ] 20.45 🍎 配对成功后在“给它起个名字？”里输入“爸爸”并保存 → **之后它发来的提醒、纪念日都显示“爸爸”，响铃时宠物说“👤 爸爸提醒你”**
-- [ ] 20.46 🍎 🤖 驿站 → 发送 里，在已配对的设备那一行点名字旁边的 ✎，输入“爸爸”回车；再点 ✎ 清空后保存 → **那一行大字变成“爸爸”，下面灰字里有它自己的名字；清空后恢复成它自己的名字**
-- [ ] 20.47 🍎 🤖 在 驿站 里点右上角的 ⚙ 驿站设置；配对成功后在宠物的气泡里点 起名字… → **打开设置，并且直接停在“宠物驿站”那一部分（不是设置的最上面）；起名字… 停在那台设备，它的详情已经展开**
-- [ ] 20.48 🍎 🤖 A 点 Verify，B 的宠物问时点 Decline → **A 显示 “B declined to verify. Nothing is sent to it this time.”，没有 They match 按钮；如果 A 正在等 B 接收文件，这次发送取消；B 没有被拉黑**
-- [ ] 20.49 🍎 🤖+👀 B 上点 ✗ They don't match，在确认框里先点 Look again；再点一次，这次点 Block。A 上看提示，点 Re-check，再试 Block → **B 的确认框 “Block A? …” 有 Block / Look again；Look again 不拉黑。A 上出现红框 “B says the icons don't match. Look again…”，有 Block / Re-check：Re-check 去掉 A 上 B 的 Verified 并重新发请求（B 已拉黑 A 时显示 “B refused: it may have blocked this computer…”）；Block 先确认再拉黑：B 从 A 的列表消失，B 发来的东西被拒收；设置 → Pet Post → Blocked devices 里有它，点 Unblock 后又能找到** 👀 两台 ePet：A 点 Verify，B 点 Show
-- [ ] 20.50 🍎 把一台设备标为 Verified 后，给它发文件、让它给你发文件，再看 Receive / History → **绿色 🛡 Verified 出现在：Send 列表、宠物 “Deliver to…” 按钮（名字后 🛡）、发送 / 接收进度（窗口和气泡）、来件提问（气泡和窗口卡片）、Recent senders；Latest 和 History 每条记录名字后一个小绿盾。悬停显示 “Verified on …: the icons matched on both screens.”。没核对过的设备什么都不显示**
-- [ ] 20.51 🍎 🤖 用手机 LocalSend 或另一台 ePet 给这台电脑发一个文件，接收后打开 Pet Post → Receive → **Receive 页下面有 “Recent senders”，列出发件设备（型号 · 1 file · 时间）和 🛡 Verify；点 Verify 显示和对方一样的图标。就算 Send 页里找不到那台设备也能用。最多 5 个，同一设备只列一次**
-- [ ] 20.52 🍎 🤖+👀 主窗口的 Pet Post 标签 发送 页，点手机那行的 ♡；以后再点一次 ♥ → **第一次点 ♡ 先在那一行下面说明“收藏的设备会被记住……直接接收”，点 收藏 才生效（以后再收藏不再提示）；♡ 变成红色 ♥；手机再发文件不问直接收下；设置 → 宠物驿站 → 收藏的设备 里列出它；离开本网络（如切到 Tailscale）也会按地址去找它；再点 ♥ 取消，之后发来又会问。收到文件时点 总是接收 也会变成收藏** 👀 真手机：收藏后它发来的直接收；DHCP 换了 IP（或重连 Wi-Fi）后还认得它
-- [ ] 20.53 🍎 🤖+👀 主窗口的 Pet Post 标签点 ＋ Add by address…，填对方的 IP（或名字）和端口（默认 53317），点 Add → **显示 Connecting… 然后 Added <名字>.；设备出现在列表里，标 added by address；重启 ePet 后还在；能向它发文件和文字；设置 → Pet Post → Beyond this network 里列出它，可 Remove** 👀 二级路由下的设备（如 192.168.8.x）或 Tailscale 地址（100.x 或 MagicDNS 名）
-- [ ] 20.54 🤖 填一个没开 LocalSend 的地址，或一个不存在的名字，点 Add → **地址：Couldn't reach it…，并有防火墙提示（Windows 安全中心 → 允许应用通过防火墙）；名字：No device by that name. Check the address.**
-- [ ] 20.55 🤖+👀 按地址添加二级路由下的手机后，让手机给电脑发一次文件，再从电脑发回给它 → **电脑能收；之后电脑往手机发也能发（列表里它的地址仍是 192.168.8.x，不会变成二级路由的 WAN 地址）** 👀 二级路由下的手机：先按地址添加，再让它主动给电脑发文件
-- [ ] 20.56 🍎 🤖 电脑在二级路由后面（例如 192.168.8.x），手机在主路由（192.168.31.x）上开着 LocalSend；打开宠物驿站 → 接收 → **黄卡 “⚠ 有些设备可能发不进来”，写出手机名字和网段，下面两条建议（Share via link；同一 Wi-Fi 或 Tailscale）；点 知道了 后不再出现；手机一旦自己连进来过（例如它成功发过东西），就不算在内**
-- [ ] 20.57 🍎 🤖 设置 → 宠物驿站 → 别的设备怎么连到这台电脑（自动测试用假路由器：不回应 / NAT-PMP / 外网是公网） → **不回应：✗ 路由器开门“没有回应 UPnP、NAT-PMP 或 PCP”+ 再试一次；能开：✓ 门开着：<地址:端口> → 这台电脑（NAT-PMP…），点 现在关门 后路由器上的门关掉、显示 已关闭；外网是公网：不自动开，点 仍然打开… 出现警告，确认后才开**
-- [ ] 20.58 🍎 在你自己的网络上：电脑在二级路由（穿梭，192.168.8.x）后面，手机在 192.168.31.x 开着 LocalSend；打开 设置 → 宠物驿站 → **✓ 这个网络（192.168.8.x）；✗ 192.168.31.x（例如 可爱的蓝莓）+ 下面 ✓ 电脑去取；✗ 路由器开门：路由器 (192.168.8.1) 没有回应…（这台路由器不支持）；Tailscale 一行写出它的状态。若换到支持 UPnP/NAT-PMP 的路由器：✓ 门开着，手机直接发给电脑成功，之后那一行变 ✓**
-- [ ] 20.59 🍎 🤖 手机 LocalSend：选文件 → Nearby devices 旁的 ⚙ → Share via link（勾或不勾 Encryption 都试）；电脑上看宠物和 宠物驿站 → 接收 → **20 秒内宠物说 “📤 <手机> 正在分享文件。”（去看看 / 不用了）；接收页有卡片，点 看看分享了什么 后手机上会出现请求（没勾自动接受时要在手机上允许）；电脑列出文件可勾选，点 取 N 个文件 后有进度，存进收件文件夹并进 最新 / 记录；不勾 Encryption 时写 “未加密”**
-- [ ] 20.60 🍎 🤖 电脑已列出手机后，手机 Share via link 切换 Encryption（勾 → 不勾，再 不勾 → 勾），每次切完在电脑上点 看看分享了什么 → **两种方向都能列出文件并取到（手机 Requests 里出现这台电脑）；不会出现“没取成”**
-- [ ] 20.61 🍎 🤖 手机 Share via link 勾 Require PIN；电脑上点 看看分享了什么 → **电脑要求输入 PIN；输错写 “PIN 不对。”，输对后列出文件**
-- [ ] 20.62 🍎 🤖 手机 Share via link 没勾自动接受；电脑上点 看看分享了什么，在手机上点 拒绝 → **电脑上说对方不允许，什么都不取**
-- [ ] 20.63 🍎 🤖 宠物驿站 → 接收 → 🔗 从链接取文件…，填手机 Share via link 显示的地址 → **列出文件、可取；地址乱填时写 “这不是 LocalSend 显示的那种地址…”**
-- [ ] 20.64 🍎 🤖+👀 在 Mac 的 宠物驿站 → 发送 里选 PC，发一个文件；再发一段文字 → **Mac 上 PC 那行有 “↩ 由它来取”；发送后显示 “等 <PC> 来取…”；几秒内 PC 的宠物照常问是否接收，接收后 Mac 显示进度直到送到，PC 存好并进记录；文字直接在 PC 的气泡里显示；PC 拒收时 Mac 显示对方没接收** 👀 两台 ePet：一台在二级路由后面（例如 PC 在 192.168.8.x），另一台在主路由（例如 Mac 在 192.168.31.x 或 20.x）
-- [ ] 20.65 🤖 把按地址添加的设备上的 LocalSend 关掉，点 ↻ Look again → **它仍在列表里，写 Not answering.，不能选来发送；对方再打开后 Look again 恢复**
-- [ ] 20.66 🤖 按地址添加的设备换了（例如手机重装 LocalSend，证书变了），点 ↻ Look again → **那行写 ⚠ Another device answers there now.，不能发送；点 It's mine: use the new one 后恢复正常（旧的信任记录被移除）**
-- [ ] 20.67 🍎 🤖+👀 设置 → Pet Post → Also look in these networks 填 192.168.8.0/24（你二级路由的网段），回到 Pet Post 点 ↻ Look again → **二级路由下开着 LocalSend 的设备被找到，标 on another network；写错（如 192.168.8 或 /16）时红字提示 Not a network…，那一行不保存** 👀 真的二级路由网段
-- [ ] 20.68 🍎 🤖+👀 两边都登录同一个 Tailscale；设置 → Pet Post 勾着 List the devices of my Tailscale network；Pet Post 点 ↻ Look again → **设置里写 Tailscale: N devices online, M with LocalSend or ePet.；对方出现在列表里，标 via Tailscale，能互传；没装 / 没登录 / 没连接时分别写 Tailscale isn't installed… / not signed in. / not connected.；取消勾选后这些设备从列表消失** 👀 真装了 Tailscale 的两台设备（电脑和手机，或两台电脑），对方开着 LocalSend 或 ePet
-- [ ] 20.69 Windows：在 Windows 安全中心 → 防火墙 → 允许应用通过防火墙 里，只给 ePet 勾“专用”不勾“公用”，然后从 Tailscale 上的另一台设备向这台电脑发文件 → **发不过来（Tailscale 的网络常被当作公用）；勾上“公用”后能发。Pet Post 添加失败时的防火墙提示说的就是这个**
-- [ ] 20.70 🤖 取消勾选 Send and receive files on this network → **状态变回 Off；手机的 LocalSend 列表里 ePet 不再出现（刷新后），也发不过来**
-- [ ] 20.71 🍎 🤖+👀 先在这台电脑上打开 LocalSend，再在 ePet 里勾上 Send and receive files on this network；打开 主窗口的 Pet Post 标签 → **设置里写 On: … (port 53318: 53317 is taken by another app).；窗口的地址都是 …:53318，下面红字说明 53317 被占用、别的设备按地址添加时要填 53318；关掉重开 ePet 端口不变（还是 53318）；手机照这个地址手动添加能连上** 👀 同一台电脑先开 LocalSend 再开 ePet 的宠物驿站
+- [ ] 20.28 🤖 **【新】** 收发几次文字和文件后，打开主窗口 Pet Post → 💬 Chat / Records；关掉 ePet 再打开看一次；点开一个对话，点 Clear… → Clear → **原来的 History 换成 Chat / Records：先是对话列表（每台设备一个，最新的在上面，显示最后一条、时间和未读数；顶上可以搜文字和文件名）。点开才展开对话：‹ All conversations 返回；收到的在左、发出的在右，按天分；文件不分格式写 Received / Sent N files · 大小 + Open folder；发出的写 Delivered；提醒（闹钟/待办/纪念日）在中间一行写谁发了什么、结果。重开后都还在（一直保存）。Clear… 只清空这个对话，收到的文件不删。Settings → Pet Post → Chat / Records 写着共几条、几个对话，Clear all records… 清空全部**
+- [ ] 20.29 🤖+👀 **【新】** 另一台设备发来一句话；点气泡的 Reply；写一句，按回车 → **气泡按钮是 Reply / Copy / OK。Reply 打开 Chat / Records 直接进入这台设备的对话，光标已在输入框；回车发送（Shift+回车换行），发出的显示 Sending… 再变 Delivered，对方收到；📎 选文件发给它，拖文件到对话里也发给它** 👀 用真手机（LocalSend）发一句话，点气泡里的 Reply 回一句，看手机收到
+- [ ] 20.30 🤖 **【新】** 关掉另一台设备的 LocalSend / ePet，在它的对话里发一句；再发一句后点那句的 Cancel；再打开那台设备 → **发出的写 “Not delivered yet: goes by itself when <谁> is back · Cancel”；那台设备回来后（约半分钟内）第一句自动发出、变 Delivered，点了 Cancel 的写 Cancelled · Send again，不会发；对方点了不收的写 “<谁> didn't take it · Send again”，不会自动重发**
+- [ ] 20.31 🍎 🤖+👀 打开 主窗口的 Pet Post 标签的 📥 接收页，看“在其他设备上按地址添加这台电脑时，填：” → **只显示一个地址（最可能用到的：有线优先，其次 Wi-Fi，再 Tailscale，虚拟网卡最后），旁边是网卡名；点它展开列表，按 局域网（有线 / 无线）/ Tailscale / 其他虚拟网卡（一般用不到，灰色）分组；选一个后 复制 复制它，下次打开还是它；“保存到：”显示收件文件夹，点 更改… 能直接换；手机 LocalSend 按这个地址手动添加能连上** 👀 在手机 LocalSend 里照着窗口显示的地址手动添加这台电脑
+- [ ] 20.32 🍎 🤖+👀 主窗口的 Pet Post 标签里在手机那行点 🛡 Verify；手机 LocalSend 里点这台电脑（或它发来的消息），再点 Verify → **两边都是 16 个图标（4×4），一样、顺序一样；切到 Text 是同一串字符；点 Done 回到列表** 👀 和真手机 LocalSend 的 Verify 对照：图标、顺序和文字完全一样
+- [ ] 20.33 🤖 手机发文件，宠物问你时点 Verify… → **主窗口的 Pet Post 标签打开并显示对这台手机的 Verify；宠物的问题还在（Accept / Decline 仍可点）**
+- [ ] 20.34 🍎 🤖+👀 在 A 的 Pet Post → Send，点 B 那行的 🛡 Verify；B 上点 Show；对比两边图标后，在 A 上点 ✓ They match → **A 先显示 “⏳ Verification request sent to B. Waiting for it…”；B 点 Show 后 A 变成绿字 “✓ B shows them too. Compare the icons…（man-in-the-middle）”，下面有 ✓ They match / ✗ They don't match；点 They match 后直接回到列表（不用点 Done），B 的名字旁出现绿色 🛡 Verified；页面再长，Done 等按钮也固定在窗口底部看得到（Mac 上也一样）；设置 → Pet Post → Verified devices 里有 B（可 Remove）** 👀 两台电脑都装 ePet（一台 Windows、一台 Mac）
+- [ ] 20.35 🍎 🤖+👀 A 点 Verify 后，看 B 的宠物；点 Show → **B 的宠物气泡 “A wants to verify with you.”（Show / Decline）；点 Show 打开 Pet Post 的 Verify，图标和 A 上一样，写着 “A asked to compare.”，也有 They match / They don't match；A 那边不会再收到反过来的请求。宠物藏起来时先探出来再问；1 分钟不理，气泡收起，A 显示 declined** 👀 接着上一项，在 B 上看；再试一次 B 的宠物藏起来时
+- [ ] 20.36 🍎 🤖+👀 两台电脑都开 ePet 和宠物驿站：在 A 的宠物驿站 → 发送里，点 B 旁边的 🔗 配对…，在 B 上看宠物说出的 6 位码，输进 A → **B 的宠物出来说出码（2 分钟有效，可拒绝）；A 输对后两边都显示 🔒 已配对，设置 → 宠物驿站 → 已配对的 ePet 里有对方，可取消配对** 👀 你用两台装了 ePet 的电脑真配一次（CI 用模拟的 ePet 测码对、码错、拒绝）
+- [ ] 20.37 🍎 🤖 配对时故意输错一个数字 → **A 显示“配对码不对，这次配对已取消”，B 的宠物说“和 … 配对没成功”；重新配对会换新码；同一台电脑连错 3 次后 10 分钟内不能再配**
+- [ ] 20.38 🍎 🤖 B 的宠物显示配对码时点 拒绝，再在 A 输码；另试一次在 A 点 取消 → **A 显示“… 拒绝了配对”；在 A 取消时 B 的码气泡马上消失**
+- [ ] 20.39 🍎 🤖+👀 A 和 B 配对后，B 重装 ePet（身份会变），再在 A 的宠物驿站里看 B → **B 那行写着“⚠ 这不是你配对过的 B…”，不能选它发送；点 重新配对… 配好后恢复正常，或点 取消旧的配对** 👀 你在 B 上重装 ePet（或换一台同名电脑）后看 A 的提示（冒充请求被拒由 CI 测）
+- [ ] 20.40 🍎 🤖+👀 A、B 配对后，在 A 的 闹钟（或待办、纪念日）那一行点 📤，勾选 B，点 发送；再试 存成 .ics… → **B 那一行先写“已送达 · 等对方决定”，B 那边点了加上后变成“✓ 已收下”；.ics 文件能存下来，手机能用它加进日历** 👀 你在两台电脑上试（发送和回执由 CI 测）
+- [ ] 20.41 🍎 🤖+👀 B 收到 A 发来的提醒：看宠物气泡，点 看看；在 驿站 → 接收 里点 加上。A 改一下时间再发；B 自己也改一下后 A 再发一次 → **宠物说“爸爸送来一个提醒…”；预览里有时间、重复、设置；加上后闹钟列表里那一行有“👤 爸爸”；A 改了再发时只列出变化（更新/不用）；B 自己也改过时两边并排，默认是“保留我的”** 👀 你在两台电脑上试（预览、加上、更新、冲突由 CI 测）
+- [ ] 20.42 🍎 🤖+👀 A 给 B 发一个带两条“提前准备”、放烟花的纪念日；B 在预览里勾掉第一条准备，点 加上所选。A 再改日期和准备后发一次；再改日期和烟花发一次，B 只勾日期 → **B 加上的纪念日只有第二条准备，烟花保留；A 第二次发时 B 只看到日期的改动，下面写着“没有列出：提前准备…”；第三次 B 点 更新所选（1）后只有日期变了，烟花还在** 👀 你在两台电脑上试一下（逐项勾选、部分更新由 CI 测）
+- [ ] 20.43 🍎 🤖 设置 → 宠物驿站 → 已配对的 ePet 里点 备注名、收什么…，起个备注名，把 待办 设成 直接加、纪念日 设成 不收；然后让对方发一个待办和一个纪念日 → **待办直接出现在列表里，宠物说“爸爸给你加了一个待办…”，点 撤销 就删掉、对方看到“对方不要”；纪念日不会收，对方看到“对方不要”**
+- [ ] 20.44 🍎 A（例如上海）给 B（例如东京）发一个“今晚 9 点”的一次性闹钟，和一个“每天 8:00”的闹钟 → **一次性的在 B 的预览里显示为 B 的时间，并注明 A 那边是几点；每天的那个问“按谁的时间响？”，选“对方的”后在 B 那边按换算后的时间响**
+- [ ] 20.45 🍎 🤖+👀 用 LocalSend 把手机日历导出的 .ics 发到电脑，在 驿站 → 记录 里点 加到 ePet…（或 驿站 → 接收 → 导入日历文件…） → **每一项都出现在 接收 里等你决定：生日变成纪念日（带出生年份），预约变成闹钟，已经过去的不出现** 👀 你用手机日历导出的 .ics 试一下（解析由 CI 测）
+- [ ] 20.46 🤖 没配对的 ePet 给你发提醒 → **被拒收，什么都不会加**
+- [ ] 20.47 🍎 配对成功后在“给它起个名字？”里输入“爸爸”并保存 → **之后它发来的提醒、纪念日都显示“爸爸”，响铃时宠物说“👤 爸爸提醒你”**
+- [ ] 20.48 🍎 🤖 驿站 → 发送 里，在已配对的设备那一行点名字旁边的 ✎，输入“爸爸”回车；再点 ✎ 清空后保存 → **那一行大字变成“爸爸”，下面灰字里有它自己的名字；清空后恢复成它自己的名字**
+- [ ] 20.49 🍎 🤖 在 驿站 里点右上角的 ⚙ 驿站设置；配对成功后在宠物的气泡里点 起名字… → **打开设置，并且直接停在“宠物驿站”那一部分（不是设置的最上面）；起名字… 停在那台设备，它的详情已经展开**
+- [ ] 20.50 🍎 🤖 A 点 Verify，B 的宠物问时点 Decline → **A 显示 “B declined to verify. Nothing is sent to it this time.”，没有 They match 按钮；如果 A 正在等 B 接收文件，这次发送取消；B 没有被拉黑**
+- [ ] 20.51 🍎 🤖+👀 B 上点 ✗ They don't match，在确认框里先点 Look again；再点一次，这次点 Block。A 上看提示，点 Re-check，再试 Block → **B 的确认框 “Block A? …” 有 Block / Look again；Look again 不拉黑。A 上出现红框 “B says the icons don't match. Look again…”，有 Block / Re-check：Re-check 去掉 A 上 B 的 Verified 并重新发请求（B 已拉黑 A 时显示 “B refused: it may have blocked this computer…”）；Block 先确认再拉黑：B 从 A 的列表消失，B 发来的东西被拒收；设置 → Pet Post → Blocked devices 里有它，点 Unblock 后又能找到** 👀 两台 ePet：A 点 Verify，B 点 Show
+- [ ] 20.52 🍎 把一台设备标为 Verified 后，给它发文件、让它给你发文件，再看 Receive / Chat / Records → **绿色 🛡 Verified 出现在：Send 列表、宠物 “Deliver to…” 按钮（名字后 🛡）、发送 / 接收进度（窗口和气泡）、来件提问（气泡和窗口卡片）、Recent senders；Latest 每条记录名字后、Chat / Records 的对话名字后一个小绿盾。悬停显示 “Verified on …: the icons matched on both screens.”。没核对过的设备什么都不显示**
+- [ ] 20.53 🍎 🤖 用手机 LocalSend 或另一台 ePet 给这台电脑发一个文件，接收后打开 Pet Post → Receive → **Receive 页下面有 “Recent senders”，列出发件设备（型号 · 1 file · 时间）和 🛡 Verify；点 Verify 显示和对方一样的图标。就算 Send 页里找不到那台设备也能用。最多 5 个，同一设备只列一次**
+- [ ] 20.54 🍎 🤖+👀 主窗口的 Pet Post 标签 发送 页，点手机那行的 ♡；以后再点一次 ♥ → **第一次点 ♡ 先在那一行下面说明“收藏的设备会被记住……直接接收”，点 收藏 才生效（以后再收藏不再提示）；♡ 变成红色 ♥；手机再发文件不问直接收下；设置 → 宠物驿站 → 收藏的设备 里列出它；离开本网络（如切到 Tailscale）也会按地址去找它；再点 ♥ 取消，之后发来又会问。收到文件时点 总是接收 也会变成收藏** 👀 真手机：收藏后它发来的直接收；DHCP 换了 IP（或重连 Wi-Fi）后还认得它
+- [ ] 20.55 🍎 🤖+👀 主窗口的 Pet Post 标签点 ＋ Add by address…，填对方的 IP（或名字）和端口（默认 53317），点 Add → **显示 Connecting… 然后 Added <名字>.；设备出现在列表里，标 added by address；重启 ePet 后还在；能向它发文件和文字；设置 → Pet Post → Beyond this network 里列出它，可 Remove** 👀 二级路由下的设备（如 192.168.8.x）或 Tailscale 地址（100.x 或 MagicDNS 名）
+- [ ] 20.56 🤖 填一个没开 LocalSend 的地址，或一个不存在的名字，点 Add → **地址：Couldn't reach it…，并有防火墙提示（Windows 安全中心 → 允许应用通过防火墙）；名字：No device by that name. Check the address.**
+- [ ] 20.57 🤖+👀 按地址添加二级路由下的手机后，让手机给电脑发一次文件，再从电脑发回给它 → **电脑能收；之后电脑往手机发也能发（列表里它的地址仍是 192.168.8.x，不会变成二级路由的 WAN 地址）** 👀 二级路由下的手机：先按地址添加，再让它主动给电脑发文件
+- [ ] 20.58 🍎 🤖 电脑在二级路由后面（例如 192.168.8.x），手机在主路由（192.168.31.x）上开着 LocalSend；打开宠物驿站 → 接收 → **黄卡 “⚠ 有些设备可能发不进来”，写出手机名字和网段，下面两条建议（Share via link；同一 Wi-Fi 或 Tailscale）；点 知道了 后不再出现；手机一旦自己连进来过（例如它成功发过东西），就不算在内**
+- [ ] 20.59 🍎 🤖 设置 → 宠物驿站 → 别的设备怎么连到这台电脑（自动测试用假路由器：不回应 / NAT-PMP / 外网是公网） → **不回应：✗ 路由器开门“没有回应 UPnP、NAT-PMP 或 PCP”+ 再试一次；能开：✓ 门开着：<地址:端口> → 这台电脑（NAT-PMP…），点 现在关门 后路由器上的门关掉、显示 已关闭；外网是公网：不自动开，点 仍然打开… 出现警告，确认后才开**
+- [ ] 20.60 🍎 在你自己的网络上：电脑在二级路由（穿梭，192.168.8.x）后面，手机在 192.168.31.x 开着 LocalSend；打开 设置 → 宠物驿站 → **✓ 这个网络（192.168.8.x）；✗ 192.168.31.x（例如 可爱的蓝莓）+ 下面 ✓ 电脑去取；✗ 路由器开门：路由器 (192.168.8.1) 没有回应…（这台路由器不支持）；Tailscale 一行写出它的状态。若换到支持 UPnP/NAT-PMP 的路由器：✓ 门开着，手机直接发给电脑成功，之后那一行变 ✓**
+- [ ] 20.61 🍎 🤖 手机 LocalSend：选文件 → Nearby devices 旁的 ⚙ → Share via link（勾或不勾 Encryption 都试）；电脑上看宠物和 宠物驿站 → 接收 → **20 秒内宠物说 “📤 <手机> 正在分享文件。”（去看看 / 不用了）；接收页有卡片，点 看看分享了什么 后手机上会出现请求（没勾自动接受时要在手机上允许）；电脑列出文件可勾选，点 取 N 个文件 后有进度，存进收件文件夹并进 最新 / 记录；不勾 Encryption 时写 “未加密”**
+- [ ] 20.62 🍎 🤖 电脑已列出手机后，手机 Share via link 切换 Encryption（勾 → 不勾，再 不勾 → 勾），每次切完在电脑上点 看看分享了什么 → **两种方向都能列出文件并取到（手机 Requests 里出现这台电脑）；不会出现“没取成”**
+- [ ] 20.63 🍎 🤖 手机 Share via link 勾 Require PIN；电脑上点 看看分享了什么 → **电脑要求输入 PIN；输错写 “PIN 不对。”，输对后列出文件**
+- [ ] 20.64 🍎 🤖 手机 Share via link 没勾自动接受；电脑上点 看看分享了什么，在手机上点 拒绝 → **电脑上说对方不允许，什么都不取**
+- [ ] 20.65 🍎 🤖 宠物驿站 → 接收 → 🔗 从链接取文件…，填手机 Share via link 显示的地址 → **列出文件、可取；地址乱填时写 “这不是 LocalSend 显示的那种地址…”**
+- [ ] 20.66 🍎 🤖+👀 在 Mac 的 宠物驿站 → 发送 里选 PC，发一个文件；再发一段文字 → **Mac 上 PC 那行有 “↩ 由它来取”；发送后显示 “等 <PC> 来取…”；几秒内 PC 的宠物照常问是否接收，接收后 Mac 显示进度直到送到，PC 存好并进记录；文字直接在 PC 的气泡里显示；PC 拒收时 Mac 显示对方没接收** 👀 两台 ePet：一台在二级路由后面（例如 PC 在 192.168.8.x），另一台在主路由（例如 Mac 在 192.168.31.x 或 20.x）
+- [ ] 20.67 🤖 把按地址添加的设备上的 LocalSend 关掉，点 ↻ Look again → **它仍在列表里，写 Not answering.，不能选来发送；对方再打开后 Look again 恢复**
+- [ ] 20.68 🤖 按地址添加的设备换了（例如手机重装 LocalSend，证书变了），点 ↻ Look again → **那行写 ⚠ Another device answers there now.，不能发送；点 It's mine: use the new one 后恢复正常（旧的信任记录被移除）**
+- [ ] 20.69 🍎 🤖+👀 设置 → Pet Post → Also look in these networks 填 192.168.8.0/24（你二级路由的网段），回到 Pet Post 点 ↻ Look again → **二级路由下开着 LocalSend 的设备被找到，标 on another network；写错（如 192.168.8 或 /16）时红字提示 Not a network…，那一行不保存** 👀 真的二级路由网段
+- [ ] 20.70 🍎 🤖+👀 两边都登录同一个 Tailscale；设置 → Pet Post 勾着 List the devices of my Tailscale network；Pet Post 点 ↻ Look again → **设置里写 Tailscale: N devices online, M with LocalSend or ePet.；对方出现在列表里，标 via Tailscale，能互传；没装 / 没登录 / 没连接时分别写 Tailscale isn't installed… / not signed in. / not connected.；取消勾选后这些设备从列表消失** 👀 真装了 Tailscale 的两台设备（电脑和手机，或两台电脑），对方开着 LocalSend 或 ePet
+- [ ] 20.71 Windows：在 Windows 安全中心 → 防火墙 → 允许应用通过防火墙 里，只给 ePet 勾“专用”不勾“公用”，然后从 Tailscale 上的另一台设备向这台电脑发文件 → **发不过来（Tailscale 的网络常被当作公用）；勾上“公用”后能发。Pet Post 添加失败时的防火墙提示说的就是这个**
+- [ ] 20.72 🤖 取消勾选 Send and receive files on this network → **状态变回 Off；手机的 LocalSend 列表里 ePet 不再出现（刷新后），也发不过来**
+- [ ] 20.73 🍎 🤖+👀 先在这台电脑上打开 LocalSend，再在 ePet 里勾上 Send and receive files on this network；打开 主窗口的 Pet Post 标签 → **设置里写 On: … (port 53318: 53317 is taken by another app).；窗口的地址都是 …:53318，下面红字说明 53317 被占用、别的设备按地址添加时要填 53318；关掉重开 ePet 端口不变（还是 53318）；手机照这个地址手动添加能连上** 👀 同一台电脑先开 LocalSend 再开 ePet 的宠物驿站
 
 ## 21. 语言和地区
 

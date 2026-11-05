@@ -377,7 +377,7 @@ async fn take(inner: &Arc<Inner>, d: &Device, peer: Peer, n: Notice) {
             text: Some(text.clone()),
             ..Default::default()
         });
-        inner.emit("post-text", TextMessage { alias, text });
+        inner.emit("post-text", TextMessage { alias, fingerprint: d.fingerprint.clone(), text });
         answer(true).await;
         // (Its text is fetched so the sender sees it done.)
         if let Some(id) = n.files.keys().next() {

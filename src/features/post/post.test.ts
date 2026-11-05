@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { mergeSettings } from "../../platform/types";
 import {
+  chatConversations,
+  chatKey,
+  chatMatches,
+  chatMerge,
+  type PostChatEntry,
   withPaired,
   withoutPaired,
   pairedMark,
@@ -444,5 +449,58 @@ describe("pairing", () => {
     expect(lookalikeOf(p, { fingerprint: "AB12", alias: "Mimi" })).toBeNull();
     expect(lookalikeOf(p, { fingerprint: "EE99", alias: " mimi " })?.fingerprint).toBe("AB12");
     expect(lookalikeOf(p, { fingerprint: "EE99", alias: "Coco" })).toBeNull();
+  });
+});
+
+describe("Chat / Records", () => {
+  const line = (e: Partial<PostChatEntry>): PostChatEntry => ({
+    id: "x",
+    at: 0,
+    dir: "in",
+    fingerprint: "",
+    alias: "",
+    deviceType: "",
+    kind: "text",
+    text: null,
+    files: 0,
+    bytes: 0,
+    paths: [],
+    folder: null,
+    share: null,
+    uid: null,
+    state: "done",
+    error: null,
+    unread: false,
+    retryAt: 0,
+    tries: 0,
+    ...e,
+  });
+
+  it("one conversation per device (by fingerprint, else by name), the latest first, with what's new", () => {
+    const list = [
+      line({ id: "1", at: 1, fingerprint: "A", alias: "Phone", unread: true }),
+      line({ id: "2", at: 2, alias: "Old laptop" }),
+      line({ id: "3", at: 3, fingerprint: "A", alias: "Phone (renamed)", dir: "out" }),
+    ];
+    const c = chatConversations(list);
+    expect(c.map((x) => [x.key, x.alias, x.unread, x.last.id])).toEqual([
+      ["A", "Phone (renamed)", 1, "3"],
+      ["~Old laptop", "Old laptop", 0, "2"],
+    ]);
+    expect(chatKey(list[1])).toBe("~Old laptop");
+  });
+
+  it("a line that changed replaces its old self; a new one goes in time order", () => {
+    const list = [line({ id: "1", at: 1 }), line({ id: "2", at: 5 })];
+    expect(chatMerge(list, line({ id: "1", at: 1, state: "waiting" })).map((e) => e.state)).toEqual(["waiting", "done"]);
+    expect(chatMerge(list, line({ id: "3", at: 3 })).map((e) => e.id)).toEqual(["1", "3", "2"]);
+    expect(chatMerge(list, line({ id: "4", at: 9 })).map((e) => e.id)).toEqual(["1", "2", "4"]);
+  });
+
+  it("search finds texts, titles and file names", () => {
+    const files = line({ kind: "files", paths: ["C:\\Users\\me\\Downloads\\ePet\\Trip Photos.zip"] });
+    expect(chatMatches(files, "trip")).toBe(true);
+    expect(chatMatches(line({ text: "Dinner at 7?" }), "DINNER")).toBe(true);
+    expect(chatMatches(line({ text: "hi" }), "bye")).toBe(false);
   });
 });

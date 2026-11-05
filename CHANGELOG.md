@@ -16,6 +16,21 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.61.0] - 2026-11-05
+
+### Added
+- **Pet Post → 💬 Chat / Records** (in place of History): one conversation per device, with
+  the texts, files and reminders sent and received, kept for good on this computer. First
+  the list of conversations (the latest first, what's new, a search box); one opened shows
+  it all in time order, with a box to write in (Enter sends) and 📎 to send files (or drop
+  them on it). Files are "N files · size" with Open folder, whatever they are.
+- **Reply** in the bubble of a text received: Chat / Records opens at that device, ready
+  to write.
+- **What didn't get there goes again by itself**: sent while the device is away (or not
+  answering), it waits ("Not delivered yet") and goes when the device is back, until it
+  gets there or you Cancel it. One the other side declined waits for Send again.
+- Settings → Pet Post → Chat / Records: how much is kept, and Clear all records….
+
 ## [0.60.5] - 2026-11-04
 
 ### Fixed

@@ -289,11 +289,13 @@ export class Courier {
     this.host.chime();
   }
 
-  /** A text received, with Copy (said whether it worked) and OK. */
+  /** A text received, with Reply (Chat / Records at that device), Copy (said whether it worked) and OK. */
   private showText(m: PostText, short: string, failed = false): void {
     const lines = [t("💬 {who} says:", { who: m.alias }), short];
     if (failed) lines.push(t("Couldn't copy it. Try again?"));
+    const reply = m.fingerprint ? [{ label: t("Reply"), run: () => void this.host.backend.openPostWindow(null, `chat=${m.fingerprint}`) }] : [];
     this.host.say(lines, 60_000, [
+      ...reply,
       {
         label: t("Copy"),
         run: () =>

@@ -88,7 +88,12 @@ pub fn open_panel<R: Runtime>(app: &AppHandle<R>, tab: Option<&str>) -> tauri::R
 /// Pet Post, the main window's Pet Post tab (since 0.55.0; it was a window of its own):
 /// with `verify`, showing Verify for that device (by fingerprint); with `tab`, on that tab.
 pub fn open_post<R: Runtime>(app: &AppHandle<R>, verify: Option<&str>, tab: Option<&str>) -> tauri::Result<()> {
-    let tab = tab.filter(|t| matches!(*t, "receive" | "send" | "history"));
+    // A tab, or Chat / Records at a device ("chat=<fingerprint>").
+    let tab = tab.filter(|t| {
+        matches!(*t, "receive" | "send" | "chat" | "history")
+            || t.strip_prefix("chat=")
+                .is_some_and(|fp| !fp.is_empty() && fp.len() <= 128 && fp.chars().all(|c| c.is_ascii_alphanumeric()))
+    });
     let verify: Option<String> = verify.map(|fp| fp.chars().filter(char::is_ascii_alphanumeric).collect());
     // The panel shows its Pet Post tab, opened for this (also if it hasn't loaded Pet Post yet).
     let sub = match (&verify, tab) {

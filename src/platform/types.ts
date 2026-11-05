@@ -22,6 +22,7 @@ import {
   type PostTailnet,
   type PostDoor,
   type PostReceived,
+  type PostChatEntry,
   type PostVerify,
   type PostVerifyAnswer,
   type PostShareList,
@@ -477,6 +478,10 @@ export interface BackendEvents {
   /** What was received changed (the latest first). */
   "post-history": PostReceived[];
   "post-text": PostText;
+  /** A line of Chat / Records added or changed. */
+  "post-chat": PostChatEntry;
+  /** One conversation cleared (`key`), or all (null). */
+  "post-chat-cleared": { key: string | null };
   "post-transfer": PostTransfer;
   /** What Tailscale says, each time it's asked (Look again). */
   "post-tailnet": PostTailnet;
@@ -775,6 +780,20 @@ export interface Backend {
   postClearHistory(): Promise<void>;
   /** Opens something received: the file, or (`reveal`, or several files) the first in its folder. Rejects "gone". */
   postOpenReceived(id: string, reveal: boolean): Promise<void>;
+  /** All of Chat / Records, the oldest first. */
+  postChat(): Promise<PostChatEntry[]>;
+  /** Sends a text or files to a device from Chat / Records (away or busy: it waits, then goes). Its line's id. */
+  postChatSend(to: string, text: string | null, paths: string[]): Promise<string>;
+  /** Stops one being sent, or waiting to go again. */
+  postChatCancel(id: string): Promise<void>;
+  /** Sends one again (declined, failed or cancelled). */
+  postChatRetry(id: string): Promise<void>;
+  /** A conversation looked at: nothing in it is new any more. */
+  postChatRead(key: string): Promise<void>;
+  /** Clears a conversation, or all of Chat / Records (null). */
+  postChatClear(key: string | null): Promise<void>;
+  /** Opens what a line received or sent: its folder (`reveal`, several files), or the file. Rejects "gone". */
+  postChatOpen(id: string, reveal: boolean): Promise<void>;
   /** Whether the Pet Post window is open (and not minimized). */
   postWindowShown(): Promise<boolean>;
   /** The main window shows this tab now (so the app knows whether Pet Post is in sight). */
@@ -791,7 +810,8 @@ export interface Backend {
   /** Shows a received file in its folder, or opens the save folder. */
   postOpen(path?: string | null): Promise<void>;
   /** With `verify` (a device's fingerprint): showing Verify for it; with `tab`, on that tab. */
-  openPostWindow(verify?: string | null, tab?: "receive" | "send" | "history" | null): Promise<void>;
+  /** `tab`: one of its tabs, or "chat=<fingerprint>" (Chat / Records at that device: Reply). */
+  openPostWindow(verify?: string | null, tab?: "receive" | "send" | "chat" | `chat=${string}` | null): Promise<void>;
   /** The hidden pet comes out for a delivery; whether it was out of sight. */
   postPeek(): Promise<boolean>;
   /** The user saw a missed alarm (clicked its badge): the badge goes, the history keeps it. */

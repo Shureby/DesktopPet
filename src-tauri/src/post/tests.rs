@@ -125,7 +125,7 @@ fn two_pets_find_each_other_and_deliver_a_file() {
     let data: Vec<u8> = (0..300_000u32).map(|i| (i % 251) as u8).collect();
     let file = a.dir.join("out").join("photo.jpg");
     write(&file, &data);
-    client::send(a.inner.clone(), to_b, vec![file], None, None).unwrap();
+    client::send(a.inner.clone(), to_b, vec![file], None, None, None).unwrap();
     a.transfer("waiting");
     let offer = b.wait("post-offer", |_| true);
     assert_eq!(offer["alias"], "Alice");
@@ -161,7 +161,7 @@ fn two_pets_find_each_other_and_deliver_a_file() {
     // The same name again: a second copy beside the first.
     let small = a.dir.join("out").join("photo.jpg");
     write(&small, b"again");
-    client::send(a.inner.clone(), a.find(&b), vec![small], None, None).unwrap();
+    client::send(a.inner.clone(), a.find(&b), vec![small], None, None, None).unwrap();
     let offer = b.wait("post-offer", |_| true);
     answer(&b.inner, offer["id"].as_str().unwrap(), true);
     a.transfer("done");
@@ -228,7 +228,7 @@ fn a_pet_that_cant_be_reached_collects_what_is_sent_to_it() {
     assert!(super::pickup::collects(&alice.inner, &fp));
     let file = alice.dir.join("out").join("collected.txt");
     write(&file, b"collect me");
-    client::send(alice.inner.clone(), to_bob, vec![file], None, None).unwrap();
+    client::send(alice.inner.clone(), to_bob, vec![file], None, None, None).unwrap();
     let waiting = alice.wait("post-transfer", |v| v["state"] == "waiting" && v["collect"] == true);
     assert_eq!(waiting["files"], 1);
     // Asked about at Bob's as any delivery is; accepted, fetched.
@@ -262,7 +262,7 @@ fn a_blocked_device_is_refused_everywhere() {
     let to_a = b.inner.devices().into_iter().find(|d| d.fingerprint == a.fingerprint()).unwrap();
     let file = b.dir.join("out").join("x.txt");
     write(&file, b"x");
-    client::send(b.inner.clone(), to_a, vec![file], None, None).unwrap();
+    client::send(b.inner.clone(), to_a, vec![file], None, None, None).unwrap();
     b.transfer("declined");
     assert_eq!(ask(&b, &a).join().unwrap(), "refused");
     assert!(a.inner.history().is_empty());
@@ -276,7 +276,7 @@ fn folders_keep_their_shape_and_text_is_a_message() {
     write(&folder.join("day1").join("a.txt"), b"one");
     write(&folder.join("b.txt"), b"two");
     write(&folder.join("empty.bin"), b"");
-    client::send(a.inner.clone(), to_b.clone(), vec![folder], None, None).unwrap();
+    client::send(a.inner.clone(), to_b.clone(), vec![folder], None, None, None).unwrap();
     let offer = b.wait("post-offer", |_| true);
     assert_eq!(offer["files"], 3);
     answer(&b.inner, offer["id"].as_str().unwrap(), true);
@@ -286,7 +286,7 @@ fn folders_keep_their_shape_and_text_is_a_message() {
     assert_eq!(std::fs::read(b.saved("Trip/empty.bin")).unwrap(), b"");
     a.transfer("done");
 
-    client::send(a.inner.clone(), to_b, vec![], Some("Dinner at 7? 🍜".into()), None).unwrap();
+    client::send(a.inner.clone(), to_b, vec![], Some("Dinner at 7? 🍜".into()), None, None).unwrap();
     let text = b.wait("post-text", |_| true);
     assert_eq!(text["alias"], "A");
     assert_eq!(text["text"], "Dinner at 7? 🍜");
@@ -303,16 +303,16 @@ fn declined_cancelled_and_busy() {
     let file = a.dir.join("x.bin");
     write(&file, b"data");
 
-    client::send(a.inner.clone(), to_b.clone(), vec![file.clone()], None, None).unwrap();
+    client::send(a.inner.clone(), to_b.clone(), vec![file.clone()], None, None, None).unwrap();
     let offer = b.wait("post-offer", |_| true);
     // A second delivery can't start while one is under way.
-    assert!(client::send(a.inner.clone(), to_b.clone(), vec![file.clone()], None, None).is_err());
+    assert!(client::send(a.inner.clone(), to_b.clone(), vec![file.clone()], None, None, None).is_err());
     answer(&b.inner, offer["id"].as_str().unwrap(), false);
     a.transfer("declined");
     assert!(!b.saved("x.bin").exists());
 
     // The sender gives up while the pet is still asking: the question goes.
-    client::send(a.inner.clone(), to_b.clone(), vec![file.clone()], None, None).unwrap();
+    client::send(a.inner.clone(), to_b.clone(), vec![file.clone()], None, None, None).unwrap();
     let offer = b.wait("post-offer", |_| true);
     client::cancel(a.inner.clone());
     a.transfer("cancelled");
@@ -323,7 +323,7 @@ fn declined_cancelled_and_busy() {
     let big = a.dir.join("big.bin");
     // (Big enough that it's still coming when stopped.)
     write(&big, &vec![1u8; 100 * 1024 * 1024]);
-    client::send(a.inner.clone(), to_b.clone(), vec![big], None, None).unwrap();
+    client::send(a.inner.clone(), to_b.clone(), vec![big], None, None, None).unwrap();
     let offer = b.wait("post-offer", |_| true);
     answer(&b.inner, offer["id"].as_str().unwrap(), true);
     b.wait("post-transfer", |v| v["state"] == "receiving" && v["done"].as_u64().unwrap_or(0) > 0);
@@ -335,9 +335,9 @@ fn declined_cancelled_and_busy() {
     // A third device finds the receiver busy.
     let c = peer("C", |_| {});
     let c_to_b = c.find(&b);
-    client::send(a.inner.clone(), to_b, vec![file.clone()], None, None).unwrap();
+    client::send(a.inner.clone(), to_b, vec![file.clone()], None, None, None).unwrap();
     b.wait("post-offer", |_| true);
-    client::send(c.inner.clone(), c_to_b, vec![file], None, None).unwrap();
+    client::send(c.inner.clone(), c_to_b, vec![file], None, None, None).unwrap();
     c.transfer("busy");
 }
 
@@ -349,11 +349,11 @@ fn a_pin_is_asked_and_trusted_devices_need_no_answer() {
     let to_b = a.find(&b);
     let file = a.dir.join("note.txt");
     write(&file, b"hello");
-    client::send(a.inner.clone(), to_b.clone(), vec![file.clone()], None, None).unwrap();
+    client::send(a.inner.clone(), to_b.clone(), vec![file.clone()], None, None, None).unwrap();
     a.transfer("pin");
-    client::send(a.inner.clone(), to_b.clone(), vec![file.clone()], None, Some("0000".into())).unwrap();
+    client::send(a.inner.clone(), to_b.clone(), vec![file.clone()], None, Some("0000".into()), None).unwrap();
     a.transfer("pin");
-    client::send(a.inner.clone(), to_b, vec![file.clone()], None, Some("4321".into())).unwrap();
+    client::send(a.inner.clone(), to_b, vec![file.clone()], None, Some("4321".into()), None).unwrap();
     let offer = b.wait("post-offer", |_| true);
     answer(&b.inner, offer["id"].as_str().unwrap(), true);
     b.transfer("done");
@@ -361,7 +361,7 @@ fn a_pin_is_asked_and_trusted_devices_need_no_answer() {
     // Trusted (by the fingerprint its certificate proves): taken without asking.
     let c = peer("C", |c| c.trusted = vec![a_fingerprint.clone()]);
     let to_c = a.find(&c);
-    client::send(a.inner.clone(), to_c, vec![file], None, None).unwrap();
+    client::send(a.inner.clone(), to_c, vec![file], None, None, None).unwrap();
     let done = c.transfer("done");
     assert_eq!(done["peer"], "A");
     assert!(c.events.try_iter().all(|(e, _)| e != "post-offer"));
@@ -501,7 +501,7 @@ fn post_speed() {
         }
     }
     let start = Instant::now();
-    client::send(a.inner.clone(), to_b, vec![file], None, None).unwrap();
+    client::send(a.inner.clone(), to_b, vec![file], None, None, None).unwrap();
     let offer = b.wait("post-offer", |_| true);
     answer(&b.inner, offer["id"].as_str().unwrap(), true);
     let t0 = Instant::now();
@@ -566,13 +566,13 @@ fn epet_sends_to_localsend_cli() {
     let folder = a.dir.join("Pics");
     write(&folder.join("cat.txt"), b"meow");
     write(&folder.join("more").join("dog.txt"), b"woof");
-    client::send(a.inner.clone(), cli.clone(), vec![folder], None, None).unwrap();
+    client::send(a.inner.clone(), cli.clone(), vec![folder], None, None, None).unwrap();
     a.transfer("done");
     // (The CLI saves a folder's files side by side; the apps keep its folders.)
     let found = |name: &str| ["", "Pics", "Pics/more"].iter().find_map(|d| std::fs::read(dest.join(d).join(name)).ok());
     assert_eq!(found("cat.txt").unwrap(), b"meow");
     assert_eq!(found("dog.txt").unwrap(), b"woof");
-    client::send(a.inner.clone(), cli, vec![], Some("hi LocalSend, from ePet".into()), None).unwrap();
+    client::send(a.inner.clone(), cli, vec![], Some("hi LocalSend, from ePet".into()), None, None).unwrap();
     a.transfer("done");
 }
 
@@ -755,4 +755,49 @@ fn reminders_go_only_between_paired_epets_and_answers_come_back() {
     });
     super::invite::send_receipt(b.inner.clone(), a.fingerprint(), "u1".into(), "added");
     a.wait("post-schedule-sent", |v| v[0]["answer"] == "added");
+}
+
+#[test]
+fn chat_keeps_both_sides_and_sends_again_when_back() {
+    let (a, b) = (peer("A", |_| {}), peer("B", |_| {}));
+    let to_b = a.find(&b);
+    client::send(a.inner.clone(), to_b.clone(), vec![], Some("hi".into()), None, None).unwrap();
+    let text = b.wait("post-text", |_| true);
+    assert_eq!(text["fingerprint"], a.fingerprint());
+    a.transfer("done");
+    let sent = a.inner.chat().pop().unwrap();
+    assert_eq!((sent.dir.as_str(), sent.kind.as_str(), sent.state.as_str()), ("out", "text", "done"));
+    assert_eq!(sent.fingerprint, b.fingerprint());
+    let got = b.inner.chat().pop().unwrap();
+    assert_eq!((got.dir.as_str(), got.text.as_deref(), got.unread), ("in", Some("hi"), true));
+    assert_eq!(got.key(), a.fingerprint());
+
+    // B away: what's sent to it waits (not failed), and goes when it's back.
+    tauri::async_runtime::block_on(configure(&b.inner, Config::default()));
+    let waiting = super::chat::Entry {
+        id: "w1".into(),
+        dir: "out".into(),
+        fingerprint: b.fingerprint(),
+        alias: "B".into(),
+        kind: "text".into(),
+        text: Some("later".into()),
+        state: "waiting".into(),
+        ..Default::default()
+    };
+    a.inner.chat_add(waiting);
+    super::chat::resend(&a.inner);
+    a.transfer("failed");
+    let e = a.inner.chat().into_iter().find(|e| e.id == "w1").unwrap();
+    assert_eq!((e.state.as_str(), e.tries), ("waiting", 1));
+    assert!(e.retry_at > 0);
+
+    let config =
+        Config { enabled: true, alias: "B".into(), auto_accept_trusted: true, port: b.port, ..Default::default() };
+    assert!(tauri::async_runtime::block_on(configure(&b.inner, config)).running);
+    a.inner.chat_change("w1", |e| e.retry_at = 0);
+    super::chat::resend(&a.inner);
+    let text = b.wait("post-text", |_| true);
+    assert_eq!(text["text"], "later");
+    a.transfer("done");
+    assert_eq!(a.inner.chat().into_iter().find(|e| e.id == "w1").unwrap().state, "done");
 }

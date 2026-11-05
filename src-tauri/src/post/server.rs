@@ -394,17 +394,18 @@ async fn prepare_upload(inner: Arc<Inner>, req: Request<Incoming>, ip: IpAddr, c
     let alias: String = info.alias.chars().take(64).collect();
     if let Some(text) = text_message(&files) {
         let text: String = text.chars().take(10_000).collect();
+        let fingerprint = if verified { info.fingerprint.to_ascii_uppercase() } else { String::new() };
         inner.remember(Received {
             id: random_id(),
             at: now_ms(),
             from: alias.clone(),
-            fingerprint: if verified { info.fingerprint.to_ascii_uppercase() } else { String::new() },
+            fingerprint: fingerprint.clone(),
             device_model: info.device_model.clone(),
             device_type: Device::from_info(&info, ip).device_type,
             text: Some(text.clone()),
             ..Default::default()
         });
-        inner.emit("post-text", TextMessage { alias, text });
+        inner.emit("post-text", TextMessage { alias, fingerprint, text });
         return status(204);
     }
 

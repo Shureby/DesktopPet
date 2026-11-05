@@ -912,7 +912,8 @@ src-tauri/src/post/, crates/desktoppet-core/src/post.rs).
 - **The Pet Post window** (since 0.45.0) has three tabs: **📥 Receive** (ready to receive,
   a delivery being offered, how one comes in, this computer's address, "Saved to:" with
   Change…, the latest received), **📤 Send** (devices, Add by address…, files, a folder or
-  a text, how it goes) and **🕘 History** (everything received). It opens on the tab
+  a text, how it goes) and **💬 Chat / Records** (since 0.61.0; **🕘 History** before:
+  everything received; below). It opens on the tab
   left last; on Send when opened from the pet to send (More…, Pet Post…, the 📦 badge
   while sending); a delivery offered switches it to Receive (Verify opens over the tab).
 - **Finding devices:** announces itself on LocalSend's multicast group when it starts (and
@@ -968,12 +969,37 @@ src-tauri/src/post/, crates/desktoppet-core/src/post.rs).
     hidden pet doesn't come out for it, and the window's taskbar button flashes (the Dock
     icon bounces) if it's behind others. A delivery coming in shows its progress there
     with **Stop receiving** (what's in so far stays; the sender is told no).
-  - **Received** (the Pet Post window): the last 50 deliveries and messages, kept in the
-    app's data folder (post-history.json), the latest first, with when and from whom:
-    files with **Open** (one file) and **Show in folder**, texts with **Copy**; **Clear**
-    empties it.
-  - A text message shows in the bubble ("💬 X says: …") with **Copy**; the Pet Post window
-    lists it too while it's open.
+  - **Received**: the last 50 deliveries and messages, kept in the app's data folder
+    (post-history.json): Receive → Latest and Recent senders. All of it is in Chat /
+    Records (below).
+  - A text message shows in the bubble ("💬 X says: …") with **Reply** (since 0.61.0: Chat
+    / Records at that device, its box ready to write; only when its certificate proved who
+    sent it), **Copy** and **OK**; the Pet Post window lists it too while it's open.
+- **Chat / Records** (since 0.61.0; src/post/chat.ts, src-tauri/src/post/chat.rs): one
+  conversation per device — texts, files and reminders (alarms, to-dos, anniversaries
+  between paired ePets), sent and received — kept for good in the app's data folder
+  (post-chat.json; the first time, what History had comes in). Known by the device's
+  fingerprint; one whose fingerprint wasn't proven goes by its name, and can't be replied
+  to from here.
+  - First the list: each device's conversation, the latest first, with its last line, when,
+    and how many are new (the tab's badge counts them all); a search box finds texts and
+    file names. One opened: "‹ All conversations" back, received on the left and sent on
+    the right, by day. Files whatever their kind: "Received / Sent N files · size" with
+    **Open folder**; a reminder: one line in the middle (who sent what, and how it went:
+    "Waiting for your answer (Receive)" with Answer, "✓ Added", "Declined"…). A delivery
+    coming in or going out shows its progress there.
+  - The box below: **Enter** sends (Shift+Enter a new line), **📎** sends files, files
+    dropped on the conversation go to that device. A sent line says "Sending…" then
+    "Delivered".
+  - **Not there**: what's sent while the device is away (or doesn't answer, or is busy)
+    says "Not delivered yet: goes by itself when X is back · Cancel" and goes again by
+    itself (tried every few seconds once it's back; 10 s, 20 s… up to 10 minutes while it
+    still doesn't answer), until it gets there or Cancel. One the other side **declined**,
+    cancelled or failed ("Couldn't send", "Not sent: the files aren't there any more")
+    waits for **Send again**.
+  - **Clear…** (a conversation) or Settings → Pet Post → Chat / Records → **Clear all
+    records…** (with how many lines and conversations): asked first; the files received
+    stay where they are.
 - **Favorites** (♡ / ♥ by a device in the Pet Post window, since 0.45.0; "Trusted devices"
   before): what a favorite sends is taken without asking while "Accept from favorites
   without asking" is ticked (Settings → Pet Post, where each can be removed). A favorite is
@@ -1021,8 +1047,8 @@ src-tauri/src/post/, crates/desktoppet-core/src/post.rs).
     - Settings → Pet Post lists **Verified devices** (Remove) and **Blocked devices**
       (Unblock), with when and a short fingerprint.
   - **Recent senders** (since 0.47.0): Receive lists the last five devices that sent
-    something (proven by their certificates; kept with what was received, so Clear in
-    History empties it too), each with Verify, for a sender this computer doesn't find.
+    something (proven by their certificates; kept with what was received), each with
+    Verify, for a sender this computer doesn't find.
 - **Through a second router** (0.48.3, 0.49.0). A computer behind a second router reaches
   devices outside, but they can't reach it (the router stops what comes in).
   - Receive says "Some devices may not get through" for devices reached on another network
