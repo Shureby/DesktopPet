@@ -160,7 +160,8 @@ check("modes.missed", "an anniversary put off all day is missed after midnight; 
   await app.invoke("shift_clock", { ms: 24 * 60 * MIN });
   try {
     await app.b.waitUntil(async () => (await app.pet()).missed.includes("Ann"), { timeout: 10_000 });
-    assert.ok(!(await app.badges()).some((b) => b.text.includes("Ann")));
+    // (Its badge goes on the next redraw.)
+    await app.b.waitUntil(async () => !(await app.badges()).some((b) => b.text.includes("Ann")), { timeout: 5000 });
     // At the computer, in Normal: told once.
     await app.setSettings((s) => ((s.modes.choice = "normal"), s));
     // (The new day may bring something more important first; the mouse keeps moving.)
