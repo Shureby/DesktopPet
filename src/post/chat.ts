@@ -13,6 +13,7 @@ import {
   chatMatches,
   chatMerge,
   fileCount,
+  namesLine,
   formatSize,
   transferOver,
   type ChatConversation,
@@ -121,6 +122,16 @@ async function sendTo(ctx: ChatContext, fingerprint: string, text: string | null
   ctx.render();
 }
 
+/** A record's files by name (the first 20 are kept): just each one's own name. */
+function fileNames(e: PostChatEntry): string[] {
+  return e.paths.map((p) => p.split(/[\\/]/).pop() || p);
+}
+
+/** One file: its name (shown in place of "1 file"). */
+function onlyName(e: PostChatEntry): string | null {
+  return e.files === 1 && e.paths.length >= 1 ? fileNames(e)[0] : null;
+}
+
 /** The Chat / Records tab: the list, or the conversation open. */
 export function chatTab(ctx: ChatContext): Node[] {
   if (openKey) {
@@ -138,7 +149,7 @@ function preview(e: PostChatEntry): string {
   let what: string;
   if (e.kind === "text") what = e.text ?? "";
   else if (e.kind === "files") {
-    const n = fileCount(e.files);
+    const n = onlyName(e) ?? fileCount(e.files);
     what = mine ? t("Sent {files}", { files: n }) : t("Received {files} · {size}", { files: n, size: formatSize(e.bytes) });
   } else what = `${shareIcon(e.share)} ${e.text ?? ""}`;
   return mine && e.kind === "text" ? t("You: {text}", { text: what }) : what;
@@ -273,20 +284,29 @@ function line(ctx: ChatContext, e: PostChatEntry, who: string, sendingNow: boole
   if (e.kind === "text") {
     body = h("div", { class: "chat-bubble chat-text" }, e.text ?? "");
   } else {
+    const names = fileNames(e);
+    const single = onlyName(e);
     const n = fileCount(e.files);
-    const title = mine ? t("Sent {files} · {size}", { files: n, size: formatSize(e.bytes) }) : t("Received {files} · {size}", { files: n, size: formatSize(e.bytes) });
-    body = h(
-      "div",
-      { class: "chat-bubble chat-files" },
-      h("strong", {}, `📦 ${title}`),
-      sendingNow ? progressOf(ctx.outgoing()) : null,
-    );
+    const size = formatSize(e.bytes);
+    // A file by its name, opened when clicked; a few each on a line; many: the first two "and N more".
+    const name = (i: number) =>
+      h("button", { class: "link chat-file", title: t("Open"), onclick: () => void openFile(i) }, names[i]);
+    let title: Node;
+    let rest: Node | null = null;
+    if (single) title = h("strong", {}, "📦 ", name(0), h("span", { class: "chat-file-size" }, ` · ${size}`));
+    else {
+      title = h("strong", {}, `📦 ${mine ? t("Sent {files} · {size}", { files: n, size }) : t("Received {files} · {size}", { files: n, size })}`);
+      if (names.length && e.files <= 3 && names.length === e.files) rest = h("div", { class: "chat-file-names" }, ...names.map((_, i) => name(i)));
+      else if (names.length) rest = h("div", { class: "hint chat-file-names" }, namesLine(names.slice(0, 2), e.files));
+    }
+    body = h("div", { class: "chat-bubble chat-files" }, title, rest, sendingNow ? progressOf(ctx.outgoing()) : null);
   }
-  const open = () =>
-    ctx.backend.postChatOpen(e.id, true).catch(() => {
-      note = t("Not there any more (moved or deleted).");
-      ctx.render();
-    });
+  const gone = () => {
+    note = t("Not there any more (moved or deleted).");
+    ctx.render();
+  };
+  const open = () => ctx.backend.postChatOpen(e.id, true).catch(gone);
+  const openFile = (i: number) => ctx.backend.postChatOpen(e.id, false, i).catch(gone);
   const meta = h(
     "div",
     { class: "chat-meta" },

@@ -16,6 +16,13 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.63.0] - 2026-11-06
+
+### Changed
+- **Chat / Records shows file names**: one file by its name (and size) in place of
+  “Received 1 file”; two or three each listed; more, the first two “and N more”. A name
+  opens that file; Open folder is still there. Older records show their names too.
+
 ## [0.62.1] - 2026-11-05
 
 ### Fixed

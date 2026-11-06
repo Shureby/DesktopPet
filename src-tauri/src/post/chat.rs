@@ -382,12 +382,19 @@ pub fn post_chat_clear(post: State<'_, Post>, key: Option<String>) {
 
 /// Opens what a line received or sent: its folder (`reveal`, or several files), or the file.
 #[tauri::command]
-pub fn post_chat_open(app: AppHandle, post: State<'_, Post>, id: String, reveal: bool) -> CmdResult<()> {
+pub fn post_chat_open(
+    app: AppHandle,
+    post: State<'_, Post>,
+    id: String,
+    reveal: bool,
+    index: Option<usize>,
+) -> CmdResult<()> {
     let entry = post.0.chat().into_iter().find(|e| e.id == id).ok_or("gone")?;
-    let first = entry.paths.first().map(PathBuf::from).filter(|p| p.exists()).ok_or("gone")?;
-    if reveal || entry.files > 1 || first.is_dir() {
-        app.opener().reveal_item_in_dir(&first).map_err(err)
+    // One file by its place in the entry (its name clicked), else the first.
+    let path = entry.paths.get(index.unwrap_or(0)).map(PathBuf::from).filter(|p| p.exists()).ok_or("gone")?;
+    if reveal || (index.is_none() && entry.files > 1) || path.is_dir() {
+        app.opener().reveal_item_in_dir(&path).map_err(err)
     } else {
-        app.opener().open_path(first.to_string_lossy(), None::<&str>).map_err(err)
+        app.opener().open_path(path.to_string_lossy(), None::<&str>).map_err(err)
     }
 }

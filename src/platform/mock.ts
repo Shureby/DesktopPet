@@ -176,6 +176,8 @@ const chatLine = (e: Partial<PostChatEntry>): PostChatEntry => ({
 const mockChat: PostChatEntry[] = [
   chatLine({ at: Date.now() - 86_400_000, dir: "in", fingerprint: "B2", alias: "Mum's MacBook", deviceType: "desktop", kind: "files", files: 1, bytes: 2_400_000, paths: ["Downloads/ePet/trip.pdf"], folder: "Downloads/ePet" }),
   chatLine({ at: Date.now() - 86_000_000, dir: "out", fingerprint: "B2", alias: "Mum's MacBook", deviceType: "desktop", text: "Got it, thanks!" }),
+  chatLine({ at: Date.now() - 85_000_000, dir: "in", fingerprint: "B2", alias: "Mum's MacBook", deviceType: "desktop", kind: "files", files: 3, bytes: 5_100_000, paths: ["Downloads/ePet/menu.jpg", "Downloads/ePet/map.png", "Downloads/ePet/tickets.pdf"], folder: "Downloads/ePet" }),
+  chatLine({ at: Date.now() - 84_000_000, dir: "in", fingerprint: "B2", alias: "Mum's MacBook", deviceType: "desktop", kind: "files", files: 12, bytes: 38_000_000, paths: Array.from({ length: 12 }, (_, i) => `Downloads/ePet/Trip/IMG_20${41 + i}.jpg`), folder: "Downloads/ePet" }),
   chatLine({ at: Date.now() - 3_600_000, dir: "out", fingerprint: "C3", alias: "Work laptop", deviceType: "desktop", kind: "share", share: "alarm", text: "Stand-up", state: "added" }),
   chatLine({ at: Date.now() - 600_000, dir: "in", fingerprint: "A1", alias: "Pixel 8", text: "Dinner at 7? 🍜", unread: true }),
 ];

@@ -870,7 +870,10 @@ check(
     await app.waitText(row, "Mock Phone");
     await app.click(row);
     await app.waitText(".chat-thread", "Dinner at 7?");
-    await app.waitText(".chat-thread", "Received 1 file");
+    // Files by name (one alone in place of "1 file"), each one opened when clicked.
+    await app.until(
+      () => !!document.querySelector(".chat-line.in .chat-files .chat-file"),
+    );
     await app.waitText(".chat-thread", "sent from ePet");
     await app.waitText(".chat-line.out .chat-state", "Delivered");
     // In and out, in time order, all for this device.

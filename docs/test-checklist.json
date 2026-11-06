@@ -1958,10 +1958,10 @@
         },
         {
           "id": "post.chat-records",
-          "rev": "0.61.0",
+          "rev": "0.63.0",
           "ci": "auto",
           "do": "收发几次文字和文件后，打开主窗口 Pet Post → 💬 Chat / Records；关掉 ePet 再打开看一次；点开一个对话，点 Clear… → Clear",
-          "expect": "原来的 History 换成 Chat / Records：先是对话列表（每台设备一个，最新的在上面，显示最后一条、时间和未读数；顶上可以搜文字和文件名）。点开才展开对话：‹ All conversations 返回；收到的在左、发出的在右，按天分；文件不分格式写 Received / Sent N files · 大小 + Open folder；发出的写 Delivered；提醒（闹钟/待办/纪念日）在中间一行写谁发了什么、结果。重开后都还在（一直保存）。Clear… 只清空这个对话，收到的文件不删。Settings → Pet Post → Chat / Records 写着共几条、几个对话，Clear all records… 清空全部"
+          "expect": "原来的 History 换成 Chat / Records：先是对话列表（每台设备一个，最新的在上面，显示最后一条、时间和未读数；顶上可以搜文字和文件名）。点开才展开对话：‹ All conversations 返回；收到的在左、发出的在右，按天分；文件不分格式：1 个文件直接写文件名 · 大小，2–3 个写 Received / Sent N files · 大小 并逐个列出名字，更多的列前两个名字 “and N more”；点名字打开那个文件，Open folder 打开文件夹；发出的写 Delivered；提醒（闹钟/待办/纪念日）在中间一行写谁发了什么、结果。重开后都还在（一直保存）。Clear… 只清空这个对话，收到的文件不删。Settings → Pet Post → Chat / Records 写着共几条、几个对话，Clear all records… 清空全部"
         },
         {
           "id": "post.chat-reply",

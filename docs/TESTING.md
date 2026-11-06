@@ -2,7 +2,7 @@
 
 <!-- Generated from test-checklist.json by `npm run test-checklist`. Edit the JSON, not this file. -->
 
-当前版本 `0.62.1`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
+当前版本 `0.63.0`。标 **【新】** 的项目在这一版新增或改动过，旧结果不再算数，需要重测。
 标 🤖 的项目由 CI 自动测（Windows），不用手动测；标 🤖+👀 的项目逻辑由 CI 测，你只看 👀 后面写的部分；标 🌙 的每晚测一次（太久，不在每次推送时测）。
 macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码，在 Windows 上测过就行。
 在线勾选页面（保存结果，自动标出需要重测的项目）：https://claude.ai/artifact/XQVzPKq4w2MThVnTLYCGy1
@@ -11,7 +11,7 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 
 - [ ] 1.1 🍎 安装包安装 → **开始菜单/启动台里有应用，图标和名字正常**
 - [ ] 1.2 🍎 🤖+👀 首次启动 → **宠物从屏幕上方掉下来，落在任务栏/Dock 上方** 👀 你只看掉落的样子（窗口出现、宠物落在任务栏上方由 CI 测）
-- [ ] 1.3 🤖 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.62.1 · …`，与安装包版本一致**
+- [ ] 1.3 🤖 右键宠物 → Open panel… → Settings，看页面底部 → **显示 `ePet 0.63.0 · …`，与安装包版本一致**
 - [ ] 1.4 🍎 🤖 已经运行时再启动一次 → **不会出现第二只宠物（只打开面板）**
 - [ ] 1.5 🤖 装着旧版本、ePet 正在运行时，双击新版本的安装包，一路点 Next / Install / Finish → **不再出现“已安装（Already Installed）/ 是否先卸载”那一页，也不提示 ePet 正在运行（会自动关掉它）；旧版被安静地卸载后装上新版；之前的待办、闹钟、纪念日、设置、心情值都还在。重装同一版本或装更旧的版本时仍会询问**
 - [ ] 1.6 🤖 ePet 开着时，再运行一次同一个版本的安装包（例如同一个测试包装两次） → **不出现“Already Installed / Add/Reinstall / Uninstall”页，也不问 ePet 正在运行；装完 ePet 正常，数据都在。只有用旧版本盖新版本时才会问**
@@ -310,7 +310,7 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 - [ ] 21.25 🍎 🤖+👀 打开 主窗口的 Pet Post 标签，用手机 LocalSend 发文件给 ePet → **窗口顶部出现来件卡片：📦 <手机> wants to send you N files (… MB)、文件名、Declined in N s if you don't answer. 倒计时，按钮 Accept / Decline / Always accept / 🛡 Verify；宠物气泡也同时问。在窗口点 Accept 后宠物的气泡消失（反过来在宠物那里答，窗口的卡片也消失）；窗口显示接收进度，收完说 Got N files from <手机>!，并轻响一声（比提问时的 Chime 短；静音类模式不响）** 👀 真手机发文件时，窗口在后台：任务栏按钮闪（Mac：Dock 图标跳一下）；收完的提示音
 - [ ] 21.26 🤖 藏起宠物，打开主窗口的 Pet Post 标签，让手机发文件；再切到别的标签（或最小化主窗口）发一次 → **Pet Post 标签在眼前时宠物不跳出来（仍是藏着），由标签里问；切到别的标签或最小化后再发，宠物照旧跳出来问**
 - [ ] 21.27 🍎 🤖+👀 接收大文件时，在窗口的进度卡片里点 Stop receiving → **窗口说 Stopped receiving from <手机>.；手机那边显示发送失败；已收完的文件留着，没收完的不留半截** 👀 手机发一个大文件（几百 MB），接收中途点 Stop receiving
-- [ ] 21.28 🤖 收发几次文字和文件后，打开主窗口 Pet Post → 💬 Chat / Records；关掉 ePet 再打开看一次；点开一个对话，点 Clear… → Clear → **原来的 History 换成 Chat / Records：先是对话列表（每台设备一个，最新的在上面，显示最后一条、时间和未读数；顶上可以搜文字和文件名）。点开才展开对话：‹ All conversations 返回；收到的在左、发出的在右，按天分；文件不分格式写 Received / Sent N files · 大小 + Open folder；发出的写 Delivered；提醒（闹钟/待办/纪念日）在中间一行写谁发了什么、结果。重开后都还在（一直保存）。Clear… 只清空这个对话，收到的文件不删。Settings → Pet Post → Chat / Records 写着共几条、几个对话，Clear all records… 清空全部**
+- [ ] 21.28 🤖 **【新】** 收发几次文字和文件后，打开主窗口 Pet Post → 💬 Chat / Records；关掉 ePet 再打开看一次；点开一个对话，点 Clear… → Clear → **原来的 History 换成 Chat / Records：先是对话列表（每台设备一个，最新的在上面，显示最后一条、时间和未读数；顶上可以搜文字和文件名）。点开才展开对话：‹ All conversations 返回；收到的在左、发出的在右，按天分；文件不分格式：1 个文件直接写文件名 · 大小，2–3 个写 Received / Sent N files · 大小 并逐个列出名字，更多的列前两个名字 “and N more”；点名字打开那个文件，Open folder 打开文件夹；发出的写 Delivered；提醒（闹钟/待办/纪念日）在中间一行写谁发了什么、结果。重开后都还在（一直保存）。Clear… 只清空这个对话，收到的文件不删。Settings → Pet Post → Chat / Records 写着共几条、几个对话，Clear all records… 清空全部**
 - [ ] 21.29 🤖+👀 另一台设备发来一句话；点气泡的 Reply；写一句，按回车 → **气泡按钮是 Reply / Copy / OK。Reply 打开 Chat / Records 直接进入这台设备的对话，光标已在输入框；回车发送（Shift+回车换行），发出的显示 Sending… 再变 Delivered，对方收到；📎 选文件发给它，拖文件到对话里也发给它** 👀 用真手机（LocalSend）发一句话，点气泡里的 Reply 回一句，看手机收到
 - [ ] 21.30 🤖 关掉另一台设备的 LocalSend / ePet，在它的对话里发一句；再发一句后点那句的 Cancel；再打开那台设备 → **发出的写 “Not delivered yet: goes by itself when <谁> is back · Cancel”；那台设备回来后（约半分钟内）第一句自动发出、变 Delivered，点了 Cancel 的写 Cancelled · Send again，不会发；对方点了不收的写 “<谁> didn't take it · Send again”，不会自动重发**
 - [ ] 21.31 🍎 🤖+👀 打开 主窗口的 Pet Post 标签的 📥 接收页，看“在其他设备上按地址添加这台电脑时，填：” → **只显示一个地址（最可能用到的：有线优先，其次 Wi-Fi，再 Tailscale，虚拟网卡最后），旁边是网卡名；点它展开列表，按 局域网（有线 / 无线）/ Tailscale / 其他虚拟网卡（一般用不到，灰色）分组；选一个后 复制 复制它，下次打开还是它；“保存到：”显示收件文件夹，点 更改… 能直接换；手机 LocalSend 按这个地址手动添加能连上** 👀 在手机 LocalSend 里照着窗口显示的地址手动添加这台电脑
@@ -374,6 +374,6 @@ macOS 上只测标 🍎 的项目：其余功能两个平台是同一套代码�
 ## 23. 稳定性
 
 - [ ] 23.1 🤖 连续打开/关闭面板和游戏窗口 10 次 → **不卡死、没有黑窗、任务栏不消失**
-- [ ] 23.2 🤖 **【新】** （出错时的保护）平时用着，如果宠物曾经卡在半空不动 → **不会再卡死：出错的那一下宠物掉回地面继续动，能拖能右键；错误记在数据文件夹的 errors.log 里（Windows：%APPDATA%\com.ezyappco.epet\errors.log；Mac：~/Library/Application Support/com.ezyappco.epet/errors.log），发给开发者能看到原因**
+- [ ] 23.2 🤖 （出错时的保护）平时用着，如果宠物曾经卡在半空不动 → **不会再卡死：出错的那一下宠物掉回地面继续动，能拖能右键；错误记在数据文件夹的 errors.log 里（Windows：%APPDATA%\com.ezyappco.epet\errors.log；Mac：~/Library/Application Support/com.ezyappco.epet/errors.log），发给开发者能看到原因**
 - [ ] 23.3 🍎 电脑睡眠后唤醒 → **宠物正常；错过的闹钟按贪睡/Missed 规则处理**
 - [ ] 23.4 🍎 🤖🌙 运行 1 小时以上，看任务管理器/活动监视器 → **CPU、内存占用稳定，不持续上涨**

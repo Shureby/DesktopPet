@@ -792,8 +792,9 @@ export interface Backend {
   postChatRead(key: string): Promise<void>;
   /** Clears a conversation, or all of Chat / Records (null). */
   postChatClear(key: string | null): Promise<void>;
-  /** Opens what a line received or sent: its folder (`reveal`, several files), or the file. Rejects "gone". */
-  postChatOpen(id: string, reveal: boolean): Promise<void>;
+  /** Opens what a line received or sent: its folder (`reveal`, several files), or the file
+   * (`index`: which of its files). Rejects "gone". */
+  postChatOpen(id: string, reveal: boolean, index?: number): Promise<void>;
   /** Whether the Pet Post window is open (and not minimized). */
   postWindowShown(): Promise<boolean>;
   /** The main window shows this tab now (so the app knows whether Pet Post is in sight). */
