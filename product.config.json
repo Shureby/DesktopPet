@@ -1,0 +1,8 @@
+{
+  "$comment": "Single source of truth for branding. Run `npm run product` after editing (build/dev do it automatically). The identifier must be final before the first store upload.",
+  "productName": "ePet",
+  "identifier": "com.ezyappco.epet",
+  "publisher": "EzyAppCo",
+  "website": "https://ezyappco.com/ePet",
+  "defaultCharacter": "cat"
+}

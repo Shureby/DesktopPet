@@ -1,0 +1,1031 @@
+{
+  "$schema": "../../../schema/character.schema.json",
+  "schemaVersion": 1,
+  "id": "rooster",
+  "displayName": "Rooster",
+  "description": "Loud, proud and punctual. Glides down from anywhere and crows at your alarms.",
+  "sprite": {
+    "type": "pixels",
+    "scale": 3,
+    "palette": {
+      "k": "#2a2a2a",
+      "w": "#fbfbf5",
+      "b": "#a0522d",
+      "n": "#e8a23a",
+      "r": "#d7263d",
+      "y": "#f2b705",
+      "t": "#1f3d2b",
+      "u": "#3f7a5a",
+      "e": "#8a8a8a",
+      "z": "#7aa7ff"
+    },
+    "frames": {
+      "stand": [
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwwkwk..",
+        "tu..ut..kwwwwkyy",
+        "t...ut..kwwwrr..",
+        "t..ut...knnnrr..",
+        "..tut..knnnnk...",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        "......y..y......",
+        "......y..y......",
+        ".....yy.yy......"
+      ],
+      "blink": [
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwwewk..",
+        "tu..ut..kwwwwkyy",
+        "t...ut..kwwwrr..",
+        "t..ut...knnnrr..",
+        "..tut..knnnnk...",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        "......y..y......",
+        "......y..y......",
+        ".....yy.yy......"
+      ],
+      "walk1": [
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwwkwk..",
+        "tu..ut..kwwwwkyy",
+        "t...ut..kwwwrr..",
+        "t..ut...knnnrr..",
+        "..tut..knnnnk...",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        ".....y....y.....",
+        "....y......y....",
+        "...yy......yy..."
+      ],
+      "walk2": [
+        "...........rr...",
+        "..........rrrr..",
+        "..tt.....kwwwwk.",
+        ".tuut....kwwkwk.",
+        "tu..ut...kwwwwky",
+        "t...ut...kwwwrr.",
+        "t..ut....knnnrr.",
+        "..tut...knnnnk..",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        ".......yy.......",
+        ".......yy.......",
+        "......yyyy......"
+      ],
+      "run1": [
+        "...........rr...",
+        "..........rrrr..",
+        "..tt.....kwwwwk.",
+        ".tuut....kwwkwk.",
+        "tu..ut...kwwwwky",
+        "t...ut...kwwwrr.",
+        "t..kbbbbbknnnrr.",
+        "..tkbbbbbbknnk..",
+        "..ttkbbbbknwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        ".....y....y.....",
+        "....y......y....",
+        "...yy......yy..."
+      ],
+      "run2": [
+        "...........rr...",
+        "..........rrrr..",
+        "..tt.....kwwwwk.",
+        ".tuut....kwwkwk.",
+        "tu..ut...kwwwwky",
+        "t...ut...kwwwrr.",
+        "t..ut....knnnrr.",
+        "..tut...knnnnk..",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kkbbbbbkwwwk..",
+        "..kbbbbbkbwwk...",
+        "..kbbbkwwwwk....",
+        "...kkkkkkkk.....",
+        ".......yy.......",
+        ".......yy.......",
+        "......yyyy......"
+      ],
+      "jump": [
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwkkwk..",
+        "tu..ut..kwwwwkyy",
+        "t...ut..kwwwrr..",
+        "t..ut...knnnrr..",
+        "..tut..knnnnk...",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kkbbbbbkwwwk..",
+        "..kbbbbbkbwwk...",
+        "..kbbbkwwwwk....",
+        "...kkkkkkkk.....",
+        "......yy.yy.....",
+        "................",
+        "................"
+      ],
+      "fall": [
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwkkwkyy",
+        "tu..ukbkkwwwwk..",
+        "t...kbbbkwwwrryy",
+        "t..kbbbbbknnrr..",
+        "..tkbbbbbbknk...",
+        "..ttkbbbbknwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        ".....y....y.....",
+        "....y......y....",
+        "...yy......yy..."
+      ],
+      "land": [
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwwkwk..",
+        "tu..ut..kwwwwkyy",
+        "t...ut..kwwwrr..",
+        "t..ut...knnnrr..",
+        "..tut..knnnnk...",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kkbbbbbkwwwk..",
+        "..kbbbbbkbwwk...",
+        "..kbbbkwwwwk....",
+        "...kkkkkkkk.....",
+        ".......yy.......",
+        ".......yy.......",
+        "......yyyy......"
+      ],
+      "glide1": [
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwwkwk..",
+        "tu..ukbkkwwwwkyy",
+        "t...kbbbkwwwrr..",
+        "t..kbbbbbknnrr..",
+        "..tkbbbbbbknk...",
+        "..ttkbbbbknwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        "......yy.yy.....",
+        "................",
+        "................"
+      ],
+      "glide2": [
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwwkwk..",
+        "tu..ut..kwwwwkyy",
+        "t...ut..kwwwrr..",
+        "t..ut...knnnrr..",
+        "..tut..knnnnk...",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kkbbbbbkwwwk..",
+        "..kbbbbbkbwwk...",
+        "..kbbbkwwwwk....",
+        "...kkkkkkkk.....",
+        "......yy.yy.....",
+        "................",
+        "................"
+      ],
+      "crow1": [
+        "...........rr..r",
+        "..........rrrr..",
+        "..tt.....kwwwwk.",
+        ".tuut....kwwkwky",
+        "tu..ut...kwwwwk.",
+        "t...ut...kwwwrry",
+        "t..ut....knnnrr.",
+        "..tut...knnnnk..",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        "......y..y......",
+        "......y..y......",
+        ".....yy.yy......"
+      ],
+      "crow2": [
+        "...........rr.r.",
+        "..........rrrr.r",
+        "..tt.....kwwwwk.",
+        ".tuut....kwwkwky",
+        "tu..ut...kwwwwk.",
+        "t...ut...kwwwrry",
+        "t..ut....knnnrr.",
+        "..tut...knnnnk..",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        "......y..y......",
+        "......y..y......",
+        ".....yy.yy......"
+      ],
+      "alert": [
+        "..........rr...r",
+        ".........rrrr..r",
+        "..tt....kwwwwk..",
+        ".tuut...kwkkwk.r",
+        "tu..ut..kwwwwkyy",
+        "t...ut..kwwwrr..",
+        "t..ut...knnnrr..",
+        "..tut..knnnnk...",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        "......y..y......",
+        "......y..y......",
+        ".....yy.yy......"
+      ],
+      "peck1": [
+        "................",
+        "................",
+        "..tt............",
+        ".tuut......rr...",
+        "tu..ut....rrrr..",
+        "t...ut...kwwwwk.",
+        "t..ut....kwwkwk.",
+        "..tut....kwwwwky",
+        "..tt.kkwwkwwwrr.",
+        "..tkkwwwwknnnrr.",
+        "..kwwbbbknnnnk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        "......y..y......",
+        "......y..y......",
+        ".....yy.yy......"
+      ],
+      "peck2": [
+        "................",
+        "................",
+        "..tt............",
+        ".tuut...........",
+        "tu..ut..........",
+        "t...ut..........",
+        "t..ut......rr...",
+        "..tut.....rrrr..",
+        "..tt.kkwwkwwwwk.",
+        "..tkkwwwwkwwkwk.",
+        "..kwwbbbbkwwwwky",
+        "..kwwwbbbkwwwrr.",
+        "...kwwwwbknnnrr.",
+        "....kwwwknnnnk..",
+        ".....kkkkkk.....",
+        "......y..y......",
+        "......y..y......",
+        ".....yy.yy......"
+      ],
+      "kick": [
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwwkwk..",
+        "tu..ut..kwwwwkyy",
+        "t...ut..kwwwrr..",
+        "t..ut...knnnrr..",
+        "..tut..knnnnk...",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.yy..",
+        ".....y....yyy...",
+        "....y......y....",
+        "...yy......yy..."
+      ],
+      "sit": [
+        "................",
+        "................",
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwwkwk..",
+        "tu..ut..kwwwwkyy",
+        "t...ut..kwwwrr..",
+        "t..ut...knnnrr..",
+        "..tut..knnnnk...",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        "......yy.yy....."
+      ],
+      "sit_blink": [
+        "................",
+        "................",
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwwewk..",
+        "tu..ut..kwwwwkyy",
+        "t...ut..kwwwrr..",
+        "t..ut...knnnrr..",
+        "..tut..knnnnk...",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        "......yy.yy....."
+      ],
+      "sleep1": [
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+        "..tt.....rr.....",
+        ".tuut...rrrr....",
+        "tu..ut.kwwwwk...",
+        "t...ut.kwwewk...",
+        "t..ut..kwwwwkyy.",
+        "..tut..kwwwrr...",
+        "..tt.kkknnnrr...",
+        "..tkkwknnnnkwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk....."
+      ],
+      "sleep2": [
+        "................",
+        "................",
+        "..............z.",
+        ".............z..",
+        "................",
+        "..tt.....rr.....",
+        ".tuut...rrrr....",
+        "tu..ut.kwwwwk...",
+        "t...ut.kwwewk...",
+        "t..ut..kwwwwkyy.",
+        "..tut..kwwwrr...",
+        "..tt.kkknnnrr...",
+        "..tkkwknnnnkwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk....."
+      ],
+      "drag1": [
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwkkwkyy",
+        "tu..ukbkkwwwwk..",
+        "t...kbbbkwwwrryy",
+        "t..kbbbbbknnrr..",
+        "..tkbbbbbbknk...",
+        "..ttkbbbbknwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kwwwbbbbwwwk..",
+        "...kwwwwbbwwk...",
+        "....kwwwwwwk....",
+        ".....kkkkkk.....",
+        ".....y....y.....",
+        "....y......y....",
+        "...yy......yy..."
+      ],
+      "drag2": [
+        "..........rr....",
+        ".........rrrr...",
+        "..tt....kwwwwk..",
+        ".tuut...kwkkwkyy",
+        "tu..ut..kwwwwk..",
+        "t...ut..kwwwrryy",
+        "t..ut...knnnrr..",
+        "..tut..knnnnk...",
+        "..tt.kkwwnnwk...",
+        "..tkkwwwwwwwwk..",
+        "..kwwbbbbbwwwk..",
+        "..kkbbbbbkwwwk..",
+        "..kbbbbbkbwwk...",
+        "..kbbbkwwwwk....",
+        "...kkkkkkkk.....",
+        ".....y....y.....",
+        "....y......y....",
+        "...yy......yy..."
+      ]
+    }
+  },
+  "stats": {
+    "walkSpeed": 55,
+    "runSpeed": 200,
+    "jumpPower": 700,
+    "weight": 0.8,
+    "climbSpeed": 0
+  },
+  "animations": {
+    "idle": {
+      "frames": [
+        "stand",
+        "stand",
+        "peck1",
+        "peck2",
+        "stand",
+        "blink"
+      ],
+      "fps": 3
+    },
+    "walk": {
+      "frames": [
+        "walk1",
+        "walk2"
+      ],
+      "fps": 6
+    },
+    "run": {
+      "frames": [
+        "run1",
+        "run2"
+      ],
+      "fps": 10
+    },
+    "jump": {
+      "frames": [
+        "jump"
+      ],
+      "fps": 1
+    },
+    "fall": {
+      "frames": [
+        "fall",
+        "drag2"
+      ],
+      "fps": 10
+    },
+    "land": {
+      "frames": [
+        "land",
+        "stand"
+      ],
+      "fps": 8,
+      "loop": false
+    },
+    "sit": {
+      "frames": [
+        "sit",
+        "sit",
+        "sit",
+        "sit_blink"
+      ],
+      "fps": 2
+    },
+    "sleep": {
+      "frames": [
+        "sleep1",
+        "sleep2"
+      ],
+      "fps": 1
+    },
+    "drag": {
+      "frames": [
+        "drag1",
+        "drag2"
+      ],
+      "fps": 8
+    },
+    "happy": {
+      "frames": [
+        "crow1",
+        "crow2"
+      ],
+      "fps": 4
+    },
+    "alert": {
+      "frames": [
+        "alert",
+        "crow1"
+      ],
+      "fps": 3
+    },
+    "glide": {
+      "frames": [
+        "glide1",
+        "glide2"
+      ],
+      "fps": 5
+    },
+    "peck": {
+      "frames": [
+        "peck1",
+        "peck2",
+        "stand"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "kick": {
+      "frames": [
+        "kick",
+        "stand"
+      ],
+      "fps": 8,
+      "loop": false
+    }
+  },
+  "abilities": [
+    {
+      "id": "glide",
+      "params": {
+        "fallSpeedFactor": 0.22,
+        "drift": 80
+      }
+    }
+  ],
+  "personality": {
+    "behaviors": {
+      "idle": 4,
+      "walk": 5,
+      "run": 1.5,
+      "sit": 1,
+      "sleep": 1,
+      "jump": 1.5
+    },
+    "sleepiness": 0.3,
+    "sociability": 0.9,
+    "care": [
+      {
+        "label": "Stroke the {name}'s feathers",
+        "kind": "pet"
+      },
+      {
+        "label": "Pat the {name}'s comb",
+        "kind": "pet"
+      },
+      {
+        "label": "Scatter some corn 🌽",
+        "kind": "feed"
+      },
+      {
+        "label": "Give the {name} a worm 🪱",
+        "kind": "feed"
+      }
+    ],
+    "lines": {
+      "greet": [
+        "Cock-a-doodle-doo!",
+        "Morning! Or whenever it is!"
+      ],
+      "petted": [
+        "Bawk ♥",
+        "Cluck cluck!"
+      ],
+      "thrown": [
+        "BAWK?!",
+        "I can fly! Sort of!"
+      ],
+      "landed": [
+        "Graceful as always.",
+        "Ta-da!"
+      ],
+      "reminder": [
+        "BAWK! {title}",
+        "Hey hey hey! {title}"
+      ],
+      "alarm": [
+        "COCK-A-DOODLE-DOO! {title}",
+        "It's time! {title}"
+      ],
+      "focusStart": [
+        "Focus mode! I'll keep watch.",
+        "Heads down, beak down."
+      ],
+      "breakStart": [
+        "BREAK TIME! Flap those arms!",
+        "Stretch! Strut! Go!"
+      ],
+      "focusEnd": [
+        "Great work, you earned some corn."
+      ],
+      "bored": [
+        "Bawk?",
+        "Anybody got seeds?"
+      ],
+      "fed": [
+        "Peck peck peck! Delicious!",
+        "CORN! Best day ever!"
+      ],
+      "full": [
+        "Too full to peck another kernel.",
+        "Bawk… I couldn't possibly."
+      ],
+      "hungry": [
+        "Got any seeds? Anyone?",
+        "*pecks the empty ground sadly*",
+        "Corn o'clock yet?"
+      ],
+      "grumpy": [
+        "Bawk. Whatever.",
+        "*ruffles feathers in protest*",
+        "Nobody visits the coop anymore…"
+      ],
+      "adoring": [
+        "You're the best farmer ever! ♥",
+        "Cluck cluck ♥"
+      ],
+      "sulk": [
+        "BAWK! Leave me alone!",
+        "*turns tail feathers to you*"
+      ],
+      "timerSet": [
+        "⏱ {duration}! I'll crow at {time}!",
+        "Bawk! {duration}, got it!"
+      ],
+      "noted": [
+        "Noted! {title}{when}!",
+        "Bawk! Got it: {title}{when}."
+      ],
+      "praise": [
+        "Cock-a-doodle-DONE!",
+        "Great job! Here's a feather."
+      ],
+      "enough": [
+        "Enough fuss, I'm good!",
+        "Bawk, that's plenty!"
+      ],
+      "dodgeHungry": [
+        "Bawk! Not till I've had some corn!",
+        "My crop is empty. EMPTY.",
+        "*pecks at nothing pointedly*"
+      ],
+      "dodgeGrumpy": [
+        "Oh, NOW you visit the coop?",
+        "Bawk. Too busy for me, were you?",
+        "*turns tail feathers to you*"
+      ],
+      "noticed": [
+        "Bawk?",
+        "*tilts head*",
+        "Cluck? What is it?"
+      ],
+      "noticedHappy": [
+        "*happy clucking* ♥",
+        "*fluffs up proudly*",
+        "Bawk bawk! Hello!"
+      ],
+      "release": [
+        "I'll be pecking around.",
+        "*struts off*",
+        "Back to guarding the coop!"
+      ]
+    }
+  },
+  "moveset": {
+    "style": "Rapid pecks, a spur kick and a diving wing flurry from above.",
+    "moves": [
+      {
+        "id": "peck",
+        "name": "Peck",
+        "kind": "light",
+        "anim": "peck",
+        "startup": 40,
+        "active": 60,
+        "recovery": 110,
+        "damage": 3,
+        "range": 25,
+        "knockback": 40
+      },
+      {
+        "id": "spur",
+        "name": "Spur Kick",
+        "kind": "heavy",
+        "anim": "kick",
+        "startup": 200,
+        "active": 120,
+        "recovery": 300,
+        "cooldown": 300,
+        "damage": 13,
+        "range": 60,
+        "knockback": 320
+      },
+      {
+        "id": "flurry",
+        "name": "Wing Flurry",
+        "kind": "aerial",
+        "anim": "glide",
+        "startup": 150,
+        "active": 300,
+        "recovery": 250,
+        "cooldown": 700,
+        "damage": 16,
+        "range": 90,
+        "knockback": 250
+      }
+    ]
+  },
+  "translations": {
+    "zh-CN": {
+      "displayName": "公鸡",
+      "description": "嗓门大，有自信，超守时。能从任何地方滑翔下来，闹钟一响就打鸣。",
+      "style": "连环啄击、距爪踢，还有从天而降的扑翅连击。",
+      "care": [
+        "顺顺{name}的羽毛",
+        "拍拍{name}的鸡冠",
+        "撒一把玉米 🌽",
+        "喂{name}一条虫 🪱"
+      ],
+      "lines": {
+        "greet": [
+          "喔喔喔——！",
+          "早上好！或者现在不管几点都好！"
+        ],
+        "petted": [
+          "咯咯 ♥",
+          "咯咯咯！"
+        ],
+        "thrown": [
+          "咯？！",
+          "本大爷会飞！……大概吧！"
+        ],
+        "landed": [
+          "本大爷一如既往地优雅。",
+          "当当当！"
+        ],
+        "reminder": [
+          "咯！{title}",
+          "喂喂喂！{title}"
+        ],
+        "alarm": [
+          "喔喔喔——！{title}",
+          "到点啦！{title}"
+        ],
+        "focusStart": [
+          "专注模式！本大爷来放哨。",
+          "你埋头苦干，本大爷低头觅食！"
+        ],
+        "breakStart": [
+          "休息时间！扑腾扑腾胳膊！",
+          "伸展！踱步！走起！"
+        ],
+        "focusEnd": [
+          "干得好，奖励你一把玉米。"
+        ],
+        "bored": [
+          "咯？",
+          "给本大爷来点玉米呗？"
+        ],
+        "fed": [
+          "啄啄啄！好吃！",
+          "玉米！今天太棒了！"
+        ],
+        "full": [
+          "撑得一粒都啄不动了。",
+          "咯……真的吃不下了。"
+        ],
+        "hungry": [
+          "有人吗？给本大爷上玉米！",
+          "*难过地啄着空地*",
+          "到玉米时间了吗？"
+        ],
+        "grumpy": [
+          "咯。随便吧。",
+          "*竖起羽毛表示抗议*",
+          "都没人来鸡舍看我了……"
+        ],
+        "adoring": [
+          "你是世界上最好的农夫！♥",
+          "咯咯 ♥"
+        ],
+        "sulk": [
+          "咯！别管我！",
+          "*拿尾巴对着你*"
+        ],
+        "timerSet": [
+          "⏱ {duration}！{time} 本大爷会打鸣！",
+          "咯！{duration}，收到！"
+        ],
+        "noted": [
+          "记下了！{title}{when}！",
+          "咯！收到：{title}{when}。"
+        ],
+        "praise": [
+          "喔喔喔——完成！",
+          "干得漂亮！送你一根羽毛。"
+        ],
+        "enough": [
+          "好啦好啦，够了！",
+          "咯，够啦！"
+        ],
+        "dodgeHungry": [
+          "咯！不吃玉米不给摸！",
+          "我的嗉囊空了。空、了。",
+          "*故意啄着空气*"
+        ],
+        "dodgeGrumpy": [
+          "哦，*现在*才来鸡舍？",
+          "咯。之前忙到没空理我是吧？",
+          "*拿尾巴对着你*"
+        ],
+        "noticed": [
+          "咯？",
+          "*歪头*",
+          "咯咯？什么事？"
+        ],
+        "noticedHappy": [
+          "*开心地咯咯叫* ♥",
+          "*骄傲地蓬起羽毛*",
+          "咯咯！你好呀！"
+        ],
+        "release": [
+          "我在附近啄啄。",
+          "*昂首阔步走开*",
+          "回去守鸡舍啦！"
+        ]
+      }
+    },
+    "zh-TW": {
+      "displayName": "公雞",
+      "description": "嗓門大，有自信，超守時。能從任何地方滑翔下來，鬧鐘一響就打鳴。",
+      "style": "連環啄擊、距爪踢，還有從天而降的撲翅連擊。",
+      "care": [
+        "順順{name}的羽毛",
+        "拍拍{name}的雞冠",
+        "撒一把玉米 🌽",
+        "餵{name}一條蟲 🪱"
+      ],
+      "lines": {
+        "greet": [
+          "喔喔喔——！",
+          "早安！不管現在幾點都早安！"
+        ],
+        "petted": [
+          "咯咯 ♥",
+          "咯咯咯！"
+        ],
+        "thrown": [
+          "咯？！",
+          "本大爺會飛！……大概吧！"
+        ],
+        "landed": [
+          "本大爺一如既往地優雅。",
+          "噹噹噹！"
+        ],
+        "reminder": [
+          "咯！{title}",
+          "喂喂喂！{title}"
+        ],
+        "alarm": [
+          "喔喔喔——！{title}",
+          "到點啦！{title}"
+        ],
+        "focusStart": [
+          "專注模式！本大爺來放哨。",
+          "你埋頭苦幹，本大爺低頭覓食！"
+        ],
+        "breakStart": [
+          "休息時間！撲騰撲騰胳膊！",
+          "伸展！踱步！走起！"
+        ],
+        "focusEnd": [
+          "幹得好，獎勵你一把玉米。"
+        ],
+        "bored": [
+          "咯？",
+          "給本大爺來點玉米嘛？"
+        ],
+        "fed": [
+          "啄啄啄！好吃！",
+          "玉米！今天太棒了！"
+        ],
+        "full": [
+          "撐得一粒都啄不動了。",
+          "咯……真的吃不下了。"
+        ],
+        "hungry": [
+          "有人嗎？給本大爺上玉米！",
+          "*難過地啄著空地*",
+          "到玉米時間了嗎？"
+        ],
+        "grumpy": [
+          "咯。隨便吧。",
+          "*豎起羽毛表示抗議*",
+          "都沒人來雞舍看我了……"
+        ],
+        "adoring": [
+          "你是世界上最好的農夫！♥",
+          "咯咯 ♥"
+        ],
+        "sulk": [
+          "咯！別管我！",
+          "*拿尾巴對著你*"
+        ],
+        "timerSet": [
+          "⏱ {duration}！{time}本大爺會打鳴！",
+          "咯！{duration}，收到！"
+        ],
+        "noted": [
+          "記下了！{title}{when}！",
+          "咯！收到：{title}{when}。"
+        ],
+        "praise": [
+          "喔喔喔——完成！",
+          "幹得漂亮！送你一根羽毛。"
+        ],
+        "enough": [
+          "好啦好啦，夠了！",
+          "咯，夠啦！"
+        ],
+        "dodgeHungry": [
+          "咯！不吃玉米不給摸！",
+          "我的嗉囊空了。空、了。",
+          "*故意啄著空氣*"
+        ],
+        "dodgeGrumpy": [
+          "哦，*現在*才來雞舍？",
+          "咯。之前忙到沒空理我是吧？",
+          "*拿尾巴對著你*"
+        ],
+        "noticed": [
+          "咯？",
+          "*歪頭*",
+          "咯咯？什麼事？"
+        ],
+        "noticedHappy": [
+          "*開心地咯咯叫* ♥",
+          "*驕傲地蓬起羽毛*",
+          "咯咯！你好呀！"
+        ],
+        "release": [
+          "我在附近啄啄。",
+          "*昂首闊步走開*",
+          "回去顧雞舍囉！"
+        ]
+      }
+    }
+  }
+}

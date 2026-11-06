@@ -1,0 +1,355 @@
+use core_foundation::array::CFArray;
+use core_foundation::base::{CFType, TCFType};
+use core_foundation::dictionary::CFDictionary;
+use core_foundation::number::CFNumber;
+use core_foundation::string::CFString;
+use core_graphics::geometry::CGRect;
+use core_graphics::window::{
+    copy_window_info, kCGNullWindowID, kCGWindowAlpha, kCGWindowBounds, kCGWindowLayer,
+    kCGWindowListExcludeDesktopElements, kCGWindowListOptionOnScreenOnly, kCGWindowNumber, kCGWindowOwnerPID,
+};
+
+use super::{Area, WindowRect};
+
+const MIN_SIZE: f64 = 60.0;
+
+/// Window bounds don't need Screen Recording permission (only titles do).
+pub fn list(own_pid: u32, areas: &[Area]) -> Vec<WindowRect> {
+    let Some(info) =
+        copy_window_info(kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements, kCGNullWindowID)
+    else {
+        return Vec::new();
+    };
+    let info: CFArray<CFDictionary<CFString, CFType>> =
+        unsafe { CFArray::wrap_under_get_rule(info.as_concrete_TypeRef()) };
+    let mut out = Vec::new();
+    // CGWindowList is ordered front-to-back already.
+    for dict in info.iter() {
+        let num = |key| unsafe { dict.find(CFString::wrap_under_get_rule(key)) }.and_then(|v| v.downcast::<CFNumber>());
+        // Layer 0 is normal app windows; the menu bar, dock and overlays live on other layers.
+        if num(unsafe { kCGWindowLayer }).and_then(|n| n.to_i32()) != Some(0) {
+            continue;
+        }
+        if num(unsafe { kCGWindowOwnerPID }).and_then(|n| n.to_i64()) == Some(own_pid as i64) {
+            continue;
+        }
+        if num(unsafe { kCGWindowAlpha }).and_then(|n| n.to_f64()).is_some_and(|a| a <= 0.01) {
+            continue;
+        }
+        let Some(bounds) = (unsafe { dict.find(CFString::wrap_under_get_rule(kCGWindowBounds)) })
+            .and_then(|v| v.downcast::<CFDictionary>())
+            .and_then(|d| CGRect::from_dict_representation(&d))
+        else {
+            continue;
+        };
+        if bounds.size.width < MIN_SIZE || bounds.size.height < MIN_SIZE {
+            continue;
+        }
+        let id = num(unsafe { kCGWindowNumber }).and_then(|n| n.to_i64()).unwrap_or_default();
+        // Bounds are in points; Tauri monitor rects are points × that monitor's scale.
+        let (cx, cy) = (bounds.origin.x + bounds.size.width / 2.0, bounds.origin.y + bounds.size.height / 2.0);
+        let scale = areas
+            .iter()
+            .find(|a| {
+                let (x, y, w, h) = (a.rect.x / a.scale, a.rect.y / a.scale, a.rect.w / a.scale, a.rect.h / a.scale);
+                cx >= x && cx < x + w && cy >= y - 40.0 && cy < y + h
+            })
+            .map_or(1.0, |a| a.scale);
+        out.push(WindowRect {
+            id: id.to_string(),
+            x: bounds.origin.x * scale,
+            y: bounds.origin.y * scale,
+            w: bounds.size.width * scale,
+            h: bounds.size.height * scale,
+        });
+    }
+    out
+}
+
+// --- Stepping aside (src-tauri/src/avoid.rs) --------------------------------------------
+
+use std::ffi::c_void;
+
+use core_graphics::display::CGDisplay;
+use core_graphics::window::kCGWindowOwnerName;
+
+use super::Busy;
+
+/// Apps whose full-screen window is a slide show (or its presenter view: macOS doesn't tell
+/// them apart without the Screen Recording permission).
+const PRESENTERS: &[&str] = &["Keynote", "Microsoft PowerPoint"];
+
+/// What you're doing (`pet` is a point on its screen, in points), and the screens showing a
+/// slide show (in physical pixels, as Tauri's monitors: points × that screen's scale).
+pub fn busy(own_pid: u32, pet: (f64, f64)) -> (Busy, Vec<super::Rect>) {
+    let displays: Vec<CGDisplay> =
+        CGDisplay::active_displays().unwrap_or_default().into_iter().map(CGDisplay::new).collect();
+    let screens: Vec<super::Rect> = displays
+        .iter()
+        .map(|d| {
+            let r = d.bounds();
+            super::Rect { x: r.origin.x, y: r.origin.y, w: r.size.width, h: r.size.height }
+        })
+        .collect();
+    let scene = super::classify(&layers(own_pid), &screens, super::screen_at(&screens, pet));
+    let slideshows = scene
+        .slideshows
+        .iter()
+        .map(|s| {
+            let scale = displays
+                .iter()
+                .find(|d| d.bounds().origin.x == s.x && d.bounds().origin.y == s.y)
+                .map_or(1.0, |d| d.pixels_wide() as f64 / s.w.max(1.0));
+            super::Rect { x: s.x * scale, y: s.y * scale, w: s.w * scale, h: s.h * scale }
+        })
+        .collect();
+    let b = Busy { fullscreen: scene.fullscreen, presenting: !scene.slideshows.is_empty(), call: in_call(own_pid) };
+    (b, slideshows)
+}
+
+/// The app windows on screen, front to back, in points. Zoomed windows leave the menu bar, so
+/// they never cover a screen; full-screen apps and slide shows do.
+fn layers(own_pid: u32) -> Vec<super::Layer> {
+    let Some(info) =
+        copy_window_info(kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements, kCGNullWindowID)
+    else {
+        return Vec::new();
+    };
+    let info: CFArray<CFDictionary<CFString, CFType>> =
+        unsafe { CFArray::wrap_under_get_rule(info.as_concrete_TypeRef()) };
+    let mut out = Vec::new();
+    for dict in info.iter() {
+        let num = |key| unsafe { dict.find(CFString::wrap_under_get_rule(key)) }.and_then(|v| v.downcast::<CFNumber>());
+        if num(unsafe { kCGWindowLayer }).and_then(|n| n.to_i32()) != Some(0)
+            || num(unsafe { kCGWindowAlpha }).and_then(|n| n.to_f64()).is_some_and(|a| a <= 0.01)
+        {
+            continue;
+        }
+        let Some(r) = (unsafe { dict.find(CFString::wrap_under_get_rule(kCGWindowBounds)) })
+            .and_then(|v| v.downcast::<CFDictionary>())
+            .and_then(|d| CGRect::from_dict_representation(&d))
+        else {
+            continue;
+        };
+        let owner = unsafe { dict.find(CFString::wrap_under_get_rule(kCGWindowOwnerName)) }
+            .and_then(|v| v.downcast::<CFString>())
+            .map(|s| s.to_string())
+            .unwrap_or_default();
+        out.push(super::Layer {
+            // The pet, the panel.
+            own: num(unsafe { kCGWindowOwnerPID }).and_then(|n| n.to_i64()) == Some(own_pid as i64),
+            shell: false,
+            rect: super::Rect { x: r.origin.x, y: r.origin.y, w: r.size.width, h: r.size.height },
+            maximized: false,
+            slideshow: PRESENTERS.contains(&owner.as_str()),
+        });
+    }
+    out
+}
+
+// CoreMediaIO and CoreAudio: whether a camera, or the microphone, is running "somewhere"
+// (in any app) — what the menu bar's green and orange dots show.
+
+#[repr(C)]
+struct PropertyAddress {
+    selector: u32,
+    scope: u32,
+    element: u32,
+}
+
+const fn fourcc(s: &[u8; 4]) -> u32 {
+    u32::from_be_bytes(*s)
+}
+
+const SYSTEM_OBJECT: u32 = 1;
+const SCOPE_GLOBAL: u32 = fourcc(b"glob");
+const ELEMENT_MAIN: u32 = 0;
+const IS_RUNNING_SOMEWHERE: u32 = fourcc(b"gone");
+const CMIO_DEVICES: u32 = fourcc(b"dev#");
+const AUDIO_DEFAULT_INPUT: u32 = fourcc(b"dIn ");
+
+#[link(name = "CoreMediaIO", kind = "framework")]
+extern "C" {
+    fn CMIOObjectGetPropertyDataSize(
+        object: u32,
+        address: *const PropertyAddress,
+        qualifier_size: u32,
+        qualifier: *const c_void,
+        size: *mut u32,
+    ) -> i32;
+    fn CMIOObjectGetPropertyData(
+        object: u32,
+        address: *const PropertyAddress,
+        qualifier_size: u32,
+        qualifier: *const c_void,
+        size: u32,
+        used: *mut u32,
+        data: *mut c_void,
+    ) -> i32;
+}
+
+#[link(name = "CoreAudio", kind = "framework")]
+extern "C" {
+    fn AudioObjectGetPropertyData(
+        object: u32,
+        address: *const PropertyAddress,
+        qualifier_size: u32,
+        qualifier: *const c_void,
+        size: *mut u32,
+        data: *mut c_void,
+    ) -> i32;
+    fn AudioObjectGetPropertyDataSize(
+        object: u32,
+        address: *const PropertyAddress,
+        qualifier_size: u32,
+        qualifier: *const c_void,
+        size: *mut u32,
+    ) -> i32;
+}
+
+/// macOS 14.2+: the processes using audio, and for each its id, bundle id and whether it records.
+const PROCESS_OBJECTS: u32 = fourcc(b"prs#");
+const PROCESS_PID: u32 = fourcc(b"ppid");
+const PROCESS_BUNDLE_ID: u32 = fourcc(b"pbid");
+const PROCESS_RECORDS: u32 = fourcc(b"piri");
+
+/// In a call: a camera is in use (by any app), or a meeting app records from a microphone
+/// (super::in_call). Before macOS 14.2, which doesn't say which app records, any app does.
+fn in_call(own_pid: u32) -> bool {
+    let camera = camera_in_use();
+    match recording_apps(own_pid) {
+        Some(apps) => super::in_call(camera, apps.iter().map(String::as_str)),
+        None => camera || microphone_in_use(),
+    }
+}
+
+/// The apps (bundle ids) recording from a microphone now, but this one; None before macOS 14.2.
+fn recording_apps(own_pid: u32) -> Option<Vec<String>> {
+    unsafe {
+        let list = global(PROCESS_OBJECTS);
+        let mut size = 0u32;
+        if AudioObjectGetPropertyDataSize(SYSTEM_OBJECT, &list, 0, std::ptr::null(), &mut size) != 0 {
+            return None;
+        }
+        let mut ids = vec![0u32; size as usize / size_of::<u32>()];
+        if !ids.is_empty()
+            && AudioObjectGetPropertyData(
+                SYSTEM_OBJECT,
+                &list,
+                0,
+                std::ptr::null(),
+                &mut size,
+                ids.as_mut_ptr() as *mut c_void,
+            ) != 0
+        {
+            return None;
+        }
+        ids.truncate(size as usize / size_of::<u32>());
+        let u32_of = |id: u32, selector: u32| {
+            let mut v = 0u32;
+            let mut size = size_of::<u32>() as u32;
+            (AudioObjectGetPropertyData(
+                id,
+                &global(selector),
+                0,
+                std::ptr::null(),
+                &mut size,
+                &mut v as *mut u32 as *mut c_void,
+            ) == 0)
+                .then_some(v)
+        };
+        let apps = ids
+            .into_iter()
+            .filter(|&id| u32_of(id, PROCESS_RECORDS).is_some_and(|r| r != 0))
+            .filter(|&id| u32_of(id, PROCESS_PID).is_some_and(|pid| pid != own_pid))
+            .filter_map(|id| {
+                let mut s: core_foundation::string::CFStringRef = std::ptr::null();
+                let mut size = size_of::<core_foundation::string::CFStringRef>() as u32;
+                let ok = AudioObjectGetPropertyData(
+                    id,
+                    &global(PROCESS_BUNDLE_ID),
+                    0,
+                    std::ptr::null(),
+                    &mut size,
+                    &mut s as *mut _ as *mut c_void,
+                ) == 0;
+                (ok && !s.is_null()).then(|| CFString::wrap_under_create_rule(s).to_string())
+            })
+            .collect();
+        Some(apps)
+    }
+}
+
+fn global(selector: u32) -> PropertyAddress {
+    PropertyAddress { selector, scope: SCOPE_GLOBAL, element: ELEMENT_MAIN }
+}
+
+fn camera_in_use() -> bool {
+    unsafe {
+        let devices = global(CMIO_DEVICES);
+        let mut size = 0u32;
+        if CMIOObjectGetPropertyDataSize(SYSTEM_OBJECT, &devices, 0, std::ptr::null(), &mut size) != 0 || size == 0 {
+            return false;
+        }
+        let mut ids = vec![0u32; size as usize / size_of::<u32>()];
+        let mut used = 0u32;
+        if CMIOObjectGetPropertyData(
+            SYSTEM_OBJECT,
+            &devices,
+            0,
+            std::ptr::null(),
+            size,
+            &mut used,
+            ids.as_mut_ptr() as *mut c_void,
+        ) != 0
+        {
+            return false;
+        }
+        ids.truncate(used as usize / size_of::<u32>());
+        let running = global(IS_RUNNING_SOMEWHERE);
+        ids.into_iter().any(|id| {
+            let mut on = 0u32;
+            let mut used = 0u32;
+            CMIOObjectGetPropertyData(
+                id,
+                &running,
+                0,
+                std::ptr::null(),
+                size_of::<u32>() as u32,
+                &mut used,
+                &mut on as *mut u32 as *mut c_void,
+            ) == 0
+                && on != 0
+        })
+    }
+}
+
+fn microphone_in_use() -> bool {
+    unsafe {
+        let mut device = 0u32;
+        let mut size = size_of::<u32>() as u32;
+        if AudioObjectGetPropertyData(
+            SYSTEM_OBJECT,
+            &global(AUDIO_DEFAULT_INPUT),
+            0,
+            std::ptr::null(),
+            &mut size,
+            &mut device as *mut u32 as *mut c_void,
+        ) != 0
+            || device == 0
+        {
+            return false;
+        }
+        let mut on = 0u32;
+        let mut size = size_of::<u32>() as u32;
+        AudioObjectGetPropertyData(
+            device,
+            &global(IS_RUNNING_SOMEWHERE),
+            0,
+            std::ptr::null(),
+            &mut size,
+            &mut on as *mut u32 as *mut c_void,
+        ) == 0
+            && on != 0
+    }
+}
