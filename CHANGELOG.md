@@ -16,6 +16,34 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.64.0] - 2026-11-09
+
+### Added
+- **Hardware on the hover card**: with the mouse on the pet, a small card shows CPU usage,
+  memory usage and network down/up (the defaults), refreshed every second; nothing is read
+  otherwise. Settings → Hardware ticks any of CPU usage, frequency and temperature, fan
+  speed, memory, GPU usage and temperature, video memory, system disk space, network and
+  battery (none: no card). Near a limit a number turns orange, over it red. No drivers:
+  what this computer can't read is greyed out (“Can't read this on this computer”); on
+  Windows, CPU temperature and fans come from HWiNFO (Shared Memory Support) or
+  LibreHardwareMonitor when one runs.
+- **Hardware alerts**: CPU or GPU too hot, memory nearly full, little space left on the
+  system disk, battery low and not plugged in. Over a limit, the pet looks again 30
+  seconds later and says so if it still is (far over: at once), with just “Got it”; once
+  per item every 30 minutes. Not in Quiet mode; during a call or in full screen it waits.
+  Each alert is on when this computer can read it; limits have −/+ and stay in range;
+  ℃ or ℉; checked every 30 s to 10 min (1 min by default, the disk every 10 min).
+
+### Changed
+- **Games: you pick the pet's level**: 24 Points (racing the pet) and tic-tac-toe show
+  “Cat's level: Easy | Normal | Won't go easy” before a game (and after one); Normal at
+  first, then what you chose last. It no longer follows the pet's mood.
+
+### Removed
+- **Hunger, affection and boredom**: no fullness or feeding, no affection numbers or
+  mood cards, no “+3 ♥”, no sulking, dodging or bored lines. Petting still gets a ♥, a hop
+  and a purr; finishing a to-do or a focus session, or winning a game, a ♥ too.
+
 ## [0.63.0] - 2026-11-06
 
 ### Changed

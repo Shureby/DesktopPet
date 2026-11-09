@@ -177,8 +177,6 @@ const zhCN: Dictionary = {
     "Two players": "双人",
     "A draw. Again?": "平局。再来一局？",
     "A sound when a game ends": "一局结束时播放提示音",
-    "At its best it never loses at classic: the most you can get is a draw.":
-      "最高水平下经典井字棋它不会输：你最多只能下成平局。",
     "Done: new game": "好了：新开一局",
     "Hmph… one more game!": "哼……再来一局！",
     "Player 1": "玩家 1",
@@ -272,7 +270,6 @@ const zhCN: Dictionary = {
     "Not solved": "没算出来",
     "A new hand comes tomorrow.": "明天有新的一题。",
     "Your fastest: {s} s": "你最快一题：{s} 秒",
-    "Played with {name}: happier now": "陪{name}玩了一轮，它更开心了",
     "Practice instead": "去自己练",
     "Play again": "再来一轮",
     Hands: "题目",
@@ -282,7 +279,6 @@ const zhCN: Dictionary = {
     "Mix in hands with no answer (a “No answer!” button: right +1, wrong −1)":
       "混入无解题（多一个“无解！”按钮：喊对 +1，喊错 −1）",
     "{name}'s level": "{name}的水平",
-    "Follows its mood (now: {level})": "跟着心情（现在：{level}）",
     Easy: "简单",
     "Won't go easy": "不让你",
     "Done: new round": "好了，开新一轮",
@@ -709,11 +705,6 @@ const zhCN: Dictionary = {
     ".": "”页添加。",
     " Starts once a day when work starts (stopped by hand, it stays stopped). No new focus after work ends.":
       " 每天上班时开始一次（手动停止后当天不再开始）。下班后不再开始新的专注。",
-    "Adores you": "超爱你",
-    Content: "心满意足",
-    Grumpy: "闹脾气",
-    Sulking: "生闷气",
-    " · hungry": " · 饿了",
     "custom|character": "自制",
     "Copy it into your characters folder to make your own":
       "复制到你的角色文件夹，做一个你自己的",
@@ -977,7 +968,6 @@ const zhCN: Dictionary = {
     "put off ({mode} mode)": "已推迟（{mode}模式）",
     "{mode} mode": "{mode}模式",
     "Open Modes": "打开“模式”",
-    "Affection {love}% · Fullness {food}%": "亲密度 {love}% · 饱腹度 {food}%",
     "We're focusing until {time}. Play anyway?":
       "我们在专注，到 {time}。还是要玩吗？",
     "We're focusing. Play anyway?": "我们在专注。还是要玩吗？",
@@ -1463,6 +1453,60 @@ const zhCN: Dictionary = {
     "Only you see it. Empty: its own name, {name}.":
       "只有你看得到。留空就用它自己的名字：{name}。",
     Rename: "改名",
+    "CPU usage": "CPU 占用率",
+    "CPU frequency": "CPU 频率",
+    "CPU temperature": "CPU 温度",
+    "Fan speed": "风扇转速",
+    "Memory usage": "内存占用率",
+    "GPU usage": "显卡占用率",
+    "GPU temperature": "显卡温度",
+    "Video memory": "显存",
+    "System disk free space": "系统盘剩余空间",
+    "Network up/down": "网络上传/下载",
+    Battery: "电池",
+    "CPU freq": "CPU 频率",
+    Fan: "风扇",
+    Memory: "内存",
+    VRAM: "显存",
+    "Disk {name}": "{name} 盘",
+    Disk: "系统盘",
+    "{size} free": "剩 {size}",
+    "🌡 The CPU is very hot: {temp}! Save your work and see what's keeping it busy.":
+      "🌡 CPU 太烫了：{temp}！先存好手上的东西，看看是哪个程序在忙？",
+    "🌡 The CPU is hot: {temp}! It's been over {limit} for half a minute. What's keeping it busy?":
+      "🌡 CPU 好烫！已经 {temp} 了，超过 {limit} 半分钟了，看看是哪个程序在忙？",
+    "🎮 The graphics card is very hot: {temp}! Give it a break?":
+      "🎮 显卡太烫了：{temp}！让它歇一会儿？",
+    "🎮 The graphics card is hot: {temp}! It's been over {limit} for half a minute.":
+      "🎮 显卡好烫！{temp}，超过 {limit} 已经半分钟了。",
+    "🧠 Memory is nearly full: {pct}. Closing apps you aren't using will help.":
+      "🧠 内存快满了：{pct}。关掉几个不用的程序会舒服点。",
+    "💾 {disk} has only {pct} free ({size}). Time for a clean-up.":
+      "💾 {disk} 只剩 {pct}（{size}），该清理一下了。",
+    "🔋 Battery at {pct} and not plugged in. Time to find the charger!":
+      "🔋 电量 {pct}，没插电，快去找充电器～",
+    "This computer can't read this, so it won't alert even when on.":
+      "这台电脑上读不到这一项，打开了也不会提醒。",
+    "Windows: open HWiNFO (with Shared Memory Support on) or LibreHardwareMonitor and this starts working.":
+      "Windows：打开 HWiNFO（勾选「共享内存」）或 LibreHardwareMonitor 后，这里会自动变成可用。",
+    "Show when the mouse is on the pet": "鼠标移到宠物上时显示",
+    "Read only while the mouse is on the pet. Tick none and no card shows.":
+      "只在鼠标停在宠物身上时读取。一项都不勾就不显示。",
+    Alerts: "超阈值提醒",
+    "Temperature unit": "温度单位",
+    "Check every": "检查间隔",
+    "Over a limit, the pet looks again 30 seconds later and tells you if it still is (far over: at once), at most once every 30 minutes for each. ":
+      "超过阈值后，宠物 30 秒后再看一次，仍然超标才提醒（超得太多立即提醒），同一项 30 分钟内只提醒一次。",
+    "Not in Quiet mode; during a call or in full screen it waits. Only the alerts that are on are read; the disk every 10 minutes.":
+      "安静模式不提醒；通话或全屏时先存着，回来还超标才说。只读取开着提醒的项目；磁盘每 10 分钟看一次。",
+    "CPU temperature over": "CPU 温度超过",
+    "GPU temperature over": "显卡温度超过",
+    "Memory use over": "内存占用超过",
+    "System disk free space under": "系统盘剩余空间低于",
+    "Battery (not plugged in) at or under": "电池（未插电）不高于",
+    "10 minutes": "10 分钟",
+    "Can't read this on this computer": "此电脑无法读取",
+    Hardware: "硬件信息",
   },
   lines: {
     "avoid.leaving.fullscreen": [

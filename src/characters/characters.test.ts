@@ -185,21 +185,6 @@ describe("RulesBrain", () => {
     }
   });
 
-  it("comes over to the cursor when it adores you, mopes when grumpy", () => {
-    const pet = spawn(registry.get("rooster")!.def);
-    simulate(pet, 1);
-    pet.cursor = { x: 300, y: 900 };
-    pet.mood.affection = 95;
-    expect(new RulesBrain().weights(pet).approach).toBeGreaterThan(0);
-    pet.mood.affection = 60;
-    expect(new RulesBrain().weights(pet).approach).toBeUndefined();
-    const content = new RulesBrain().weights(pet);
-    pet.mood.affection = 30;
-    const grumpy = new RulesBrain().weights(pet);
-    expect(grumpy.run).toBeLessThan(content.run);
-    expect(grumpy.sit).toBeGreaterThan(content.sit);
-  });
-
   it("walks over to the cursor and looks happy", () => {
     const pet = spawn(registry.get("cat")!.def, 2, 400, 900);
     simulate(pet, 1);
@@ -211,28 +196,20 @@ describe("RulesBrain", () => {
     expect(Math.abs(pet.body.x - 700)).toBeLessThan(80);
   });
 
-  it("a sulking pet sometimes snubs petting, and hungry pets complain", () => {
+  it("petting gets a happy hop and a line, never a snub", () => {
     const pet = spawn(registry.get("cat")!.def);
     simulate(pet, 1);
-    pet.mood.affection = 10;
     const said: string[] = [];
     pet.onSay = (t) => said.push(t);
     for (let i = 0; i < 20; i++) pet.react({ type: "petted" });
-    const sulks = pet.def.personality.lines.sulk;
-    expect(said.some((t) => sulks.includes(t))).toBe(true);
-    expect(said.some((t) => !sulks.includes(t))).toBe(true);
-
-    said.length = 0;
-    pet.mood.fullness = 5;
-    simulate(pet, 450);
-    expect(said.some((t) => pet.def.personality.lines.hungry.includes(t))).toBe(true);
+    const lines = pet.def.personality.lines;
+    expect(said.every((t) => lines.petted.includes(t) || lines.adoring.includes(t))).toBe(true);
+    expect(pet.state).toBe("happy");
   });
 
-  it("reminders always get through, whatever the mood", () => {
+  it("reminders always get through", () => {
     const pet = spawn(registry.get("cat")!.def);
     simulate(pet, 1);
-    pet.mood.affection = 0;
-    pet.mood.fullness = 0;
     const said: string[] = [];
     pet.onSay = (t) => said.push(t);
     pet.react({ type: "reminder", kind: "alarm", title: "Meeting" });
@@ -254,16 +231,18 @@ describe("slams", () => {
   it("only counts hard landings after the user throws the pet, not ordinary falls", () => {
     const pet = spawn(registry.get("cat")!.def, 1, 800, 0);
     pet.world = { areas: [{ x: 0, y: 0, w: 1600, h: 4000 }], windows: [] };
-    const start = pet.mood.affection;
+    const said: string[] = [];
+    pet.onSay = (t) => said.push(t);
+    const landed = pet.def.personality.lines.landed;
     simulate(pet, 5);
     expect(pet.grounded).toBe(true);
-    expect(pet.mood.affection).toBeCloseTo(start, 1);
+    expect(said.some((t) => landed.includes(t))).toBe(false);
 
     pet.startDrag();
     pet.dragTo(800, 100, 0);
     pet.endDrag();
     simulate(pet, 5);
-    expect(pet.mood.affection).toBeLessThan(start - 0.5);
+    expect(said.some((t) => landed.includes(t))).toBe(true);
   });
 });
 
@@ -389,25 +368,9 @@ describe("mouse resting on the pet (docs/INTERACTIONS.md)", () => {
     expect(pet.state).toBe("attend");
   });
 
-  it("an unhappy pet steps about a body length away, says why, and turns back", () => {
-    const pet = walkingCat();
-    const said: string[] = [];
-    pet.onSay = (t) => said.push(t);
-    pet.cursor = { x: pet.body.x + 5, y: pet.body.y - 20 };
-    const x = pet.body.x;
-    pet.react({ type: "hover", phase: "dodge", reason: "hungry" });
-    expect(pet.state).toBe("dodge");
-    simulate(pet, 1.5);
-    const moved = x - pet.body.x;
-    expect(moved).toBeGreaterThan(pet.spriteSize.w * 0.6);
-    expect(moved).toBeLessThan(pet.spriteSize.w * 2);
-    expect(pet.facing).toBe(1);
-    expect(registry.get("cat")!.def.personality.lines.dodgeHungry).toContain(said[0]);
-  });
-
   it("every bundled character has the hover lines", () => {
     for (const c of registry.list()) {
-      for (const key of ["dodgeHungry", "dodgeGrumpy", "noticed", "noticedHappy", "release"]) {
+      for (const key of ["noticed", "noticedHappy", "release"]) {
         expect(c.def.personality.lines[key]?.length, `${c.def.id}.${key}`).toBeGreaterThan(0);
       }
     }

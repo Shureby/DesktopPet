@@ -7,7 +7,6 @@ import { joinDot, monthName, shortDate, shortDateYear, weekdayName, weekdayNarro
 import { lunarMonthName } from "../i18n/chinese";
 import { followLocale, systemLocale } from "../i18n/apply";
 import product from "../../product.config.json";
-import { isHungry, moodTier, parseMood, type Mood } from "../brain/mood";
 import { ABILITIES } from "../characters/abilities";
 import { copyOf, loadAll, type CharacterRegistry, type LoadedCharacter } from "../characters/registry";
 import { SpriteAtlas } from "../engine/sprites";
@@ -95,6 +94,7 @@ import { fromChip, openSendSheet } from "../post/schedule";
 import type { ShareKind } from "../features/post/schedule";
 import { hmText, infoTip, modesSection } from "./modes";
 import { avoidSection } from "./avoid";
+import { hardwareSection } from "./hardware";
 import { dayPicker, week } from "./dayPicker";
 import { workSpan } from "../features/modes/modes";
 import { formatHm, parseHm, timeField } from "./timeField";
@@ -1686,25 +1686,6 @@ async function preview(c: LoadedCharacter): Promise<HTMLCanvasElement> {
   return canvas;
 }
 
-const TIER_TEXT = { adoring: msg("Adores you"), content: msg("Content"), grumpy: msg("Grumpy"), sulking: msg("Sulking") } as const;
-
-function moodCard(m: Mood): Node {
-  const bar = (label: string, value: number, cls: string) =>
-    h(
-      "div",
-      { class: "meter", title: `${label} ${Math.round(value)}%` },
-      h("span", {}, label),
-      h("div", { class: "track" }, h("div", { class: `fill ${cls}`, style: `width:${Math.round(value)}%` })),
-    );
-  return h(
-    "div",
-    { class: "mood-card" },
-    bar("♥", m.affection, "love"),
-    bar("🍽", m.fullness, isHungry(m) ? "food hungry" : "food"),
-    h("span", { class: "tier" }, `${t(TIER_TEXT[moodTier(m)])}${isHungry(m) ? t(" · hungry") : ""}`),
-  );
-}
-
 async function renderCharacters(): Promise<Node> {
   // "Make a copy": a new folder in the characters folder, opened, and loaded straight away.
   const copy = (c: LoadedCharacter) => {
@@ -1725,7 +1706,6 @@ async function renderCharacters(): Promise<Node> {
           h("p", {}, characterDescription(c.def)),
           h("div", { class: "chips" }, ...c.def.abilities.map((a) => h("span", { class: "chip", title: t(ABILITIES[a.id]?.description ?? "") }, ABILITIES[a.id] ? t(ABILITIES[a.id].name) : a.id))),
           h("p", { class: "style" }, `🥊 ${characterStyle(c.def)}`),
-          moodCard(parseMood(await backend.loadMood(c.def.id))),
         ),
         h(
           "button",
@@ -1831,6 +1811,8 @@ async function renderSettings(): Promise<Node> {
     ),
     h("h3", { "data-section": "screens" }, t("Screens the pet lives on")),
     screensSection(backend, () => settings, save),
+    h("h3", { "data-section": "hardware" }, t("Hardware")),
+    hardwareSection(backend, () => settings, save),
     h("h3", { "data-section": "alarms" }, t("Alarms & timers")),
     alertBox("alarm"),
     h("h3", { "data-section": "todos" }, t("To-do reminders")),
@@ -2193,7 +2175,6 @@ async function main() {
     if (tab === "settings" && sub) return showSection(sub);
     if (tab !== current) select(tab);
   });
-  await backend.on("mood", () => current === "characters" && void render());
 
   // "#alarms", or "#post:send" / "#post:verify=<fingerprint>" (Pet Post, opened for that).
   const [initial, sub = ""] = location.hash.slice(1).split(":") as [PanelTab, string?];

@@ -452,7 +452,10 @@ Discussed 2026-10-20; not scheduled.
 
 ## Personality
 
-- Needs and moods (energy, boredom, affection) visible in the panel. The pet levels up with use.
+- ~~Needs and moods (energy, boredom, affection) visible in the panel.~~ Dropped in 0.64.0:
+  hunger, affection and boredom asked you to look after the pet without giving you
+  anything for it. The pet still reacts to petting, praise and slams. Leveling up with use:
+  maybe later, if it gives something back.
 - ~~Hides while a full-screen app or game is running, and in a "presentation mode".~~ Shipped in 0.38.0 (stepping aside).
 - Several pets at once that interact with each other. Seasonal costumes.
 
@@ -462,7 +465,10 @@ Discussed 2026-10-20; not scheduled.
 - Clipboard history: the pet "eats" what you copy and you can pick it back up.
 - Drop a file on the pet to compress it, convert an image, or move it to a folder.
 - Downloads tidier, and folder sync (the pet carries a box while syncing).
-- Sticky notes pinned next to the pet. A system glance: battery, CPU, next meeting from an ICS feed.
+- Sticky notes pinned next to the pet. Next meeting from an ICS feed.
+- ~~A system glance: battery, CPU.~~ Shipped in 0.64.0 (the hover card and hardware
+  alerts). Later: a small floating hardware window, and the pet showing it (fanning
+  itself when the CPU is hot).
 - Screenshot + annotate, colour picker.
 
 ## To-dos with progress, tied to focus (idea, not scheduled)
@@ -507,7 +513,7 @@ much as the whole to-do module. What's worth taking from it is _progress_: to do
 on the board with its own mark, its level by mood or fixed).
 - Tic-tac-toe later: play a paired ePet over Pet Post; the pet inviting you to a game.
 
-Also: a taskbar hurdle runner, catching falling food (feeds the pet's mood) and
+Also: a taskbar hurdle runner, catching falling food and
 whack-a-bug. Scores earn coins that unlock cosmetics.
 
 ## LLM tier

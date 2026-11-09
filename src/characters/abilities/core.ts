@@ -134,27 +134,6 @@ export const core: AbilityModule<Record<string, never>> = {
         p.body.vx = 0;
       },
     },
-    /** An unhappy pet steps about one body length away from the cursor, then turns back. */
-    dodge: {
-      anim: "walk",
-      enter: (p) => {
-        const c = p.cursor;
-        p.facing = c ? (c.x > p.body.x ? -1 : 1) : p.facing === 1 ? -1 : 1;
-        p.activity(1, 1.2);
-      },
-      update: (p) => {
-        const speed = Math.max(p.walkSpeed(), p.spriteSize.w / 1.1);
-        p.body.vx = p.facing * speed;
-        if (!p.activityDone() && !p.lastStep?.hitWall) return;
-        p.body.vx = 0;
-        const c = p.cursor;
-        if (c) p.facing = c.x > p.body.x ? 1 : -1;
-        return "idle";
-      },
-      exit: (p) => {
-        p.body.vx = 0;
-      },
-    },
     /**
      * Walk calmly to `pet.target`, then keep vigil if one is set (`scratch.vigil`: a
      * remembrance's candle), else idle. To a vigil it walks for as long as the vigil lasts;

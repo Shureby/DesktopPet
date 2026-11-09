@@ -7,7 +7,6 @@ import { todoRemindsAt } from "../features/todo/repeat";
 import { celebrationEffect, celebrationLines, musicFor } from "../features/anniversary/templates";
 import { candleLayout, playEffect } from "../celebrate/effects";
 import type { Vigil } from "../characters/abilities/core";
-import { applyMoodEvent, isHungry, moodTier, parseMood, type Mood, type MoodEvent } from "../brain/mood";
 import { RulesBrain } from "../brain/RulesBrain";
 import { Pet } from "../characters/Pet";
 import { onBoard } from "../characters/board";
@@ -17,6 +16,7 @@ import { allowedScreens, homeScreen, nearestAllowed, screensOf, VISIT_MS, walkHo
 import type { Rect } from "../engine/geometry";
 import { lateness, lateNote, type LateReason } from "../features/alarm/late";
 import { backLine, leavingLine } from "../features/avoid/lines";
+import { alertText, cardRows, CONFIRM_MS, HwWatch, type HwAlert, type HwItem, type HwReading } from "../features/hardware/hardware";
 import { createRng } from "../engine/random";
 import { SpriteAtlas } from "../engine/sprites";
 import {
@@ -234,7 +234,7 @@ export class PetHost {
   /** The bubble is asking for a custom timer length; chatter must not replace it. */
   private prompting = false;
   private hovering = false;
-  /** The cursor is on the pet itself (not its bubble or badges): shows the heart meter. */
+  /** The cursor is on the pet itself (not its bubble or badges): shows the hardware card. */
   private overSprite = false;
   /** The mouse resting on the pet: stop, react, stroke (brain/hover.ts, docs/INTERACTIONS.md). */
   private readonly hover = new HoverTracker();
@@ -309,8 +309,8 @@ export class PetHost {
     private readonly bubble: HTMLElement,
     /** Countdown badges (focus session, timers) next to the pet. */
     private readonly badges: HTMLElement,
-    /** Heart/fullness meter shown while hovering the pet. */
-    private readonly moodMeter: HTMLElement,
+    /** Hardware readings shown while hovering the pet (Settings → Hardware). */
+    private readonly hwCard: HTMLElement,
     settings: Settings,
   ) {
     this.ctx = canvas.getContext("2d", { willReadFrequently: false })!;
@@ -351,9 +351,7 @@ export class PetHost {
     await this.backend.on("preview-stop", () => this.stopPreview());
     await this.backend.on("pomodoro", (p) => {
       // Finishing a focus session makes the pet proud of you.
-      if (this.pomodoro.phase === "focus" && (p.phase === "short_break" || p.phase === "long_break")) {
-        this.moodEvent("focusDone");
-      }
+      if (this.pomodoro.phase === "focus" && (p.phase === "short_break" || p.phase === "long_break")) this.showHeart();
       this.pomodoro = p;
       this.updateMode();
       this.scheduleTray();
@@ -370,11 +368,11 @@ export class PetHost {
       void this.applySettings(s);
       this.scheduleTray();
     });
-    // A new language: the tray, the badges and the mood meter say it again.
+    // A new language: the tray, the badges and the hardware card say it again.
     onLanguage(() => {
       this.scheduleTray();
       this.badges.dataset.text = "";
-      this.renderMoodMeter();
+      this.renderHwCard();
     });
     await this.backend.on("pet-visibility", (visible) => {
       this.petVisible = visible;
@@ -457,9 +455,6 @@ export class PetHost {
     }, 300);
     // Timers that ran out leave the tray menu even if no event arrives (unchanged menus aren't rebuilt).
     setInterval(() => this.scheduleTray(), 30_000);
-    // Mood is saved every minute and when leaving, not every tick.
-    setInterval(() => void this.saveMood(), 60_000);
-    window.addEventListener("beforeunload", () => void this.saveMood());
     this.postponed = loadList(POSTPONED_KEY);
     this.missed = loadList(MISSED_KEY);
     this.pomodoro = await this.backend.pomodoroStatus();
@@ -470,13 +465,14 @@ export class PetHost {
     }, 30_000);
     setInterval(() => void this.refreshWorld(), 500);
     setInterval(() => this.checkBoardBusy(), 250);
+    // Hardware alerts: the first look a minute in, once things have settled.
+    this.scheduleHwWatch(60_000);
 
     this.pet.react({ type: "greet" });
     requestAnimationFrame((it) => this.frame(it));
   }
 
   private async setCharacter(id: string, x: number, y: number): Promise<void> {
-    if (this.pet) await this.saveMood();
     const c = this.registry.pick(id, "cat");
     const atlas = await SpriteAtlas.load(c.def.sprite, c.asset);
     const world = this.pet?.world;
@@ -496,11 +492,6 @@ export class PetHost {
     if (world) this.pet.world = world;
     if (this.board && perch) this.pet.board = { ...perch };
     this.pet.onSay = (text, ms) => this.say(text, ms);
-    try {
-      this.pet.mood = parseMood(await this.backend.loadMood(c.def.id));
-    } catch (e) {
-      console.warn("Could not load mood", e);
-    }
     this.updateMode();
   }
 
@@ -524,6 +515,8 @@ export class PetHost {
     }
     this.applyScreens();
     this.updateMode();
+    // New alerts or a new interval: look now, then by the new interval.
+    this.scheduleHwWatch(2000);
     // Pet Post: on or off, its name (the pet's), who's trusted.
     void this.courier.configure();
   }
@@ -884,21 +877,21 @@ export class PetHost {
     // Never wider than what's visible: a long badge ends in "…" instead of being cut off.
     this.badges.style.maxWidth = `${Math.max(40, left ? leftSpace : rightSpace)}px`;
 
-    // The heart meter takes the other side; if that is off screen too, above the pet's head
+    // The hardware card takes the other side; if that is off screen too, above the pet's head
     // (above the bubble, if one shows).
-    const mw = this.moodMeter.offsetWidth;
+    const mw = this.hwCard.offsetWidth;
     const meterSide = !left ? (leftSpace >= mw ? "left" : "above") : rightSpace >= mw ? "right" : "above";
-    this.moodMeter.dataset.side = meterSide;
+    this.hwCard.dataset.side = meterSide;
     if (meterSide === "above") {
       const top = this.bubble.hidden ? f.y - spriteH - 4 : this.bubble.getBoundingClientRect().top - 4;
-      this.moodMeter.style.left = `${Math.max(vis.left + 2 + mw / 2, Math.min(f.x, vis.right - 2 - mw / 2))}px`;
-      this.moodMeter.style.top = `${top}px`;
+      this.hwCard.style.left = `${Math.max(vis.left + 2 + mw / 2, Math.min(f.x, vis.right - 2 - mw / 2))}px`;
+      this.hwCard.style.top = `${top}px`;
     } else {
-      this.moodMeter.style.left = `${meterSide === "left" ? f.x - halfW - 4 : f.x + halfW + 4}px`;
-      this.moodMeter.style.top = `${f.y - 2}px`;
+      this.hwCard.style.left = `${meterSide === "left" ? f.x - halfW - 4 : f.x + halfW + 4}px`;
+      this.hwCard.style.top = `${f.y - 2}px`;
     }
     this.renderBadges();
-    this.moodMeter.hidden = !this.overSprite || !!this.drag;
+    this.hwCard.hidden = !this.overSprite || !!this.drag || !this.hwRows;
   }
 
   /**
@@ -1043,16 +1036,117 @@ export class PetHost {
     this.badges.hidden = rows.length === 0;
   }
 
-  private renderMoodMeter(): void {
-    const m = this.pet.mood;
-    const hearts = Math.ceil(m.affection / 20);
-    const food = Math.ceil(m.fullness / 20);
-    this.moodMeter.textContent =
-      `${"♥".repeat(hearts)}${"♡".repeat(5 - hearts)} ${Math.round(m.affection)}%\n` +
-      `${"●".repeat(food)}${"○".repeat(5 - food)} ${Math.round(m.fullness)}%`;
-    this.moodMeter.title = t("Affection {love}% · Fullness {food}%", { love: Math.round(m.affection), food: Math.round(m.fullness) });
-    this.moodMeter.dataset.tier = moodTier(m);
-    this.moodMeter.classList.toggle("hungry", isHungry(m));
+  // --- Hardware (src/features/hardware) ---------------------------------------------
+
+  /** Rows on the card now (0: nothing to show, so no card). */
+  private hwRows = 0;
+  private hwLast: HwReading | null = null;
+  /** Bumped when the mouse leaves: a reading still on its way is dropped. */
+  private hwHover = 0;
+  private readonly hwWatch = new HwWatch();
+  private hwTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Test builds: readings to use instead of the computer's (null: the real ones). */
+  private hwPretend: HwReading | null = null;
+
+  private async readHw(items: HwItem[]): Promise<HwReading> {
+    if (!this.hwPretend) return this.backend.hwRead(items);
+    const p = this.hwPretend;
+    return Object.fromEntries(items.filter((i) => p[i] !== undefined).map((i) => [i, p[i]])) as HwReading;
+  }
+
+  /**
+   * The mouse came onto the pet (or left): after a moment the card reads what it shows,
+   * then again every second, until the mouse leaves. Nothing is read otherwise.
+   */
+  private hoverHardware(on: boolean): void {
+    const gen = ++this.hwHover;
+    if (!on) {
+      this.hwRows = 0;
+      return;
+    }
+    const tick = async () => {
+      const show = this.settings.hardware.show;
+      if (gen !== this.hwHover) return;
+      if (show.length) {
+        try {
+          const r = await this.readHw(show);
+          if (gen !== this.hwHover) return;
+          this.hwLast = r;
+          this.renderHwCard();
+        } catch {
+          // Not this time; the next second tries again.
+        }
+      } else this.hwRows = 0;
+      if (gen === this.hwHover) setTimeout(() => void tick(), 1000);
+    };
+    setTimeout(() => void tick(), 400);
+  }
+
+  private renderHwCard(): void {
+    const rows = this.hwLast ? cardRows(this.hwLast, this.settings.hardware) : [];
+    this.hwRows = rows.length;
+    this.hwCard.replaceChildren(
+      ...rows.map((row) => {
+        const el = document.createElement("div");
+        el.className = `hw-row ${row.level}`.trim();
+        el.dataset.item = row.item;
+        const label = document.createElement("span");
+        label.className = "hw-label";
+        label.textContent = row.label;
+        const value = document.createElement("span");
+        value.className = "hw-value";
+        value.textContent = row.value;
+        el.append(label, value);
+        return el;
+      }),
+    );
+  }
+
+  /** Looks again in `ms` (the alerts that are on; none on: nothing is read until settings change). */
+  private scheduleHwWatch(ms: number): void {
+    clearTimeout(this.hwTimer);
+    this.hwTimer = setTimeout(() => void this.hwWatchTick(), ms);
+  }
+
+  /**
+   * Alerts (Settings → Hardware): over a limit, look again in 30 s; still over, the pet
+   * says so (far over: at once). Not in Quiet mode; stepped aside or with something else
+   * on its mind, it waits and says it when it can, if it's still so.
+   */
+  private async hwWatchTick(): Promise<void> {
+    const hs = this.settings.hardware;
+    const watched = this.hwWatch.watched(hs, () => true);
+    if (!watched.length) return;
+    const now = Date.now();
+    let recheck = false;
+    try {
+      const items = this.hwWatch.itemsToRead(watched, now);
+      const r = items.length ? await this.readHw(items) : {};
+      const res = this.hwWatch.check(r, watched, hs.limits, now);
+      recheck = res.recheck;
+      const first = res.due[0];
+      if (first) {
+        if (this.modeState.mode === "quiet") for (const d of res.due) this.hwWatch.drop(d.alert);
+        else if (this.canSayHw()) {
+          this.say(alertText(first.alert, first.over, r, hs), 60_000, [{ label: t("Got it"), run: () => {} }]);
+          this.hwWatch.shown(first.alert, now);
+          this.lastHwAlert = first.alert;
+        }
+      }
+    } catch {
+      // The next look tries again.
+    }
+    this.scheduleHwWatch(recheck ? CONFIRM_MS : this.settings.hardware.every * 1000);
+  }
+
+  /** Hearts floated so far (for the tests). */
+  private hearts = 0;
+  /** The last hardware alert the pet said (for the tests). */
+  private lastHwAlert: HwAlert | null = null;
+
+  /** Out, on screen, and not ringing, asking or saying something that matters. */
+  private canSayHw(): boolean {
+    return !this.hidden && this.petVisible && !this.away && !this.activeRing && !this.prompting && !this.asking && Date.now() >= this.importantUntil;
   }
 
   /** Moves the Tauri window to the pet and toggles click-through based on what's under the cursor. */
@@ -1088,10 +1182,10 @@ export class PetHost {
         const overPet = this.isOverPet(cursor.x, cursor.y, winX, winY);
         if (overPet && !this.hovering) this.welcomeBack();
         this.hovering = overPet;
-        // The heart meter is about the pet: on a badge or the bubble you're after the
+        // The hardware card is about the pet: on a badge or the bubble you're after the
         // alarm or the focus session, so it stays hidden there.
         const overSprite = this.isNearSprite(cursor.x, cursor.y, winX, winY);
-        if (overSprite && !this.overSprite) this.renderMoodMeter();
+        if (overSprite !== this.overSprite) this.hoverHardware(overSprite);
         this.overSprite = overSprite;
         this.updateHover(cursor, winX, winY);
         this.updateBadgeInfo(cursor, winX, winY);
@@ -1180,7 +1274,6 @@ export class PetHost {
       if (c) this.pet.facing = c.x > this.pet.body.x ? 1 : -1;
       this.pet.fsm.set("alert", true);
     }
-    const tier = moodTier(this.pet.mood);
     const events = this.hover.update(performance.now(), {
       over,
       cursor,
@@ -1194,12 +1287,10 @@ export class PetHost {
         !this.hidden &&
         this.pet.mode === "free" &&
         this.pet.state !== "goto",
-      unhappy: isHungry(this.pet.mood) ? "hungry" : tier === "grumpy" || tier === "sulking" ? "grumpy" : null,
     });
     for (const e of events) {
       this.logHover(e.type);
       if (e.type === "stroke") this.care({ label: "", kind: "pet" });
-      else if (e.type === "dodge") this.pet.react({ type: "hover", phase: "dodge", reason: e.reason });
       else this.pet.react({ type: "hover", phase: e.type });
     }
   }
@@ -1234,7 +1325,7 @@ export class PetHost {
     // Cursor in canvas CSS px.
     const lx = this.windowed ? (cx - winX) / this.dpr : cx;
     const ly = this.windowed ? (cy - winY) / this.dpr : cy;
-    for (const el of [this.bubble, this.badges, this.moodMeter, this.badgeInfo]) {
+    for (const el of [this.bubble, this.badges, this.hwCard, this.badgeInfo]) {
       if (el.hidden) continue;
       const r = el.getBoundingClientRect();
       if (lx >= r.left && lx <= r.right && ly >= r.top && ly <= r.bottom) return true;
@@ -1289,9 +1380,7 @@ export class PetHost {
     if (d.moved) {
       this.pet.endDrag();
       this.droppedOn();
-      // Being carried around is play; it shares the hourly cap with petting.
-      this.moodEvent("carried");
-    } else this.care({ label: "", kind: "pet" });
+      } else this.care({ label: "", kind: "pet" });
   }
 
   /** What the pet menu and the tray menu share (see menu.ts). */
@@ -1338,7 +1427,6 @@ export class PetHost {
     return {
       ...this.menuContext(),
       character: this.character.def,
-      hungry: isHungry(this.pet.mood),
       rng: this.pet.rng,
       care: (a) => this.care(a),
       hide: () => void this.hidePet(),
@@ -1413,13 +1501,15 @@ export class PetHost {
       },
       /** As if the mouse moved (you're at the computer): see onUserActivity. */
       activity: () => this.onUserActivity(),
-      /** Sets mood fields (affection, fullness, petWindow) as if time had passed. */
-      setMood: (m: Partial<Mood>) => {
-        Object.assign(this.pet.mood, m);
-        this.renderMoodMeter();
-      },
       /** The settings in force (stored ones merged with the defaults). */
       settings: () => this.settings,
+      /** Hardware: use these readings instead of the computer's (null: the real ones), and look for alerts now. */
+      pretendHardware: (r: HwReading | null) => {
+        this.hwPretend = r;
+        this.scheduleHwWatch(0);
+      },
+      /** Hardware: look for alerts now. */
+      hwWatch: () => this.scheduleHwWatch(0),
       state: () => ({
         state: this.pet.state,
         frames: this.frames,
@@ -1436,12 +1526,15 @@ export class PetHost {
         /** The screens: which it lives on, a visit to another (src/features/screens). */
         screens: { ids: this.screens.map((x) => x.id), home: this.home, allowed: this.pet.world.allowed ?? null, visit: this.visit, homing: this.homing },
         hidden: this.hidden,
+        /** The hardware card's rows while it shows, and the last hardware alert said. */
+        hwCard: this.hwCard.hidden ? null : [...this.hwCard.querySelectorAll(".hw-row")].map((el) => ({ text: [...el.children].map((c) => c.textContent).join(" "), level: el.className.replace("hw-row", "").trim() })),
+        hwAlert: this.lastHwAlert,
+        hearts: this.hearts,
         petVisible: this.petVisible,
         away: this.away,
         peek: !!this.peek,
         ringing: !!this.activeRing,
         prompting: this.prompting,
-        mood: { ...this.pet.mood },
         character: this.character.def.id,
         pomodoro: this.pomodoro,
         vigil: (this.pet.scratch.vigil as Vigil | undefined) ?? null,
@@ -1543,56 +1636,29 @@ export class PetHost {
     }
   }
 
-  // --- Care, mood & feedback ----------------------------------------------
+  // --- Care & feedback -----------------------------------------------------
 
-  /** Petting (click or menu) and feeding. */
-  private care(action: CareAction): void {
-    const before = { ...this.pet.mood };
-    if (action.kind === "feed") {
-      const result = applyMoodEvent(this.pet.mood, "feed") === "full" ? "full" : "ok";
-      this.pet.react({ type: "fed", result });
-    } else {
-      const result = applyMoodEvent(this.pet.mood, "pet") === "capped" ? "capped" : "ok";
-      this.pet.react({ type: "petted", result });
-      if (this.settings.sound && this.preset().sounds) sounds.pop();
-    }
-    this.showGain(before.affection, before.fullness);
-    this.renderMoodMeter();
-    void this.saveMood();
+  /** Petting (a click, a stroke or the menu): a heart, a happy hop and a purr. */
+  private care(_action: CareAction): void {
+    this.pet.react({ type: "petted" });
+    if (this.settings.sound && this.preset().sounds) sounds.pop();
+    this.showHeart();
   }
 
-  private moodEvent(e: MoodEvent): void {
-    const before = { ...this.pet.mood };
-    applyMoodEvent(this.pet.mood, e);
-    this.showGain(before.affection, before.fullness);
-    this.renderMoodMeter();
-    void this.saveMood();
-  }
-
-  /** Floats "+3 ♥" / "+40 🍽" above the pet so every bit of care visibly counts. */
-  private showGain(affectionBefore: number, fullnessBefore: number): void {
-    const love = Math.round(this.pet.mood.affection - affectionBefore);
-    const food = Math.round(this.pet.mood.fullness - fullnessBefore);
-    const parts = [love && `${love > 0 ? "+" : ""}${love} ♥`, food > 0 && `+${food} 🍽`].filter(Boolean);
-    if (!parts.length || this.hidden) return;
+  /** Floats a heart above the pet: petted, or proud of you (a focus session, a to-do). */
+  private showHeart(): void {
+    if (this.hidden) return;
+    this.hearts++;
     const el = document.createElement("div");
-    el.className = `gain ${love < 0 ? "loss" : ""}`;
-    el.textContent = parts.join("  ");
+    el.className = "gain";
+    el.textContent = "♥";
     const f = this.feet();
     const spriteW = this.atlas.width * this.artScale;
-    // Top-right of the pet's head: the meter is on the left, the bubble above.
+    // Top-right of the pet's head: the hardware card is at its side, the bubble above.
     el.style.left = `${f.x + spriteW / 2}px`;
     el.style.top = `${f.y - this.atlas.height * this.artScale}px`;
     document.body.append(el);
     setTimeout(() => el.remove(), 1200);
-  }
-
-  private async saveMood(): Promise<void> {
-    try {
-      await this.backend.saveMood(this.character.def.id, this.pet.mood);
-    } catch (e) {
-      console.warn("Could not save mood", e);
-    }
   }
 
   private async refreshTimers(): Promise<void> {
@@ -1773,12 +1839,14 @@ export class PetHost {
         break;
       }
       case "todoDone":
-        this.moodEvent("todoDone");
+        this.showHeart();
         this.pet.react({ type: "praise" });
         break;
       case "game":
-        this.moodEvent("game");
-        if (e.won) this.pet.react({ type: "praise" });
+        if (e.won) {
+          this.showHeart();
+          this.pet.react({ type: "praise" });
+        }
         break;
     }
   }

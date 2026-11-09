@@ -11,7 +11,8 @@ import { pick, type Rng } from "../../../engine/random";
 
 export type Player = "x" | "o";
 export type Rules = "classic" | "vanishing" | "ultimate";
-export type Level = "easy" | "normal" | "strong";
+export type { Level } from "../levels";
+import type { Level } from "../levels";
 
 export const LINES: readonly (readonly [number, number, number])[] = [
   [0, 1, 2],
@@ -220,10 +221,4 @@ export function petMove(s: State, level: Level, rng: Rng): number {
 export function thinkMs(s: State, rng: Rng): number {
   const base = s.rules === "ultimate" ? 1800 : s.rules === "vanishing" ? 1400 : 1000;
   return Math.round(base * (0.8 + rng() * 0.6));
-}
-
-/** "Follows its mood", as in 24 Points: happy and fed plays well, grumpy or hungry badly. */
-export function levelFromMood(m: { affection: number; fullness: number }): Level {
-  if (m.fullness < 30 || m.affection < 40) return "easy";
-  return m.affection >= 80 ? "strong" : "normal";
 }

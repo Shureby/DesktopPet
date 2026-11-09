@@ -48,6 +48,8 @@ rcgen = { version = "0.14", default-features = false, features = ["crypto", "rin
 socket2 = { version = "0.6", features = ["all"] }
 if-addrs = "0.15"
 sha2 = "0.10"
+sysinfo = { version = "0.37", default-features = false, features = ["system", "disk", "network", "component"] }
+starship-battery = "0.12.0"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.61", features = [
@@ -64,6 +66,12 @@ windows = { version = "0.61", features = [
   "Win32_Media_Audio",
   "Win32_Media_MediaFoundation",
   "Win32_Globalization",
+  "Win32_System_Performance",
+  "Win32_System_Memory",
+  "Win32_System_Rpc",
+  "Win32_System_Wmi",
+  "Win32_Graphics_Dxgi",
+  "Wdk_Graphics_Direct3D",
 ] }
 # `#[implement]` (a COM callback for the camera monitor, desktop/windows.rs) names this crate.
 windows-core = "0.61"

@@ -8,7 +8,7 @@ function run(t: HoverTracker, from: number, ms: number, input: Partial<HoverInpu
   const events: (HoverEvent & { at: number })[] = [];
   for (let now = from; now < from + ms; now += FRAME) {
     const cursor = at ? at(now) : { x: 100, y: 100 };
-    for (const e of t.update(now, { over: true, cursor, unit: 1, canAttend: true, unhappy: null, ...input })) {
+    for (const e of t.update(now, { over: true, cursor, unit: 1, canAttend: true, ...input })) {
       events.push({ ...e, at: now - from });
     }
   }
@@ -59,35 +59,6 @@ describe("hovering the pet", () => {
     const t = new HoverTracker();
     run(t, 0, 500, {});
     expect(types(run(t, 500, 100, { over: false }))).toEqual(["leave"]);
-  });
-});
-
-describe("an unhappy pet", () => {
-  it("steps away first and says why, then gives in if you insist", () => {
-    const t = new HoverTracker();
-    const first = run(t, 0, 100, { unhappy: "hungry" });
-    expect(first).toEqual([{ type: "dodge", reason: "hungry", at: 0 }]);
-    run(t, 100, 3000, { over: false });
-    // Hovering again within INSIST_WITHIN: no dodge, and it reacts straight away.
-    const again = run(t, 3100, 200, { unhappy: "hungry" });
-    expect(types(again)).toEqual(["attend", "react"]);
-  });
-
-  it("counts following it as insisting too", () => {
-    const t = new HoverTracker();
-    const events = run(t, 0, HOVER.DODGE_TIME + 500, { unhappy: "grumpy" });
-    expect(types(events)).toEqual(["dodge", "attend", "react"]);
-    expect(events[1].at).toBeGreaterThanOrEqual(HOVER.DODGE_TIME);
-  });
-
-  it("dodges at most once per cooldown", () => {
-    const t = new HoverTracker();
-    run(t, 0, 100, { unhappy: "grumpy" });
-    run(t, 100, 100, { over: false });
-    // Long after the insist window, but within the cooldown: it stays put.
-    expect(types(run(t, 60_000, 100, { unhappy: "grumpy" }))).toEqual(["attend"]);
-    run(t, 60_100, 100, { over: false });
-    expect(types(run(t, HOVER.DODGE_COOLDOWN + 1000, 100, { unhappy: "grumpy" }))).toEqual(["dodge"]);
   });
 });
 

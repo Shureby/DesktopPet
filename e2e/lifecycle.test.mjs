@@ -106,7 +106,6 @@ check("alarm.off-while-shut", "due while ePet wasn't running: past the snoozes' 
     s.alerts.alarm = { ...s.alerts.alarm, ring: false, ringSeconds: 30, snoozeMinutes: 0.5, autoSnoozeMax: 3 };
     return s;
   });
-  ctx.mood = (await app.pet()).mood;
   const due = Date.now() + 4000;
   const alarm = await app.invoke("add_alarm", { label: "Gone", at: due, repeat: "none", days: null });
   const timer = await app.invoke("add_alarm", { label: "Timer: 1 min", at: due, repeat: "none", days: null });
@@ -142,15 +141,6 @@ check("alarm.off-while-shut", "due while ePet wasn't running: past the snoozes' 
   await app.answer("Done");
   assert.equal((await app.invoke("list_alarms")).find((a) => a.id === late.id).enabled, false);
 }, { timeout: 300_000 });
-
-check("mood.offline", "the time ePet was off doesn't lower the mood", async () => {
-  const app = ctx.app;
-  // (alarm.off-while-shut kept ePet off for over two minutes.)
-  assert.ok(ctx.mood, "follows alarm.off-while-shut");
-  const now = (await app.pet()).mood;
-  assert.ok(now.affection >= ctx.mood.affection - 0.5, `affection ${ctx.mood.affection} → ${now.affection}`);
-  assert.ok(now.fullness >= ctx.mood.fullness - 0.5, `fullness ${ctx.mood.fullness} → ${now.fullness}`);
-});
 
 check("stability.step-error", "an error while the pet moves (a bug): it doesn't freeze in the air; it falls back down, keeps going, and the error is kept in errors.log", async () => {
   const app = ctx.app;

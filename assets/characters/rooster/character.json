@@ -626,14 +626,6 @@
       {
         "label": "Pat the {name}'s comb",
         "kind": "pet"
-      },
-      {
-        "label": "Scatter some corn 🌽",
-        "kind": "feed"
-      },
-      {
-        "label": "Give the {name} a worm 🪱",
-        "kind": "feed"
       }
     ],
     "lines": {
@@ -672,35 +664,9 @@
       "focusEnd": [
         "Great work, you earned some corn."
       ],
-      "bored": [
-        "Bawk?",
-        "Anybody got seeds?"
-      ],
-      "fed": [
-        "Peck peck peck! Delicious!",
-        "CORN! Best day ever!"
-      ],
-      "full": [
-        "Too full to peck another kernel.",
-        "Bawk… I couldn't possibly."
-      ],
-      "hungry": [
-        "Got any seeds? Anyone?",
-        "*pecks the empty ground sadly*",
-        "Corn o'clock yet?"
-      ],
-      "grumpy": [
-        "Bawk. Whatever.",
-        "*ruffles feathers in protest*",
-        "Nobody visits the coop anymore…"
-      ],
       "adoring": [
         "You're the best farmer ever! ♥",
         "Cluck cluck ♥"
-      ],
-      "sulk": [
-        "BAWK! Leave me alone!",
-        "*turns tail feathers to you*"
       ],
       "timerSet": [
         "⏱ {duration}! I'll crow at {time}!",
@@ -713,20 +679,6 @@
       "praise": [
         "Cock-a-doodle-DONE!",
         "Great job! Here's a feather."
-      ],
-      "enough": [
-        "Enough fuss, I'm good!",
-        "Bawk, that's plenty!"
-      ],
-      "dodgeHungry": [
-        "Bawk! Not till I've had some corn!",
-        "My crop is empty. EMPTY.",
-        "*pecks at nothing pointedly*"
-      ],
-      "dodgeGrumpy": [
-        "Oh, NOW you visit the coop?",
-        "Bawk. Too busy for me, were you?",
-        "*turns tail feathers to you*"
       ],
       "noticed": [
         "Bawk?",
@@ -795,9 +747,7 @@
       "style": "连环啄击、距爪踢，还有从天而降的扑翅连击。",
       "care": [
         "顺顺{name}的羽毛",
-        "拍拍{name}的鸡冠",
-        "撒一把玉米 🌽",
-        "喂{name}一条虫 🪱"
+        "拍拍{name}的鸡冠"
       ],
       "lines": {
         "greet": [
@@ -835,35 +785,9 @@
         "focusEnd": [
           "干得好，奖励你一把玉米。"
         ],
-        "bored": [
-          "咯？",
-          "给本大爷来点玉米呗？"
-        ],
-        "fed": [
-          "啄啄啄！好吃！",
-          "玉米！今天太棒了！"
-        ],
-        "full": [
-          "撑得一粒都啄不动了。",
-          "咯……真的吃不下了。"
-        ],
-        "hungry": [
-          "有人吗？给本大爷上玉米！",
-          "*难过地啄着空地*",
-          "到玉米时间了吗？"
-        ],
-        "grumpy": [
-          "咯。随便吧。",
-          "*竖起羽毛表示抗议*",
-          "都没人来鸡舍看我了……"
-        ],
         "adoring": [
           "你是世界上最好的农夫！♥",
           "咯咯 ♥"
-        ],
-        "sulk": [
-          "咯！别管我！",
-          "*拿尾巴对着你*"
         ],
         "timerSet": [
           "⏱ {duration}！{time} 本大爷会打鸣！",
@@ -876,20 +800,6 @@
         "praise": [
           "喔喔喔——完成！",
           "干得漂亮！送你一根羽毛。"
-        ],
-        "enough": [
-          "好啦好啦，够了！",
-          "咯，够啦！"
-        ],
-        "dodgeHungry": [
-          "咯！不吃玉米不给摸！",
-          "我的嗉囊空了。空、了。",
-          "*故意啄着空气*"
-        ],
-        "dodgeGrumpy": [
-          "哦，*现在*才来鸡舍？",
-          "咯。之前忙到没空理我是吧？",
-          "*拿尾巴对着你*"
         ],
         "noticed": [
           "咯？",
@@ -914,9 +824,7 @@
       "style": "連環啄擊、距爪踢，還有從天而降的撲翅連擊。",
       "care": [
         "順順{name}的羽毛",
-        "拍拍{name}的雞冠",
-        "撒一把玉米 🌽",
-        "餵{name}一條蟲 🪱"
+        "拍拍{name}的雞冠"
       ],
       "lines": {
         "greet": [
@@ -954,35 +862,9 @@
         "focusEnd": [
           "幹得好，獎勵你一把玉米。"
         ],
-        "bored": [
-          "咯？",
-          "給本大爺來點玉米嘛？"
-        ],
-        "fed": [
-          "啄啄啄！好吃！",
-          "玉米！今天太棒了！"
-        ],
-        "full": [
-          "撐得一粒都啄不動了。",
-          "咯……真的吃不下了。"
-        ],
-        "hungry": [
-          "有人嗎？給本大爺上玉米！",
-          "*難過地啄著空地*",
-          "到玉米時間了嗎？"
-        ],
-        "grumpy": [
-          "咯。隨便吧。",
-          "*豎起羽毛表示抗議*",
-          "都沒人來雞舍看我了……"
-        ],
         "adoring": [
           "你是世界上最好的農夫！♥",
           "咯咯 ♥"
-        ],
-        "sulk": [
-          "咯！別管我！",
-          "*拿尾巴對著你*"
         ],
         "timerSet": [
           "⏱ {duration}！{time}本大爺會打鳴！",
@@ -995,20 +877,6 @@
         "praise": [
           "喔喔喔——完成！",
           "幹得漂亮！送你一根羽毛。"
-        ],
-        "enough": [
-          "好啦好啦，夠了！",
-          "咯，夠啦！"
-        ],
-        "dodgeHungry": [
-          "咯！不吃玉米不給摸！",
-          "我的嗉囊空了。空、了。",
-          "*故意啄著空氣*"
-        ],
-        "dodgeGrumpy": [
-          "哦，*現在*才來雞舍？",
-          "咯。之前忙到沒空理我是吧？",
-          "*拿尾巴對著你*"
         ],
         "noticed": [
           "咯？",

@@ -226,14 +226,8 @@ export function stepText(s: Step): string {
 
 // --- The pet as an opponent -------------------------------------------------
 
-export type Level = "easy" | "normal" | "strong";
-export type LevelChoice = Level | "mood";
-
-/** "Follows its mood": happy and fed plays well, content plays normally, grumpy or hungry plays badly. */
-export function levelFromMood(m: { affection: number; fullness: number }): Level {
-  if (m.fullness < 30 || m.affection < 40) return "easy";
-  return m.affection >= 80 ? "strong" : "normal";
-}
+export type { Level } from "../levels";
+import type { Level } from "../levels";
 
 export interface PetPlan {
   /** When it answers (or gives up), from the deal. */

@@ -24,7 +24,6 @@ function ctx(over: Partial<PetMenuContext> = {}): PetMenuContext {
     settings: DEFAULT_SETTINGS,
     pomodoro: { phase: "idle", round: 0, endsAt: null },
     character: cat,
-    hungry: false,
     timers: [],
     rng: createRng(1),
     care: () => {},
@@ -73,11 +72,10 @@ describe("pet menu", () => {
     for (const t of texts(buildItems(ctx({ timers: [timer(1, 5)] })))) expect(t).toMatch(verbs);
   });
 
-  it("[menu.care] offers a care action with the character's name, feeding first when hungry", () => {
+  it("[menu.care] offers a way of petting with the character's name, never feeding", () => {
     expect(careLabel(cat.personality.care[0], cat)).toBe("Stroke the Cat");
-    for (let seed = 0; seed < 20; seed++) expect(pickCare(cat, true, createRng(seed)).kind).toBe("feed");
-    const kinds = new Set(Array.from({ length: 40 }, (_, seed) => pickCare(cat, false, createRng(seed)).kind));
-    expect(kinds).toEqual(new Set(["pet", "feed"]));
+    const kinds = new Set(Array.from({ length: 40 }, (_, seed) => pickCare(cat, createRng(seed)).kind));
+    expect(kinds).toEqual(new Set(["pet"]));
   });
 
   it("shows a cancel item only while timers run, with time left", () => {

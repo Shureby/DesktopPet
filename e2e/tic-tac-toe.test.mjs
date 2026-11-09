@@ -147,6 +147,37 @@ check(
 );
 
 check(
+  "ttt.level",
+  "against the pet: its level (Easy / Normal / Won't go easy) is picked under the board before a game and after one, and remembered; during a game it just says the level",
+  async () => {
+    const app = ctx.app;
+    await openTtt();
+    await hook("start", "classic");
+    const picked = () =>
+      app.b.execute(
+        () =>
+          document.querySelector(".game-levels button.selected")?.dataset
+            .level ?? null,
+      );
+    assert.ok(await picked(), "buttons before the game");
+    await app.b.execute(() =>
+      document.querySelector(".game-levels button[data-level=easy]").click(),
+    );
+    await board();
+    assert.equal(await picked(), "easy");
+    await tap(4);
+    await board();
+    assert.equal(await picked(), null, "no buttons during the game");
+    assert.match(await app.text(".game-level"), /Cat's level: Easy/);
+    await closeTtt();
+    await openTtt();
+    await hook("start", "classic");
+    assert.equal(await picked(), "easy", "remembered");
+    await closeTtt();
+  },
+);
+
+check(
   "ttt.duo",
   "two players at one computer: ✕ and ○ take turns; three in a row wins and says who; the next game the other one starts",
   async () => {

@@ -1,24 +1,24 @@
 import { createRng, type Rng } from "../../../engine/random";
 import { msg, t } from "../../../i18n";
 import { h } from "../../../panel/dom";
+import { levelPicker, parseLevel } from "../levels";
 import type { PetStage } from "../twenty-four/stage";
 import { goesNext, legalMoves, newGame, other, petMove, play, thinkMs, type Level, type Player, type Rules, type State } from "./logic";
 
 /** The tabs: three games against the pet, and two players at one computer. */
 export type Mode = Rules | "duo";
-export type LevelChoice = Level | "mood";
 
 /** The pet's own mark: the cat's paw print, the rooster's footprint (others: a dot). */
 export type Mark = "paw" | "foot" | "dot";
 
 export interface Options {
-  level: LevelChoice;
+  level: Level;
   /** Two players: which game. */
   duoRules: Rules;
   sounds: boolean;
 }
 
-export const DEFAULT_OPTIONS: Options = { level: "mood", duoRules: "classic", sounds: true };
+export const DEFAULT_OPTIONS: Options = { level: "normal", duoRules: "classic", sounds: true };
 /** After a pause, the board is back after "3, 2, 1". */
 export const RESUME_MS = 3000;
 
@@ -26,8 +26,6 @@ export interface Hooks {
   /** The pet's name (another character picked meanwhile: its name). */
   name: string;
   mark: Mark;
-  /** Its level now when it follows its mood. */
-  moodLevel: Level;
   stage: PetStage;
   load(key: string): string | null;
   store(key: string, value: string): void;
@@ -78,10 +76,6 @@ function markOf(kind: "x" | "ring" | Mark): SVGSVGElement {
   }
 }
 
-export function levelName(l: Level): string {
-  return l === "easy" ? t("Easy") : l === "normal" ? t("Normal") : t("Won't go easy");
-}
-
 /** The tic-tac-toe window: a board of three games (or two players), with the pet on top. */
 export class TicTacToe {
   mode: Mode = "classic";
@@ -126,7 +120,7 @@ export class TicTacToe {
     try {
       const o = JSON.parse(this.hooks.load(OPTIONS_KEY) ?? "{}") as Partial<Options>;
       return {
-        level: (["mood", "easy", "normal", "strong"] as const).find((x) => x === o.level) ?? "mood",
+        level: parseLevel(o.level),
         duoRules: (["classic", "vanishing", "ultimate"] as const).find((x) => x === o.duoRules) ?? "classic",
         sounds: o.sounds !== false,
       };
@@ -140,7 +134,14 @@ export class TicTacToe {
   }
 
   get level(): Level {
-    return this.options.level === "mood" ? this.hooks.moodLevel : this.options.level;
+    return this.options.level;
+  }
+
+  /** Picked before a game (kept for the next ones). */
+  setLevel(level: Level): void {
+    this.options = { ...this.options, level };
+    this.saveOptions();
+    this.render();
   }
 
   get duo(): boolean {
@@ -313,10 +314,9 @@ export class TicTacToe {
     this.render();
   }
 
-  characterChanged(name: string, mark: Mark, moodLevel: Level): void {
+  characterChanged(name: string, mark: Mark): void {
     this.hooks.name = name;
     this.hooks.mark = mark;
-    this.hooks.moodLevel = moodLevel;
     this.render();
   }
 
@@ -468,7 +468,7 @@ export class TicTacToe {
       h("button", { class: "ttt-undo", disabled: !this.history.length, onclick: () => this.undo() }, t("Undo a move")),
       playing ? h("button", { class: "ttt-resign", disabled: s.moves === 0, onclick: () => this.resign() }, t("Resign")) : null,
       h("span", { class: "grow" }),
-      !this.duo ? h("span", { class: "t24-count ttt-level" }, t("{name}'s level: {level}", { name, level: levelName(this.level) })) : null,
+      !this.duo ? levelPicker(name, this.level, s.moves === 0 || !!s.winner, (l) => this.setLevel(l)) : null,
       !playing ? h("button", { class: "primary ttt-again", onclick: () => this.newGame() }, t("Play again")) : null,
     );
     return h(
@@ -540,12 +540,6 @@ export class TicTacToe {
     };
     const radio = <T extends string>(name: string, value: T, current: T, text: string, onpick: (v: T) => void) =>
       h("label", { class: "t24-radio" }, h("input", { type: "radio", name, value, checked: value === current, onchange: () => onpick(value) }), text);
-    const levels: [LevelChoice, string][] = [
-      ["mood", t("Follows its mood (now: {level})", { level: levelName(this.hooks.moodLevel) })],
-      ["easy", levelName("easy")],
-      ["normal", levelName("normal")],
-      ["strong", levelName("strong")],
-    ];
     const games: [Rules, string][] = [
       ["classic", t("Classic")],
       ["vanishing", t("Vanishing")],
@@ -554,9 +548,6 @@ export class TicTacToe {
     return h(
       "div",
       { class: "t24-body t24-options" },
-      h("h3", {}, t("{name}'s level", { name: this.hooks.name })),
-      ...levels.map(([v, text]) => radio("level", v, this.options.level, text, (l) => set({ level: l }))),
-      h("p", { class: "t24-fine" }, t("At its best it never loses at classic: the most you can get is a draw.")),
       h("h3", {}, t("Two players play")),
       ...games.map(([v, text]) => radio("duo", v, this.options.duoRules, text, (r) => set({ duoRules: r }))),
       h(

@@ -28,7 +28,7 @@ if (process.platform === "win32" && OLD && NEW) {
   recordResults(import.meta.filename);
   check(
     "install.upgrade",
-    "over an older version, the installer asks nothing (no “already installed” page, ePet closed for it); the to-dos, alarms, anniversaries, settings and mood are all still there",
+    "over an older version, the installer asks nothing (no “already installed” page, ePet closed for it); the to-dos, alarms, anniversaries and settings are all still there",
     async () => {
       // The older release, installed quietly.
       const r = spawnSync(OLD, ["/S"], { timeout: 180_000 });
@@ -47,7 +47,6 @@ if (process.platform === "win32" && OLD && NEW) {
       });
       const settings = { ...(await app.invoke("get_settings")), character: "rooster", size: 1.5 };
       await app.invoke("set_settings", { settings });
-      await app.invoke("save_mood", { character: "cat", mood: { affection: 77, fullness: 33, petWindow: { start: 0, gained: 0 } } });
       await app.quit();
 
       // ePet running, as it usually is when you upgrade.
@@ -79,8 +78,6 @@ if (process.platform === "win32" && OLD && NEW) {
         assert.ok((await app.invoke("list_anniversaries")).some((a) => a.name === "Kept" && a.month === 3 && a.day === 14));
         const s = await app.invoke("get_settings");
         assert.deepEqual([s.character, s.size], ["rooster", 1.5]);
-        const mood = await app.invoke("load_mood", { character: "cat" });
-        assert.ok(Math.abs(mood.affection - 77) < 1 && Math.abs(mood.fullness - 33) < 1, JSON.stringify(mood));
         assert.equal(await app.b.execute(() => document.getElementById("pet")?.width > 0), true, "the new version's pet is up");
       } finally {
         await app.quit();

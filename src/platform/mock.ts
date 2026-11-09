@@ -4,6 +4,7 @@ import { currentWorkPeriod, runCutoff } from "../features/pomodoro/workHours";
 import { endOfDay, nextAfterTick, todoRemindsAt } from "../features/todo/repeat";
 import { nextAnniversary, prepDay } from "../features/anniversary/templates";
 import { NOT_BUSY, othersPresent, type AvoidReason, type Busy } from "../features/avoid/avoid";
+import type { HwReading } from "../features/hardware/hardware";
 import type { PostChatEntry, PostDevice, PostReceived, PostStatus } from "../features/post/post";
 import type { InboxItem, SentItem } from "../features/post/schedule";
 import {
@@ -797,6 +798,19 @@ export const mockBackend: Backend = {
     const reason = away;
     return { reason, protected: !!reason && othersPresent(reason), pretend, slideshows: [] };
   },
+  async hwRead(items) {
+    // The browser can't look: a made-up but steady computer.
+    const all: HwReading = {
+      cpu: 23,
+      cpuFreq: 3200,
+      memory: { used: 9.6 * 1024 ** 3, total: 16 * 1024 ** 3 },
+      gpu: 8,
+      disk: { free: 120 * 1024 ** 3, total: 512 * 1024 ** 3, name: "/" },
+      network: { down: 1.2 * 1024 * 1024, up: 56 * 1024 },
+      battery: { percent: 84, plugged: true },
+    };
+    return Object.fromEntries(items.filter((i) => all[i] !== undefined).map((i) => [i, all[i]])) as HwReading;
+  },
   async avoidHide() {},
   async avoidShow() {},
   async avoidStay() {},
@@ -1209,13 +1223,7 @@ export const mockBackend: Backend = {
   async petFrame() {
     return cursor;
   },
-  async loadMood(character) {
-    return load().moods?.[character] ?? null;
-  },
-  async saveMood(character, mood) {
-    mutate((s) => (s.moods = { ...s.moods, [character]: mood }));
-    fire("mood", { character, mood });
-  },
+
   async listUserCharacters() {
     return load().userCharacters ?? [];
   },

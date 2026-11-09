@@ -65,10 +65,7 @@ export const CareActionSchema = z.object({
   kind: z.enum(["pet", "feed"]),
 });
 
-export const DEFAULT_CARE: z.infer<typeof CareActionSchema>[] = [
-  { label: "Pet the {name}", kind: "pet" },
-  { label: "Feed the {name}", kind: "feed" },
-];
+export const DEFAULT_CARE: z.infer<typeof CareActionSchema>[] = [{ label: "Pet the {name}", kind: "pet" }];
 
 export const PersonalitySchema = z.object({
   /** Relative weights for what the pet does when left alone (keys: core + ability behaviours). */

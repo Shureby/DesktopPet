@@ -549,10 +549,6 @@
       {
         "label": "Rub the {name}'s belly (risky)",
         "kind": "pet"
-      },
-      {
-        "label": "Feed the {name} 🐟",
-        "kind": "feed"
       }
     ],
     "lines": {
@@ -592,35 +588,9 @@
       "focusEnd": [
         "Done working? Pet me."
       ],
-      "bored": [
-        "…",
-        "Entertain me."
-      ],
-      "fed": [
-        "Nom nom… fish!",
-        "Acceptable offering. 🐟"
-      ],
-      "full": [
-        "I'm stuffed. Maybe later.",
-        "*turns away from the bowl*"
-      ],
-      "hungry": [
-        "Is anyone going to feed me?",
-        "My bowl is… empty. 🐟",
-        "Mrrow. Food?"
-      ],
-      "grumpy": [
-        "Hmph.",
-        "*sighs loudly*",
-        "Nobody pets me anymore…"
-      ],
       "adoring": [
         "You're my favourite human ♥",
         "*purrs at you*"
-      ],
-      "sulk": [
-        "Don't touch me.",
-        "*flicks tail and ignores you*"
       ],
       "timerSet": [
         "⏱ {duration}. I'll yell at {time}.",
@@ -633,20 +603,6 @@
       "praise": [
         "Good human.",
         "Done? Impressive. Pet me."
-      ],
-      "enough": [
-        "That's plenty for now.",
-        "*walks away, satisfied*"
-      ],
-      "dodgeHungry": [
-        "My tummy's flat as a pancake. Feed me first.",
-        "No pets on an empty stomach. 🐟",
-        "Mrrow… food first, cuddles later."
-      ],
-      "dodgeGrumpy": [
-        "Oh, *now* you remember me?",
-        "Hmph. Where were you all day?",
-        "I'm not talking to you. …Maybe."
       ],
       "noticed": [
         "Mrrp?",
@@ -716,8 +672,7 @@
       "care": [
         "摸摸{name}",
         "挠挠{name}的下巴",
-        "揉揉{name}的肚子（有风险）",
-        "喂{name}吃鱼 🐟"
+        "揉揉{name}的肚子（有风险）"
       ],
       "lines": {
         "greet": [
@@ -756,35 +711,9 @@
         "focusEnd": [
           "忙完啦？那就摸摸我。"
         ],
-        "bored": [
-          "……",
-          "陪我玩。"
-        ],
-        "fed": [
-          "吧唧吧唧……是鱼！",
-          "这份贡品，本喵收下了。🐟"
-        ],
-        "full": [
-          "吃撑了，待会儿再说。",
-          "*扭头不看碗*"
-        ],
-        "hungry": [
-          "有没有人要喂我啊？",
-          "我的碗……空了。🐟",
-          "喵呜，饭呢？"
-        ],
-        "grumpy": [
-          "哼。",
-          "*大声叹气*",
-          "都没人摸我了……"
-        ],
         "adoring": [
           "你是我最喜欢的人类 ♥",
           "*冲你咕噜咕噜*"
-        ],
-        "sulk": [
-          "别碰我。",
-          "*甩甩尾巴，不理你*"
         ],
         "timerSet": [
           "⏱ {duration}，{time} 我会叫你。",
@@ -797,20 +726,6 @@
         "praise": [
           "好人类。",
           "做完啦？厉害。快摸摸我。"
-        ],
-        "enough": [
-          "今天就先到这儿吧。",
-          "*心满意足地走开*"
-        ],
-        "dodgeHungry": [
-          "肚子都饿扁了，先喂我。",
-          "空着肚子不给摸。🐟",
-          "喵……先吃饭，再抱抱。"
-        ],
-        "dodgeGrumpy": [
-          "哦，*现在*才想起我？",
-          "哼，你一整天跑哪儿去了？",
-          "不跟你说话。……也许吧。"
         ],
         "noticed": [
           "喵？",
@@ -836,8 +751,7 @@
       "care": [
         "摸摸{name}",
         "撓撓{name}的下巴",
-        "揉揉{name}的肚子（有風險）",
-        "餵{name}吃魚 🐟"
+        "揉揉{name}的肚子（有風險）"
       ],
       "lines": {
         "greet": [
@@ -876,35 +790,9 @@
         "focusEnd": [
           "忙完啦？那就摸摸我。"
         ],
-        "bored": [
-          "……",
-          "陪我玩。"
-        ],
-        "fed": [
-          "吧唧吧唧……是魚！",
-          "這份貢品，本喵收下了。🐟"
-        ],
-        "full": [
-          "吃撐了，待會兒再說。",
-          "*扭頭不看碗*"
-        ],
-        "hungry": [
-          "有沒有人要餵我啊？",
-          "我的碗……空了。🐟",
-          "喵嗚，飯呢？"
-        ],
-        "grumpy": [
-          "哼。",
-          "*大聲嘆氣*",
-          "都沒人摸我了……"
-        ],
         "adoring": [
           "你是我最喜歡的人類 ♥",
           "*衝你咕嚕咕嚕*"
-        ],
-        "sulk": [
-          "別碰我。",
-          "*甩甩尾巴，不理你*"
         ],
         "timerSet": [
           "⏱ {duration}，{time} 我會叫你。",
@@ -917,20 +805,6 @@
         "praise": [
           "好人類。",
           "做完啦？厲害。快摸摸我。"
-        ],
-        "enough": [
-          "今天就先到這兒吧。",
-          "*心滿意足地走開*"
-        ],
-        "dodgeHungry": [
-          "肚子都餓扁了，先餵我。",
-          "空著肚子不給摸。🐟",
-          "喵……先吃飯，再抱抱。"
-        ],
-        "dodgeGrumpy": [
-          "哦，*現在*才想起我？",
-          "哼，你一整天跑哪兒去了？",
-          "不跟你說話。……也許吧。"
         ],
         "noticed": [
           "喵？",

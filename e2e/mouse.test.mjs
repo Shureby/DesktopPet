@@ -171,25 +171,51 @@ if (process.platform === "win32") {
   /** Floor of the work area (physical px). */
   const floor = (p) => p.area.y + p.area.h;
 
-  check("pet.hover-meter", "on the pet: hearts and fullness with their %; a bubble doesn't cover them", async () => {
+  check("hw.card", "on the pet: after about half a second, CPU, memory and network (the defaults), every second; a bubble doesn't cover it; gone when the mouse leaves", async () => {
     const app = ctx.app;
-    await app.b.execute(() => window.__epet.setMood({ affection: 64, fullness: 55 }));
+    const GB = 1024 ** 3;
+    await app.b.execute(
+      (gb) => window.__epet.pretendHardware({ cpu: 97, memory: { used: 8 * gb, total: 16 * gb }, network: { down: 1.25 * 1024 * 1024, up: 56 * 1024 }, cpuTemp: 50 }),
+      GB,
+    );
+    await away();
+    await app.sleep(500);
+    const at = Date.now();
     await hoverPet();
-    await app.until(() => !document.getElementById("mood").hidden, [], 3000);
-    const meter = await app.b.execute(() => document.getElementById("mood").textContent);
-    assert.match(meter, /♥.* 64%/);
-    assert.match(meter, /● ?.* 55%/);
-    // With something said: the meter and the bubble don't overlap.
+    await app.until(() => !document.getElementById("hw").hidden, [], 3000);
+    const took = Date.now() - at;
+    assert.ok(took >= 300, `appears after a moment (${took} ms)`);
+    let card = (await app.pet()).hwCard;
+    assert.deepEqual(card, [
+      { text: "CPU 97%", level: "hot" },
+      { text: "Memory 50%", level: "" },
+      { text: "↓ 1.3 MB/s", level: "" },
+      { text: "↑ 56 KB/s", level: "" },
+    ]);
+    // Kept current while the mouse stays.
+    await app.b.execute(() => window.__epet.pretendHardware({ cpu: 12 }));
+    await app.b.waitUntil(async () => (await app.pet()).hwCard?.[0]?.text === "CPU 12%", { timeout: 3000, interval: 200 });
+    card = (await app.pet()).hwCard;
+    assert.equal(card[1].text, "Memory —", "what can't be read says —");
+    // With something said: the card and the bubble don't overlap.
     await app.b.execute(() => window.__epet.care("pet"));
     await app.until(() => !document.getElementById("bubble").hidden, [], 5000);
     const overlap = await app.b.execute(() => {
-      const a = document.getElementById("mood").getBoundingClientRect();
+      const a = document.getElementById("hw").getBoundingClientRect();
       const b = document.getElementById("bubble").getBoundingClientRect();
       return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
     });
-    assert.equal(overlap, false, "the bubble covers the meter");
+    assert.equal(overlap, false, "the bubble covers the card");
     await away();
-    await app.until(() => document.getElementById("mood").hidden, [], 3000);
+    await app.until(() => document.getElementById("hw").hidden, [], 3000);
+    // Nothing ticked: no card at all.
+    await app.setSettings((st) => ({ ...st, hardware: { ...st.hardware, show: [] } }));
+    await hoverPet();
+    await app.sleep(1500);
+    assert.equal(await app.b.execute(() => document.getElementById("hw").hidden), true, "no card with nothing ticked");
+    await away();
+    await app.setSettings((st) => ({ ...st, hardware: { ...st.hardware, show: ["cpu", "memory", "network"] } }));
+    await app.b.execute(() => window.__epet.pretendHardware(null));
   });
 
   check("pet.hover-react", "resting on it for 2 s: one reaction (a line or a hop), once per visit", async () => {
@@ -206,9 +232,8 @@ if (process.platform === "win32") {
     assert.equal((await hoverEvents(since)).filter((e) => e === "react").length, 1, "only once");
   });
 
-  check("pet.hover-stroke", "moving the mouse over it after 2 s strokes it (+3 ♥ about every 1.5 s, then “That's plenty”); moving sooner doesn't", async () => {
+  check("pet.hover-stroke", "moving the mouse over it after 2 s strokes it (a ♥ about every 1.5 s); moving sooner doesn't", async () => {
     const app = ctx.app;
-    await app.b.execute(() => window.__epet.setMood({ affection: 50, petWindow: { start: Date.now(), gained: 0 } }));
     // Moving straight away: no stroke before 2 s.
     await away();
     await app.sleep(2500);
@@ -223,22 +248,12 @@ if (process.platform === "win32") {
     assert.ok(!(await hoverEvents(since)).includes("stroke"), "no stroke within 2 s");
     // After the reaction, rubbing strokes.
     await app.b.waitUntil(async () => (await hoverEvents(since)).includes("react"), { timeout: 4000, interval: 100 });
-    const before = (await app.pet()).mood.affection;
+    const before = (await app.pet()).hearts;
     await rub(4500);
     const strokes = (await hoverEvents(since)).filter((e) => e === "stroke").length;
     assert.ok(strokes >= 2 && strokes <= 4, `${strokes} strokes in 4.5 s`);
-    const gained = (await app.pet()).mood.affection - before;
-    assert.ok(Math.abs(gained - 3 * strokes) < 0.5, `+${gained} ♥ for ${strokes} strokes`);
-    // At the hour's cap: “That's plenty for now”.
-    await app.b.execute(() => window.__epet.setMood({ petWindow: { start: Date.now(), gained: 15 } }));
-    since = Date.now();
-    let enough = null;
-    for (let i = 0; i < 6 && !enough; i++) {
-      await rub(1600);
-      const b = await app.bubble();
-      if (said(b, "cat", "enough")) enough = b;
-    }
-    assert.ok(enough, `says it's enough (${await app.bubble()})`);
+    const hearts = (await app.pet()).hearts - before;
+    assert.equal(hearts, strokes, `${hearts} ♥ for ${strokes} strokes`);
     await away();
   }, { timeout: 120_000 });
 
@@ -284,26 +299,6 @@ if (process.platform === "win32") {
     assert.ok(Math.abs(b.x - a.x) < 2, `stays: ${a.x} → ${b.x}`);
     const cursor = await mouse.pos();
     assert.equal(b.facing, cursor.x > b.x ? 1 : -1, "faces the mouse");
-    await away();
-  });
-
-  check("pet.hover-dodge", "hungry, it steps away and says why; hovering again within 10 s it stays and reacts at once", async () => {
-    const app = ctx.app;
-    await app.b.execute(() => window.__epet.setMood({ fullness: 20, affection: 60 }));
-    // In the middle: stepping away, it doesn't reach a wall (and climb it).
-    await toMiddle();
-    await app.sleep(2500);
-    const since = await hoverPet();
-    await app.b.waitUntil(async () => (await hoverEvents(since)).includes("dodge"), { timeout: 3000, interval: 100 });
-    await app.waitBubble("", 3000);
-    assert.ok(said(await app.bubble(), "cat", "dodgeHungry"), `says why: ${await app.bubble()}`);
-    // Again, soon: no dodge, a reaction straight away.
-    await away();
-    await app.sleep(1800);
-    const again = await hoverPet();
-    await app.b.waitUntil(async () => (await hoverEvents(again)).includes("react"), { timeout: 1500, interval: 100 });
-    assert.ok(!(await hoverEvents(again)).includes("dodge"));
-    await app.b.execute(() => window.__epet.setMood({ fullness: 70 }));
     await away();
   });
 
@@ -397,21 +392,10 @@ if (process.platform === "win32") {
     await away();
   });
 
-  check("mood.carry", "carried around it's play (+2 ♥); dropped from high it slams down (−1 ♥, a line)", async () => {
+  check("pet.slam", "dropped from high up it slams down and says so", async () => {
     const app = ctx.app;
-    await app.b.execute(() => window.__epet.setMood({ affection: 50, petWindow: { start: Date.now(), gained: 0 } }));
-    // Carried along the floor.
-    let hand = await grab();
-    const area = (await app.pet()).area;
-    const along = { x: hand.x + 150 * (hand.x < area.x + area.w / 2 ? 1 : -1), y: hand.y };
-    await mouse.glide(hand, along, 600);
-    await drop(along);
-    let p = await landed();
-    assert.ok(Math.abs(p.mood.affection - 52) < 0.2, `carried: ${p.mood.affection}`);
-    // Dropped from high up (playing is capped, so only the slam counts).
-    await app.b.execute(() => window.__epet.setMood({ affection: 50, petWindow: { start: Date.now(), gained: 15 } }));
-    hand = await grab();
-    p = await app.pet();
+    const hand = await grab();
+    let p = await app.pet();
     const high = { x: hand.x, y: p.area.y + 60 };
     await mouse.glide(hand, high, 500);
     const held = await app.pet();
@@ -419,10 +403,9 @@ if (process.platform === "win32") {
     const trace = await fallTrace();
     p = await landed();
     assert.ok(
-      Math.abs(p.mood.affection - 49) < 0.2,
-      `slammed: ${p.mood.affection} (held at ${Math.round(held.area.y + held.area.h - held.y)} px up, ${held.state}; fall: ${trace}; on: ${await standingOn()})`,
+      said(await app.bubble(), "cat", "landed"),
+      `says so: ${await app.bubble()} (held at ${Math.round(held.area.y + held.area.h - held.y)} px up, ${held.state}; fall: ${trace}; on: ${await standingOn()})`,
     );
-    assert.ok(said(await app.bubble(), "cat", "landed"), `says so: ${await app.bubble()}`);
     await away();
   });
 

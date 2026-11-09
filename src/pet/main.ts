@@ -27,7 +27,7 @@ async function main() {
     document.getElementById("pet") as HTMLCanvasElement,
     document.getElementById("bubble")!,
     document.getElementById("badges")!,
-    document.getElementById("mood")!,
+    document.getElementById("hw")!,
     settings,
   );
   await host.start();

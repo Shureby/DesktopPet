@@ -78,32 +78,17 @@ check("settings.layout", "Settings has its four cards; Focus fits without scroll
   assert.ok(over <= 2, `Focus page scrolls by ${over}px`);
 });
 
-check("mood.cards", "each character has a mood card", async () => {
+check("characters.switch", "switching character in the panel and back: the pet changes each time", async () => {
   const app = await charactersPage();
-  const n = await app.b.execute(() => document.querySelectorAll(".cards .card").length);
-  assert.ok(n >= 2);
-  assert.equal(await app.b.execute(() => document.querySelectorAll(".cards .card .mood-card").length), n);
-});
-
-check("characters.switch", "switching character and back keeps the first one's mood", async () => {
-  const app = await charactersPage();
-  // The pet saves the cat's mood as it switches away; switching back and away again finds the same.
   await app.click(".cards .card", "Rooster");
   await app.until(() => document.querySelector(".cards .card.selected")?.textContent.includes("Rooster"));
   assert.equal((await app.settings()).character, "rooster");
-  await app.sleep(1000);
-  const first = await app.invoke("load_mood", { character: "cat" });
-  assert.ok(first, "cat's mood saved on switching");
+  await app.b.waitUntil(async () => (await app.pet()).character === "rooster", { timeout: 5000 });
+  await charactersPage();
   await app.click(".cards .card", "Cat");
   await app.until(() => document.querySelector(".cards .card.selected")?.textContent.includes("Cat"));
   assert.equal((await app.settings()).character, "cat");
-  await app.sleep(1000);
-  await app.click(".cards .card", "Rooster");
-  await app.sleep(1000);
-  const again = await app.invoke("load_mood", { character: "cat" });
-  assert.ok(Math.abs(again.affection - first.affection) < 2 && Math.abs(again.fullness - first.fullness) < 2, JSON.stringify([first, again]));
-  await app.click(".cards .card", "Cat");
-  await app.sleep(500);
+  await app.b.waitUntil(async () => (await app.pet()).character === "cat", { timeout: 5000 });
 });
 
 check("characters.folder", "the characters folder has a README, the schema and an example; a deleted README comes back, an edited one stays", async () => {

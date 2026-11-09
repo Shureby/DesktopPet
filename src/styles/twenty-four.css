@@ -465,3 +465,35 @@ button:disabled {
   font-weight: 700;
   color: var(--muted);
 }
+
+/* "{name}'s level: Easy | Normal | Won't go easy", before a game (src/features/games/levels.ts). */
+.t24-level-row {
+  display: flex;
+  justify-content: center;
+}
+.game-levels {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.game-levels-label {
+  color: var(--muted);
+}
+.game-levels button {
+  padding: 3px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+.game-levels button.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 700;
+}

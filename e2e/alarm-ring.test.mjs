@@ -95,12 +95,12 @@ check("alarm.welcome-back", "back at the pet, it says “You missed …” once;
   await app.b.execute(() => window.__epet.hoverIn());
   const said = await app.waitBubble("You missed");
   assert.match(said, new RegExp(`^You missed ${ctx.missedName.replace(/\s/g, "\\s")} \\(I tried 3 more times\\)`));
-  // A click is petting: love goes up, the line stays.
-  const before = (await app.pet()).mood.affection;
+  // A click is petting: a heart, the line stays.
+  const before = (await app.pet()).hearts;
   await app.b.execute(() => window.__epet.care("pet"));
   await app.sleep(500);
   assert.match(await app.bubble(), /^You missed/);
-  assert.ok((await app.pet()).mood.affection > before);
+  assert.ok((await app.pet()).hearts > before);
   // Only once.
   await app.b.waitUntil(async () => !(await app.bubble())?.startsWith("You missed"), { timeout: 15_000 });
   await app.b.execute(() => window.__epet.hoverIn());

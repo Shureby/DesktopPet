@@ -271,10 +271,6 @@
             {
               "label": "Pet the {name}",
               "kind": "pet"
-            },
-            {
-              "label": "Feed the {name}",
-              "kind": "feed"
             }
           ],
           "minItems": 1,

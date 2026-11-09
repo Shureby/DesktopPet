@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createRng } from "../../../engine/random";
-import { apply, dailyHand, deal, frac, handKey, handOf, INPUT_S, is24, label, levelFromMood, petPlan, READY_MS, solve, stepText, type Frac } from "./logic";
+import { apply, dailyHand, deal, frac, handKey, handOf, INPUT_S, is24, label, petPlan, READY_MS, solve, stepText, type Frac } from "./logic";
 
 /** Runs a solution's steps and checks they end at 24. */
 function replays(nums: number[], steps: { a: Frac; op: "+" | "-" | "*" | "/"; b: Frac; r: Frac }[]): boolean {
@@ -114,13 +114,6 @@ describe("dealing", () => {
 });
 
 describe("the pet's play", () => {
-  it("plays by its mood", () => {
-    expect(levelFromMood({ affection: 90, fullness: 80 })).toBe("strong");
-    expect(levelFromMood({ affection: 60, fullness: 80 })).toBe("normal");
-    expect(levelFromMood({ affection: 90, fullness: 10 })).toBe("easy");
-    expect(levelFromMood({ affection: 20, fullness: 80 })).toBe("easy");
-  });
-
   it("is quicker when stronger and slower on hard hands, and leaves time after it's ready", () => {
     const avg = (kind: "normal" | "hard", level: "easy" | "normal" | "strong") => {
       const rng = createRng(1);

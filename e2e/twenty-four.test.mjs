@@ -60,13 +60,15 @@ async function options({ hands, unsolvable, level, sounds }, mode) {
       const c = document.querySelector("input[name=sounds]");
       if (c.checked !== on) c.click();
     }, sounds);
-  if (level)
-    await app.b.execute(
-      (v) => document.querySelector(`input[name=level][value=${v}]`).click(),
-      level,
-    );
   await app.click(".t24-actions button.primary");
   if (mode) await app.click(`.t24-tabs button[data-mode=${mode}]`);
+  // The pet's level is picked on the board before a race starts.
+  if (level && mode === "race")
+    await app.b.execute(
+      (v) =>
+        document.querySelector(`.game-levels button[data-level=${v}]`).click(),
+      level,
+    );
 }
 
 async function open24() {
@@ -233,7 +235,7 @@ check(
   async () => {
     const app = ctx.app;
     await open24();
-    await options({ level: "easy" }, "practice");
+    await options({}, "practice");
     await hook("deal", [1, 2, 3, 4]);
     // The new card stays picked: a sign and the next card carry on from it.
     await tap(0, "×", 1);
@@ -417,12 +419,52 @@ check(
 );
 
 check(
-  "t24.round",
-  "a round is 13 hands, never the same four numbers twice (suits don't count); at the end the result shows and the pet is happier",
+  "t24.level",
+  "racing the pet: its level (Easy / Normal / Won't go easy) is picked on the board before the first hand, Normal at first and remembered; once you play, it just says the level",
   async () => {
     const app = ctx.app;
-    await app.toPet();
-    const before = (await app.pet()).mood.affection;
+    await open24();
+    await app.click(".t24-tabs button[data-mode=race]");
+    const picked = () =>
+      app.b.execute(
+        () =>
+          document.querySelector(".t24-level-row .game-levels button.selected")
+            ?.dataset.level ?? null,
+      );
+    await app.b.execute(() =>
+      document
+        .querySelector(".t24-level-row .game-levels button[data-level=easy]")
+        .click(),
+    );
+    assert.equal(await picked(), "easy");
+    const easyMs = (await board()).petMs;
+    await app.b.execute(() =>
+      document
+        .querySelector(".t24-level-row .game-levels button[data-level=strong]")
+        .click(),
+    );
+    assert.equal(await picked(), "strong");
+    assert.ok((await board()).petMs < easyMs, "Won't go easy answers sooner");
+    await hook("deal", [1, 2, 3, 4]);
+    await tap(0, "×", 1);
+    assert.equal(await picked(), null, "no buttons once you've played");
+    assert.match(
+      await app.text(".t24-level-row"),
+      /Cat's level: Won't go easy/,
+    );
+    await close24();
+    await open24();
+    await app.click(".t24-tabs button[data-mode=race]");
+    assert.equal(await picked(), "strong", "remembered");
+    await close24();
+  },
+);
+
+check(
+  "t24.round",
+  "a round is 13 hands, never the same four numbers twice (suits don't count); at the end the result shows, with the level to pick for the next round",
+  async () => {
+    const app = ctx.app;
     await open24();
     await options({ level: "strong" }, "race");
     const keys = [];
@@ -436,11 +478,15 @@ check(
     const s = await board();
     assert.equal(s.phase, "done");
     assert.ok((await app.text(".t24-result h2")).includes("wins"));
-    await close24();
-    await app.b.waitUntil(
-      async () => (await app.pet()).mood.affection > before,
-      { timeout: 5000 },
+    assert.equal(
+      await app.b.execute(
+        () =>
+          document.querySelector(".t24-result .game-levels button.selected")
+            ?.dataset.level,
+      ),
+      "strong",
     );
+    await close24();
   },
   { timeout: 150_000 },
 );

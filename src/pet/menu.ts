@@ -42,7 +42,6 @@ export interface MenuContext {
 /** The pet's own menu adds a care action and "Hide pet". */
 export interface PetMenuContext extends MenuContext {
   character: CharacterDef;
-  hungry: boolean;
   rng: Rng;
   care: (action: CareAction) => void;
   hide: () => void;
@@ -75,11 +74,10 @@ export function careLabel(action: CareAction, character: CharacterDef): string {
   return careText(character, action);
 }
 
-/** One care action at random; feeding comes first when the pet is hungry. */
-export function pickCare(character: CharacterDef, hungry: boolean, rng: Rng): CareAction {
-  const care = character.personality.care;
-  const feed = care.filter((a) => a.kind === "feed");
-  return (hungry && pick(rng, feed)) || pick(rng, care) || care[0];
+/** One way of petting at random ("feed" ones, from characters made before 0.64, are left out). */
+export function pickCare(character: CharacterDef, rng: Rng): CareAction {
+  const care = character.personality.care.filter((a) => a.kind === "pet");
+  return pick(rng, care) ?? { label: "Pet the {name}", kind: "pet" };
 }
 
 /**
@@ -224,7 +222,7 @@ export function modeItem(c: MenuContext): Item {
 
 /** The pet's right-click menu: a care action on top, then the shared sections. */
 export function buildItems(c: PetMenuContext): (Item | "sep")[] {
-  const care = pickCare(c.character, c.hungry, c.rng);
+  const care = pickCare(c.character, c.rng);
   return [
     { text: `${careLabel(care, c.character)}${care.kind === "pet" ? " ♥" : ""}`, action: () => c.care(care) },
     "sep",

@@ -20,9 +20,10 @@ The product name is not final. It lives in one place, [`product.config.json`](pr
 - **To-dos** with natural quick-add ("call mom at 3pm", "stretch in 20m", "standup tomorrow 9:30"). The pet runs over and tells you.
 - **Alarms and timers**: once, daily or weekdays, with snooze. They ring even while the UI is busy (the scheduler is in Rust).
 - **Focus sessions (Pomodoro)**: 25/5 with a long break every 4 rounds (all configurable). The pet sits and "works" with you, then celebrates on breaks. It keeps 7-day stats.
-- **Mood**: affection and fullness (0–100, saved per character). Petting, feeding and using the app's features raise them; ignoring the pet lowers them slowly, and only while the app runs. Mood changes behaviour and lines (adoring pets come to your cursor, grumpy ones mope, hungry ones complain) but never blocks reminders. Hover over the pet to see its hearts.
+- **Hardware at a glance**: hover the pet for CPU, memory and network (or what you tick: temperatures, fans, GPU, disk, battery), read only while you look. The pet speaks up when the CPU or GPU runs hot, memory or the disk is nearly full, or the battery is low. No drivers.
+- **Reactions, not chores**: petting gets a heart, a hop and a purr; finishing a to-do or a focus session gets praise. No hunger or affection to keep up.
 - **Feedback everywhere**: setting a timer or adding a to-do gets a spoken confirmation. Timers and the focus session show stacked countdown badges next to the pet.
-- **Mini-games: Safe Landing** (games read character *abilities*, so the Rooster glides and the Cat clings to walls) and **24 Points** (race the pet, or practise with its hints).
+- **Mini-games: Safe Landing** (games read character *abilities*, so the Rooster glides and the Cat clings to walls) **24 Points** (race the pet, or practise with its hints) and **tic-tac-toe** (you pick how well the pet plays).
 - **Storefront layer**: Steam, Epic or direct build, chosen with a Cargo feature.
 
 ## Getting started

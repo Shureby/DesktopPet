@@ -177,8 +177,6 @@ const zhTW: Dictionary = {
     "Two players": "雙人",
     "A draw. Again?": "平手。再來一局？",
     "A sound when a game ends": "一局結束時播放提示音",
-    "At its best it never loses at classic: the most you can get is a draw.":
-      "最高水準下經典井字棋它不會輸：你最多只能下成平手。",
     "Done: new game": "好了：新開一局",
     "Hmph… one more game!": "哼……再來一局！",
     "Player 1": "玩家 1",
@@ -272,7 +270,6 @@ const zhTW: Dictionary = {
     "Not solved": "沒算出來",
     "A new hand comes tomorrow.": "明天有新的一題。",
     "Your fastest: {s} s": "你最快一題：{s} 秒",
-    "Played with {name}: happier now": "陪{name}玩了一輪，牠更開心了",
     "Practice instead": "去自己練",
     "Play again": "再來一輪",
     Hands: "題目",
@@ -282,7 +279,6 @@ const zhTW: Dictionary = {
     "Mix in hands with no answer (a “No answer!” button: right +1, wrong −1)":
       "混入無解題（多一個「無解！」按鈕：喊對 +1，喊錯 −1）",
     "{name}'s level": "{name}的水準",
-    "Follows its mood (now: {level})": "跟著心情（現在：{level}）",
     Easy: "簡單",
     "Won't go easy": "不讓你",
     "Done: new round": "好了，開新一輪",
@@ -709,11 +705,6 @@ const zhTW: Dictionary = {
     ".": "」頁新增。",
     " Starts once a day when work starts (stopped by hand, it stays stopped). No new focus after work ends.":
       " 每天上班時開始一次（手動停止後當天不再開始）。下班後不再開始新的專注。",
-    "Adores you": "超愛你",
-    Content: "心滿意足",
-    Grumpy: "鬧脾氣",
-    Sulking: "生悶氣",
-    " · hungry": " · 餓了",
     "custom|character": "自製",
     "Copy it into your characters folder to make your own":
       "複製到你的角色資料夾，做一個你自己的",
@@ -977,7 +968,6 @@ const zhTW: Dictionary = {
     "put off ({mode} mode)": "已推遲（{mode}模式）",
     "{mode} mode": "{mode}模式",
     "Open Modes": "開啟「模式」",
-    "Affection {love}% · Fullness {food}%": "親密度 {love}% · 飽腹度 {food}%",
     "We're focusing until {time}. Play anyway?":
       "我們在專注，到{time}。還是要玩嗎？",
     "We're focusing. Play anyway?": "我們在專注。還是要玩嗎？",
@@ -1463,6 +1453,60 @@ const zhTW: Dictionary = {
     "Only you see it. Empty: its own name, {name}.":
       "只有你看得到。留空就用它自己的名字：{name}。",
     Rename: "改名",
+    "CPU usage": "CPU 使用率",
+    "CPU frequency": "CPU 頻率",
+    "CPU temperature": "CPU 溫度",
+    "Fan speed": "風扇轉速",
+    "Memory usage": "記憶體使用率",
+    "GPU usage": "顯示卡使用率",
+    "GPU temperature": "顯示卡溫度",
+    "Video memory": "顯示記憶體",
+    "System disk free space": "系統磁碟剩餘空間",
+    "Network up/down": "網路上傳/下載",
+    Battery: "電池",
+    "CPU freq": "CPU 頻率",
+    Fan: "風扇",
+    Memory: "記憶體",
+    VRAM: "顯示記憶體",
+    "Disk {name}": "{name} 磁碟",
+    Disk: "系統磁碟",
+    "{size} free": "剩 {size}",
+    "🌡 The CPU is very hot: {temp}! Save your work and see what's keeping it busy.":
+      "🌡 CPU 太燙了：{temp}！先存好手上的東西，看看是哪個程式在忙？",
+    "🌡 The CPU is hot: {temp}! It's been over {limit} for half a minute. What's keeping it busy?":
+      "🌡 CPU 好燙！已經 {temp} 了，超過 {limit} 半分鐘了，看看是哪個程式在忙？",
+    "🎮 The graphics card is very hot: {temp}! Give it a break?":
+      "🎮 顯示卡太燙了：{temp}！讓它歇一會兒？",
+    "🎮 The graphics card is hot: {temp}! It's been over {limit} for half a minute.":
+      "🎮 顯示卡好燙！{temp}，超過 {limit} 已經半分鐘了。",
+    "🧠 Memory is nearly full: {pct}. Closing apps you aren't using will help.":
+      "🧠 記憶體快滿了：{pct}。關掉幾個不用的程式會舒服點。",
+    "💾 {disk} has only {pct} free ({size}). Time for a clean-up.":
+      "💾 {disk} 只剩 {pct}（{size}），該清理一下了。",
+    "🔋 Battery at {pct} and not plugged in. Time to find the charger!":
+      "🔋 電量 {pct}，沒插電，快去找充電器～",
+    "This computer can't read this, so it won't alert even when on.":
+      "這台電腦上讀不到這一項，開啟了也不會提醒。",
+    "Windows: open HWiNFO (with Shared Memory Support on) or LibreHardwareMonitor and this starts working.":
+      "Windows：開啟 HWiNFO（勾選「共用記憶體」）或 LibreHardwareMonitor 後，這裡會自動變成可用。",
+    "Show when the mouse is on the pet": "滑鼠移到寵物上時顯示",
+    "Read only while the mouse is on the pet. Tick none and no card shows.":
+      "只在滑鼠停在寵物身上時讀取。一項都不勾就不顯示。",
+    Alerts: "超標提醒",
+    "Temperature unit": "溫度單位",
+    "Check every": "檢查間隔",
+    "Over a limit, the pet looks again 30 seconds later and tells you if it still is (far over: at once), at most once every 30 minutes for each. ":
+      "超過門檻後，寵物 30 秒後再看一次，仍然超標才提醒（超得太多立即提醒），同一項 30 分鐘內只提醒一次。",
+    "Not in Quiet mode; during a call or in full screen it waits. Only the alerts that are on are read; the disk every 10 minutes.":
+      "安靜模式不提醒；通話或全螢幕時先存著，回來還超標才說。只讀取開著提醒的項目；磁碟每 10 分鐘看一次。",
+    "CPU temperature over": "CPU 溫度超過",
+    "GPU temperature over": "顯示卡溫度超過",
+    "Memory use over": "記憶體使用超過",
+    "System disk free space under": "系統磁碟剩餘空間低於",
+    "Battery (not plugged in) at or under": "電池（未插電）不高於",
+    "10 minutes": "10 分鐘",
+    "Can't read this on this computer": "此電腦無法讀取",
+    Hardware: "硬體資訊",
   },
   lines: {
     "avoid.leaving.fullscreen": [

@@ -6,6 +6,7 @@ mod avoid;
 mod backup;
 mod commands;
 mod desktop;
+mod hardware;
 mod locale;
 mod post;
 mod scheduler;
@@ -55,6 +56,7 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            hardware::hw_read,
             commands::get_settings,
             commands::set_settings,
             commands::replace_settings,
@@ -111,8 +113,6 @@ pub fn run() {
             commands::pet_frame,
             commands::set_pet_visible,
             commands::list_user_characters,
-            commands::load_mood,
-            commands::save_mood,
             commands::open_user_characters_folder,
             commands::copy_character,
             commands::reload_characters,

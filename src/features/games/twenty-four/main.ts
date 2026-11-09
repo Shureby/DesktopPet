@@ -1,4 +1,3 @@
-import { parseMood } from "../../../brain/mood";
 import { loadBundled, loadUser } from "../../../characters/registry";
 import { characterName } from "../../../characters/text";
 import { followLocale } from "../../../i18n/apply";
@@ -7,7 +6,6 @@ import { backend } from "../../../platform";
 import { followTestClock } from "../../../platform/testClock";
 import "../../../styles/twenty-four.css";
 import { TwentyFour, type Mode } from "./game";
-import { levelFromMood } from "./logic";
 import { PetStage } from "./stage";
 import { watchErrors } from "../../../platform/errors";
 
@@ -35,12 +33,10 @@ async function main() {
   const settings = await backend.getSettings();
   await followLocale(backend, settings);
   const def = registry.pick(settings.character, "cat").def;
-  const mood = parseMood(await backend.loadMood(def.id).catch(() => null));
   const win = await appWindow();
   const stage = new PetStage((b) => void backend.emit("board-pet", b));
   const game = new TwentyFour(document.getElementById("t24")!, {
     name: characterName(def),
-    moodLevel: levelFromMood(mood),
     stage,
     load: (k) => {
       try {
@@ -59,7 +55,7 @@ async function main() {
     finished: (won, score, raceWon) => {
       if (score > 0) void backend.recordScore("twenty-four", def.id, score);
       if (raceWon) void backend.unlockAchievement("twenty_four_win");
-      // Playing together makes the pet happier.
+      // Won: the pet is proud of you.
       void backend.emit("pet-event", { type: "game", won });
     },
     close: () => void backend.closeGame(),
@@ -71,15 +67,14 @@ async function main() {
     },
   });
   await backend.on("board-pause", (p) => game.busy(p.reason));
-  // Another character picked meanwhile: its name and its mood from now on.
+  // Another character picked meanwhile: its name from now on.
   let character = def.id;
   await backend.on("settings", async (s) => {
     settings.sound = s.sound;
     if (s.character === character) return;
     character = s.character;
     const next = registry.pick(s.character, "cat").def;
-    const m = parseMood(await backend.loadMood(next.id).catch(() => null));
-    game.characterChanged(characterName(next), levelFromMood(m));
+    game.characterChanged(characterName(next));
   });
   // Back from the taskbar: on again after "3, 2, 1".
   if (win) {

@@ -28,6 +28,22 @@ async function petIsAlive() {
   return (await app.pet()).frames > before + 10;
 }
 
+check("pet.care", "petting it from the menu: a ♥ floats up and it hops happily; no numbers, never feeding", async () => {
+  const app = ctx.app;
+  await reset();
+  const menu = texts(await app.menu("pet"));
+  assert.ok(!menu.some((t) => /Feed|corn|worm/.test(t)), menu.join(" / "));
+  const care = menu.find((t) => /Stroke|Scratch|Rub|Pat|Pet the/.test(t));
+  assert.ok(care, menu.join(" / "));
+  const before = (await app.pet()).hearts;
+  await app.run("pet", care);
+  await app.until(() => [...document.querySelectorAll(".gain")].some((g) => g.textContent === "♥"), [], 3000);
+  const p = await app.pet();
+  assert.equal(p.hearts, before + 1);
+  const said = await app.bubble();
+  assert.ok(p.state === "happy" || said, `reacts: ${p.state}, ${said}`);
+});
+
 check("menu.add-todo", "Add to-do… opens the panel on To-dos, ready to type; the pet keeps going", async () => {
   const app = ctx.app;
   await reset();

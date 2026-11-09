@@ -7,25 +7,21 @@ and `docs/test-checklist.json` together, and note the change in `CHANGELOG.md`.
 ## Mouse resting on the pet (since 0.12.0)
 
 Code: `src/brain/hover.ts` (the rules and their numbers, `HOVER`), `RulesBrain.onHover`
-(what the pet does), the `attend` and `dodge` states in `abilities/core.ts`, and
+(what the pet does), the `attend` state in `abilities/core.ts`, and
 `PetHost.updateHover` (wiring). Tests: `brain/hover.test.ts`, `characters.test.ts`.
 
 | # | When | The pet… |
 |---|---|---|
 | 1 | The mouse comes to rest on it | **Stops** (brakes, it doesn't freeze), turns to face the cursor and waits (`attend`). If it is jumping, pouncing, climbing or gliding, it stops once it lands. |
-| 2 | …and it is hungry or unhappy (grumpy or sulking) | First **steps away** about one body length (walking, not running), stays near the cursor, turns back and says why: hungry → `dodgeHungry` ("My tummy's flat…"); neglected → `dodgeGrumpy` ("Oh, *now* you remember me?"). |
-| 3 | The mouse comes back within 10 s of a step-away, or follows it | That counts as **insisting**: no more stepping away, and the pet reacts at once (as if hovered for 2 s). |
-| 4 | The mouse has rested on it for 2 s | **Reacts once** per hover: an adoring pet (sometimes a content one) hops happily and says `noticedHappy`; otherwise it says `noticed` ("Mrrp?"). |
-| 5 | After that, the mouse moves over it | That is **stroking**, the same as a click: +3 affection, "+3 ♥", a `petted` line. At most once every 1.5 s, and within the hourly petting cap (15 affection per hour, then "That's plenty for now"). A sulking pet may still snub it. |
-| 6 | The mouse stays still on it for 8 s | The pet **goes on** with its day (`release`, "I'll be around."). It won't stop again until the mouse leaves and comes back. |
+| 2 | The mouse has rested on it for 2 s | **Reacts once** per hover: half the time it hops happily and says `noticedHappy`; otherwise it says `noticed` ("Mrrp?"). |
+| 3 | After that, the mouse moves over it | That is **stroking**, the same as a click: a "♥" floats up, a hop and a `petted` line (now and then `adoring`). At most once every 1.5 s. |
+| 4 | The mouse stays still on it for 8 s | The pet **goes on** with its day (`release`, "I'll be around."). It won't stop again until the mouse leaves and comes back. |
 
 Limits and reasons:
 
-- **Stepping away happens at most once every 2 minutes per pet.** Otherwise it turns into
-  an endless chase.
 - **Nothing happens in the first 2 seconds except stopping.** A mouse passing over the pet
   on its way somewhere shouldn't count as petting.
-- **Rule 6 is about blocking.** While the mouse is on the pet, the pet is clickable (not
+- **Rule 4 is about blocking.** While the mouse is on the pet, the pet is clickable (not
   click-through), so a pet parked under a resting mouse would block whatever is
   underneath. The pet leaves after 8 s.
 - **Hovering uses the sprite's bounding box, not its exact pixels.** Stroking across a gap
@@ -48,8 +44,13 @@ Limits and reasons:
   - a focus session is on (the pet sits still anyway);
   - the pet is hidden, or a mini-game is open.
 
-Speech lines each character needs (see `docs/CHARACTERS.md`): `dodgeHungry`,
-`dodgeGrumpy`, `noticed`, `noticedHappy` and `release`.
+Speech lines each character needs (see `docs/CHARACTERS.md`): `noticed`, `noticedHappy`
+and `release`.
+
+Before 0.64.0 the pet had hunger and affection: it stepped away from the mouse when it was
+hungry or neglected, petting was capped by the hour, and the numbers showed on hover.
+They're gone: they asked you to look after the pet without giving you anything for it,
+and the hover card now shows the computer's hardware ("Hardware" below).
 
 ## Menus (since 0.9.0)
 
@@ -770,9 +771,11 @@ it by its title bar. Code: `src/features/games/twenty-four/`, the pet's side
   on a normal hand about 6 s ("Won't go easy"), 15 s (Normal) or 30 s (Easy), twice that on
   a hard hand. Each move you get further gives you 3 s more (Undo and redo doesn't). You
   first: your point ("You got it first!"). "I can't get it": the pet answers and scores if it knew,
-  otherwise nobody does. Its level (⚙): follows its mood (happy and fed: "Won't go easy";
-  content: Normal; grumpy or hungry: Easy), or fixed. A hard hand gives you 15 s more before
-  it answers. Easier levels are slower and sometimes
+  otherwise nobody does. Its level is picked on the board before the first hand ("Cat's
+  level: Easy | Normal | Won't go easy", Normal at first, then your last choice) and on the
+  result page; once you've played it just says the level. (Before 0.64.0 it could follow
+  the pet's mood, which made it suddenly clever or slow for no reason you could see.) A
+  hard hand gives you 15 s more before it answers. Easier levels are slower and sometimes
   stuck on hard hands ("I can't find it… your turn.").
 - **Practice** (13 hands). "I can't get it": the pet walks over and gives the first step,
   its two cards marked ("Watch me: first 8 ÷ 3 = 8/3."); "Show the next step" gives the
@@ -784,8 +787,8 @@ it by its title bar. Code: `src/features/games/twenty-four/`, the pet's side
   (opening it again that day shows the result).
 - **No answer!** (only with hands without an answer mixed in): right +1, wrong −1 and the
   button is off for that hand. In a race the pet calls it too.
-- **After a round** the result, and the pet is happier (as after any game); a won race
-  unlocks an achievement.
+- **After a round** the result (with the level for the next one); a won race floats a ♥
+  over the desktop pet and unlocks an achievement.
 
 ## Tic-tac-toe (since 0.62.0)
 
@@ -803,12 +806,60 @@ from the pet's menu ("Play tic-tac-toe") or the Games tab.
   a row in a small board wins it (a big mark over it); three won boards in a row wins.
 - **The pet:** on its turn it paces on the board ("… is thinking…", about 1–2 s, longer in
   ultimate), then plays and settles; it cheers when it wins, sulks when it loses, and says
-  one line. Its level follows its mood or is set in ⚙ (Easy / Normal / Won't go easy); at
-  its best it never loses at classic.
+  one line. Its level is picked under the board before a game and after one ("Cat's level:
+  Easy | Normal | Won't go easy", Normal at first, then your last choice); during a game it
+  just says it. At its best it never loses at classic.
 - **Undo a move** takes back your last move and its answer (a finished game too: then it
   doesn't count); **Resign** gives the game to the other side. Keys: 1–9 for the cells
   (classic, vanishing), Backspace undoes, Enter plays again, Esc closes.
-- A game won against the pet counts for its mood (as 24 Points) and its score.
+- A game won against the pet floats a ♥ (as 24 Points) and counts for its score.
+
+## Hardware (since 0.64.0)
+
+The pet shows how the computer is doing and speaks up when something runs too hot or too
+full. Code: `src/features/hardware/hardware.ts` (settings, the card's rows, when to alert),
+`PetHost` (`hoverHardware`, `hwWatchTick`), `src/panel/hardware.ts` (Settings → Hardware)
+and `src-tauri/src/hardware/` (the readings). Tests: `hardware.test.ts`,
+`e2e/hardware.test.mjs`, `hw.card` in `e2e/mouse.test.mjs`.
+
+- **The hover card.** With the mouse on the pet (where the hearts were), after about half
+  a second a small card shows the ticked items, refreshed every second; it goes when the
+  mouse leaves. Nothing is read otherwise: the card costs nothing while you're not looking.
+  - Ticked at first: CPU usage, memory usage, network ↓/↑. Settings → Hardware ticks any
+    of: CPU usage, CPU frequency, CPU temperature, fan speed, memory usage, GPU usage, GPU
+    temperature, video memory, system disk free space, network, battery. None ticked: no
+    card.
+  - A chip's usage and temperature share a row ("CPU 37% · 62℃"); the network has a row
+    each way.
+  - Colours: orange near a limit (90% of an alert's limit; usage from 80%), red over it
+    (usage from 95%; the disk under its limit, the battery at it unplugged).
+  - Something this computer can't read shows "—".
+- **No drivers.** Only what the system tells any program (`sysinfo`, PDH and DXGI on
+  Windows, IOKit on macOS). Windows has no CPU temperature or fan speed without a kernel
+  driver, so those come from HWiNFO (with Shared Memory Support) or LibreHardwareMonitor
+  when one of them runs; GPU temperature comes from the graphics driver when it says.
+  Apple silicon has no CPU frequency. In Settings what can't be read is greyed: "Can't read
+  this on this computer"; the pet never complains about it.
+- **Alerts:** CPU temperature (90℃; 60–105), GPU temperature (85℃; 60–100), memory use
+  (90%; 70–99), system disk free space (under 5%; 1–30), battery not plugged in (15% or
+  less; 5–50). Limits have − and + and can be typed; they stay in their range. ℃ or ℉ (℃
+  by default; kept in ℃).
+  - Each alert is on when this computer can read it, unless you turn it off. Turned on for
+    something it can't read: "This computer can't read this, so it won't alert even when
+    on." (with the HWiNFO / LibreHardwareMonitor tip for temperatures). It starts working
+    by itself once it can be read.
+  - **How often:** Settings → "Check every" 30 s, 1, 2, 5 or 10 min (1 min by default).
+    Only the alerts that are on are read; the disk every 10 minutes. None on: nothing is
+    read in the background.
+  - **Over a limit, it looks again 30 s later** and says so only if it still is: a
+    moment's spike isn't worth a word, but a CPU on fire can't wait for the next look 10
+    minutes on. **Far over** (a temperature 10 degrees past its limit or at 100℃, never
+    closer than 5 degrees; a battery at 5%) it says so at once.
+  - The pet's bubble ("🌡 The CPU is hot: 92℃! It's been over 90℃ for half a minute.
+    What's keeping it busy?") with just "Got it". No system notification, no sound.
+  - Once per item every 30 minutes.
+  - Not in Quiet mode. During a call, a slide show or a full-screen app, or while the pet
+    is ringing or asking something, it waits, and says it when it can if it's still so.
 
 ## Games during a focus session (since 0.20.0)
 
@@ -881,7 +932,7 @@ system's display settings), each with its number, size ("main" on the main one) 
 
 Settings → Backup. A backup is one `.epetbackup` file with everything ePet keeps: alarms
 (and timers), to-dos, anniversaries, this computer's settings, the pet (each character's
-mood, game scores, achievements, focus history) and the user's own characters.
+game scores, achievements, focus history) and the user's own characters.
 
 - **Export backup…** asks where to save it (`ePet backup 2026-10-08.epetbackup`). A
   password is optional; with one the file is encrypted, and without it the backup can't be
@@ -1319,8 +1370,8 @@ once added it's theirs to change or delete.
     - It touches the badge. It stays while the mouse is on it, and for 0.4 s after the
       mouse leaves both, which is enough to cross over at an angle.
     - The last line is always a verb: "Open the Alarms tab", "Mark as seen", "Dismiss".
-- **The heart meter only shows with the cursor on the pet itself,** not on its badges or
-  bubble. There you're after the alarm or the focus session, not the pet's mood.
+- **The hardware card only shows with the cursor on the pet itself,** not on its badges or
+  bubble. There you're after the alarm or the focus session, not the computer.
 - **The pet window is 340 px wide** (since 0.15.0), so badges beside the pet fit. A badge
   that is still too long ends in "…" rather than being cut off.
 - **At the edge of the screen** (since 0.19.1), nothing by the pet is cut off:
@@ -1329,7 +1380,7 @@ once added it's theirs to change or delete.
     - They go back right only with 40 px to spare (`BADGE_FLIP_SLACK`), so a pet walking
       along the edge doesn't make them flicker.
     - They never move while the mouse is on a badge or its info box.
-  - **The heart meter takes the side the badges don't use.** If that side is off screen
+  - **The hardware card takes the side the badges don't use.** If that side is off screen
     too, it goes above the pet's head (above the bubble, if one shows). The badges come
     first: they are what you act on.
   - **The speech bubble and the info box shift to stay on screen.** The bubble's tail

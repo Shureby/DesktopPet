@@ -1,4 +1,3 @@
-import { parseMood } from "../../../brain/mood";
 import type { CharacterDef } from "../../../characters/schema";
 import { loadBundled, loadUser } from "../../../characters/registry";
 import { characterName } from "../../../characters/text";
@@ -10,7 +9,6 @@ import "../../../styles/twenty-four.css";
 import "../../../styles/tic-tac-toe.css";
 import { PetStage } from "../twenty-four/stage";
 import { TicTacToe, type Mark, type Mode } from "./game";
-import { levelFromMood } from "./logic";
 import { watchErrors } from "../../../platform/errors";
 
 /** This window, in the app (absent in a plain browser). */
@@ -42,13 +40,11 @@ async function main() {
   const settings = await backend.getSettings();
   await followLocale(backend, settings);
   const def = registry.pick(settings.character, "cat").def;
-  const mood = parseMood(await backend.loadMood(def.id).catch(() => null));
   const win = await appWindow();
   const stage = new PetStage((b) => void backend.emit("board-pet", b));
   const game = new TicTacToe(document.getElementById("ttt")!, {
     name: characterName(def),
     mark: markOf(def),
-    moodLevel: levelFromMood(mood),
     stage,
     load: (k) => {
       try {
@@ -67,7 +63,7 @@ async function main() {
     finished: (won, wins) => {
       if (won) void backend.recordScore("tic-tac-toe", def.id, wins);
       if (won) void backend.unlockAchievement("tic_tac_toe_win");
-      // Playing together makes the pet happier.
+      // Won: the pet is proud of you.
       void backend.emit("pet-event", { type: "game", won });
     },
     close: () => void backend.closeGame(),
@@ -84,8 +80,7 @@ async function main() {
     if (s.character === character) return;
     character = s.character;
     const next = registry.pick(s.character, "cat").def;
-    const m = parseMood(await backend.loadMood(next.id).catch(() => null));
-    game.characterChanged(characterName(next), markOf(next), levelFromMood(m));
+    game.characterChanged(characterName(next), markOf(next));
   });
   // Back from the taskbar: on again after "3, 2, 1".
   if (win) {
@@ -110,7 +105,7 @@ async function main() {
         petNow: () => game.petNow(),
         think: (ms: number | null) => (game.thinkFor = ms),
         start: (mode: Mode) => game.start(mode),
-        level: (level: "easy" | "normal" | "strong" | "mood") => ((game.options = { ...game.options, level }), game.render()),
+        level: (level: "easy" | "normal" | "strong") => game.setLevel(level),
         minimize: () => game.minimize(),
         restore: async () => {
           await win?.unminimize();

@@ -2884,3 +2884,65 @@ ol.chat-thread {
   gap: 8px;
   align-items: center;
 }
+
+/* Settings → Hardware. */
+.hardware .hw-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 2px 12px;
+}
+.hardware .hw-item.unreadable {
+  color: #9a8f86;
+}
+.hardware .hw-item {
+  flex-wrap: wrap;
+  row-gap: 0;
+}
+.hardware .hw-item .hint {
+  flex-basis: 100%;
+  padding-left: 25px;
+  font-size: 11px;
+  min-height: 0;
+}
+.settings .hardware .row .label {
+  width: auto;
+}
+.hardware .hw-alert .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.hardware .hw-alert label.check {
+  flex: 1 1 220px;
+}
+.hardware .stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.hardware .stepper button {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+}
+.hardware .stepper input {
+  width: 56px;
+  text-align: center;
+}
+.hardware .hw-cant {
+  margin: 4px 0 8px;
+  padding: 6px 10px;
+  border: 1.5px solid #e8743b;
+  border-radius: 8px;
+  background: #fde9dc;
+  color: #6e2e0f;
+  font-size: 12px;
+  line-height: 1.5;
+}
+@media (prefers-color-scheme: dark) {
+  .hardware .hw-cant {
+    background: #4a2a1a;
+    color: #fbd9c4;
+  }
+}

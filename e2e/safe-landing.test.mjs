@@ -1,12 +1,7 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import { check, useApp } from "./harness.mjs";
 
 const ctx = useApp(import.meta.filename);
-
-/** A bundled character's lines for `key`. */
-const lines = (character, key) =>
-  JSON.parse(readFileSync(new URL(`../assets/characters/${character}/character.json`, import.meta.url), "utf8")).personality.lines[key];
 
 /** The game window's state (window.__epetGame), with the game window current. */
 async function game() {
@@ -27,49 +22,6 @@ async function closeGame() {
   // Closing it tells the pet the game ended (the app does, as for any close).
   await ctx.app.closeWindow("game");
 }
-
-check("mood.start", "a new character starts content (about 60%) and doesn't turn grumpy on its own", async () => {
-  const app = ctx.app;
-  const first = (await app.pet()).mood;
-  assert.ok(Math.abs(first.affection - 60) < 2, JSON.stringify(first));
-  await app.sleep(5000);
-  const later = (await app.pet()).mood;
-  assert.ok(later.affection > 55, JSON.stringify(later));
-});
-
-check("mood.care", "petting floats “+3 ♥”; too much petting gets “That's plenty for now”", async () => {
-  const app = ctx.app;
-  await app.toPet();
-  const before = (await app.pet()).mood.affection;
-  await app.b.execute(() => window.__epet.care("pet"));
-  await app.until(() => [...document.querySelectorAll(".gain")].some((g) => g.textContent.includes("+3 ♥")), [], 3000);
-  assert.ok((await app.pet()).mood.affection >= before + 2.9);
-  const enough = lines("cat", "enough");
-  let said = null;
-  for (let i = 0; i < 8 && !said; i++) {
-    await app.b.execute(() => window.__epet.care("pet"));
-    await app.sleep(300);
-    const b = await app.bubble();
-    if (b && enough.some((l) => b.includes(l))) said = b;
-  }
-  assert.ok(said, "the pet says it has had enough");
-});
-
-check("mood.full", "fed until full: fullness tops out, and feeding again gets a reaction", async () => {
-  const app = ctx.app;
-  await app.toPet();
-  for (let i = 0; i < 4; i++) {
-    await app.b.execute(() => window.__epet.care("feed"));
-    await app.sleep(300);
-  }
-  const m = (await app.pet()).mood;
-  assert.ok(m.fullness > 90, JSON.stringify(m));
-  const full = lines("cat", "full");
-  await app.b.execute(() => window.__epet.care("feed"));
-  await app.sleep(400);
-  const said = await app.bubble();
-  assert.ok(said && full.some((l) => said.includes(l)), `reacts: ${said}`);
-});
 
 check("game.open", "Play Safe Landing opens the game; the pet window keeps going", async () => {
   const app = ctx.app;
@@ -106,19 +58,13 @@ check("game.controls", "← → / A D steer; Space or Enter starts", async () =>
   assert.equal((await game()).phase, "playing");
 });
 
-check("game.finish", "after a round: R plays again; the round made the pet happier", async () => {
+check("game.finish", "after a round: R plays again", async () => {
   const app = ctx.app;
   // A round from the start (the last one may already be over).
   if ((await game()).phase === "result") await key("KeyR");
   assert.equal((await game()).phase, "playing");
-  await app.toPet();
-  const before = (await app.pet()).mood.affection;
   await app.toWindow("game.html");
   await app.until(() => window.__epetGame.state.phase === "result", [], 90_000);
-  await app.toPet();
-  await app.b.waitUntil(async () => (await app.pet()).mood.affection > before, { timeout: 5000 }).catch(async () => {
-    throw new Error(`affection stayed at ${(await app.pet()).mood.affection} (was ${before})`);
-  });
   await key("KeyR");
   assert.equal((await game()).phase, "playing");
   await closeGame();

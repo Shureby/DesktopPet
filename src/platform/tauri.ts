@@ -1,5 +1,6 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
+import type { HwReading } from "../features/hardware/hardware";
 import { mergeSettings, type Backend, type BackendEvents, type Settings, type TestClock, type AvoidStatus, type SystemLocale } from "./types";
 
 /** Settings are owned by the UI: Rust stores the JSON blob and reads only what it needs. */
@@ -70,6 +71,7 @@ export const tauriBackend: Backend = {
   shiftClock: (ms) => invoke<number>("shift_clock", { ms }),
   endPeek: () => invoke("end_peek"),
   avoidStatus: () => invoke<AvoidStatus>("avoid_status"),
+  hwRead: (items) => invoke<HwReading>("hw_read", { items }),
   pretendBusy: (busy) => invoke("pretend_busy", { busy }),
   peekForHeld: (todo, title) => invoke<boolean>("peek_for_held", { todo, title }),
   avoidHide: () => invoke("avoid_hide"),
@@ -154,8 +156,6 @@ export const tauriBackend: Backend = {
   identifyScreens: (numbers) => invoke("identify_screens", { numbers }),
   petFrame: (x, y, w, h, ignoreCursor) => invoke("pet_frame", { x, y, w, h, ignoreCursor }),
   listUserCharacters: () => invoke("list_user_characters"),
-  loadMood: (character) => invoke("load_mood", { character }),
-  saveMood: (character, mood) => invoke("save_mood", { character, mood }),
   openUserCharactersFolder: () => invoke("open_user_characters_folder"),
   copyCharacter: (json, sourceDir) => invoke("copy_character", { json, sourceDir }),
   reloadCharacters: () => invoke("reload_characters"),

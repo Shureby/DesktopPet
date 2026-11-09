@@ -2,9 +2,7 @@ import type { Pet } from "../characters/Pet";
 
 export type PetEvent =
   | { type: "greet" }
-  /** `capped`: petting no longer raises affection this hour. */
-  | { type: "petted"; result?: "ok" | "capped" }
-  | { type: "fed"; result: "ok" | "full" }
+  | { type: "petted" }
   /** The user got something done (to-do, focus session, game). */
   | { type: "praise" }
   | { type: "thrown"; speed: number }
@@ -13,8 +11,7 @@ export type PetEvent =
   | { type: "reminder"; kind: "todo" | "alarm"; title: string; run?: boolean }
   | { type: "pomodoro"; phase: "focus" | "short_break" | "long_break" | "idle" }
   /** The mouse resting on the pet (see brain/hover.ts and docs/INTERACTIONS.md). */
-  | { type: "hover"; phase: "attend" | "react" | "release" | "leave" }
-  | { type: "hover"; phase: "dodge"; reason: "hungry" | "grumpy" };
+  | { type: "hover"; phase: "attend" | "react" | "release" | "leave" };
 
 /** How the pet is allowed to behave right now. */
 export type PetMode = "free" | "focus" | "quiet" | "hidden";
@@ -28,6 +25,6 @@ export interface Brain {
   next(pet: Pet): string;
   /** React to something that happened; may switch the pet's state. */
   onEvent(pet: Pet, event: PetEvent): void;
-  /** Update needs/moods every tick. */
+  /** Update needs every tick. */
   tick(pet: Pet, dt: number): void;
 }

@@ -8,6 +8,7 @@ import type { CalendarKind } from "../features/anniversary/templates";
 import type { LateReason } from "../features/alarm/late";
 import { LANGUAGES, type LanguageSetting } from "../i18n";
 import { REGIONS, type RegionSetting } from "../i18n/region";
+import { DEFAULT_HARDWARE, hardwareSettings, type HardwareSettings, type HwItem, type HwReading } from "../features/hardware/hardware";
 import { avoidSettings, DEFAULT_AVOID, type AvoidReason, type AvoidSettings, type Busy } from "../features/avoid/avoid";
 import {
   DEFAULT_POST,
@@ -125,6 +126,8 @@ export interface Settings {
   post: PostSettings;
   /** The screens the pet doesn't live on (their ids; new screens are ticked). */
   screens: { off: string[] };
+  /** The hover card's hardware readings and the alerts (src/features/hardware/hardware.ts). */
+  hardware: HardwareSettings;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -158,6 +161,7 @@ export const DEFAULT_SETTINGS: Settings = {
   locale: { language: "auto", region: "auto" },
   post: DEFAULT_POST,
   screens: { off: [] },
+  hardware: DEFAULT_HARDWARE,
 };
 
 /** The 🔔 badge's look-ahead: whole minutes, 1–120 (60 if it isn't a number). */
@@ -229,6 +233,7 @@ export function mergeSettings(stored: Partial<Settings> | null | undefined): Set
     },
     post: postSettings(s.post),
     screens: { off: Array.isArray(s.screens?.off) ? s.screens.off.filter((id) => typeof id === "string") : [] },
+    hardware: hardwareSettings(s.hardware),
   };
 }
 
@@ -453,8 +458,6 @@ export interface BackendEvents {
   "pet-visibility": boolean;
   /** The hidden pet was brought out for a focus session or break ending. */
   "pet-peek": "focus";
-  /** Mood saved for a character (the panel shows it). */
-  mood: { character: string; mood: unknown };
   /** Something the user did elsewhere that the pet reacts to. */
   "pet-event": PetActivity;
   /** The test clock was set ahead: how far, in ms (test builds and end-to-end tests). */
@@ -651,6 +654,8 @@ export interface Backend {
   endPeek(): Promise<void>;
   /** Whether the pet stepped aside, and why. */
   avoidStatus(): Promise<AvoidStatus>;
+  /** Reads just these (what this computer can't read is missing). */
+  hwRead(items: HwItem[]): Promise<HwReading>;
   /** Test builds: pretend you're doing this (null: look at what you really are). */
   pretendBusy(busy: Busy | null): Promise<void>;
   /**
@@ -838,9 +843,6 @@ export interface Backend {
   /** Positions and sizes the pet window (physical px) and returns the cursor position. */
   petFrame(x: number, y: number, w: number, h: number, ignoreCursor: boolean): Promise<{ x: number; y: number } | null>;
   listUserCharacters(): Promise<UserCharacterFile[]>;
-  /** Saved mood for a character (null if never saved). Parse with `parseMood`. */
-  loadMood(character: string): Promise<unknown>;
-  saveMood(character: string, mood: unknown): Promise<void>;
   /** Opens the folder where users drop their own characters. */
   openUserCharactersFolder(): Promise<void>;
   /**

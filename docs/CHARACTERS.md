@@ -26,7 +26,7 @@ Users don't see the bundled folders, so the app gives them a way in:
   into a new folder (with a user character's images and sounds), opens that folder and
   reloads. (`copy_character`; the source must be inside the characters folder.)
 - **"⟳ Reload characters"** makes every window read the folder again
-  (`characters-changed`); the pet redraws itself from the new file and keeps its mood.
+  (`characters-changed`); the pet redraws itself from the new file.
   Load errors are listed, opened, on the Characters page.
 
 ## character.json
@@ -40,10 +40,10 @@ Point `"$schema"` at `schema/character.schema.json` for autocompletion. The main
 | `stats` | `walkSpeed`, `runSpeed`, `jumpPower` (logical px/s), `weight` (gravity multiplier), `climbSpeed`. |
 | `animations` | Name → `{ frames, fps, loop, next }`. **Required core set**: idle, walk, run, jump, fall, land, sit, sleep, drag, happy, alert. Abilities may require more. |
 | `abilities` | `[{ "id": "climbWall", "params": { … } }]`. These are the special movements. |
-| `personality` | Weights for idle behaviours, `sleepiness`, `sociability` and speech `lines` (greet, petted, thrown, landed, reminder, alarm, focusStart, breakStart, focusEnd, bored). `{title}` is replaced with the reminder text. |
-| `personality.care` | Right-click menu actions (`{ "label": "Scratch the {name}'s chin", "kind": "pet" }`, `kind` is `pet` or `feed`). One is shown at random; feeding comes first when the pet is hungry. |
-| mood lines | `fed`, `full`, `enough` (petting capped for the hour), `hungry`, `grumpy`, `adoring`, `sulk`, `praise`, `timerSet` (`{duration}`, `{time}`), `noted` (`{title}`, `{when}`). Missing lines fall back to neutral text. |
-| hover lines | `dodgeHungry`, `dodgeGrumpy` (stepping away from the mouse), `noticed`, `noticedHappy` (after 2 s of hovering), `release` (moving on from a parked mouse). See [INTERACTIONS.md](INTERACTIONS.md). Missing lines just stay silent. |
+| `personality` | Weights for idle behaviours, `sleepiness`, `sociability` and speech `lines` (greet, petted, thrown, landed, reminder, alarm, focusStart, breakStart, focusEnd). `{title}` is replaced with the reminder text. |
+| `personality.care` | Right-click menu actions (`{ "label": "Scratch the {name}'s chin", "kind": "pet" }`). One is shown at random. (`kind` `feed`, from before 0.64.0, is still read but never shown: the pet no longer gets hungry.) |
+| more lines | `adoring` (now and then when petted), `praise`, `timerSet` (`{duration}`, `{time}`), `noted` (`{title}`, `{when}`). Missing lines fall back to neutral text. Lines from before 0.64.0 (`fed`, `full`, `enough`, `hungry`, `grumpy`, `sulk`, `bored`, `dodgeHungry`, `dodgeGrumpy`) are ignored. |
+| hover lines | `noticed`, `noticedHappy` (after 2 s of hovering), `release` (moving on from a parked mouse). See [INTERACTIONS.md](INTERACTIONS.md). Missing lines just stay silent. |
 | `moveset` | Fighting style for Stickman Fight: light/heavy/special/aerial moves with timings, damage, range and knockback. |
 | `translations` | Its words in other languages (since 0.43.0): `{ "zh-CN": { … }, "zh-TW": { … } }`, each with any of `displayName`, `description`, `style` (the moveset's), `care` (the care labels, in the order of `personality.care`) and `lines` (as in `personality`). Whatever is left out shows in English. See the cat for an example. |
 

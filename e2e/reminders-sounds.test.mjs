@@ -87,7 +87,7 @@ check("todo.day-remind", "to-dos without a time: one bubble “📅 Today: • �
   await app.answer("✓ Done");
 }, { timeout: 360_000 });
 
-check("todo.feedback", "adding a to-do in the panel: the pet confirms; ticking it: praise and more love", async () => {
+check("todo.feedback", "adding a to-do in the panel: the pet confirms; ticking it: praise and a heart", async () => {
   const app = ctx.app;
   await reset();
   await app.panel("todos");
@@ -95,7 +95,7 @@ check("todo.feedback", "adding a to-do in the panel: the pet confirms; ticking i
   await app.press(".todos input[type=text]", ["Enter"]);
   const noted = await app.waitBubble("Buy milk");
   assert.ok(lines("noted").some((l) => noted.startsWith(l.split("{")[0])), noted);
-  const before = (await app.pet()).mood.affection;
+  const before = (await app.pet()).hearts;
   await app.panel("todos");
   await app.b.execute(() => [...document.querySelectorAll(".todos .list li")].find((li) => li.textContent.includes("Buy milk")).querySelector("input[type=checkbox]").click());
   await app.toPet();
@@ -106,7 +106,7 @@ check("todo.feedback", "adding a to-do in the panel: the pet confirms; ticking i
     },
     { timeout: 5000 },
   );
-  assert.ok((await app.pet()).mood.affection > before);
+  assert.ok((await app.pet()).hearts > before);
 });
 
 check("settings.size-speed", "the Size and Speed sliders apply at once", async () => {

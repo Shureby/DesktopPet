@@ -20,22 +20,22 @@ import {
   type Frac,
   type Hand,
   type Level,
-  type LevelChoice,
   type Op,
   type PetPlan,
   type Suit,
 } from "./logic";
+import { levelPicker, parseLevel } from "../levels";
 import type { PetStage } from "./stage";
 
 export type Mode = "race" | "practice" | "timed" | "daily";
 
 export interface Options extends DealOptions {
-  level: LevelChoice;
+  level: Level;
   /** A "ding-dong" for a right answer and a "boop" for a wrong one. */
   sounds: boolean;
 }
 
-export const DEFAULT_OPTIONS: Options = { hard: true, unsolvable: false, level: "mood", sounds: true };
+export const DEFAULT_OPTIONS: Options = { hard: true, unsolvable: false, level: "normal", sounds: true };
 
 /** Hands in a round (race and practice). */
 export const ROUND = 13;
@@ -60,8 +60,6 @@ interface Card {
 export interface Hooks {
   /** The pet's name, for "Vs Cat" (another character picked meanwhile: its name). */
   name: string;
-  /** Its level now when it follows its mood. */
-  moodLevel: Level;
   stage: PetStage;
   load(key: string): string | null;
   store(key: string, value: string): void;
@@ -156,7 +154,9 @@ export class TwentyFour {
   private loadOptions(): Options {
     try {
       const raw = JSON.parse(this.hooks.load("epet.24.options") ?? "null");
-      return { ...DEFAULT_OPTIONS, ...(raw && typeof raw === "object" ? raw : {}) };
+      const o = { ...DEFAULT_OPTIONS, ...(raw && typeof raw === "object" ? raw : {}) };
+      // "Follows its mood" (before 0.64) is Normal now.
+      return { ...o, level: parseLevel(o.level) };
     } catch {
       return { ...DEFAULT_OPTIONS };
     }
@@ -176,7 +176,20 @@ export class TwentyFour {
   }
 
   get level(): Level {
-    return this.options.level === "mood" ? this.hooks.moodLevel : this.options.level;
+    return this.options.level;
+  }
+
+  /** The level can be picked at the start of a race (or after one): kept for the next ones. */
+  private levelOpen(): boolean {
+    return this.mode === "race" && (this.phase === "done" || (this.handNo === 1 && !this.moves.length && !this.winner && !this.history.length));
+  }
+
+  setLevel(level: Level): void {
+    this.options = { ...this.options, level };
+    this.saveOptions();
+    // Picked at the start of the first hand: the pet thinks at the new level from the deal.
+    if (this.plan && this.phase === "playing" && this.levelOpen()) this.plan = petPlan(this.hand.kind, level, this.rng);
+    this.render();
   }
 
   // --- Rounds and hands ------------------------------------------------------
@@ -563,9 +576,8 @@ export class TwentyFour {
   }
 
   /** Another character picked while you play: it's the one on the board now. */
-  characterChanged(name: string, moodLevel: Level): void {
+  characterChanged(name: string): void {
     this.hooks.name = name;
-    this.hooks.moodLevel = moodLevel;
     this.render();
   }
 
@@ -767,6 +779,8 @@ export class TwentyFour {
         hard ? h("b", { class: "t24-hard" }, ` · ${t("Hard")}`) : null,
       ),
     );
+    // Racing the pet: its level, picked at the start of the round.
+    const levelRow = this.mode === "race" ? h("div", { class: "t24-level-row" }, levelPicker(this.hooks.name, this.level, this.levelOpen(), (l) => this.setLevel(l))) : null;
     // The status line: always there (so nothing below it moves), what it says changes.
     const name = this.hooks.name;
     const bar = this.mode === "timed" || this.mode === "race";
@@ -888,7 +902,7 @@ export class TwentyFour {
               this.hint > 0 && this.hint < 4 ? t("Show the next step") : t("I can't get it"),
             ),
           );
-    const el = h("div", { class: "t24-body" }, top, clock, cards, ops, work, actions);
+    const el = h("div", { class: "t24-body" }, top, levelRow, clock, cards, ops, work, actions);
     queueMicrotask(() => this.renderClock());
     return el;
   }
@@ -922,7 +936,7 @@ export class TwentyFour {
       { class: "t24-body t24-result" },
       h("h2", {}, title),
       ...lines.map((l) => h("p", {}, l)),
-      h("p", { class: "t24-mood" }, t("Played with {name}: happier now", { name })),
+      this.mode === "race" ? h("div", { class: "t24-level-row" }, levelPicker(name, this.level, true, (l) => this.setLevel(l))) : null,
       h(
         "div",
         { class: "t24-actions" },
@@ -946,12 +960,6 @@ export class TwentyFour {
         h("input", { type: "radio", name, value, checked: value === current, onchange: () => onpick(value) }),
         text,
       );
-    const levels: [LevelChoice, string][] = [
-      ["mood", t("Follows its mood (now: {level})", { level: levelName(this.hooks.moodLevel) })],
-      ["easy", levelName("easy")],
-      ["normal", levelName("normal")],
-      ["strong", levelName("strong")],
-    ];
     return h(
       "div",
       { class: "t24-body t24-options" },
@@ -970,13 +978,9 @@ export class TwentyFour {
         h("input", { type: "checkbox", name: "sounds", checked: this.options.sounds, onchange: (e: Event) => set({ sounds: (e.target as HTMLInputElement).checked }) }),
         t("Sounds for right and wrong answers"),
       ),
-      h("h3", {}, t("{name}'s level", { name: this.hooks.name })),
-      ...levels.map(([v, text]) => radio("level", v, this.options.level, text, (l) => set({ level: l }))),
       h("div", { class: "t24-actions" }, h("span", { class: "grow" }), h("button", { class: "primary", onclick: () => this.start() }, t("Done: new round"))),
     );
   }
 }
 
-export function levelName(l: Level): string {
-  return l === "easy" ? t("Easy") : l === "normal" ? t("Normal") : t("Won't go easy");
-}
+

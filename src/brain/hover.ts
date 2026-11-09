@@ -3,14 +3,10 @@
  * them, are in docs/INTERACTIONS.md; keep the two in step.
  *
  *  1. Hovering stops the pet: it turns to face the cursor (`attend`).
- *  2. A hungry or unhappy pet first steps away a little and says why (`dodge`), at most
- *     once per DODGE_COOLDOWN.
- *  3. Hovering again soon after a dodge counts as insisting: no dodge, and it reacts
- *     straight away.
- *  4. After REACT_AFTER on the pet it reacts once (`react`).
- *  5. From then on, moving the mouse over it is stroking (`stroke`), at most once per
+ *  2. After REACT_AFTER on the pet it reacts once (`react`).
+ *  3. From then on, moving the mouse over it is stroking (`stroke`), at most once per
  *     STROKE_EVERY.
- *  6. A cursor that sits still for RELEASE_AFTER lets the pet go on (`release`), so a
+ *  4. A cursor that sits still for RELEASE_AFTER lets the pet go on (`release`), so a
  *     parked mouse never keeps it blocking whatever is underneath; it won't stop again
  *     until the cursor leaves and comes back.
  *
@@ -19,16 +15,12 @@
  */
 export const HOVER = {
   REACT_AFTER: 2_000,
-  INSIST_WITHIN: 10_000,
-  DODGE_COOLDOWN: 120_000,
   STROKE_EVERY: 1_500,
   /** Mouse travel over the pet that makes one stroke, in logical px. */
   STROKE_DISTANCE: 40,
   /** The cursor counts as moved once it is this far (logical px) from where it last moved. */
   STILL_WITHIN: 3,
   RELEASE_AFTER: 8_000,
-  /** How long a dodge (stepping away) plays before hovering counts again. */
-  DODGE_TIME: 1_500,
   /**
    * The pet running to a reminder stops when it's under a mouse that has been still this
    * long (a mouse put on it, or waiting in its path; not one sweeping across).
@@ -40,7 +32,6 @@ export const HOVER = {
 
 export type HoverEvent =
   | { type: "attend" }
-  | { type: "dodge"; reason: "hungry" | "grumpy" }
   | { type: "react" }
   | { type: "stroke" }
   | { type: "release" }
@@ -54,8 +45,6 @@ export interface HoverInput {
   unit: number;
   /** False while dragged, ringing, in a focus session, running to a reminder… */
   canAttend: boolean;
-  /** Why the pet would rather step away, if it would. */
-  unhappy: "hungry" | "grumpy" | null;
 }
 
 export class HoverTracker {
@@ -67,15 +56,12 @@ export class HoverTracker {
   private lastCursor: { x: number; y: number } | null = null;
   private travel = 0;
   private lastStrokeAt = -Infinity;
-  private lastDodgeAt = -Infinity;
   /** Where the cursor was when it last really moved. */
   private anchor: { x: number; y: number } | null = null;
 
   update(now: number, input: HoverInput): HoverEvent[] {
     const out: HoverEvent[] = [];
     if (this.track(input)) this.lastMoveAt = now;
-    // Let a dodge play out; if the cursor is still on the pet afterwards, that's insisting.
-    if (now - this.lastDodgeAt < HOVER.DODGE_TIME) return out;
 
     if (!input.over || !input.canAttend) {
       if (this.phase === "attending") out.push({ type: "leave" });
@@ -91,16 +77,6 @@ export class HoverTracker {
       this.lastMoveAt = now;
       this.reacted = false;
       this.travel = 0;
-      const insisting = now - this.lastDodgeAt < HOVER.INSIST_WITHIN;
-      if (insisting) {
-        // Rule 3: treat it as having hovered long enough already.
-        this.since = now - HOVER.REACT_AFTER;
-      } else if (input.unhappy && now - this.lastDodgeAt >= HOVER.DODGE_COOLDOWN) {
-        this.lastDodgeAt = now;
-        this.phase = "none";
-        out.push({ type: "dodge", reason: input.unhappy });
-        return out;
-      }
       out.push({ type: "attend" });
     }
     if (this.phase !== "attending") return out;
