@@ -540,7 +540,8 @@ if (process.platform === "win32") {
       for (let tries = 1; ; tries++) {
         p = await ringAndRun();
         const since = Date.now();
-        wait = { x: p.x + p.size.w * 2.5, y: p.y - p.size.h * 0.4 };
+        // Well ahead of it: running, it covers a body length in a frame or two on a slow runner.
+        wait = { x: p.x + p.size.w * 4, y: p.y - p.size.h * 0.4 };
         await mouse.move(wait.x, wait.y);
         const moved = await app.pet();
         const stopped = await app.b
@@ -551,8 +552,8 @@ if (process.platform === "win32") {
         const now = await app.pet();
         const seen = `pet when the mouse came ${Math.round(moved.x)} (${moved.state}), mouse ${Math.round(wait.x)}, ${JSON.stringify(await mouse.pos())}; now ${Math.round(now.x)} (${now.state}); hover events ${JSON.stringify(await hoverEvents(since))}`;
         console.log(`hover-stop-run, try ${tries}: no stop: ${seen}`);
-        // Already past the mouse when it came (a slow frame): once more.
-        if (tries < 2 && moved.x > wait.x - p.size.w) {
+        // Already at (or past) the mouse when it settled (a slow frame): once more.
+        if (tries < 3 && moved.x > wait.x - p.size.w * 2) {
           await app.answer("Done");
           continue;
         }
