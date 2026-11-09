@@ -380,8 +380,11 @@ if (process.platform === "win32") {
     const hand = await grab();
     const dragSince = Date.now();
     const p0 = await app.pet();
-    // Carried: the pet hangs under the cursor.
-    const to = { x: hand.x + (hand.x < p0.area.x + p0.area.w / 2 ? 200 : -200), y: hand.y - 150 };
+    // Carried: the pet hangs under the cursor. Taken near one side of the screen, so the
+    // fling (toward the far side) has room: from the middle it could reach the far wall,
+    // and the cat would climb it and jump back off, landing behind where it was let go.
+    const nearLeft = hand.x < p0.area.x + p0.area.w / 2;
+    const to = { x: p0.area.x + p0.area.w * (nearLeft ? 0.2 : 0.8), y: hand.y - 150 };
     await mouse.glide(hand, to, 500);
     await app.sleep(2500);
     // Held up, it doesn't react to the hand as to a hovering mouse (pet.hover-off).
@@ -391,7 +394,7 @@ if (process.platform === "win32") {
     assert.ok(Math.abs(p.x - to.x) <= 3, `x follows: ${p.x} vs ${to.x}`);
     assert.ok(Math.abs(p.y - (to.y + p.size.h * 0.85)) <= 3, `hangs below the hand: ${p.y} vs ${to.y}`);
     // Flung sideways and up.
-    const dir = to.x < p.area.x + p.area.w / 2 ? 1 : -1;
+    const dir = nearLeft ? 1 : -1;
     const flick = { x: to.x + dir * 120, y: to.y - 40 };
     await mouse.glide(to, flick, 60, 4);
     await mouse.up();
