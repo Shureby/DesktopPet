@@ -313,6 +313,11 @@ body.demo .demo-help a {
   box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.25);
   z-index: 2;
 }
+/* `display: grid` would override the hidden attribute: hidden means gone (it sits where the
+   bubble does and would take its clicks). */
+.hw-card[hidden] {
+  display: none;
+}
 .hw-card::after {
   content: "";
   position: absolute;

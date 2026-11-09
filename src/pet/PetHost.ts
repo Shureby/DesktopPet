@@ -1540,7 +1540,7 @@ export class PetHost {
         screens: { ids: this.screens.map((x) => x.id), home: this.home, allowed: this.pet.world.allowed ?? null, visit: this.visit, homing: this.homing },
         hidden: this.hidden,
         /** The hardware card's rows while it shows, and the last hardware alert said. */
-        hwCard: this.hwCard.hidden ? null : [...this.hwCard.querySelectorAll(".hw-row")].map((el) => ({ text: [...el.children].map((c) => c.textContent).join(" "), level: el.className.replace("hw-row", "").trim() })),
+        hwCard: getComputedStyle(this.hwCard).display === "none" ? null : [...this.hwCard.querySelectorAll(".hw-row")].map((el) => ({ text: [...el.children].map((c) => c.textContent).join(" "), level: el.className.replace("hw-row", "").trim() })),
         hwAlert: this.lastHwAlert,
         hearts: this.hearts,
         petVisible: this.petVisible,

@@ -183,7 +183,7 @@ if (process.platform === "win32") {
     await app.sleep(500);
     const at = Date.now();
     await hoverPet();
-    await app.until(() => !document.getElementById("hw").hidden, [], 3000);
+    await app.until(() => getComputedStyle(document.getElementById("hw")).display !== "none", [], 3000);
     const took = Date.now() - at;
     assert.ok(took >= 300, `appears after a moment (${took} ms)`);
     let card = (await app.pet()).hwCard;
@@ -208,20 +208,20 @@ if (process.platform === "win32") {
     // Resting on it past 2 s: a reaction, but no line over the card.
     await app.sleep(2500);
     assert.equal(await app.bubble(), null, "no hover line while the card is up");
-    assert.equal(await app.b.execute(() => document.getElementById("hw").hidden), false);
+    assert.equal(await app.b.execute(() => getComputedStyle(document.getElementById("hw")).display === "none"), false);
     // Something said (a click: petting) comes first; the card is back after it.
     await app.b.execute(() => window.__epet.care("pet"));
     await app.until(() => !document.getElementById("bubble").hidden, [], 5000);
-    assert.equal(await app.b.execute(() => document.getElementById("hw").hidden), true, "the card waits while it talks");
+    assert.equal(await app.b.execute(() => getComputedStyle(document.getElementById("hw")).display === "none"), true, "the card waits while it talks");
     await app.until(() => document.getElementById("bubble").hidden, [], 8000);
-    await app.until(() => !document.getElementById("hw").hidden, [], 3000);
+    await app.until(() => getComputedStyle(document.getElementById("hw")).display !== "none", [], 3000);
     await away();
-    await app.until(() => document.getElementById("hw").hidden, [], 3000);
+    await app.until(() => getComputedStyle(document.getElementById("hw")).display === "none", [], 3000);
     // Nothing ticked: no card at all.
     await app.setSettings((st) => ({ ...st, hardware: { ...st.hardware, show: [] } }));
     await hoverPet();
     await app.sleep(1500);
-    assert.equal(await app.b.execute(() => document.getElementById("hw").hidden), true, "no card with nothing ticked");
+    assert.equal(await app.b.execute(() => getComputedStyle(document.getElementById("hw")).display === "none"), true, "no card with nothing ticked");
     await away();
     await app.setSettings((st) => ({ ...st, hardware: { ...st.hardware, show: ["cpu", "memory", "network"] } }));
     await app.b.execute(() => window.__epet.pretendHardware(null));

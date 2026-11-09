@@ -27,6 +27,10 @@ affected items' `rev` to the new version so the online checklist asks for a rete
   the mouse there gets a hop or a ♥, not a line over the card. Anything it says (a click,
   a ring, a question) comes first: the card waits until the bubble goes.
 
+### Fixed
+- **The hardware card stayed on screen after the mouse left** (0.64.0): it was only marked
+  hidden. It now goes, and no longer takes clicks meant for a ringing alarm's buttons.
+
 ## [0.64.0] - 2026-11-09
 
 ### Added
