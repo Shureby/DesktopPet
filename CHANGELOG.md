@@ -16,6 +16,17 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.64.1] - 2026-11-09
+
+### Changed
+- **The hardware card stays put**: it now shows where the speech bubble goes, over the
+  pet's head (drawn like the bubble, its tail on the pet, shifted at a screen edge, under
+  the feet at the top of the screen), and grows upward with what's ticked. Beside the pet
+  it ran into the bubble and jumped above it. The network is one row: “↓ 18 KB/s / ↑ 39 KB/s”.
+- **Under the card the pet keeps quiet**: resting the mouse on it, stroking it or leaving
+  the mouse there gets a hop or a ♥, not a line over the card. Anything it says (a click,
+  a ring, a question) comes first: the card waits until the bubble goes.
+
 ## [0.64.0] - 2026-11-09
 
 ### Added

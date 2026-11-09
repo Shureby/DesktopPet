@@ -2,7 +2,8 @@ import type { Pet } from "../characters/Pet";
 
 export type PetEvent =
   | { type: "greet" }
-  | { type: "petted" }
+  /** `quiet`: a stroke under the hardware card, a hop without a line. */
+  | { type: "petted"; quiet?: boolean }
   /** The user got something done (to-do, focus session, game). */
   | { type: "praise" }
   | { type: "thrown"; speed: number }

@@ -64,7 +64,8 @@ describe("[hw.card] the hover card", () => {
 
   it("shows the ticked items in order, usage and temperature of a chip on one row", () => {
     const rows = cardRows(r, S({ show: ["cpu", "cpuTemp", "memory", "network"] }));
-    expect(rows.map((x) => `${x.label} ${x.value}`)).toEqual(["CPU 97% · 92℃", "Memory 50%", "↓ 1.3 MB/s", "↑ 56 KB/s"]);
+    expect(rows.map((x) => `${x.label} ${x.value}`.trim())).toEqual(["CPU 97% · 92℃", "Memory 50%", "↓ 1.3 MB/s / ↑ 56 KB/s"]);
+    expect(rows[2].span).toBe(true);
     expect(rows[0].level).toBe("hot");
     expect(rows[1].level).toBe("");
   });

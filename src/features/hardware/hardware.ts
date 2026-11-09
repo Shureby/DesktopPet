@@ -164,6 +164,8 @@ export interface CardRow {
   label: string;
   value: string;
   level: HwLevel;
+  /** One value across the whole row, no label (the network: "↓ 18 KB/s / ↑ 39 KB/s"). */
+  span?: boolean;
 }
 
 const worse = (a: HwLevel, b: HwLevel): HwLevel => (a === "hot" || b === "hot" ? "hot" : a || b);
@@ -179,7 +181,7 @@ function limitLevel(v: number, limit: number): HwLevel {
 
 /**
  * The card's rows for the ticked items, in order. Usage and temperature of the same chip
- * share a row ("CPU 37% · 62℃"); the network has a row each way. Something this computer
+ * share a row ("CPU 37% · 62℃"); the network is one row ("↓ 18 KB/s / ↑ 39 KB/s"). Something this computer
  * can't read shows "—".
  */
 export function cardRows(r: HwReading, s: HardwareSettings): CardRow[] {
@@ -252,8 +254,7 @@ export function cardRows(r: HwReading, s: HardwareSettings): CardRow[] {
       }
       case "network": {
         const n = r.network;
-        rows.push({ item, label: "↓", value: n ? formatRate(n.down) : DASH, level: "" });
-        rows.push({ item, label: "↑", value: n ? formatRate(n.up) : DASH, level: "" });
+        rows.push({ item, label: "", value: n ? `↓ ${formatRate(n.down)} / ↑ ${formatRate(n.up)}` : `↓ ${DASH} / ↑ ${DASH}`, level: "", span: true });
         break;
       }
       case "battery": {

@@ -79,7 +79,10 @@ export class RulesBrain implements Brain {
         break;
       case "react":
         this.needs.boredom = Math.max(0, this.needs.boredom - 0.3);
-        if (pet.rng() < 0.5) {
+        // Under the hardware card: a hop, not a line (it would cover the card).
+        if (pet.hushed) {
+          if (!busy) pet.fsm.set("happy", true);
+        } else if (pet.rng() < 0.5) {
           pet.say("noticedHappy", {}, 2500);
           if (!busy) pet.fsm.set("happy", true);
         } else pet.say("noticed", {}, 2500);
@@ -87,7 +90,7 @@ export class RulesBrain implements Brain {
       case "release":
       case "leave":
         pet.attending = false;
-        if (e.phase === "release") pet.say("release", {}, 2500);
+        if (e.phase === "release" && !pet.hushed) pet.say("release", {}, 2500);
         if (pet.state === "attend") pet.fsm.set(pet.next(), true);
         break;
     }
@@ -102,7 +105,7 @@ export class RulesBrain implements Brain {
       case "petted":
         this.needs.boredom = 0;
         // Now and then a warmer line, for variety.
-        pet.say(pet.rng() < 0.3 ? "adoring" : "petted", {}, 2500);
+        if (!e.quiet) pet.say(pet.rng() < 0.3 ? "adoring" : "petted", {}, 2500);
         if (!busy) pet.fsm.set("happy", true);
         break;
       case "praise":

@@ -13,9 +13,9 @@ Code: `src/brain/hover.ts` (the rules and their numbers, `HOVER`), `RulesBrain.o
 | # | When | The pet… |
 |---|---|---|
 | 1 | The mouse comes to rest on it | **Stops** (brakes, it doesn't freeze), turns to face the cursor and waits (`attend`). If it is jumping, pouncing, climbing or gliding, it stops once it lands. |
-| 2 | The mouse has rested on it for 2 s | **Reacts once** per hover: half the time it hops happily and says `noticedHappy`; otherwise it says `noticed` ("Mrrp?"). |
-| 3 | After that, the mouse moves over it | That is **stroking**, the same as a click: a "♥" floats up, a hop and a `petted` line (now and then `adoring`). At most once every 1.5 s. |
-| 4 | The mouse stays still on it for 8 s | The pet **goes on** with its day (`release`, "I'll be around."). It won't stop again until the mouse leaves and comes back. |
+| 2 | The mouse has rested on it for 2 s | **Reacts once** per hover: half the time it hops happily and says `noticedHappy`; otherwise it says `noticed` ("Mrrp?"). With the hardware card up (anything ticked, the default), just the hop. |
+| 3 | After that, the mouse moves over it | That is **stroking**: a "♥" floats up, a hop and a `petted` line (now and then `adoring`); under the hardware card, no line. At most once every 1.5 s. |
+| 4 | The mouse stays still on it for 8 s | The pet **goes on** with its day (`release`, "I'll be around."; silently under the hardware card). It won't stop again until the mouse leaves and comes back. |
 
 Limits and reasons:
 
@@ -822,15 +822,24 @@ full. Code: `src/features/hardware/hardware.ts` (settings, the card's rows, when
 and `src-tauri/src/hardware/` (the readings). Tests: `hardware.test.ts`,
 `e2e/hardware.test.mjs`, `hw.card` in `e2e/mouse.test.mjs`.
 
-- **The hover card.** With the mouse on the pet (where the hearts were), after about half
-  a second a small card shows the ticked items, refreshed every second; it goes when the
-  mouse leaves. Nothing is read otherwise: the card costs nothing while you're not looking.
+- **The hover card.** With the mouse on the pet, after about half a second a card shows
+  the ticked items, refreshed every second; it goes when the mouse leaves. Nothing is read
+  otherwise: the card costs nothing while you're not looking.
+  - **It goes where the speech bubble goes** (since 0.64.1), drawn like it: above the
+    head, shifted to stay on screen with its tail on the pet, under the feet when there's
+    no room above. More items make it taller upward; it never moves aside. (In 0.64.0 it
+    stood beside the pet, and taller than the pet it ran into the bubble and jumped above
+    it: a card beside a small pet can't hold eleven items.)
+  - **The bubble comes first.** Anything the pet says (a click, a ring, a question, an
+    alert) hides the card until the bubble goes; with the mouse still there it comes back.
+  - **Under the card the mouse gets hops and hearts, not lines** (hover rules 2–4): a
+    hover line would hide the card it came to see. With nothing ticked the lines are back.
   - Ticked at first: CPU usage, memory usage, network ↓/↑. Settings → Hardware ticks any
     of: CPU usage, CPU frequency, CPU temperature, fan speed, memory usage, GPU usage, GPU
     temperature, video memory, system disk free space, network, battery. None ticked: no
     card.
-  - A chip's usage and temperature share a row ("CPU 37% · 62℃"); the network has a row
-    each way.
+  - A chip's usage and temperature share a row ("CPU 37% · 62℃"); the network is one row
+    ("↓ 18 KB/s / ↑ 39 KB/s").
   - Colours: orange near a limit (90% of an alert's limit; usage from 80%), red over it
     (usage from 95%; the disk under its limit, the battery at it unplugged).
   - Something this computer can't read shows "—".
@@ -1371,7 +1380,8 @@ once added it's theirs to change or delete.
       mouse leaves both, which is enough to cross over at an angle.
     - The last line is always a verb: "Open the Alarms tab", "Mark as seen", "Dismiss".
 - **The hardware card only shows with the cursor on the pet itself,** not on its badges or
-  bubble. There you're after the alarm or the focus session, not the computer.
+  bubble. There you're after the alarm or the focus session, not the computer. It takes
+  the bubble's place over the head ("Hardware"), so the badges keep their side.
 - **The pet window is 340 px wide** (since 0.15.0), so badges beside the pet fit. A badge
   that is still too long ends in "…" rather than being cut off.
 - **At the edge of the screen** (since 0.19.1), nothing by the pet is cut off:
@@ -1380,10 +1390,7 @@ once added it's theirs to change or delete.
     - They go back right only with 40 px to spare (`BADGE_FLIP_SLACK`), so a pet walking
       along the edge doesn't make them flicker.
     - They never move while the mouse is on a badge or its info box.
-  - **The hardware card takes the side the badges don't use.** If that side is off screen
-    too, it goes above the pet's head (above the bubble, if one shows). The badges come
-    first: they are what you act on.
-  - **The speech bubble and the info box shift to stay on screen.** The bubble's tail
+  - **The speech bubble, the hardware card and the info box shift to stay on screen.** The bubble's tail
     keeps pointing at the pet.
   - What counts as "on screen" is the work area the pet is in (`visibleRange`). The pet
     window itself is centred on the pet and can hang off the edge.

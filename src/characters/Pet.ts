@@ -45,6 +45,11 @@ export class Pet {
   cursor: { x: number; y: number } | null = null;
   /** The mouse is resting on the pet and it has stopped for you (`attend` state). */
   attending = false;
+  /**
+   * The hardware card is up over its head (the mouse on it): what the mouse makes it do
+   * stays a hop or a heart, without a line that would cover the card.
+   */
+  hushed = false;
   /** A board game's window it sits on while you play (see board.ts); null otherwise. */
   board: BoardPerch | null = null;
   /** Destination for the `goto` state. */

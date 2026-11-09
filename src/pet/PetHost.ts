@@ -877,30 +877,19 @@ export class PetHost {
     // Never wider than what's visible: a long badge ends in "…" instead of being cut off.
     this.badges.style.maxWidth = `${Math.max(40, left ? leftSpace : rightSpace)}px`;
 
-    // The hardware card takes the other side; if that is off screen too, above the pet's head
-    // (above the bubble, if one shows).
-    const mw = this.hwCard.offsetWidth;
-    const mh = this.hwCard.offsetHeight;
-    let meterSide = !left ? (leftSpace >= mw ? "left" : "above") : rightSpace >= mw ? "right" : "above";
-    // Taller than the pet, the card beside it would reach into the bubble: then above that.
-    let noRoom = false;
-    if (!this.bubble.hidden && meterSide !== "above") {
-      const b = this.bubble.getBoundingClientRect();
-      const x0 = meterSide === "left" ? f.x - halfW - 4 - mw : f.x + halfW + 4;
-      if (f.y - 2 - mh < b.bottom && x0 < b.right && x0 + mw > b.left) meterSide = "above";
-    }
-    this.hwCard.dataset.side = meterSide;
-    if (meterSide === "above") {
-      const top = this.bubble.hidden ? f.y - spriteH - 4 : this.bubble.getBoundingClientRect().top - 4;
-      noRoom = top - mh < 0;
-      this.hwCard.style.left = `${Math.max(vis.left + 2 + mw / 2, Math.min(f.x, vis.right - 2 - mw / 2))}px`;
-      this.hwCard.style.top = `${top}px`;
-    } else {
-      this.hwCard.style.left = `${meterSide === "left" ? f.x - halfW - 4 : f.x + halfW + 4}px`;
-      this.hwCard.style.top = `${f.y - 2}px`;
-    }
+    // The hardware card is where the bubble goes, and placed the same way (docs/INTERACTIONS.md,
+    // "Hardware"): above the head, shifted to stay on screen with its tail on the pet, under
+    // the feet when there's no room above. It grows upward with what's ticked, so it never
+    // has to jump aside; anything the bubble says comes first (the card waits).
+    const cw = this.hwCard.offsetWidth;
+    const cx = Math.max(vis.left + 2 + cw / 2, Math.min(f.x, vis.right - 2 - cw / 2));
+    this.hwCard.style.left = `${cw ? cx : f.x}px`;
+    const cardBelow = f.y - spriteH - 8 - this.hwCard.offsetHeight < 0;
+    this.hwCard.classList.toggle("below", cardBelow);
+    this.hwCard.style.top = `${cardBelow ? f.y + 8 : f.y - spriteH - 8}px`;
+    this.hwCard.style.setProperty("--tail", `${Math.max(-(cw / 2 - 12), Math.min(cw / 2 - 12, f.x - cx))}px`);
     this.renderBadges();
-    this.hwCard.hidden = !this.overSprite || !!this.drag || !this.hwRows || noRoom;
+    this.hwCard.hidden = !this.hwShowing();
   }
 
   /**
@@ -1091,21 +1080,34 @@ export class PetHost {
     setTimeout(() => void tick(), 400);
   }
 
+  /** The card shows while the mouse is on the pet, when it has rows and the bubble is quiet. */
+  private hwShowing(): boolean {
+    return this.overSprite && !this.drag && this.hwRows > 0 && this.bubble.hidden && !this.hidden;
+  }
+
+  /** The card is up, or about to be (the mouse on the pet, something ticked): hover lines keep quiet. */
+  private hwHushed(): boolean {
+    return this.overSprite && this.settings.hardware.show.length > 0;
+  }
+
   private renderHwCard(): void {
     const rows = this.hwLast ? cardRows(this.hwLast, this.settings.hardware) : [];
     this.hwRows = rows.length;
     this.hwCard.replaceChildren(
       ...rows.map((row) => {
         const el = document.createElement("div");
-        el.className = `hw-row ${row.level}`.trim();
+        el.className = ["hw-row", row.level, row.span ? "span" : ""].filter(Boolean).join(" ");
         el.dataset.item = row.item;
-        const label = document.createElement("span");
-        label.className = "hw-label";
-        label.textContent = row.label;
         const value = document.createElement("span");
         value.className = "hw-value";
         value.textContent = row.value;
-        el.append(label, value);
+        if (row.span) el.append(value);
+        else {
+          const label = document.createElement("span");
+          label.className = "hw-label";
+          label.textContent = row.label;
+          el.append(label, value);
+        }
         return el;
       }),
     );
@@ -1283,6 +1285,8 @@ export class PetHost {
       if (c) this.pet.facing = c.x > this.pet.body.x ? 1 : -1;
       this.pet.fsm.set("alert", true);
     }
+    // The hardware card over its head: the mouse gets hops and hearts, not lines.
+    this.pet.hushed = this.hwHushed();
     const events = this.hover.update(performance.now(), {
       over,
       cursor,
@@ -1299,7 +1303,7 @@ export class PetHost {
     });
     for (const e of events) {
       this.logHover(e.type);
-      if (e.type === "stroke") this.care({ label: "", kind: "pet" });
+      if (e.type === "stroke") this.care({ label: "", kind: "pet" }, this.pet.hushed);
       else this.pet.react({ type: "hover", phase: e.type });
     }
   }
@@ -1648,8 +1652,8 @@ export class PetHost {
   // --- Care & feedback -----------------------------------------------------
 
   /** Petting (a click, a stroke or the menu): a heart, a happy hop and a purr. */
-  private care(_action: CareAction): void {
-    this.pet.react({ type: "petted" });
+  private care(_action: CareAction, quiet = false): void {
+    this.pet.react({ type: "petted", quiet });
     if (this.settings.sound && this.preset().sounds) sounds.pop();
     this.showHeart();
   }

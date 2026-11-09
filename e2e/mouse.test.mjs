@@ -172,7 +172,7 @@ if (process.platform === "win32") {
   /** Floor of the work area (physical px). */
   const floor = (p) => p.area.y + p.area.h;
 
-  check("hw.card", "on the pet: after about half a second, CPU, memory and network (the defaults), every second; a bubble doesn't cover it; gone when the mouse leaves", async () => {
+  check("hw.card", "on the pet: after about half a second, over its head (where the bubble goes) CPU, memory and network on one row (the defaults), every second; resting on it gets a hop, not a line; anything said comes first; gone when the mouse leaves", async () => {
     const app = ctx.app;
     const GB = 1024 ** 3;
     await app.b.execute(
@@ -190,24 +190,31 @@ if (process.platform === "win32") {
     assert.deepEqual(card, [
       { text: "CPU 97%", level: "hot" },
       { text: "Memory 50%", level: "" },
-      { text: "↓ 1.3 MB/s", level: "" },
-      { text: "↑ 56 KB/s", level: "" },
+      { text: "↓ 1.3 MB/s / ↑ 56 KB/s", level: "span" },
     ]);
+    // Over its head, its tail on the pet.
+    const placed = await app.b.execute(() => {
+      const c = document.getElementById("hw").getBoundingClientRect();
+      return { bottom: c.bottom, left: c.left, right: c.right };
+    });
+    const p0 = await app.pet();
+    const headTop = (p0.y - p0.origin.y) / p0.dpr - p0.size.h / p0.dpr;
+    assert.ok(placed.bottom <= headTop + 10, `above the head: card bottom ${placed.bottom}, head ${headTop}`);
     // Kept current while the mouse stays.
     await app.b.execute(() => window.__epet.pretendHardware({ cpu: 12 }));
     await app.b.waitUntil(async () => (await app.pet()).hwCard?.[0]?.text === "CPU 12%", { timeout: 3000, interval: 200 });
     card = (await app.pet()).hwCard;
     assert.equal(card[1].text, "Memory —", "what can't be read says —");
-    // With something said: the card and the bubble don't overlap (the card goes above it, or
-    // steps aside while there's no room).
+    // Resting on it past 2 s: a reaction, but no line over the card.
+    await app.sleep(2500);
+    assert.equal(await app.bubble(), null, "no hover line while the card is up");
+    assert.equal(await app.b.execute(() => document.getElementById("hw").hidden), false);
+    // Something said (a click: petting) comes first; the card is back after it.
     await app.b.execute(() => window.__epet.care("pet"));
     await app.until(() => !document.getElementById("bubble").hidden, [], 5000);
-    const overlap = await app.b.execute(() => {
-      const a = document.getElementById("hw").getBoundingClientRect();
-      const b = document.getElementById("bubble").getBoundingClientRect();
-      return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-    });
-    assert.equal(overlap, false, "the bubble covers the card");
+    assert.equal(await app.b.execute(() => document.getElementById("hw").hidden), true, "the card waits while it talks");
+    await app.until(() => document.getElementById("bubble").hidden, [], 8000);
+    await app.until(() => !document.getElementById("hw").hidden, [], 3000);
     await away();
     await app.until(() => document.getElementById("hw").hidden, [], 3000);
     // Nothing ticked: no card at all.
@@ -259,8 +266,10 @@ if (process.platform === "win32") {
     await away();
   }, { timeout: 120_000 });
 
-  check("pet.hover-release", "a cursor left still on it for 8 s: it says a line and goes on; it doesn't stop again for that cursor", async () => {
+  check("pet.hover-release", "a cursor left still on it for 8 s: it says a line (no hardware card ticked) and goes on; it doesn't stop again for that cursor", async () => {
     const app = ctx.app;
+    // With the hardware card up it would only hop (hw.card): the line needs it off.
+    await app.setSettings((st) => ({ ...st, hardware: { ...st.hardware, show: [] } }));
     await away();
     await app.sleep(2500);
     const since = await hoverPet();
@@ -276,6 +285,7 @@ if (process.platform === "win32") {
       return p.state !== "attend" || Math.abs(p.x - p0.x) > 5;
     }, { timeout: 20_000, interval: 300 });
     await away();
+    await app.setSettings((st) => ({ ...st, hardware: { ...st.hardware, show: ["cpu", "memory", "network"] } }));
   }, { timeout: 60_000 });
 
   check("pet.hover-stop", "walking, it stops under a resting mouse and turns to it", async () => {
