@@ -197,7 +197,8 @@ if (process.platform === "win32") {
     await app.b.waitUntil(async () => (await app.pet()).hwCard?.[0]?.text === "CPU 12%", { timeout: 3000, interval: 200 });
     card = (await app.pet()).hwCard;
     assert.equal(card[1].text, "Memory —", "what can't be read says —");
-    // With something said: the card and the bubble don't overlap.
+    // With something said: the card and the bubble don't overlap (the card goes above it, or
+    // steps aside while there's no room).
     await app.b.execute(() => window.__epet.care("pet"));
     await app.until(() => !document.getElementById("bubble").hidden, [], 5000);
     const overlap = await app.b.execute(() => {

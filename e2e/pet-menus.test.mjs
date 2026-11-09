@@ -33,10 +33,12 @@ check("pet.care", "petting it from the menu: a ♥ floats up and it hops happily
   await reset();
   const menu = texts(await app.menu("pet"));
   assert.ok(!menu.some((t) => /Feed|corn|worm/.test(t)), menu.join(" / "));
-  const care = menu.find((t) => /Stroke|Scratch|Rub|Pat|Pet the/.test(t));
-  assert.ok(care, menu.join(" / "));
+  assert.ok(/Stroke|Scratch|Rub|Pat|Pet the/.test(menu[0]), menu.join(" / "));
+  // A few more menus: a way of petting each time (picked at random), never feeding.
+  for (let i = 0; i < 5; i++) assert.doesNotMatch(texts(await app.menu("pet"))[0], /Feed|corn|worm/);
   const before = (await app.pet()).hearts;
-  await app.run("pet", care);
+  // Its label is picked again each time the menu is built: the care item, as clicked.
+  await app.b.execute(() => window.__epet.care("pet"));
   await app.until(() => [...document.querySelectorAll(".gain")].some((g) => g.textContent === "♥"), [], 3000);
   const p = await app.pet();
   assert.equal(p.hearts, before + 1);

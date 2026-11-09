@@ -880,10 +880,19 @@ export class PetHost {
     // The hardware card takes the other side; if that is off screen too, above the pet's head
     // (above the bubble, if one shows).
     const mw = this.hwCard.offsetWidth;
-    const meterSide = !left ? (leftSpace >= mw ? "left" : "above") : rightSpace >= mw ? "right" : "above";
+    const mh = this.hwCard.offsetHeight;
+    let meterSide = !left ? (leftSpace >= mw ? "left" : "above") : rightSpace >= mw ? "right" : "above";
+    // Taller than the pet, the card beside it would reach into the bubble: then above that.
+    let noRoom = false;
+    if (!this.bubble.hidden && meterSide !== "above") {
+      const b = this.bubble.getBoundingClientRect();
+      const x0 = meterSide === "left" ? f.x - halfW - 4 - mw : f.x + halfW + 4;
+      if (f.y - 2 - mh < b.bottom && x0 < b.right && x0 + mw > b.left) meterSide = "above";
+    }
     this.hwCard.dataset.side = meterSide;
     if (meterSide === "above") {
       const top = this.bubble.hidden ? f.y - spriteH - 4 : this.bubble.getBoundingClientRect().top - 4;
+      noRoom = top - mh < 0;
       this.hwCard.style.left = `${Math.max(vis.left + 2 + mw / 2, Math.min(f.x, vis.right - 2 - mw / 2))}px`;
       this.hwCard.style.top = `${top}px`;
     } else {
@@ -891,7 +900,7 @@ export class PetHost {
       this.hwCard.style.top = `${f.y - 2}px`;
     }
     this.renderBadges();
-    this.hwCard.hidden = !this.overSprite || !!this.drag || !this.hwRows;
+    this.hwCard.hidden = !this.overSprite || !!this.drag || !this.hwRows || noRoom;
   }
 
   /**

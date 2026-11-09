@@ -14,13 +14,15 @@ const GB = 1024 ** 3;
 const pretend = (reading) => ctx.app.b.execute((r) => window.__epet.pretendHardware(r), reading);
 const pretendBusy = (busy) => ctx.app.invoke("pretend_busy", { busy });
 
-async function reset(mode = "normal") {
+async function reset(mode = "normal", alerts = {}) {
   const app = ctx.app;
   await app.toPet();
   await pretendBusy(null);
+  // Nothing over a limit while the settings change (a change looks again).
+  await pretend({});
   await app.setSettings((s) => {
     s.modes = { ...s.modes, choice: mode, override: null };
-    s.hardware = { show: ["cpu", "memory", "network"], alerts: {}, limits: { cpuTemp: 90, gpuTemp: 85, memory: 90, disk: 5, battery: 15 }, unit: "C", every: 60 };
+    s.hardware = { show: ["cpu", "memory", "network"], alerts, limits: { cpuTemp: 90, gpuTemp: 85, memory: 90, disk: 5, battery: 15 }, unit: "C", every: 60 };
     return s;
   });
   await app.answer("Got it").catch(() => {});
@@ -74,12 +76,12 @@ check("hw.alerts", "far over a limit the pet says so at once (“Got it” only)
   await app.answer("Got it");
   // Quiet mode: nothing.
   await reset("quiet");
+  await app.b.waitUntil(async () => (await app.pet()).reminderMode.mode === "quiet", { timeout: 5000 });
   await pretend({ battery: { percent: 3, plugged: false } });
   await app.sleep(4000);
   assert.equal((await app.pet()).hwAlert, "memory");
   // An alert turned off: nothing either.
-  await reset();
-  await app.setSettings((s) => ({ ...s, hardware: { ...s.hardware, alerts: { battery: false } } }));
+  await reset("normal", { battery: false });
   await pretend({ battery: { percent: 3, plugged: false } });
   await app.sleep(4000);
   assert.equal((await app.pet()).hwAlert, "memory");
