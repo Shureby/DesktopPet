@@ -78,7 +78,17 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: npm ci
       # Website ("direct") build: signed installers once signing secrets are configured.
-      - run: npx tauri build
+      # Bundling downloads WiX and NSIS from GitHub releases, which now and then answer 504:
+      # tried again (the compiled app is reused, so a retry only re-bundles).
+      - name: Build
+        shell: bash
+        run: |
+          for i in 1 2 3 4; do
+            npx tauri build && exit 0
+            echo "::warning::tauri build failed (try $i); trying again in $((i * 60)) s"
+            sleep $((i * 60))
+          done
+          exit 1
       - uses: actions/upload-artifact@v4
         with:
           name: direct-Windows
