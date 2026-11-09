@@ -41,21 +41,22 @@ if (process.platform === "win32") {
 
   /**
    * Puts the cursor on the pet (it may be walking: tried until the pet notices) and leaves
-   * it there; returns when that was (Date.now()).
+   * it there; returns when that was (Date.now()). Up a wall or in the air it's tried again
+   * once it's down (a climb can take a while).
    */
   async function hoverPet() {
     const app = ctx.app;
-    for (let i = 0; i < 10; i++) {
+    const until = Date.now() + 20_000;
+    while (Date.now() < until) {
       const since = Date.now();
       const p = await app.pet();
-      if (p.grounded && p.state !== "drag") {
+      if (p.grounded && p.state !== "drag" && p.state !== "climb") {
         const at = onPet(p);
         await mouse.move(at.x, at.y);
         await app.sleep(400);
-        const ev = await hoverEvents(since);
-        if (ev.includes("attend") || ev.includes("dodge")) return since;
-      }
-      await away();
+        if ((await hoverEvents(since)).includes("attend")) return since;
+        await away();
+      } else await app.sleep(300);
     }
     throw new Error(`the pet didn't notice the mouse (state ${(await app.pet()).state})`);
   }
