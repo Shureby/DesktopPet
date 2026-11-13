@@ -45,7 +45,7 @@ function cross(s: State, r = rng()): void {
   step(s, HOLD + 0.01, r);
 }
 
-describe("[cross.board] the board", () => {
+describe("[cross.levels] the board", () => {
   it("is the goal, three river lanes, a safe strip, four road lanes, a safe strip and the start", () => {
     const kinds = Array.from({ length: ROWS }, (_, r) => rowKind(r));
     expect(kinds).toEqual(["goal", "river", "river", "river", "safe", "road", "road", "road", "road", "safe", "safe"]);
@@ -144,7 +144,7 @@ describe("[cross.move] hopping", () => {
   });
 });
 
-describe("[cross.score] lives, time and the score", () => {
+describe("[cross.lives] lives, time and the score", () => {
   it("scores the level's number for each new row, and the seconds left × the level at the goal", () => {
     const s = calm(newGame("normal", "cute", rng()));
     move(s, "up");
