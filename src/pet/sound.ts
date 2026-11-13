@@ -303,3 +303,64 @@ export function playAnswerSound(kind: "right" | "wrong", volume: number): void {
     play([{ f: 233, to: 165, at: 0, dur: 0.32, wave: "square", gain: 0.35 }], volume);
   }
 }
+
+/** Pet Crossing's sounds (src/features/games/crossing), each well under a second but the last two. */
+export type CrossingSound = "start" | "hop" | "bump" | "splash" | "timeup" | "tick" | "level" | "over" | "cleared";
+
+const CROSSING_SOUNDS: Record<CrossingSound, Note[]> = {
+  // Off we go: two quick notes up.
+  start: [
+    { f: 523, at: 0, dur: 0.09 },
+    { f: 784, at: 0.09, dur: 0.16 },
+  ],
+  // A hop: a short blip sliding up.
+  hop: [{ f: 520, to: 820, at: 0, dur: 0.07, wave: "sine", gain: 0.5 }],
+  // Bumped: a low thud with a buzz on top.
+  bump: [
+    { f: 190, to: 70, at: 0, dur: 0.22, wave: "square", gain: 0.4 },
+    { f: 95, to: 50, at: 0, dur: 0.28, wave: "sine", gain: 0.9 },
+  ],
+  // Into the river: a plop falling away, and two small bubbles.
+  splash: [
+    { f: 620, to: 110, at: 0, dur: 0.26, wave: "sine", gain: 0.8 },
+    { f: 880, to: 1320, at: 0.2, dur: 0.07, wave: "sine", gain: 0.35 },
+    { f: 1040, to: 1560, at: 0.3, dur: 0.07, wave: "sine", gain: 0.3 },
+  ],
+  // Time's up: three notes down, like a clock running out.
+  timeup: [
+    { f: 660, at: 0, dur: 0.12, wave: "square", gain: 0.3 },
+    { f: 523, at: 0.13, dur: 0.12, wave: "square", gain: 0.3 },
+    { f: 392, at: 0.26, dur: 0.3, wave: "square", gain: 0.3 },
+  ],
+  // The last five seconds, one a second.
+  tick: [{ f: 1320, at: 0, dur: 0.05, wave: "square", gain: 0.2, hold: true }],
+  // At the goal: up the chord.
+  level: [
+    { f: C5, at: 0, dur: 0.1 },
+    { f: E5, at: 0.09, dur: 0.1 },
+    { f: G5, at: 0.18, dur: 0.1 },
+    { f: C6, at: 0.27, dur: 0.32 },
+  ],
+  // Game over: slowly down.
+  over: [
+    { f: 392, at: 0, dur: 0.28 },
+    { f: 330, at: 0.26, dur: 0.28 },
+    { f: 262, at: 0.52, dur: 0.3 },
+    { f: 196, at: 0.8, dur: 0.7 },
+  ],
+  // All twenty levels: a little fanfare.
+  cleared: [
+    { f: C5, at: 0, dur: 0.12, wave: "square", gain: 0.35 },
+    { f: C5, at: 0.14, dur: 0.12, wave: "square", gain: 0.35 },
+    { f: C5, at: 0.28, dur: 0.12, wave: "square", gain: 0.35 },
+    { f: E5, at: 0.42, dur: 0.2, wave: "square", gain: 0.35 },
+    { f: G5, at: 0.64, dur: 0.2, wave: "square", gain: 0.35 },
+    { f: C6, at: 0.86, dur: 0.7, wave: "square", gain: 0.35 },
+    { f: E6, at: 0.86, dur: 0.7, gain: 0.5 },
+  ],
+};
+
+export function playCrossingSound(id: CrossingSound, volume: number): void {
+  logSound({ kind: "crossing", id, volume });
+  play(CROSSING_SOUNDS[id], volume);
+}

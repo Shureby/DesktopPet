@@ -286,3 +286,19 @@
   font-weight: 700;
   text-align: center;
 }
+
+/* ♪ and 🔔 in the head: struck through when off. */
+.xg .t24-icon.off {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+.xg-switches {
+  display: flex;
+  gap: 22px;
+}
+.xg-start {
+  gap: 11px;
+}
+.xg-start .xg-chips button {
+  padding: 5px 13px;
+}

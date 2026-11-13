@@ -212,6 +212,11 @@ const zhTW: Dictionary = {
     "Office": "辦公室",
     "Slacking spot": "摸魚位",
     "Random": "隨機",
+    "Music: on": "音樂：開",
+    "Music: off": "音樂：關",
+    "Sound effects: on": "音效：開",
+    "Sound effects: off": "音效：關",
+    "Sound effects": "音效",
     "Tic-tac-toe": "井字棋",
     "Classic, vanishing (three pieces each) or ultimate (nine boards in one) against your pet, or two players at one computer.":
       "經典、消失棋（每人最多三子）或超級井字棋（九盤合一），和寵物下，或兩個人在一台電腦上對下。",

@@ -31,6 +31,10 @@ affected items' `rev` to the new version so the online checklist asks for a rete
     and remembered. Themes: Cute (toys and cushions), Traffic (cars and logs), Office
     (reports flying, chairs and carts sliding; the goal is the slacking spot), or Random
     (another one each level).
+  - Sound effects (hops, bumps, a splash, the last seconds ticking, a level done, a
+    fanfare after level 20) and music (each theme its piece: the music-box waltz, Ode to
+    Joy, Canon in D), each switched on the start screen or with ♪ / 🔔 in the window's
+    head.
   - It pauses when you click another window, minimize it, or the pet has to ring or ask
     (it comes out to do it), and counts “3, 2, 1” before going on.
 

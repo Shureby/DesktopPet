@@ -22,13 +22,20 @@ import {
   type Dir,
   type State,
   type ThemeChoice,
+  type ThemeId,
 } from "./logic";
 import { drawBoard, THEME, themeName } from "./themes";
 
 export interface Options {
   level: Level;
   theme: ThemeChoice;
+  /** Sound effects, and the music behind the game (each theme its own piece). */
+  sounds: boolean;
+  music: boolean;
 }
+
+/** What is heard (src/pet/sound.ts, CrossingSound). */
+export type Sound = "start" | "hop" | "bump" | "splash" | "timeup" | "tick" | "level" | "over" | "cleared";
 
 /** After a pause, the game is back after "3, 2, 1". */
 export const RESUME_MS = 3000;
@@ -49,7 +56,9 @@ export interface Hooks {
   close(): void;
   minimize(): void;
   onTop(on: boolean): void;
-  sound(kind: "right" | "wrong"): void;
+  sound(kind: Sound): void;
+  /** The music of a theme from now on (null: none). */
+  music(theme: ThemeId | null): void;
 }
 
 const OPTIONS_KEY = "epet-crossing-options";
@@ -105,6 +114,11 @@ export class Crossing {
   private readonly themeEl = h("span", {});
   private readonly bestEl = h("span", {});
   private readonly pauseBtn = h("button", { class: "t24-icon xg-pause", onclick: () => this.togglePause() }, "⏸");
+  private readonly musicBtn = h("button", { class: "t24-icon xg-music", onclick: () => this.setOptions({ music: !this.options.music }) }, "♪");
+  private readonly soundBtn = h("button", { class: "t24-icon xg-sound", onclick: () => this.setOptions({ sounds: !this.options.sounds }) }, "🔔");
+  /** The music playing now (a theme's), and the second last ticked. */
+  private playing: ThemeId | null = null;
+  private ticked = 0;
 
   constructor(
     private readonly root: HTMLElement,
@@ -134,18 +148,43 @@ export class Crossing {
   private loadOptions(): Options {
     try {
       const o = JSON.parse(this.hooks.load(OPTIONS_KEY) ?? "{}") as Partial<Options>;
-      return { level: parseLevel(o.level), theme: parseTheme(o.theme) };
+      return { level: parseLevel(o.level), theme: parseTheme(o.theme), sounds: o.sounds !== false, music: o.music !== false };
     } catch {
-      return { level: "normal", theme: "cute" };
+      return { level: "normal", theme: "cute", sounds: true, music: true };
     }
   }
 
-  /** Picked on the start screen (kept for the next games). */
+  /** Picked on the start screen, or ♪ / 🔔 in the head (kept for the next games). */
   setOptions(patch: Partial<Options>): void {
+    const lanes = "level" in patch || "theme" in patch;
     this.options = { ...this.options, ...patch };
     this.hooks.store(OPTIONS_KEY, JSON.stringify(this.options));
-    if (this.screen === "start") this.state = newGame(this.options.level, this.options.theme, this.rng);
-    this.renderOverlay();
+    if (lanes && this.screen === "start") this.state = newGame(this.options.level, this.options.theme, this.rng);
+    this.toggles();
+    if (lanes || this.screen === "start") this.renderOverlay();
+  }
+
+  private sound(kind: Sound): void {
+    if (this.options.sounds) this.hooks.sound(kind);
+  }
+
+  /** The music follows the game: the level's theme while it's played, none while it waits. */
+  private syncMusic(): void {
+    const want = this.options.music && this.screen === "play" && !this.paused ? this.state.theme : null;
+    if (want === this.playing) return;
+    this.playing = want;
+    this.hooks.music(want);
+  }
+
+  private toggles(): void {
+    const set = (b: HTMLElement, on: boolean, text: string) => {
+      b.classList.toggle("off", !on);
+      b.setAttribute("aria-pressed", String(on));
+      b.title = text;
+      b.setAttribute("aria-label", text);
+    };
+    set(this.musicBtn, this.options.music, this.options.music ? t("Music: on") : t("Music: off"));
+    set(this.soundBtn, this.options.sounds, this.options.sounds ? t("Sound effects: on") : t("Sound effects: off"));
   }
 
   // --- Playing -------------------------------------------------------------------
@@ -161,6 +200,7 @@ export class Crossing {
     this.hop.t = 1;
     this.anim.play("idle");
     this.hooks.onTop(true);
+    this.sound("start");
     this.renderOverlay();
   }
 
@@ -185,9 +225,12 @@ export class Crossing {
     this.hop = { dx: from.x - s.x, dy: from.row - s.row, t: 0 };
     if (events.includes("level")) {
       this.say(t("Level {n} done! +{bonus}", { n: s.level, bonus: Math.ceil(s.time) * s.level }), true);
-      this.hooks.sound("right");
+      this.sound("level");
       this.play("happy");
-    } else this.play("jump");
+    } else {
+      this.sound("hop");
+      this.play("jump");
+    }
   }
 
   private play(anim: string): void {
@@ -207,18 +250,23 @@ export class Crossing {
     for (const e of step(s, dt, this.rng)) {
       if (e === "died") {
         this.say(this.causeLine(s.cause), false);
-        this.hooks.sound("wrong");
+        this.sound(s.cause === "time" ? "timeup" : s.cause === "fell" ? "splash" : "bump");
         this.play("alert");
       } else if (e === "respawn") {
         this.hop.t = 1;
         this.anim.play("idle");
       } else if (e === "over") this.over(false);
       else if (e === "cleared") {
+        this.sound("cleared");
         this.screen = "cleared";
         this.hooks.cleared();
         this.renderOverlay();
       }
     }
+    // The last five seconds tick.
+    const secs = Math.ceil(s.time);
+    if (s.phase === "playing" && secs <= 5 && secs > 0 && secs !== this.ticked) this.sound("tick");
+    this.ticked = secs;
     // The hop over (or a new level begun): it stands again.
     if (s.phase === "playing" && this.hop.t >= 1 && this.anim.current !== "idle") this.anim.play("idle");
   }
@@ -226,6 +274,7 @@ export class Crossing {
   private over(cleared: boolean): void {
     const s = this.state;
     this.screen = "over";
+    if (!cleared) this.sound("over");
     this.newBest = s.score > this.best;
     this.best = Math.max(this.best, s.score);
     this.hooks.finished(s.score, s.level, cleared || s.endless);
@@ -323,6 +372,7 @@ export class Crossing {
       const el = this.overlay.querySelector(".t24-pause-count");
       if (el) el.textContent = String(Math.max(1, Math.ceil((this.paused.resumeAt - now) / 1000)));
     }
+    this.syncMusic();
     this.draw(now);
     this.hud(now);
     requestAnimationFrame((n) => this.frame(n));
@@ -408,10 +458,13 @@ export class Crossing {
       { class: "t24-head", "data-tauri-drag-region": "" },
       h("strong", { "data-tauri-drag-region": "" }, t("Pet Crossing")),
       h("span", { class: "grow", "data-tauri-drag-region": "" }),
+      this.musicBtn,
+      this.soundBtn,
       this.pauseBtn,
       h("button", { class: "t24-icon", title: t("Minimize (pauses the game)"), "aria-label": t("Minimize (pauses the game)"), onclick: () => this.minimize() }, "–"),
       h("button", { class: "t24-icon", title: t("Close"), "aria-label": t("Close"), onclick: () => this.hooks.close() }, "×"),
     );
+    this.toggles();
     this.pauseBtn.title = t("Pause (Esc)");
     this.pauseBtn.setAttribute("aria-label", t("Pause (Esc)"));
     const hud = h(
@@ -462,6 +515,7 @@ export class Crossing {
     const s = this.state;
     const name = this.hooks.name;
     let view: HTMLElement | null = null;
+    const onOff = (v: "on" | "off") => (v === "on" ? t("On") : t("Off"));
     if (this.screen === "start") {
       view = h(
         "div",
@@ -470,6 +524,12 @@ export class Crossing {
         h("p", {}, t("{name} hops up one cell at a time: dodge what moves along the road, ride what slides along the river, and reach the goal at the top before the time runs out.", { name })),
         this.chips(t("Difficulty"), "level", LEVELS, this.options.level, levelName, (level) => this.setOptions({ level })),
         this.chips(t("Theme"), "theme", THEME_CHOICES, this.options.theme, (c) => t(themeName(c)), (theme) => this.setOptions({ theme })),
+        h(
+          "div",
+          { class: "xg-switches" },
+          this.chips(t("Music"), "music", ["on", "off"] as const, this.options.music ? "on" : "off", onOff, (v) => this.setOptions({ music: v === "on" })),
+          this.chips(t("Sound effects"), "sounds", ["on", "off"] as const, this.options.sounds ? "on" : "off", onOff, (v) => this.setOptions({ sounds: v === "on" })),
+        ),
         h("button", { class: "primary xg-go", onclick: () => this.start() }, t("Start")),
         h("p", { class: "t24-fine" }, t("Three lives. Each level is faster; after level {n} it asks about endless levels.", { n: LAST_LEVEL })),
       );
@@ -545,6 +605,7 @@ export class Crossing {
       cause: s.cause,
       best: this.best,
       banner: performance.now() < this.banner.until ? this.banner.text : "",
+      music: this.playing,
       cell: this.cell,
     };
   }

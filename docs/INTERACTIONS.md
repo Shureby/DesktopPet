@@ -845,6 +845,15 @@ pet's menu ("Play Pet Crossing") or the Games tab.
     - Office: reports and minutes fly across the floor, chairs and carts slide down the
       corridor; goal "Slacking spot".
     - Random: another one each level ("Theme: Random → Office").
+- **Sound** (all made by the app, as the ringtones; nothing plays with Settings → Sound
+  off): on the start screen, Music On | Off and Sound effects On | Off (both on at
+  first, remembered); ♪ and 🔔 in the window's head switch them at any time.
+  - Sound effects: a start, each hop, a bump, a fall into the river, the time running
+    out, a tick for each of the last five seconds, a level done, the game over, and a
+    fanfare after level 20.
+  - Music: each theme has its piece, from the anniversaries' merry ones (Cute: the
+    music-box waltz; Traffic: Ode to Joy; Office: Canon in D), round and round while the
+    game is played; none on the start screen, while paused, or after the game.
 - **Lives, time, score:** three lives for the whole game. A mishap, or the time for the
   level running out ("Time's up! −1 life"), costs one: the pet blinks where it happened,
   then starts the level again with the clock full. The third ends the game.

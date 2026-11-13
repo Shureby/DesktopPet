@@ -2,14 +2,43 @@ import { loadBundled, loadUser } from "../../../characters/registry";
 import { characterName } from "../../../characters/text";
 import { SpriteAtlas } from "../../../engine/sprites";
 import { followLocale } from "../../../i18n/apply";
-import { playAnswerSound } from "../../../pet/sound";
+import { pieceById } from "../../../celebrate/music";
+import { playCrossingSound, playMusic } from "../../../pet/sound";
 import { backend } from "../../../platform";
 import { watchErrors } from "../../../platform/errors";
 import { followTestClock } from "../../../platform/testClock";
 import "../../../styles/twenty-four.css";
 import "../../../styles/crossing.css";
 import { Crossing } from "./game";
-import type { Dir } from "./logic";
+import type { Dir, ThemeId } from "./logic";
+
+/** Each theme's music: pieces the anniversaries have (src/celebrate/music.ts), the merry ones. */
+const MUSIC: Record<ThemeId, string> = { cute: "waltz", traffic: "ode", office: "canon" };
+const MUSIC_VOLUME = 0.3;
+/** A piece is scheduled this long at a time, and again from its start when that's over (pieces divide 60 s). */
+const MUSIC_ROUND = 60;
+
+/** Plays a theme's piece round and round until told otherwise. */
+function musicBox(allowed: () => boolean) {
+  let stop: (() => void) | null = null;
+  let again = 0;
+  const halt = () => {
+    clearTimeout(again);
+    stop?.();
+    stop = null;
+  };
+  const round = (id: string) => {
+    const piece = pieceById(id);
+    if (!piece) return;
+    // (Two seconds over: the fade at its end is under the next round's start.)
+    stop = playMusic(piece, MUSIC_ROUND + 2, MUSIC_VOLUME);
+    again = window.setTimeout(() => round(id), MUSIC_ROUND * 1000);
+  };
+  return (theme: ThemeId | null) => {
+    halt();
+    if (theme && allowed()) round(MUSIC[theme]);
+  };
+}
 
 /** This window, in the app (absent in a plain browser). */
 async function appWindow() {
@@ -68,8 +97,9 @@ async function main() {
     minimize: () => void win?.minimize(),
     onTop: (on) => void win?.setAlwaysOnTop(on),
     sound: (kind) => {
-      if (settings.sound) playAnswerSound(kind, 0.6);
+      if (settings.sound) playCrossingSound(kind, 0.6);
     },
+    music: musicBox(() => settings.sound),
   });
   await backend.on("board-pause", (p) => game.busy(p.reason));
   await backend.on("settings", (s) => {

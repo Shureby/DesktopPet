@@ -56,10 +56,10 @@ check("cross.open", "Play Pet Crossing opens a small window on its start screen 
   const app = ctx.app;
   const s = await open();
   assert.equal(s.screen, "start");
-  assert.deepEqual(s.options, { level: "normal", theme: "cute" });
+  assert.deepEqual(s.options, { level: "normal", theme: "cute", sounds: true, music: true });
   const [w, h] = await app.b.execute(() => [window.innerWidth, window.innerHeight]);
   assert.ok(w <= 480 && h <= 760 && h > w, `a small upright window: ${w}×${h}`);
-  assert.match(await app.text(".xg-start"), /Pet Crossing.*Cat hops up one cell at a time.*Difficulty.*Easy.*Normal.*Won't go easy.*Theme.*Cute.*Traffic.*Office.*Random.*Start/s);
+  assert.match(await app.text(".xg-start"), /Pet Crossing.*Cat hops up one cell at a time.*Difficulty.*Easy.*Normal.*Won't go easy.*Theme.*Cute.*Traffic.*Office.*Random.*Music.*On.*Off.*Sound effects.*On.*Off.*Start/s);
   // What the keys do, under the board.
   assert.match(await app.text(".xg-keys"), /move \(back too\).*Space.*forward.*Esc.*pause/s);
   assert.match(await app.text(".xg-pad .up"), /W \/ Space/);
@@ -78,11 +78,11 @@ check("cross.start", "the start screen: difficulty and theme are picked there an
   await app.click(".xg-chips button[data-level=easy]");
   await app.click(".xg-chips button[data-theme=office]");
   let s = await game();
-  assert.deepEqual(s.options, { level: "easy", theme: "office" });
+  assert.deepEqual([s.options.level, s.options.theme], ["easy", "office"]);
   assert.equal(s.theme, "office", "the board behind shows it");
   await close();
   s = await open();
-  assert.deepEqual(s.options, { level: "easy", theme: "office" }, "remembered");
+  assert.deepEqual([s.options.level, s.options.theme], ["easy", "office"], "remembered");
   assert.equal(await app.b.execute(() => document.querySelector(".xg-chips button.selected[data-level]").dataset.level), "easy");
   await key("Space");
   s = await game();
@@ -295,5 +295,62 @@ check("cross.pause", "Esc (or ⏸) pauses: the clock and the lanes stop, nothing
     await hook("restore");
     await until((n) => n.paused === null, 8000);
   }
+  await close();
+}, { timeout: 120_000 });
+
+check("cross.sound", "sounds for a start, a hop, a bump, a level done and the game's end; each theme's music plays while the game is played and stops while it's paused or over; Music and Sound effects are switched on the start screen or with ♪ and 🔔 in the head, and remembered", async () => {
+  const app = ctx.app;
+  await open();
+  const heard = async () => {
+    await game();
+    return app.b.execute(() => window.__epetSounds.splice(0).map((s) => `${s.kind}:${s.id ?? s.piece}`));
+  };
+  await heard();
+  await begin();
+  await key("ArrowUp");
+  await until((s) => s.music === "cute");
+  assert.deepEqual(await heard(), ["crossing:start", "music:waltz", "crossing:hop"]);
+  // Paused: the music stops; on again after "3, 2, 1".
+  await key("Escape");
+  await until((s) => s.music === null);
+  assert.deepEqual(await heard(), ["music-stop:waltz"]);
+  await key("Escape");
+  await until((s) => s.paused === null && s.music === "cute", 6000);
+  assert.deepEqual(await heard(), ["music:waltz"]);
+  // The goal, and the next level.
+  await cross();
+  assert.ok((await heard()).includes("crossing:level"));
+  await until((s) => s.level === 2 && s.phase === "playing");
+  // A bump, and the end.
+  await hook("rig", { road: "wall", lives: 1 });
+  await key("ArrowUp");
+  await key("ArrowUp");
+  await until((s) => s.screen === "over");
+  const end = await heard();
+  assert.ok(end.includes("crossing:bump") && end.includes("crossing:over") && end.includes("music-stop:waltz"), end.join());
+  // Another theme, another piece.
+  await app.click(".xg-settings");
+  await app.click(".xg-chips button[data-theme=office]");
+  await begin();
+  await until((s) => s.music === "office");
+  assert.ok((await heard()).includes("music:canon"));
+  // ♪ off: it stops, and stays off; 🔔 off: no more sounds.
+  await app.click(".xg-music");
+  await until((s) => s.music === null);
+  assert.equal(await app.b.execute(() => document.querySelector(".xg-music").getAttribute("aria-label")), "Music: off");
+  await app.click(".xg-sound");
+  await heard();
+  await key("ArrowUp");
+  await app.sleep(300);
+  assert.deepEqual(await heard(), []);
+  await close();
+  const s = await open();
+  assert.deepEqual([s.options.music, s.options.sounds], [false, false], "remembered");
+  assert.equal(await app.b.execute(() => document.querySelector(".xg-chips button.selected[data-music]").dataset.music), "off");
+  // Back on (and Cute) for the tests after this one.
+  await app.click(".xg-chips button[data-music=on]");
+  await app.click(".xg-chips button[data-sounds=on]");
+  await app.click(".xg-chips button[data-theme=cute]");
+  assert.deepEqual((await game()).options, { level: "normal", theme: "cute", sounds: true, music: true });
   await close();
 }, { timeout: 120_000 });
