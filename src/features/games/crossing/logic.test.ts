@@ -91,16 +91,18 @@ describe("[cross.levels] the board", () => {
 });
 
 describe("[cross.move] hopping", () => {
-  it("goes one cell each way, back too, and stays on the board", () => {
+  it("goes a row up or back, half a cell sideways, and stays on the board", () => {
     const s = calm(newGame("normal", "cute", rng()));
     expect(move(s, "down")).toEqual([]);
     expect(move(s, "up")).toEqual(["hop"]);
     expect(s.row).toBe(START_ROW - 1);
     move(s, "down");
     expect(s.row).toBe(START_ROW);
+    move(s, "left");
+    expect(s.x).toBe(3.5);
     for (let i = 0; i < 12; i++) move(s, "left");
     expect(s.x).toBe(0);
-    for (let i = 0; i < 12; i++) move(s, "right");
+    for (let i = 0; i < 20; i++) move(s, "right");
     expect(s.x).toBe(COLS - 1);
   });
 
@@ -108,8 +110,9 @@ describe("[cross.move] hopping", () => {
     const lane: Lane = { kind: "road", dir: 1, speed: 0, width: 1, count: 3, gap: 3, offset: 0, looks: [] };
     expect(touches(lane, 0)).toBe(true);
     expect(touches(lane, 0.5)).toBe(true);
-    // A little forgiving at the edges.
-    expect(touches(lane, 0.8)).toBe(false);
+    // Drawn, they overlap before it counts: a little apart is safe.
+    expect(touches(lane, 0.6)).toBe(false);
+    expect(touches(lane, -0.6)).toBe(false);
     expect(touches(lane, 1)).toBe(false);
     expect(touches(lane, 2)).toBe(false);
     expect(touches(lane, 3)).toBe(true);
@@ -124,9 +127,9 @@ describe("[cross.move] hopping", () => {
     expect(standsOn(lane, 6)).toBe(false);
     expect(step(s, 0.5, rng())).toEqual([]);
     expect(s.x).toBeCloseTo(4.5);
-    // Off the river it stands in a cell again.
+    // Off the river it stands on a half cell again.
     move(s, "down");
-    expect(s.x).toBe(5);
+    expect(s.x).toBe(4.5);
     move(s, "up");
     step(s, 0, rng());
     expect(s.phase).toBe("playing");

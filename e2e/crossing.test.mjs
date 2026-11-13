@@ -105,7 +105,7 @@ check("cross.start", "the start screen: difficulty and theme are picked there an
   await close();
 });
 
-check("cross.move", "arrow keys and W A S D hop one cell (back too), Space hops forward, a held key doesn't run; the pad's buttons do the same; each new row scores the level's number, once", async () => {
+check("cross.move", "arrow keys and W A S D hop a row up or back and half a cell sideways, Space hops forward, a held key doesn't run; the pad's buttons do the same; each new row scores the level's number, once", async () => {
   const app = ctx.app;
   await open();
   await begin();
@@ -116,7 +116,8 @@ check("cross.move", "arrow keys and W A S D hop one cell (back too), Space hops 
   assert.equal((await game()).row, 7, "held: no more hops");
   for (const code of ["ArrowLeft", "KeyA", "ArrowDown", "KeyS", "ArrowRight", "KeyD", "KeyD"]) await key(code);
   s = await game();
-  assert.deepEqual([s.row, s.x, s.score], [9, 5, 3]);
+  // (Sideways: half a cell a hop.)
+  assert.deepEqual([s.row, s.x, s.score], [9, 4.5, 3]);
   // Up the same rows again: nothing more.
   await key("KeyW");
   await key("KeyW");
@@ -130,7 +131,7 @@ check("cross.move", "arrow keys and W A S D hop one cell (back too), Space hops 
   assert.deepEqual([s.row, s.x, s.score], [7, 4, 4]);
   await app.waitText(".xg-score", "4");
   // The edges hold.
-  for (let i = 0; i < 12; i++) await key("KeyA");
+  for (let i = 0; i < 10; i++) await key("KeyA");
   assert.equal((await game()).x, 0);
   await close();
 });

@@ -825,14 +825,16 @@ pet's menu ("Play Pet Crossing") or the Games tab.
   is the desktop pet: it's off the desktop while the game is open (as in Safe Landing).
 - **The board** (9 cells wide, bottom to top): the start, a safe strip, four road lanes, a
   safe strip, three river lanes, the goal (one sign: its picture and name).
-  - **Road:** things move along it; touching one costs a life ("Bumped! −1 life").
+  - **Road:** things move along it; touching one costs a life ("Bumped! −1 life"). It
+    counts only once the two overlap as drawn (the pet is the middle half of its cell, a
+    thing its cell less a fifth at each end; wider before 0.65.1).
   - **River:** things slide along it and the pet must stand on one (it rides along);
     stepping where there's nothing, or being carried off the side, costs a life ("Missed
     your footing! −1 life").
   - Neighbouring lanes run opposite ways; there is always room to pass (two free cells on
     the road) and to stand (two cells or more at the river).
-- **Keys:** arrow keys or W A S D hop one cell, back too (a held key doesn't run); Space
-  hops forward; Esc (or P, or ⏸) pauses. Under the board: a pad laid out as the keys
+- **Keys:** arrow keys or W A S D hop a row up or back, and half a cell sideways (a whole
+  cell before 0.65.1: too far to dodge with); a held key doesn't run; Space hops forward; Esc (or P, or ⏸) pauses. Under the board: a pad laid out as the keys
   (▲ "W / Space" over A ◀, S ▼, D ▶) for the mouse, and what the keys do.
 - **Start screen:** Difficulty (Easy | Normal | Won't go easy; Normal at first) and Theme
   (Cute | Traffic | Office | Random; Cute at first), both remembered; Start (or Space, Enter).

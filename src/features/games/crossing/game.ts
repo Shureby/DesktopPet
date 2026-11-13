@@ -366,7 +366,7 @@ export class Crossing {
     }
     if (this.screen === "play" && !this.paused) {
       this.advance(dt);
-      this.hop.t = Math.min(1, this.hop.t + dt / 0.11);
+      this.hop.t = Math.min(1, this.hop.t + dt / 0.08);
       this.anim.update(dt);
     } else if (this.paused?.resumeAt) {
       const el = this.overlay.querySelector(".t24-pause-count");

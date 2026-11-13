@@ -15,6 +15,8 @@ export const LIVES = 3;
 export const LAST_LEVEL = 20;
 /** How long the pet lies there after a mishap, or cheers at the goal, before the game goes on. */
 export const HOLD = 0.9;
+/** A hop sideways is half a cell (a whole one carried the pet into what it meant to dodge). */
+export const SIDE_STEP = 0.5;
 
 export type RowKind = "goal" | "river" | "safe" | "road";
 
@@ -110,11 +112,15 @@ export function standsOn(lane: Lane, x: number): boolean {
   return false;
 }
 
-/** Whether something on a road lane touches the pet (a little forgiving at the edges). */
+/**
+ * Whether something on a road lane touches the pet. Both count as narrower than their cells
+ * (the pet the middle half of its cell, a thing its cell less a fifth at each end): as drawn,
+ * they overlap before it counts, never the other way round.
+ */
 export function touches(lane: Lane, x: number): boolean {
-  const a = x + 0.16;
-  const b = x + 0.84;
-  for (let i = 0; i < lane.count; i++) for (const ox of itemXs(lane, i)) if (b > ox + 0.1 && a < ox + lane.width - 0.1) return true;
+  const a = x + 0.25;
+  const b = x + 0.75;
+  for (let i = 0; i < lane.count; i++) for (const ox of itemXs(lane, i)) if (b > ox + 0.2 && a < ox + lane.width - 0.2) return true;
   return false;
 }
 
@@ -192,16 +198,16 @@ function die(s: State, cause: Cause): Event[] {
   return ["died"];
 }
 
-/** One hop. A row further up than ever in this level scores the level's number. */
+/** One hop: a row up or down, or half a cell sideways. A row further up than ever in this level scores the level's number. */
 export function move(s: State, dir: Dir): Event[] {
   if (s.phase !== "playing") return [];
   let { x, row } = s;
   if (dir === "up") row--;
   else if (dir === "down") row++;
-  else x += dir === "left" ? -1 : 1;
+  else x += dir === "left" ? -SIDE_STEP : SIDE_STEP;
   row = Math.max(GOAL_ROW, Math.min(START_ROW, row));
-  // Off the river the pet stands in a cell; on it, where it stepped.
-  if (rowKind(row) !== "river") x = Math.round(x);
+  // Off the river the pet stands on a half cell; on it, where it stepped.
+  if (rowKind(row) !== "river") x = Math.round(x / SIDE_STEP) * SIDE_STEP;
   x = Math.max(0, Math.min(COLS - 1, x));
   if (x === s.x && row === s.row) return [];
   s.x = x;

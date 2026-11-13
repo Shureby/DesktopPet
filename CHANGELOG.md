@@ -18,6 +18,11 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [0.65.1] - 2026-11-13
 
+### Changed
+- **Pet Crossing: easier to dodge.** A hop sideways is half a cell (a whole cell carried
+  the pet into what it meant to avoid), and a bump counts only once the pet and the thing
+  overlap as drawn (it counted while they still looked apart).
+
 ### Fixed
 - **Games were silent** with Settings → “Other sounds (petting)” switched off, though
   their own sound switches said on (Pet Crossing's Music and Sound effects; ⚙ in 24 Points
