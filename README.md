@@ -23,7 +23,7 @@ The product name is not final. It lives in one place, [`product.config.json`](pr
 - **Hardware at a glance**: hover the pet for CPU, memory and network (or what you tick: temperatures, fans, GPU, disk, battery), read only while you look. The pet speaks up when the CPU or GPU runs hot, memory or the disk is nearly full, or the battery is low. No drivers.
 - **Reactions, not chores**: petting gets a heart, a hop and a purr; finishing a to-do or a focus session gets praise. No hunger or affection to keep up.
 - **Feedback everywhere**: setting a timer or adding a to-do gets a spoken confirmation. Timers and the focus session show stacked countdown badges next to the pet.
-- **Mini-games: Safe Landing** (games read character *abilities*, so the Rooster glides and the Cat clings to walls) **24 Points** (race the pet, or practise with its hints) and **tic-tac-toe** (you pick how well the pet plays).
+- **Mini-games: Safe Landing** (games read character *abilities*, so the Rooster glides and the Cat clings to walls) **24 Points** (race the pet, or practise with its hints) **tic-tac-toe** (you pick how well the pet plays) and **Pet Crossing** (hop the pet across road and river, level after level; cute, traffic or office themed).
 - **Storefront layer**: Steam, Epic or direct build, chosen with a Cargo feature.
 
 ## Getting started

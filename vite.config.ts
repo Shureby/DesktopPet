@@ -15,6 +15,7 @@ export default defineConfig({
         game: resolve(import.meta.dirname, "game.html"),
         "twenty-four": resolve(import.meta.dirname, "twenty-four.html"),
         "tic-tac-toe": resolve(import.meta.dirname, "tic-tac-toe.html"),
+        crossing: resolve(import.meta.dirname, "crossing.html"),
         celebrate: resolve(import.meta.dirname, "celebrate.html"),
         identify: resolve(import.meta.dirname, "identify.html"),
       },

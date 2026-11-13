@@ -27,6 +27,12 @@ export const GAMES: GameInfo[] = [
     available: true,
   },
   {
+    id: "crossing",
+    name: msg("Pet Crossing"),
+    description: msg("Hop your pet across the road and the river to the goal before the time runs out, level after level, faster each time. Themes: cute, traffic, office."),
+    available: true,
+  },
+  {
     id: "jump-up",
     name: msg("Jump Up"),
     description: msg("Bounce from platform to platform as high as you can, avoiding birds and falling sticky notes."),

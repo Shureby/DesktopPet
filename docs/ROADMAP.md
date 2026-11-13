@@ -513,6 +513,11 @@ much as the whole to-do module. What's worth taking from it is _progress_: to do
 on the board with its own mark, its level by mood or fixed).
 - Tic-tac-toe later: play a paired ePet over Pet Post; the pet inviting you to a game.
 
+~~Pet Crossing~~ shipped in 0.65.0 (the pet crossing road and river, 20 levels then
+endless, themes: cute, traffic, office).
+- Pet Crossing later: more themes; a "slacking off" game of its own in the office
+  (roam, collect, dodge work) rather than a theme.
+
 Also: a taskbar hurdle runner, catching falling food and
 whack-a-bug. Scores earn coins that unlock cosmetics.
 

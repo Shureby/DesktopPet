@@ -16,6 +16,24 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.65.0] - 2026-11-13
+
+### Added
+- **Pet Crossing**, a new mini-game (pet's menu → “Play Pet Crossing”, or the Games tab):
+  the pet hops up the board one cell at a time — past what moves along the road, on what
+  slides along the river — to the goal at the top, before the time for the level runs out.
+  - Arrow keys or W A S D (back too), Space hops forward, Esc pauses; a pad under the
+    board for the mouse.
+  - Three lives; each new row scores the level's number, and the seconds left × the
+    level at the goal. Each level is faster. After level 20 the pet asks about endless
+    levels.
+  - Difficulty (Easy / Normal / Won't go easy) and theme are picked on the start screen
+    and remembered. Themes: Cute (toys and cushions), Traffic (cars and logs), Office
+    (reports flying, chairs and carts sliding; the goal is the slacking spot), or Random
+    (another one each level).
+  - It pauses when you click another window, minimize it, or the pet has to ring or ask
+    (it comes out to do it), and counts “3, 2, 1” before going on.
+
 ## [0.64.1] - 2026-11-09
 
 ### Changed

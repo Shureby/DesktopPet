@@ -61,7 +61,8 @@ Code: `src/pet/menu.ts`. Tests: `pet/menu.test.ts`.
   order and behaviour:
   - Add to-do… / Set alarm… / Set timer ▸ / Cancel timer / Cancel snooze / Start or
     Stop focus session;
-  - Play Safe Landing / Play 24 Points / Switch character ▸;
+  - Play Safe Landing / Play 24 Points / Play tic-tac-toe / Play Pet Crossing /
+    Switch character ▸;
   - Open panel….
 - **The only differences** (plus one exception: during a focus session with the pet hidden,
   the tray leaves out the game; see "Games during a focus session"):
@@ -813,6 +814,52 @@ from the pet's menu ("Play tic-tac-toe") or the Games tab.
   doesn't count); **Resign** gives the game to the other side. Keys: 1–9 for the cells
   (classic, vanishing), Backspace undoes, Enter plays again, Esc closes.
 - A game won against the pet floats a ♥ (as 24 Points) and counts for its score.
+
+## Pet Crossing (since 0.65.0)
+
+The pet hops up a board of lanes to the goal at the top, level after level (the pet's
+take on the frog crossing the road). Code: `src/features/games/crossing/`. Opened from the
+pet's menu ("Play Pet Crossing") or the Games tab.
+- **The window:** small and upright (460 × 740, shorter on a low screen), in the middle of
+  the screen the pet is on; its head drags it, – minimizes, × closes. The pet in the game
+  is the desktop pet: it's off the desktop while the game is open (as in Safe Landing).
+- **The board** (9 cells wide, bottom to top): the start, a safe strip, four road lanes, a
+  safe strip, three river lanes, the goal (one sign: its picture and name).
+  - **Road:** things move along it; touching one costs a life ("Bumped! −1 life").
+  - **River:** things slide along it and the pet must stand on one (it rides along);
+    stepping where there's nothing, or being carried off the side, costs a life ("Missed
+    your footing! −1 life").
+  - Neighbouring lanes run opposite ways; there is always room to pass (two free cells on
+    the road) and to stand (two cells or more at the river).
+- **Keys:** arrow keys or W A S D hop one cell, back too (a held key doesn't run); Space
+  hops forward; Esc (or P, or ⏸) pauses. Under the board: a pad laid out as the keys
+  (▲ "W / Space" over A ◀, S ▼, D ▶) for the mouse, and what the keys do.
+- **Start screen:** Difficulty (Easy | Normal | Won't go easy; Normal at first) and Theme
+  (Cute | Traffic | Office | Random; Cute at first), both remembered; Start (or Space, Enter).
+  - Difficulty sets how fast the lanes are at level 1 and the seconds for a level
+    (55 / 40 / 28). Each level is 7% faster than level 1 (at most three times); the
+    seconds for a level don't shrink.
+  - **Themes** are looks only (same rules), so more can be added (`themes.ts`):
+    - Cute: toys roll across the playroom, cushions float on the pond; goal "Fish nest".
+    - Traffic: cars on the road, logs on the river; goal "Other side".
+    - Office: reports and minutes fly across the floor, chairs and carts slide down the
+      corridor; goal "Slacking spot".
+    - Random: another one each level ("Theme: Random → Office").
+- **Lives, time, score:** three lives for the whole game. A mishap, or the time for the
+  level running out ("Time's up! −1 life"), costs one: the pet blinks where it happened,
+  then starts the level again with the clock full. The third ends the game.
+  - Each row reached for the first time in a level scores the level's number.
+  - At the goal the seconds left × the level are added ("Level 3 done! +87"), and the
+    next level begins.
+- **After level 20** the pet asks: "one more round? Endless levels, faster and faster."
+  "Let's go!" plays on (level 21 · endless, the same lives and score); "Stop here" ends
+  the game ("Well played!"). Getting through level 20 is the achievement.
+- **Game over** shows the level reached, the score and the best ("A new best!"); "Play
+  again" (Space, Enter) or "Change settings" (back to the start screen).
+- **Pausing:** Esc / ⏸, clicking another window, – (minimize), and the pet ringing or
+  asking something (it comes out onto the desktop to do it; "Paused: Cat is ringing").
+  The clock and the lanes stand still. "Continue" (or Esc; back from the taskbar; the
+  ring answered) counts "3, 2, 1" and plays on; "Keep playing" plays on while it rings.
 
 ## Hardware (since 0.64.0)
 

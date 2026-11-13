@@ -1246,7 +1246,8 @@ export const mockBackend: Backend = {
   },
   async openGame(game) {
     const board = game === "twenty-four" || game === "tic-tac-toe";
-    window.open(board ? `${game}.html` : `game.html#${game}`, "desktoppet-game", board ? "width=500,height=700" : undefined);
+    const own = board || game === "crossing";
+    window.open(own ? `${game}.html` : `game.html#${game}`, "desktoppet-game", board ? "width=500,height=700" : own ? "width=460,height=740" : undefined);
     fire("game", { state: "started", game });
   },
   async closeGame() {

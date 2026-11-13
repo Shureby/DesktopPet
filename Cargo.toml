@@ -3,7 +3,7 @@ resolver = "2"
 members = ["src-tauri", "crates/desktoppet-core"]
 
 [workspace.package]
-version = "0.64.1"
+version = "0.65.0"
 edition = "2021"
 license = "UNLICENSED"
 

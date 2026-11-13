@@ -216,8 +216,8 @@ describe("the tray's game while the pet is hidden", () => {
 
   it("is left out during a focus session (there's no pet to ask), and back otherwise", () => {
     expect(games(trayCtx({ petVisible: false, pomodoro: focusing }))).toEqual([]);
-    expect(games(trayCtx({ petVisible: false }))).toEqual(["Play Safe Landing", "Play 24 Points", "Play tic-tac-toe"]);
-    expect(games(trayCtx({ petVisible: true, pomodoro: focusing }))).toEqual(["Play Safe Landing (focusing)", "Play 24 Points (focusing)", "Play tic-tac-toe (focusing)"]);
+    expect(games(trayCtx({ petVisible: false }))).toEqual(["Play Safe Landing", "Play 24 Points", "Play tic-tac-toe", "Play Pet Crossing"]);
+    expect(games(trayCtx({ petVisible: true, pomodoro: focusing }))).toEqual(["Play Safe Landing (focusing)", "Play 24 Points (focusing)", "Play tic-tac-toe (focusing)", "Play Pet Crossing (focusing)"]);
     // The rest of the section stays.
     expect(buildTrayItems(trayCtx({ petVisible: false, pomodoro: focusing })).some((i) => i !== "sep" && i.text === "Switch character")).toBe(true);
   });

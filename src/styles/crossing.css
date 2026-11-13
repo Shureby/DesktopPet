@@ -1,0 +1,288 @@
+/* Pet Crossing (src/features/games/crossing): the board's window, as 24 Points' (twenty-four.css
+   gives the colours, the head and the pause veil). The board itself is drawn bright in both
+   themes (themes.ts). */
+.xg {
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 22px);
+  box-sizing: border-box;
+}
+.xg .t24-head .grow {
+  flex: 1;
+  align-self: stretch;
+}
+.xg-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px 12px;
+}
+
+/* Level, lives, the time left, the score. */
+.xg-hud {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+.xg-level {
+  font-size: 16px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.xg-lives {
+  color: #e5484d;
+  font-size: 18px;
+  letter-spacing: 2px;
+  white-space: nowrap;
+}
+.xg-time {
+  position: relative;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--track);
+  overflow: hidden;
+}
+.xg-timebar {
+  height: 100%;
+  background: #3fbf7f;
+  border-radius: 999px;
+}
+.xg-timebar.warn {
+  background: #f5a524;
+}
+.xg-timebar.bad {
+  background: #e5484d;
+}
+.xg-secs {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+}
+.xg-scorebox {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+}
+.xg-scorebox small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.xg-score {
+  min-width: 3ch;
+  text-align: right;
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.xg-sub {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+  min-height: 16px;
+}
+
+/* The board, and what lies over it. */
+.xg-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+.xg-canvas {
+  display: block;
+  border-radius: 12px;
+}
+.xg-banner {
+  position: absolute;
+  left: 50%;
+  top: 14%;
+  transform: translateX(-50%);
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: rgba(229, 72, 77, 0.94);
+  color: #fff;
+  font-weight: 800;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+}
+.xg-banner.good {
+  background: rgba(34, 139, 84, 0.94);
+}
+.xg-banner.on {
+  opacity: 1;
+}
+.xg-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.xg-overlay.on {
+  display: block;
+}
+.xg-overlay .t24-pause {
+  backdrop-filter: blur(5px);
+}
+.xg-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 20px 26px;
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  backdrop-filter: blur(3px);
+  text-align: center;
+}
+.xg-screen h2 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+}
+.xg-screen p {
+  margin: 0;
+  max-width: 320px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.xg-screen .xg-result {
+  color: var(--fg);
+  font-size: 16px;
+  font-weight: 700;
+}
+.xg-screen .xg-newbest {
+  color: var(--accent-strong);
+  font-weight: 800;
+}
+.xg-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.xg-group-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+.xg-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.xg-chips button {
+  padding: 6px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--fg);
+}
+.xg-chips button.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+.xg-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.xg-screen button.primary,
+.xg-buttons button,
+.xg-overlay .t24-pause button {
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--fg);
+  font-weight: 700;
+}
+.xg-screen button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-size: 16px;
+  min-width: 140px;
+}
+
+/* The pad (as the keys lie: W over A S D) and what the keys do. */
+.xg-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.xg-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 46px);
+  grid-template-rows: repeat(2, 38px);
+  gap: 5px;
+}
+.xg-pad button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 14px;
+}
+.xg-pad button:active {
+  background: var(--accent-soft);
+}
+.xg-pad small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+.xg-pad .up {
+  grid-column: 1 / 4;
+}
+.xg-keys {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: right;
+}
+.xg-keys kbd {
+  display: inline-block;
+  min-width: 16px;
+  margin: 0 1px;
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}

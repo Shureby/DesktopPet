@@ -168,6 +168,11 @@ export function playItems(c: MenuContext): (Item | "sep")[] {
       action: () => c.playGame("tic-tac-toe"),
     },
     {
+      game: true,
+      text: gameHeld(c.settings.pomodoro, c.pomodoro) ? t("Play Pet Crossing (focusing)") : t("Play Pet Crossing"),
+      action: () => c.playGame("crossing"),
+    },
+    {
       text: t("Switch character"),
       items: c.registry.list().map((ch) => ({
         text: characterName(ch.def),

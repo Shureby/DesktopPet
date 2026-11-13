@@ -135,6 +135,13 @@ const BOARD: (f64, f64) = (500.0, 600.0);
 /// The games played on such a board (each its own page, `<game>.html`).
 pub const BOARD_GAMES: [&str; 2] = ["twenty-four", "tic-tac-toe"];
 
+/// Pet Crossing's window (logical px; shorter on a low screen): the pet is in the game, so
+/// nothing stands on it.
+const CROSSING: (f64, f64) = (460.0, 740.0);
+
+/// The games in a window of their own that isn't a board the pet stands on.
+pub const WINDOW_GAMES: [&str; 1] = ["crossing"];
+
 /// Opens a mini-game as a transparent overlay over the work area the pet is on.
 pub fn open_game<R: Runtime>(app: &AppHandle<R>, game: &str) -> tauri::Result<()> {
     if let Some(w) = app.get_webview_window(GAME) {
@@ -149,14 +156,16 @@ pub fn open_game<R: Runtime>(app: &AppHandle<R>, game: &str) -> tauri::Result<()
     // 24 Points and tic-tac-toe are a board in a small window (the pet stands on it); the
     // others cover the work area.
     let board = BOARD_GAMES.contains(&game);
-    let page = if board { format!("{game}.html") } else { format!("game.html#{game}") };
+    // Pet Crossing is a small window too, in the middle of the screen.
+    let own = WINDOW_GAMES.contains(&game);
+    let page = if board || own { format!("{game}.html") } else { format!("game.html#{game}") };
     let mut builder = window(app, GAME, page)
         .title(product_name(app))
         .transparent(true)
         .decorations(false)
         .always_on_top(true)
         // The board can be minimized, so it has a taskbar button to come back from.
-        .skip_taskbar(!board)
+        .skip_taskbar(!(board || own))
         .resizable(false)
         .shadow(false)
         .focused(true);
@@ -178,6 +187,15 @@ pub fn open_game<R: Runtime>(app: &AppHandle<R>, game: &str) -> tauri::Result<()
         let x = (px - BOARD.0 + 60.0).clamp(left, (left + w - BOARD.0).max(left));
         let y = (py - BOARD.1 - 8.0).clamp((top + 130.0).min(top + h - BOARD.1), (top + h - BOARD.1).max(top));
         builder = builder.position(x, y).inner_size(BOARD.0, BOARD.1);
+    } else if let (true, Some(m)) = (own, &monitor) {
+        let wa = m.work_area();
+        let s = m.scale_factor();
+        let (left, top) = (wa.position.x as f64 / s, wa.position.y as f64 / s);
+        let (w, h) = (wa.size.width as f64 / s, wa.size.height as f64 / s);
+        let (gw, gh) = (CROSSING.0.min(w), CROSSING.1.min(h));
+        builder = builder.position(left + (w - gw) / 2.0, top + (h - gh) / 2.0).inner_size(gw, gh);
+    } else if own {
+        builder = builder.inner_size(CROSSING.0, CROSSING.1).center();
     } else if let Some(m) = monitor {
         let wa = m.work_area();
         let s = m.scale_factor();

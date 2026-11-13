@@ -391,6 +391,7 @@ export class PetHost {
       if (g.state === "started" && BOARD_GAMES.includes(g.game)) return void this.startBoard(g.game);
       if (g.state !== "started" && this.board) return void this.endBoard();
       this.gameOn = g.state === "started";
+      this.boardBusy = null;
       this.setHidden(this.gameOn);
     });
     // The board game says what the pet does there and what it says.
@@ -1976,7 +1977,8 @@ export class PetHost {
 
   /** Something needs you while you play: the board game pauses until it's over (checked often). */
   private checkBoardBusy(): void {
-    if (!this.board) return;
+    // (Pet Crossing listens too: the pet is in it, and comes out to ring.)
+    if (!this.board && !this.gameOn) return;
     const reason = this.activeRing ? "ring" : this.celebrating ? "celebrate" : this.asking || this.prompting ? "ask" : null;
     if (reason === this.boardBusy) return;
     this.boardBusy = reason;
