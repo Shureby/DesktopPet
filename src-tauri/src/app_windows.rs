@@ -1,0 +1,428 @@
+//! The pet, panel and game windows.
+
+use serde::Serialize;
+use std::sync::atomic::Ordering;
+
+use tauri::{AppHandle, Emitter, Manager, Runtime, WebviewUrl, WebviewWindowBuilder};
+
+use crate::state::AppState;
+
+pub const PET: &str = "pet";
+pub const PANEL: &str = "panel";
+pub const GAME: &str = "game";
+pub const CELEBRATE: &str = "celebrate";
+
+/// Extra WebView2 arguments asked for through `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS`, as
+/// Edge WebDriver does for the end-to-end tests (it needs `--remote-debugging-port`).
+/// WebView2 ignores that variable once arguments are set in code, and wry always sets
+/// some, so they are passed on here with wry's defaults. All webviews share one WebView2
+/// environment, so every window must get the same; normally this is `None` and nothing changes.
+/// (No switches of our own: in 0.40 Chromium's anti-throttling switches left a blank
+/// msedgewebview2 window on screen.)
+pub fn browser_args() -> Option<String> {
+    let extra = std::env::var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS").ok().filter(|a| !a.trim().is_empty())?;
+    Some(format!(
+        "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --autoplay-policy=no-user-gesture-required {extra}"
+    ))
+}
+
+/// A window builder with [`browser_args`] applied and no background throttling (macOS).
+fn window<'a, R: Runtime>(
+    app: &'a AppHandle<R>,
+    label: &str,
+    url: String,
+) -> WebviewWindowBuilder<'a, R, AppHandle<R>> {
+    let builder = WebviewWindowBuilder::new(app, label, WebviewUrl::App(url.into()))
+        .background_throttling(tauri::utils::config::BackgroundThrottlingPolicy::Disabled);
+    match browser_args() {
+        Some(args) => builder.additional_browser_args(&args),
+        None => builder,
+    }
+}
+
+/// Creates the pet window from its entry in tauri.conf.json (`"create": false` there, so
+/// that [`browser_args`] apply to it too).
+pub fn create_pet<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
+    let mut config =
+        app.config().app.windows.iter().find(|w| w.label == PET).cloned().expect("pet window in tauri.conf.json");
+    config.additional_browser_args = browser_args();
+    // macOS: its timers keep their pace behind a full-screen app too.
+    config.background_throttling = Some(tauri::utils::config::BackgroundThrottlingPolicy::Disabled);
+    WebviewWindowBuilder::from_config(app, &config)?.build()?;
+    Ok(())
+}
+
+#[derive(Clone, Serialize)]
+pub struct GameEvent<'a> {
+    pub state: &'a str,
+    pub game: &'a str,
+}
+
+pub fn product_name<R: Runtime>(app: &AppHandle<R>) -> String {
+    app.config().product_name.clone().unwrap_or_else(|| "Desktop Pet".into())
+}
+
+pub fn open_panel<R: Runtime>(app: &AppHandle<R>, tab: Option<&str>) -> tauri::Result<()> {
+    if let Some(w) = app.get_webview_window(PANEL) {
+        w.show()?;
+        w.unminimize()?;
+        w.set_focus()?;
+        if let Some(tab) = tab {
+            app.emit_to(PANEL, "panel-tab", tab)?;
+        }
+        return Ok(());
+    }
+    let url = match tab {
+        Some(t) => format!("panel.html#{t}"),
+        None => "panel.html".into(),
+    };
+    window(app, PANEL, url)
+        .title(product_name(app))
+        .inner_size(460.0, 640.0)
+        .min_inner_size(440.0, 420.0)
+        .center()
+        .build()?;
+    Ok(())
+}
+
+/// Pet Post, the main window's Pet Post tab (since 0.55.0; it was a window of its own):
+/// with `verify`, showing Verify for that device (by fingerprint); with `tab`, on that tab.
+pub fn open_post<R: Runtime>(app: &AppHandle<R>, verify: Option<&str>, tab: Option<&str>) -> tauri::Result<()> {
+    // A tab, or Chat / Records at a device ("chat=<fingerprint>").
+    let tab = tab.filter(|t| {
+        matches!(*t, "receive" | "send" | "chat" | "history")
+            || t.strip_prefix("chat=")
+                .is_some_and(|fp| !fp.is_empty() && fp.len() <= 128 && fp.chars().all(|c| c.is_ascii_alphanumeric()))
+    });
+    let verify: Option<String> = verify.map(|fp| fp.chars().filter(char::is_ascii_alphanumeric).collect());
+    // The panel shows its Pet Post tab, opened for this (also if it hasn't loaded Pet Post yet).
+    let sub = match (&verify, tab) {
+        (Some(fp), _) => format!("post:verify={fp}"),
+        (None, Some(t)) => format!("post:{t}"),
+        (None, None) => "post".into(),
+    };
+    open_panel(app, Some(&sub))
+}
+
+/// The main window's tab in sight (the panel says so when it changes).
+static PANEL_TAB: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
+
+pub fn set_panel_tab(tab: &str) {
+    *PANEL_TAB.lock().unwrap_or_else(|e| e.into_inner()) = tab.chars().take(20).collect();
+}
+
+/// Whether Pet Post is in sight: the main window open, not minimized, on its Pet Post tab.
+pub fn post_shown<R: Runtime>(app: &AppHandle<R>) -> bool {
+    let on_post = *PANEL_TAB.lock().unwrap_or_else(|e| e.into_inner()) == "post";
+    on_post
+        && app
+            .get_webview_window(PANEL)
+            .is_some_and(|w| w.is_visible().unwrap_or(false) && !w.is_minimized().unwrap_or(false))
+}
+
+/// Draws attention to the main window (Pet Post) if it isn't the one in front.
+pub fn post_attention<R: Runtime>(app: &AppHandle<R>) {
+    if let Some(w) = app.get_webview_window(PANEL) {
+        if !w.is_focused().unwrap_or(true) {
+            let _ = w.request_user_attention(Some(tauri::UserAttentionType::Informational));
+        }
+    }
+}
+
+/// A board game's window (logical px): the board, in a small transparent margin (the pet stands on it).
+const BOARD: (f64, f64) = (500.0, 600.0);
+
+/// The games played on such a board (each its own page, `<game>.html`).
+pub const BOARD_GAMES: [&str; 2] = ["twenty-four", "tic-tac-toe"];
+
+/// Pet Crossing's window (logical px; shorter on a low screen): the pet is in the game, so
+/// nothing stands on it.
+const CROSSING: (f64, f64) = (460.0, 740.0);
+
+/// The games in a window of their own that isn't a board the pet stands on.
+pub const WINDOW_GAMES: [&str; 1] = ["crossing"];
+
+/// Opens a mini-game as a transparent overlay over the work area the pet is on.
+pub fn open_game<R: Runtime>(app: &AppHandle<R>, game: &str) -> tauri::Result<()> {
+    if let Some(w) = app.get_webview_window(GAME) {
+        w.destroy()?;
+    }
+    let pet = app.get_webview_window(PET);
+    let monitor = match &pet {
+        Some(p) => p.current_monitor()?,
+        None => None,
+    }
+    .or(app.primary_monitor()?);
+    // 24 Points and tic-tac-toe are a board in a small window (the pet stands on it); the
+    // others cover the work area.
+    let board = BOARD_GAMES.contains(&game);
+    // Pet Crossing is a small window too, in the middle of the screen.
+    let own = WINDOW_GAMES.contains(&game);
+    let page = if board || own { format!("{game}.html") } else { format!("game.html#{game}") };
+    let mut builder = window(app, GAME, page)
+        .title(product_name(app))
+        .transparent(true)
+        .decorations(false)
+        .always_on_top(true)
+        // The board can be minimized, so it has a taskbar button to come back from.
+        .skip_taskbar(!(board || own))
+        .resizable(false)
+        .shadow(false)
+        .focused(true);
+    if let (true, Some(m)) = (board, &monitor) {
+        // Where the pet was: the board's top right under it, kept inside the work area.
+        let wa = m.work_area();
+        let s = m.scale_factor();
+        let (left, top) = (wa.position.x as f64 / s, wa.position.y as f64 / s);
+        let (w, h) = (wa.size.width as f64 / s, wa.size.height as f64 / s);
+        let (px, py) = match &pet {
+            Some(p) => {
+                let pos = p.outer_position()?;
+                let size = p.outer_size()?;
+                ((pos.x as f64 + size.width as f64 / 2.0) / s, (pos.y as f64 + size.height as f64) / s)
+            }
+            None => (left + w / 2.0, top + h / 2.0),
+        };
+        // Its right end by the pet, just above it, with room above for the pet to sit.
+        let x = (px - BOARD.0 + 60.0).clamp(left, (left + w - BOARD.0).max(left));
+        let y = (py - BOARD.1 - 8.0).clamp((top + 130.0).min(top + h - BOARD.1), (top + h - BOARD.1).max(top));
+        builder = builder.position(x, y).inner_size(BOARD.0, BOARD.1);
+    } else if let (true, Some(m)) = (own, &monitor) {
+        let wa = m.work_area();
+        let s = m.scale_factor();
+        let (left, top) = (wa.position.x as f64 / s, wa.position.y as f64 / s);
+        let (w, h) = (wa.size.width as f64 / s, wa.size.height as f64 / s);
+        let (gw, gh) = (CROSSING.0.min(w), CROSSING.1.min(h));
+        builder = builder.position(left + (w - gw) / 2.0, top + (h - gh) / 2.0).inner_size(gw, gh);
+    } else if own {
+        builder = builder.inner_size(CROSSING.0, CROSSING.1).center();
+    } else if let Some(m) = monitor {
+        let wa = m.work_area();
+        let s = m.scale_factor();
+        builder = builder
+            .position(wa.position.x as f64 / s, wa.position.y as f64 / s)
+            .inner_size(wa.size.width as f64 / s, wa.size.height as f64 / s);
+    } else if board {
+        builder = builder.inner_size(BOARD.0, BOARD.1).center();
+    } else {
+        builder = builder.inner_size(1280.0, 720.0).center();
+    }
+    let window = builder.build()?;
+    window.set_focus()?;
+    if board {
+        // The pet rides along when you drag the board.
+        let handle = app.clone();
+        window.on_window_event(move |e| {
+            if let tauri::WindowEvent::Moved(_) = e {
+                let _ = handle.emit("board-moved", ());
+            }
+        });
+    }
+    app.emit("game", GameEvent { state: "started", game })?;
+    Ok(())
+}
+
+/// An anniversary's fireworks (or candle and flowers): a transparent, click-through window
+/// over the whole monitor the pet is on, closed after the celebration's length.
+/// celebrate.html reads what to play from its URL hash (hex-encoded JSON, so no escaping).
+/// Which celebration window is the latest: one closing after its time leaves a newer one be.
+static CELEBRATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// Closes the celebration's window now (a preview stopped).
+pub fn close_celebration<R: Runtime>(app: &AppHandle<R>) {
+    CELEBRATION.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    if let Some(w) = app.get_webview_window(CELEBRATE) {
+        let _ = w.destroy();
+    }
+}
+
+pub fn open_celebration<R: Runtime>(app: &AppHandle<R>, c: &desktoppet_core::Celebration) -> tauri::Result<()> {
+    let this = CELEBRATION.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
+    if let Some(w) = app.get_webview_window(CELEBRATE) {
+        w.destroy()?;
+    }
+    let pet = app.get_webview_window(PET);
+    let monitor = match &pet {
+        Some(p) => p.current_monitor()?,
+        None => None,
+    }
+    .or(app.primary_monitor()?);
+    let Some(m) = monitor else {
+        return Ok(());
+    };
+    let s = m.scale_factor();
+    let (mx, my) = (m.position().x as f64, m.position().y as f64);
+    // Where the pet stands on that monitor (logical px), for the candle and flowers.
+    let (pet_x, pet_y) = match &pet {
+        Some(p) => {
+            let pos = p.outer_position()?;
+            let size = p.outer_size()?;
+            ((pos.x as f64 + size.width as f64 / 2.0 - mx) / s, (pos.y as f64 + size.height as f64 - my) / s)
+        }
+        None => (m.size().width as f64 / s / 2.0, m.size().height as f64 / s - 40.0),
+    };
+    let payload = serde_json::json!({ "celebration": c, "petX": pet_x, "petY": pet_y });
+    let hex: String = payload.to_string().bytes().map(|b| format!("{b:02x}")).collect();
+    let window = window(app, CELEBRATE, format!("celebrate.html#{hex}"))
+        .title(product_name(app))
+        .transparent(true)
+        .decorations(false)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .resizable(false)
+        .shadow(false)
+        .focused(false)
+        .content_protected(app.state::<AppState>().avoid().protected)
+        // Shown only once clicks pass through it: it must never catch the mouse.
+        .visible(false)
+        .position(mx / s, my / s)
+        .inner_size(m.size().width as f64 / s, m.size().height as f64 / s)
+        .build()?;
+    // Linux (development and the end-to-end tests only) needs the window on screen before
+    // it can ignore the mouse; on Windows and macOS it is shown only once it does.
+    #[cfg(target_os = "linux")]
+    window.show()?;
+    if let Err(e) = window.set_ignore_cursor_events(true) {
+        let _ = window.destroy();
+        return Err(e);
+    }
+    window.show()?;
+    // The pet and its words stay above the effect (both windows are always on top; turning
+    // it off and on again brings the pet to the front of that layer).
+    if let Some(p) = &pet {
+        p.set_always_on_top(false)?;
+        p.set_always_on_top(true)?;
+    }
+    let handle = app.clone();
+    let seconds = c.seconds as u64 + 1;
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_secs(seconds));
+        if CELEBRATION.load(std::sync::atomic::Ordering::SeqCst) != this {
+            return;
+        }
+        if let Some(w) = handle.get_webview_window(CELEBRATE) {
+            let _ = w.destroy();
+        }
+    });
+    Ok(())
+}
+
+pub fn close_game<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
+    if let Some(w) = app.get_webview_window(GAME) {
+        // The Destroyed window event announces that the game ended.
+        w.destroy()?;
+    }
+    Ok(())
+}
+
+/// Shows or hides the pet and announces it ("pet-visibility"), so the tray menu can offer
+/// the opposite. Showing it also makes the pet say hello.
+pub fn set_pet_visible<R: Runtime>(app: &AppHandle<R>, visible: bool) -> tauri::Result<()> {
+    let state = app.state::<AppState>();
+    state.pet_hidden.store(!visible, Ordering::Relaxed);
+    // Shown while out for a reminder: it stays out.
+    state.peeking.store(false, Ordering::Relaxed);
+    // Shown while it stepped aside: it stays out until that's over, and runs back in from
+    // the screen's edge (it shows its window itself, avoid::avoid_show).
+    let back_from_aside = visible && crate::avoid::dismiss(app);
+    if let Some(w) = app.get_webview_window(PET) {
+        if !visible {
+            w.hide()?;
+        } else if !back_from_aside {
+            w.show()?;
+            app.emit_to(PET, "pet-command", "greet")?;
+        }
+        app.emit("pet-visibility", visible)?;
+    }
+    Ok(())
+}
+
+/// The hidden pet (or one that stepped aside) comes out for a reminder: the window is
+/// shown natively (the hidden window's script may be throttled), without announcing a
+/// visibility change, so the tray still offers "Show pet". Returns whether the pet is out of
+/// sight (and so now peeking).
+pub fn peek<R: Runtime>(app: &AppHandle<R>) -> bool {
+    let state = app.state::<AppState>();
+    if !out_of_sight(app) {
+        return false;
+    }
+    if !state.peeking.swap(true, Ordering::Relaxed) {
+        if let Some(w) = app.get_webview_window(PET) {
+            if let Err(e) = w.show() {
+                log::warn!("could not show the pet for a reminder: {e}");
+            }
+        }
+    }
+    true
+}
+
+/// Hidden by the user, or stepped aside (avoid.rs).
+fn out_of_sight<R: Runtime>(app: &AppHandle<R>) -> bool {
+    app.state::<AppState>().pet_hidden.load(Ordering::Relaxed) || crate::avoid::away(app).is_some()
+}
+
+/// The reminder is answered and the pet has walked off: hide it again, unless the user
+/// showed it meanwhile (or what it stepped aside for is over).
+pub fn end_peek<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
+    let state = app.state::<AppState>();
+    if state.peeking.swap(false, Ordering::Relaxed) && out_of_sight(app) {
+        if let Some(w) = app.get_webview_window(PET) {
+            w.hide()?;
+        }
+    }
+    Ok(())
+}
+
+/// Identify: each screen's number, big in the middle of it, for a few seconds (as Windows'
+/// display settings do). `numbers` follows the order of `available_monitors` (the snapshot's).
+pub fn identify_screens<R: Runtime>(app: &AppHandle<R>, numbers: &[String]) -> tauri::Result<()> {
+    let monitors = app.available_monitors()?;
+    let mut labels = Vec::new();
+    for (i, m) in monitors.iter().enumerate() {
+        let Some(n) = numbers.get(i) else { break };
+        let label = format!("identify-{i}");
+        if let Some(w) = app.get_webview_window(&label) {
+            let _ = w.destroy();
+        }
+        let s = m.scale_factor();
+        let side = 240.0;
+        let (x, y) = (
+            m.position().x as f64 / s + (m.size().width as f64 / s - side) / 2.0,
+            m.position().y as f64 / s + (m.size().height as f64 / s - side) / 2.0,
+        );
+        let n: String = n.chars().filter(|c| c.is_alphanumeric()).take(4).collect();
+        let w = window(app, &label, format!("identify.html#{n}"))
+            .title(product_name(app))
+            .transparent(true)
+            .decorations(false)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .resizable(false)
+            .shadow(false)
+            .focused(false)
+            .visible(false)
+            .position(x, y)
+            .inner_size(side, side)
+            .build()?;
+        // Mixed scales: placed again in physical px, on its own monitor.
+        let px = m.size().width as i32 / 2 - (side * s) as i32 / 2;
+        let py = m.size().height as i32 / 2 - (side * s) as i32 / 2;
+        let _ = w.set_position(tauri::PhysicalPosition::new(m.position().x + px, m.position().y + py));
+        // Linux (development and the end-to-end tests) needs it on screen first (as above).
+        #[cfg(target_os = "linux")]
+        w.show()?;
+        let _ = w.set_ignore_cursor_events(true);
+        w.show()?;
+        labels.push(label);
+    }
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(2500));
+        for label in labels {
+            if let Some(w) = handle.get_webview_window(&label) {
+                let _ = w.destroy();
+            }
+        }
+    });
+    Ok(())
+}
