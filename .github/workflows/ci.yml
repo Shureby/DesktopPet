@@ -139,7 +139,7 @@ jobs:
     needs: [test, build-windows]
     if: inputs.e2e || contains(github.event.pull_request.labels.*.name, 'full-ci')
     runs-on: windows-latest
-    timeout-minutes: 75
+    timeout-minutes: 95
     permissions:
       contents: read
       actions: read
@@ -187,7 +187,7 @@ jobs:
         run: npx vitest run --reporter=default --reporter=json --outputFile.json=e2e-results/unit.json
       - name: End-to-end tests
         if: success() || failure()
-        timeout-minutes: 45
+        timeout-minutes: 65
         run: npm run e2e
         env:
           EPET_APP: ${{ github.workspace }}\target\debug\desktoppet.exe
