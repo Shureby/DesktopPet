@@ -16,6 +16,12 @@ affected items' `rev` to the new version so the online checklist asks for a rete
 
 ## [Unreleased]
 
+## [0.65.1] - 2026-11-13
+
+### Fixed
+- **Pet Crossing was silent** with Settings → “Other sounds (petting)” switched off, though
+  its own Music and Sound effects said On. The game's two switches now decide alone.
+
 ## [0.65.0] - 2026-11-13
 
 ### Added

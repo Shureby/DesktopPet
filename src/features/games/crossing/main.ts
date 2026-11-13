@@ -96,15 +96,11 @@ async function main() {
     close: () => void backend.closeGame(),
     minimize: () => void win?.minimize(),
     onTop: (on) => void win?.setAlwaysOnTop(on),
-    sound: (kind) => {
-      if (settings.sound) playCrossingSound(kind, 0.6);
-    },
-    music: musicBox(() => settings.sound),
+    // The game's own two switches decide (not Settings → "Other sounds (petting)").
+    sound: (kind) => playCrossingSound(kind, 0.6),
+    music: musicBox(() => true),
   });
   await backend.on("board-pause", (p) => game.busy(p.reason));
-  await backend.on("settings", (s) => {
-    settings.sound = s.sound;
-  });
   // Back from the taskbar: on again after "3, 2, 1".
   if (win) {
     let minimized = false;

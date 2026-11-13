@@ -845,8 +845,8 @@ pet's menu ("Play Pet Crossing") or the Games tab.
     - Office: reports and minutes fly across the floor, chairs and carts slide down the
       corridor; goal "Slacking spot".
     - Random: another one each level ("Theme: Random → Office").
-- **Sound** (all made by the app, as the ringtones; nothing plays with Settings → Sound
-  off): on the start screen, Music On | Off and Sound effects On | Off (both on at
+- **Sound** (all made by the app, as the ringtones; the game's own switches decide, not
+  Settings → "Other sounds (petting)", since 0.65.1): on the start screen, Music On | Off and Sound effects On | Off (both on at
   first, remembered); ♪ and 🔔 in the window's head switch them at any time.
   - Sound effects: a start, each hop, a bump, a fall into the river, the time running
     out, a tick for each of the last five seconds, a level done, the game over, and a
