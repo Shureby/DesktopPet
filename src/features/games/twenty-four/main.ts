@@ -61,16 +61,13 @@ async function main() {
     close: () => void backend.closeGame(),
     minimize: () => void win?.minimize(),
     onTop: (on) => void win?.setAlwaysOnTop(on),
-    // Settings → "Other sounds" off keeps these quiet too.
-    sound: (kind) => {
-      if (settings.sound) playAnswerSound(kind, 0.6);
-    },
+    // The game's own switch (⚙) decides, not Settings → "Other sounds (petting)".
+    sound: (kind) => playAnswerSound(kind, 0.6),
   });
   await backend.on("board-pause", (p) => game.busy(p.reason));
   // Another character picked meanwhile: its name from now on.
   let character = def.id;
   await backend.on("settings", async (s) => {
-    settings.sound = s.sound;
     if (s.character === character) return;
     character = s.character;
     const next = registry.pick(s.character, "cat").def;

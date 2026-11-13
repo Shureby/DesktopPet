@@ -757,8 +757,8 @@ it by its title bar. Code: `src/features/games/twenty-four/`, the pet's side
   rising "ding-dong"; anything else is red with ✗, a low "boop" and "Makes 22, not 24. Undo
   a step or start over." (↶ Undo a step and ⟲ Start over picked out). A right answer, or
   an answer shown, waits for "Next hand →" (or Enter); timed rounds go on after 1.5 s.
-  The sounds: ⚙ → "Sounds for right and wrong answers" (on), and Settings → "Other
-  sounds". Keys: 1–4 pick a card, + − * / pick a sign, Backspace undoes, Enter goes on,
+  The sounds: ⚙ → "Sounds for right and wrong answers" (on; before 0.65.1 Settings →
+  "Other sounds" had to be on too). Keys: 1–4 pick a card, + − * / pick a sign, Backspace undoes, Enter goes on,
   Esc closes.
 - **Hands.** Any four cards (A = 1, J/Q/K = 11/12/13); a hand is its four numbers, so
   ♥1 2 3 4 and ♠1 2 3 4 are the same hand. A round never repeats a hand, and the last 80
